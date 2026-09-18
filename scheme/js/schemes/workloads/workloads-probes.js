@@ -13,7 +13,7 @@ const BAND_Y = PANEL_B + PANEL_GAP;                      // 276
 // spine (WL.L-07), EndpointSlice right-aligned on WL.R, the pair arrangement
 // workloads-pod-startup-conditions draws. The two never talk to each other, so no top-row lane
 // joins them (A-05): what connects them is the Node between them.
-const TOP1_W = 280, TOP1_X = WL.CX - TOP1_W / 2;         // 460..740
+const TOP1_W = 232, TOP1_X = WL.CX - TOP1_W / 2;         // 484..716, the family actor width
 // EndpointSlice is right-aligned on the NODE FRAME and not on WL.R, so the actor row and the frame
 // share both edges and the content box centres on 600 exactly. Aligned on WL.R instead it reached
 // 1140 against a frame starting at 190 and CENTRE read 665 against a 600 +-40 window.

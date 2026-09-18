@@ -13,6 +13,13 @@ repeated here:
 
 **If a rule stated here would also be true of another category, it belongs in the canon, not here.**
 
+The section order is the one all four folder contracts share, so a reader who knows one knows the
+others: what this file is, the folder, the catalog, the tint, the kit surface, the geometry, the
+escape hooks, the reduced path, the records, the exemplar. **Cluster is the one of the four with no
+closing `Rules of this category only` section**, and that is a placement rather than a gap: every
+`CLU.*` rule sits in the section whose subject it is, and there is nothing left over for a closing
+table to hold.
+
 The rows below carry `CLU.*` ids and are indexed from `scheme/CANON.md`. **The TEXT of a `CLU.*`
 rule lives here and only here**: the canon carries the id and a subject label, never a second copy
 of the rule. Where an id could name two different rules, the FOLDER keeps the id and the canon's
@@ -33,7 +40,7 @@ sentence read better: re-measure, or the assertion goes red.
 | `cluster-kit.js` | the tint, the two pulse wrappers, the `CLU` grammar and the `LAYOUT` presets. Everything else is re-exported from `lib/scheme-kit.js` |
 | `cluster-*.js` | one module per card, 28 of them |
 | `CARDS.md` | the record preamble and its index, and no `## ` heading of its own |
-| `CARDS/<id>.md` | the design record for ONE card, a single `### layout` block of labelled notes and no other heading, which `S-51` states and `test:docs/G1` holds. This category and `workloads/` are the two in the split shape, and `recordFiles` in `test/fixtures/catalog.mjs` reads that shape off the tree rather than off a list of category names |
+| `CARDS/<id>.md` | the design record for ONE card, a single `### layout` block of labelled notes and no other heading, which `S-51` states and `test:docs/G1` holds. This category, `workloads/` and `network/` are the three in the split shape, and `recordFiles` in `test/fixtures/catalog.mjs` reads that shape off the tree rather than off a list of category names, so `storage/` on the monolith is walked by the same code and is not a special case |
 
 Nothing else may live here (`S-20`). A card reaches `./cluster-kit.js` and no further (`S-21`): all
 28 import the kit, 4 also import `lib/svg.js` and 1 `lib/primitives.js`. Those are element
@@ -60,7 +67,7 @@ The order of `SUBCATEGORIES`, and of the cards inside each, is an editorial argu
 reader meets first (`D-10`). It is never alphabetical, and `CARDS.md` indexes the records in that
 same order.
 
-## Colour
+## Tint
 
 ```js
 CLUSTER_TINT = { base: 'rgb(192, 176, 255)', bright: 'rgb(224, 214, 255)' }   // violet
@@ -72,7 +79,7 @@ CLUSTER_TINT = { base: 'rgb(192, 176, 255)', bright: 'rgb(224, 214, 255)' }   //
 |---|---|
 | `CLU.C-01` | The category's CHROME colour (`#7d86ff` indigo, `css/tokens.css`) is a different value for a different job: chrome keys off `data-cat`, diagram elements off `data-role` (`C-15`). Retinting either is `C-22` |
 
-## The kit surface
+## Kit surface
 
 `cluster-kit.js` re-exports the shared list (`S-22`) plus the set every kit adds (`P`, `F`,
 `defineCard`, `POD_VIOLET`, the `lib/layout.js` formulas), and adds `CLUSTER_TINT` with its two
@@ -117,7 +124,7 @@ of the eight build their hooks in a factory: `cluster-node-allocatable`'s `segme
 | `P.raw` | 3 cards, 13 sites | A bare `<rect>` carrying inline `fill`, `stroke` and `width`: `cpu-throttling` x6, a track and a fill bar per CFS period through one `period(i)` factory, where a `P.box` would drag the low content centre off 600 toward the 900 the stack is centred on. Two STACKED `<text>` nodes in one chip group, which no part kind builds: `list-watch-informers` x4 over `SLOT_KEYS`, its watch-event slots. And `image-container-gc` x3 through one `bare()` factory: the imagefs ruler track and its two threshold marks, naked because a `P.box` would carry a label the ruler must not have and a mark is three units wide |
 | `step.enter` | 3 cards, 14 sites | Text and an ATTRIBUTE, on elements the card made itself. `list-watch-informers` x6: `setSlot` writes the `textContent` of BOTH stacked texts on a slot. `cpu-throttling` x6: `setBars` writes `style.width` in px on the three fill rects and `textContent` on the three standing captions, and every step writes every bar, or one left alone reads as a period that behaved differently. `node-allocatable` x2: `setReqWidth` writes the SVG **attribute** `width` on the rect inside `reqBar`, and no field writes a geometry attribute at all (`opacity:` goes to `style.opacity`, a different property) |
 | `F.run` | 1 card, 5 sites | All five on `cpu-throttling`, and only **two are the delay-0 form, which is an escape but not a timer**: `at()` short-circuits on `delay <= 0`, runs the callback inline and registers no timer, so it is an imperative beat standing in flow order, here back-filling the bars to empty under the fill animation. The other **three carry a real delay** (`FILL_MS`, twice it and three times it) and ARE deferred callbacks, which no other category has: no flow verb writes an inline rect width or a standing tag's text, so a bar filling and a caption landing have to be a function. The `cpu.stat` counter that closes the same period does NOT, and that is deliberate: it rides an `F.set` at the same delay, so the animated path ends in a field every reader models |
-| `SCENE.reset.extra` | **0 here.** A reset hook clearing `style.strokeDasharray` on `list-watch-informers`'s watch lane would guard a door that cannot open: `dashed: true` writes the dash as an ATTRIBUTE (`primitives.js:103`) that an inline style never touches. The one `reset.extra` in the catalogue is on `network-pod-ip-and-veth`, where it is live and paired with its `enter` |
+| `SCENE.reset.extra` | **0 here.** A reset hook clearing `style.strokeDasharray` on `list-watch-informers`'s watch lane would guard a door that cannot open: `dashed: true` writes the dash as an ATTRIBUTE (`primitives.js:103`) that an inline style never touches. **0 everywhere else too**: no card in the catalogue declares one today |
 
 **`pod-sandbox-cri`'s `tune` creates a ref no PART declares.** `reset.pods` names `appGroup`, which
 that `tune` builds and no `key:` does. `report/skeleton-census.test.mjs` counts a name landed by an
@@ -127,9 +134,12 @@ before you touch it: a reset key here can be born in a `tune` and not in a part.
 ## The reduced path
 
 **`reducedLit` is declared on 2 steps here**, `cluster-object-create-path`'s `create-pod` and
-`cluster-node-pressure-eviction`'s `rank`, against 89 in network, 34 in workloads and 0 in storage.
+`cluster-node-pressure-eviction`'s `rank`, against 142 in network, 34 in workloads and 0 in storage.
 That is the lowest non-zero count in the catalogue, and the reason is that cluster's steps name
-their receivers in `lights:`, so `flowLights` derives most of the static path for free.
+their receivers in `lights:`, so `flowLights` derives most of the static path for free: **154 of the
+184 steps light something** through `lit:` or a `lights` list. One card, `cluster-node-restart`, is
+the limit case the other three categories also have: no step of it declares `lights:` or an
+`F.light`, so `flowLights` returns `[]` on every step of it.
 
 **It does NOT mean a bare Pod pulse is rare here: it is the norm.** Counted off the imported specs,
 37 cluster steps pulse a Pod over 44 pulse sites, and on 35 of those steps no pulse target carries

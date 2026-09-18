@@ -13,15 +13,15 @@ import { rect } from '../../lib/svg.js';
 // right-aligned to the same edge: at full width the four cells are 80 percent empty ink.
 const CH_L = 150, CH_R = 1050, CH_W = CH_R - CH_L;       // 150..1050, centred on WL.CX
 
-// Two control-plane readers of one number, EQUAL and mirrored across WL.CX. WL.L-07 pins the trunk
-// box to the spine to clear the two 480 wide columns, and this card draws neither column, so there
-// is no corridor left for that rule to protect. 420 is the panel wall (L-03), which caps the pair
-// at twice the room left of WL.CX, so every unit of gap is a unit off both boxes. 170 with a 60 gap
-// is the ceiling: it puts the left edge on 400, which still clears the measured panel by 3.45, and
-// anything wider walks the box behind it.
-const TOP_W = 170, TOP_GAP = 60;
-const TOP1_X = WL.CX - TOP_GAP / 2 - TOP_W, TOP2_X = WL.CX + TOP_GAP / 2;   // 400..570 / 630..800
-const SCHED_CX = TOP1_X + TOP_W / 2, KUBELET_CX = TOP2_X + TOP_W / 2;       // 485 / 715
+// Two control-plane readers of one number, EQUAL at the 232 the family gives an actor. The pair
+// stands RIGHT OF THE PANEL rather than mirrored across WL.CX: two 232 boxes centred on the spine
+// would start at 368 at any gap, behind the 396.55 panel wall (L-03). The row starts on 420 and
+// its own centre is 682. WL.L-07 protects a corridor this card does not draw. The 60 gap is what
+// the standing relation between the two is DRAWN in, and a shorter one reads as a hyphen.
+const TOP_W = 232, TOP_GAP = 60;
+const TOP1_X = 420, TOP2_X = TOP1_X + TOP_W + TOP_GAP;                      // 420..652 / 712..944
+const SCHED_CX = TOP1_X + TOP_W / 2, KUBELET_CX = TOP2_X + TOP_W / 2;       // 536 / 828
+const TOP_CX = midX(TOP1_X, TOP2_X + TOP_W);                                // 682, the pair centre
 // They read ONE number, which is what step 6 says in words, so the tie between them is a standing
 // RELATIONSHIP and not an exchange: no arrowhead, no ball, true on every step (A-06).
 const REL_Y = WL.TOP_Y + WL.BOX_H / 2;                                      // 80, both side faces
@@ -57,10 +57,11 @@ const barY = (m) => DATUM - CPU(m);
 // box-stroke weight it is read as that bar's own edge instead of as a level.
 const MARK_H = 3.5;
 
-// The one readout, ABOVE the actor row on the WL.A-02 constant. With the pair symmetric the lanes
-// stand 190 apart and no readout fits between them, and below the row a wire lands on a lane. Up
-// here it is centred on the same axis as the pair and clears the panel on every viewport.
-const READ_X = WL.CX, READ_Y = WL.TOP_Y - 12;            // 600 / 28
+// The one readout, ABOVE the actor row on the WL.A-02 constant. The lanes stand 292 apart and no
+// readout fits between them, and below the row a wire lands on a lane. Up here it is centred on the
+// pair's own axis and clears the panel on every viewport: the longest string inks 296 wide, so it
+// runs 534..830 against a wall at 396.55.
+const READ_X = TOP_CX, READ_Y = WL.TOP_Y - 12;           // 682 / 28
 
 // Presentation shades for the instrument, not lifecycle phases: a graduation has no phase. Channel
 // list is the workloads tint (91, 184, 255), copied because a presentation attribute cannot

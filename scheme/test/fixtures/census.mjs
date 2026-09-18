@@ -126,6 +126,13 @@ function census() {
   const perCat = new Map(CATS.map(c => [c, {
     cards: 0, hooked: new Set(), sites: zeroKinds(), kindCards: new Map(HOOK_KINDS.map(k => [k, new Set()])),
     reducedLitSteps: 0, reducedLitCards: new Set(), steps: 0,
+    // Steps whose STATIC path shows something: a `lit:` field, or a `lights`/`light` list that
+    // `flowLights` will derive from. It is the denominator every folder's reduced-path section
+    // argues against, because what `reducedLit` exists for is the gap between this and `steps`.
+    litSteps: 0,
+    // Cards where that set is empty on EVERY step, so `flowLights` returns [] throughout and the
+    // whole static path rests on `reducedLit`. Each folder names its own by id.
+    darkCards: new Set(),
   }]));
   const sites = zeroKinds();
   const hooked = new Set();
@@ -208,7 +215,12 @@ function census() {
     steps += ns.STEPS_SPEC.length;
     o.steps += ns.STEPS_SPEC.length;
     const pu = pulses.get(c.category);
+    let flowLit = 0;
     for (const step of ns.STEPS_SPEC) {
+      const derivable = (step.flow || []).some(e =>
+        ((e.verb === 'light' ? (e.p || {}).targets : (e.p || {}).lights) || []).length);
+      if (derivable) flowLit++;
+      if (derivable || (step.lit || []).length) o.litSteps++;
       const podTargets = (step.flow || []).filter(e => e.verb === 'pulse' && (e.p || {}).pod).map(e => e.p.pod);
       if (podTargets.length) {
         pu.steps++;
@@ -237,6 +249,7 @@ function census() {
         if (!cued && typeof literal === 'number' && literal <= 0) runDelay0++; else runDelayed++;
       }
     }
+    if (!flowLit) o.darkCards.add(c.id);
   }
 
   // The four records, read for what a reader counts in them: `OPEN` findings, and the note anchors
@@ -635,6 +648,92 @@ const CLAIMS = [
       cat('workloads').reducedLitSteps, cat('storage').reducedLitSteps],
   },
   {
+    doc: folder('network'), label: 'network: the catalog line, cards and steps and subcategories',
+    re: /(\d+) cards, (\d+) declared steps, ([a-z]+|\d+) subcategories/,
+    want: () => [cat('network').cards, cat('network').steps, (SUBS.network || []).length],
+  },
+  ...(SUBS.network || []).map(sub => ({
+    doc: folder('network'), label: `network: the subcategory table's count for ${sub.key}`,
+    re: new RegExp('\\| `' + sub.key + '` \\| ' + sub.label + ' \\| (\\d+) \\|'),
+    want: () => [CENSUS.subCards.get(`network/${sub.key}`) || 0],
+  })),
+  {
+    doc: folder('network'), label: 'network: what a card imports past its kit',
+    re: /all\s*(\d+) import the kit, (\d+) also import `lib\/svg\.js` and (\d+) `lib\/primitives\.js`/,
+    want: () => {
+      const i = CENSUS.imports.get('network');
+      return [i.kit, i.svg, i.primitives];
+    },
+  },
+  {
+    doc: folder('network'), label: 'network: hook sites in all',
+    re: /\*\*(\d+)\s*sites in all\*\*/,
+    want: () => [[...cat('network').sites.values()].reduce((a, b) => a + b, 0)],
+  },
+  {
+    doc: folder('network'), label: 'network: cards drawing a Node frame around a Pod',
+    re: /(\d+) of the (\d+) cards draw a Node frame around a Pod/,
+    want: () => [framedCards('network'), cat('network').cards],
+  },
+  {
+    doc: folder('network'), label: 'NET.S-03: the exemplar, by length',
+    re: /`network-service-clusterip\.js`, (\d+) lines/,
+    want: () => [CENSUS.cardLines.get('network-service-clusterip')],
+  },
+  {
+    doc: folder('network'), label: 'NET.S-04: every record carries a PANEL block',
+    re: /a `PANEL` block, (\d+) of (\d+)/,
+    want: () => [CENSUS.panelBlocks.get('network'), cat('network').cards],
+  },
+  // -- the three folder contracts brought onto cluster's skeleton --------------------------
+  // Every category now states a catalog line, a subcategory table, an import census and a
+  // reduced-path denominator in the same shape, so every one of them is guarded in the same shape.
+  ...['workloads', 'storage'].map(c => ({
+    doc: folder(c), label: `${c}: the catalog line, cards and steps and subcategories`,
+    re: /(\d+) cards, (\d+) declared steps, ([a-z]+|\d+) subcategories/,
+    want: () => [cat(c).cards, cat(c).steps, (SUBS[c] || []).length],
+  })),
+  ...['workloads', 'storage'].flatMap(c => (SUBS[c] || []).map(sub => ({
+    doc: folder(c), label: `${c}: the subcategory table's count for ${sub.key}`,
+    re: new RegExp('\\| `' + sub.key + '` \\| ' + sub.label + ' \\| (\\d+) \\|'),
+    want: () => [CENSUS.subCards.get(`${c}/${sub.key}`) || 0],
+  }))),
+  {
+    doc: folder('storage'), label: 'storage: what a card imports past its kit',
+    re: /all\s*(\d+) import the kit, (\d+) also import `lib\/svg\.js` and (\d+) `lib\/primitives\.js`/,
+    want: () => {
+      const i = CENSUS.imports.get('storage');
+      return [i.kit, i.svg, i.primitives];
+    },
+  },
+  // The reduced-path denominator, one row per folder. All four state it in the same words, so one
+  // pattern reads all four and a category that reworded it reports MISSING rather than passing.
+  {
+    doc: folder('cluster'), label: 'cluster: steps whose static path shows something',
+    re: /\*\*(\d+) of the\s*(\d+) steps light something\*\*/,
+    want: () => [cat('cluster').litSteps, cat('cluster').steps],
+  },
+  {
+    doc: folder('workloads'), label: 'workloads: steps whose static path shows something',
+    re: /(\d+) of the (\d+) steps light something/,
+    want: () => [cat('workloads').litSteps, cat('workloads').steps],
+  },
+  {
+    doc: folder('network'), label: 'network: steps whose static path shows something',
+    re: /\*\*(\d+) of\s*the (\d+) steps light something\*\*/,
+    want: () => [cat('network').litSteps, cat('network').steps],
+  },
+  {
+    doc: folder('storage'), label: 'storage: steps whose static path shows something',
+    re: /of the (\d+) steps, \*\*(\d+) light something\*\*/,
+    want: () => [cat('storage').steps, cat('storage').litSteps],
+  },
+  {
+    doc: folder('workloads'), label: 'workloads: hook sites in all',
+    re: /\*\*(\d+)\s*sites in all\*\*/,
+    want: () => [[...cat('workloads').sites.values()].reduce((a, b) => a + b, 0)],
+  },
+  {
     doc: folder('workloads'), label: 'workloads: what a card imports past its kit',
     re: /all (\d+) import the kit, (\d+) also import `lib\/svg\.js` and (\d+) `lib\/primitives\.js`/,
     want: () => {
@@ -653,14 +752,16 @@ const CLAIMS = [
     want: () => [CENSUS.panelBlocks.get('workloads'), cat('workloads').cards],
   },
   {
-    doc: folder('network'), label: 'network: reducedLit cards and steps',
-    re: /declared on \*\*(\d+) of the (\d+) cards over (\d+) steps\*\*/,
-    want: () => [cat('network').reducedLitCards.size, cat('network').cards, cat('network').reducedLitSteps],
+    doc: folder('network'), label: 'network: reducedLit cards and steps, and the two other categories that have any',
+    re: /declared on \*\*(\d+) of the (\d+) cards over (\d+) steps\*\*, against (\d+) steps in workloads and\s*(\d+) in the whole of cluster/,
+    want: () => [cat('network').reducedLitCards.size, cat('network').cards, cat('network').reducedLitSteps,
+      cat('workloads').reducedLitSteps, cat('cluster').reducedLitSteps],
   },
   {
-    doc: folder('workloads'), label: 'workloads: reducedLit cards and steps',
-    re: /declared on \*\*(\d+) cards over (\d+) steps\*\*/,
-    want: () => [cat('workloads').reducedLitCards.size, cat('workloads').reducedLitSteps],
+    doc: folder('workloads'), label: 'workloads: reducedLit cards and steps, and the other three',
+    re: /declared on (\d+) cards over (\d+) steps here\*\*, against (\d+) in network, (\d+) in cluster\s*and (\d+) in storage/,
+    want: () => [cat('workloads').reducedLitCards.size, cat('workloads').reducedLitSteps,
+      cat('network').reducedLitSteps, cat('cluster').reducedLitSteps, cat('storage').reducedLitSteps],
   },
   // The per-kind hook tables. `P.raw` and `F.run at delay 0` are how two folders spell the kind in
   // the first column, so the row label is per claim rather than derived from HOOK_KINDS.

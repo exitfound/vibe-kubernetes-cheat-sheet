@@ -9,11 +9,11 @@ import { g, rect } from '../../lib/svg.js';
 
 // One actor. The Job controller is the only thing that acts here, so the API box every sibling in
 // this section carries would be a second block no step narrates. WL.L-07 pins the box the trunk
-// leaves to the spine, and this card obeys it: 360 is the widest a centred box can be against the
-// 420 panel wall.
-const JOB_W = 360, JOB_X = WL.CX - JOB_W / 2;            // 420..780, centred on WL.SPINE_X
+// leaves to the spine, and this card obeys it, at the 232 the family gives an actor so this row
+// reads the same width as its siblings.
+const JOB_W = 232, JOB_X = WL.CX - JOB_W / 2;            // 484..716, centred on WL.SPINE_X
 const JOB_CY = WL.TOP_Y + WL.BOX_H / 2;                  // 80
-const COND_X = JOB_X + JOB_W + 20, COND_Y = JOB_CY + 5;  // beside the box, born hidden
+const COND_X = JOB_X + JOB_W + 20, COND_Y = JOB_CY + 5;  // 736, beside the box, born hidden
 
 // The failure budget: a small gauge on the wall beside the controller that spends it. It is
 // DELIBERATELY not a peer of the completions ledger below. Completing is the ordinary outcome and

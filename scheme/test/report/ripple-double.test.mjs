@@ -29,8 +29,8 @@
 //   STAGGERED      same point, dt above zero and under the 560ms a ring lives. They overlap in time
 //                  and are legible as a sequence rather than as one mark, which is what a card
 //                  showing three peers answering one address is FOR. Printed as context, not as a
-//                  queue. On this catalog the tier is `network-loadbalancer-bare-metal` (three BGP
-//                  speakers into one point, 180ms apart), `storage-access-modes` (three writers onto
+//                  queue. On this catalog the tier is `network-loadbalancer-bare-metal` (three client
+//                  flows into the router, 180ms apart), `storage-access-modes` (three writers onto
 //                  one volume, 200ms apart) and `network-traffic-distribution` (540ms apart).
 //
 // The whole F.ripple census is printed too, because the queue is currently ONE CARD WIDE: all four

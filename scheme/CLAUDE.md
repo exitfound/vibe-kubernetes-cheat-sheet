@@ -64,7 +64,7 @@ scheme/
       CLAUDE.md               what is true of THIS category only, as <CAT>.* rules
       CARDS.md                the design record for THIS category's cards, or its preamble and
                               index when the category is in the split shape below
-      CARDS/<id>.md           the SPLIT shape: one record file per card. cluster and workloads today
+      CARDS/<id>.md           the SPLIT shape: one record file per card. every category but storage
       cards.js posters.js     that category's SCHEMES + SUBCATEGORIES, and its grid thumbnails
       <category>-kit.js       the tint, pulsePod/pulsePodDim, the P / F / defineCard bindings
       <id>.js                 one module per diagram
@@ -109,7 +109,7 @@ tint. The column below is what a kit carries beyond even that.
 |---|---|---|---|
 | `cluster/` | 28 | violet `rgb(192, 176, 255)` | `CLU`, `LAYOUT` |
 | `workloads/` | 32 | sky blue `rgb(91, 184, 255)` | `WL`, the X layout canon |
-| `network/` | 37 | cyan `rgb(79, 229, 255)` | none |
+| `network/` | 44 | cyan `rgb(79, 229, 255)` | none |
 | `storage/` | 31 | jade `rgb(94, 202, 148)` | `setCylinderLabel`, `STO`, `chipStrip` |
 
 The size of the SHARED list is deliberately written down nowhere: `S-22` makes the four kits
@@ -117,7 +117,7 @@ compared against each other the source of truth, in `unit/module.test.mjs`.
 
 ## Catalog and categories
 
-`js/data.js` exports `SCHEMES` (128 entries), `CATEGORIES`, and `SUBCATEGORIES`. An entry's fields
+`js/data.js` exports `SCHEMES` (135 entries), `CATEGORIES`, and `SUBCATEGORIES`. An entry's fields
 are `D-01`, the id-to-folder convention is `D-02`, the key and label constraints are `D-07`, and the
 three `CATEGORY_*` maps are projections of one registry (`D-08`, `D-09`).
 
@@ -125,7 +125,7 @@ three `CATEGORY_*` maps are projections of one registry (`D-08`, `D-09`).
 |---|---|---|---|---|
 | Cluster | `cluster` | `#7d86ff` indigo | 28 | `control-plane`, `node-runtime`, `node-lifecycle` |
 | Workloads | `workloads` | `#5bb8ff` sky blue | 32 | `pods-bootstrap`, `pods-lifecycle`, `controllers` |
-| Networking | `network` | `#4fe5ff` cyan | 37 | `network-foundations`, `pod-networking`, `services-endpoints`, `external-traffic`, `dns-service-discovery` |
+| Networking | `network` | `#4fe5ff` cyan | 44 | `network-foundations`, `pod-networking`, `services-endpoints`, `external-traffic`, `dns-service-discovery` |
 | Storage | `storage` | `#5eca94` jade | 31 | `volume-foundations`, `volumes-claims`, `csi-mount-path`, `stateful-data` |
 
 Labels for the subcategory keys live in each folder's `cards.js` and `CLAUDE.md`. The ORDER of each
@@ -134,7 +134,7 @@ list is an editorial argument, not a set (`D-10`), and it is recorded beside the
 ## Scheme module contract
 
 Each `js/schemes/<category>/<id>.js` is lazy-imported on dialog open. **There is exactly ONE legal
-export surface** (`S-02`), and `unit/module.test.mjs` prints the count on every run: **128 migrated,
+export surface** (`S-02`), and `unit/module.test.mjs` prints the count on every run: **135 migrated,
 0 legacy**. That surface is the declarative form below, and a hand-written one is a regression
 rather than an alternative this contract admits. What NAMES a card slipping back is the DETECTOR
 described below.
@@ -193,7 +193,7 @@ and `plus: N` adds to whichever of the three was used. An entry earns a name wit
 **The reduced-motion guard is derived.** `flowLights(flow)` collects the ordered union of every
 `lights` list, so a card writes no `if (ctx.reduced)` at all. What it cannot derive is a highlight
 the static path shows INSTEAD of a pulse, because no `lightBoxAt` names it: that is `reducedLit`,
-declared on **125 steps** (network 89, workloads 34, cluster 2, storage 0). It is the ordinary shape
+declared on **178 steps** (network 142, workloads 34, cluster 2, storage 0). It is the ordinary shape
 of the static path wherever a Pod pulses instead of lighting, not an exception. A wrong derivation
 lands on the HIGHLIGHT axis of `render/reduced.test.mjs`, which is enforced along with the other
 three (`S-16`), so `npm test` is what catches it.
@@ -207,7 +207,7 @@ and without a fixed order the picture would depend on the shape of the literal. 
 uses is inherited from the primitive it already called and swapping them is a VISIBLE change
 (`P-09`), so the split runs per CATEGORY rather than per card: cluster, workloads and network are
 `chips` throughout, and storage is the sole `chipsCued` category, with `storage-pvc-binding` the one
-file mixing both. Read off the migrated data: **551 steps carry `chips` and 195 carry `chipsCued`**,
+file mixing both. Read off the migrated data: **615 steps carry `chips` and 195 carry `chipsCued`**,
 because every step states every chip (`P-01`).
 
 `chips` is the state after the STATIC block, which is not the end of the
@@ -218,12 +218,12 @@ value plays `chips`, then `enter`, then `rewind`, then every `F.set` in flow ord
 previous step's values, which `S-13` forbids. `duration` is copied verbatim, and only
 `render/duration.test.mjs` can see it at all.
 
-**The escapes, and how narrow they are.** **75 of the 128 cards are fully declarative**; 53 carry at least one hook, **224 hooks in all** (`part.raw` 93, `step.enter` 42, `part.tune` 75, `F.run` 13,
-`reset.extra` 1, `step.motion` 0), and each exists for something with no honest general verb:
+**The escapes, and how narrow they are.** **75 of the 135 cards are fully declarative**; 60 carry at least one hook, **241 hooks in all** (`part.raw` 101, `step.enter` 47, `part.tune` 80, `F.run` 13,
+`reset.extra` 0, `step.motion` 0), and each exists for something with no honest general verb:
 `part.tune` reaches an element the builder already made, to capture a nested ref, write an SVG
 *attribute* or an inline `style.fill` no field reaches, build extra children inside a part (a second
 inner box in a Pod, a row of slot rects), or file a `P.wire` into the main ref bucket as well.
-Three of its 75 sites accumulate an ARRAY ref, and those three are READ, by the seven `enter`
+Three of its 80 sites accumulate an ARRAY ref, and those three are READ, by the seven `enter`
 hooks of `storage-fsgroup-ownership`. An array ref nothing reads does not belong in `tune`: every
 element already carries its own `key:`.
 `part.raw` draws a bare `<rect>` or a free text node, `step.enter` writes text or an attribute no
@@ -360,6 +360,26 @@ node tools/buildframe.mjs   --all --out=DIR --base=http://localhost:8888
 node tools/canon.mjs --check=review --block=L,A
 ```
 
+**`tools/mutate.mjs` is the fourth thing in that directory and it is none of the three.** It
+asserts, it is not run by `npm test`, and its subject is the SUITE rather than a card: it breaks a
+real card one known defect at a time and requires the check `./CANON.md` names for that rule to go
+red on it, on its named axis.
+
+```
+cd scheme/test
+npm run selftest                # every mutation. needs the server, minutes
+node tools/mutate.mjs --list    # what they are, no card touched
+node tools/mutate.mjs offedge   # one of them
+```
+
+Run it after writing or editing a check, and after a rule changes hands between `review` and a
+machine. A `BLIND` verdict is a real finding: a rule cites a check that does not see its defect,
+which no green run can show, because a check that sees nothing and a check that finds nothing print
+the same thing. `WRONG` and `ANCHOR` are defects in `mutate.mjs` itself, not in the suite: the
+mutation grew too broad, or the card moved under it and it needs re-aiming. It edits a card in the
+working tree and restores it from memory in a `finally` and from an `exit` handler, never with
+`git checkout --`.
+
 `settled-dump` plays every step in REAL TIME and reads the frame it leaves behind: glyphs, the
 `.highlight` set, the opacities. Freezing a card hides a deferred callback (`at()` schedules its
 work as the onfinish of an empty animation, and a paused animation never fires one), so this is the
@@ -373,19 +393,23 @@ against it reads stale content and agrees with itself. Serve the live tree with
 `python3 -m http.server 8888`, and a second tree (a `git archive` of some commit) on its own port.
 
 The `Check` column of `./CANON.md` is the same information from the other side: given a rule, which
-test (if any) would notice it breaking, as `test:<file>/<name>` or `report:<file>/<name>`.
+machine (if any) would notice it breaking, as `test:<file>/<name>`, `report:<file>/<name>` or
+`skill:<tool>/<name>`. The third names a tool under `.claude/skills/*/tools/` that decides the rule
+and emits a finding: it runs when a skill or a human asks it to, never on its own, so a rule
+carrying one still has to be RUN. A tool that only prints numbers is not one of these and its rules
+stay `review`.
 
 ## The findings that are left open
 
-**The `OPEN` findings in the four card records are not to be closed without a reason**: **45** today
-(cluster 0, storage 14, workloads 15, network 16), counted as `OPEN` BLOCKS, and a block may hold
+**The `OPEN` findings in the four card records are not to be closed without a reason**: **48** today
+(cluster 0, storage 14, workloads 15, network 19), counted as `OPEN` BLOCKS, and a block may hold
 more than one finding where a record states each at most once. Each carries its own measurement and
 an explanation of why the rule can only be satisfied by making the picture worse (`L-16`). The cluster record carries
 none: its design record holds measurements and the reasons behind them, and a parked defect is not one
 of the things it is for.
 
-**That is not the same population as the soft geometry findings, which number 23** (CENTRE 11,
-CENTRE-LOW 9, OCCLUDED 3, printed by `report/geometry-soft.test.mjs`). The `OPEN` entries cover more
+**That is not the same population as the soft geometry findings, which number 36** (CENTRE 22,
+CENTRE-LOW 11, OCCLUDED 3, printed by `report/geometry-soft.test.mjs`). The `OPEN` entries cover more
 than geometry, so the two are counted separately. The full list of
 deliberate exceptions, including the ones that are not `OPEN` findings, is the last section of
 `./CANON.md`.

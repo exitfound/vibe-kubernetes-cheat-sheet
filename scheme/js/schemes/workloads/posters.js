@@ -1,4 +1,4 @@
-// Design notes: ./CARDS/<card-id>.md, under that card id as a "### poster" subsection.
+// Design notes: ./CARDS/<card-id>.md, and the note for one poster is the comment above it here.
 // The workloads posters, keyed by card id: the still frame each card shows on the grid.
 
 export const POSTERS = {

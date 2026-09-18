@@ -11,30 +11,37 @@ const PANEL_B = 230;
 const BAND_Y = PANEL_B + 20;                             // 250, the slot row top, clear of the panel
 const CAPTION_Y = BAND_Y - 12;                           // 238, the board caption baseline
 
-// The one remote actor, centred on the spine (WL.L-07), and its corridor down to the board.
-const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;            // 460..740
+// The one remote actor, centred on the spine (WL.L-07), and its corridor down to the board. It
+// takes the 232 the family gives an actor box, so the row reads the same width as its siblings.
+const TOP_W = 232, TOP_X = WL.CX - TOP_W / 2;            // 484..716
 const CORRIDOR = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, BAND_Y]];
 const CORR_WIRE_X = WL.SPINE_X + 14, CORR_WIRE_Y = midX(WL.TOP_BOTTOM, BAND_Y) + 4;
 
-// Three slots at 280, spread so the middle one is centred on the spine and the outer two sit on
-// column centres 230 and 970: the containers under the first two are centred there as well.
-const SLOT_W = 280, SLOT_H = WL.BOX_H;                   // 250..330
-const SLOTS = spread({ from: 90, to: 1110, count: 3, w: SLOT_W });   // 90, 460, 830
+// Three slots, spread so the middle one is centred on the spine and the outer two sit on column
+// centres 230 and 970: the containers under the first two are centred there as well. The three
+// CENTRES are what the rest of the card is built on (the write lane lands on the first, the Kubelet
+// stands under the third), so a width change moves the edges and never them. 248 and not the 232 of
+// the actor row above: `Terminated · exitCode 137 · OOMKilled` measures 223.1, which a 232 box would
+// leave 4.5 units per side, and the string is the record this card is about.
+const SLOT_W = 248, SLOT_H = WL.BOX_H;                   // 250..330
+const SLOTS = spread({ from: 106, to: 1094, count: 3, w: SLOT_W });   // 106, 476, 846
 const SLOT_X = (i) => SLOTS.x(i);
 const SLOT_CX = (i) => SLOT_X(i) + SLOT_W / 2;           // 230, 600, 970
 const SLOT_MID_Y = BAND_Y + SLOT_H / 2;                  // 290, the roll lanes
 const SLOT_B = BAND_Y + SLOT_H;                          // 330
-const ROLL_1 = { from: [SLOT_X(0) + SLOT_W, SLOT_MID_Y], to: [SLOT_X(1), SLOT_MID_Y] };   // 370 -> 460
-const ROLL_2 = { from: [SLOT_X(1) + SLOT_W, SLOT_MID_Y], to: [SLOT_X(2), SLOT_MID_Y] };   // 740 -> 830
+const ROLL_1 = { from: [SLOT_X(0) + SLOT_W, SLOT_MID_Y], to: [SLOT_X(1), SLOT_MID_Y] };   // 354 -> 476
+const ROLL_2 = { from: [SLOT_X(1) + SLOT_W, SLOT_MID_Y], to: [SLOT_X(2), SLOT_MID_Y] };   // 724 -> 846
 
 // One chip, centred under the middle slot so the strip centre is the canvas centre (L-13).
-const CHIP_W = SLOT_W, CHIP_X = SLOT_X(1), CHIP_Y = SLOT_B + 20;   // 460..740, 350..384
+const CHIP_W = SLOT_W, CHIP_X = SLOT_X(1), CHIP_Y = SLOT_B + 20;   // 476..724, 350..384
 
-// The Node band on the canvas floor, its edges on the slot row above (90..1110) so the two rows
-// share one silhouette, and the Kubelet inside it as the agent of that Node.
+// The Node band on the canvas floor, on the full 90..1110 the card is built inside, and the Kubelet
+// inside it as the agent of that Node. It is stated as its own pair rather than read off the slot
+// row: the slots are 248 and the frame is not, so a derived edge would drag the floor along with a
+// width change up there.
 const NODE_H = 140, CANVAS_B = 624, FRAME_PAD = 20;
 const NODE_Y = CANVAS_B - NODE_H;                        // 484..624
-const NODE_X = SLOT_X(0), NODE_W = SLOT_X(2) + SLOT_W - NODE_X;   // 90..1110
+const NODE_X = 90, NODE_W = 1020;                                 // 90..1110
 // The Pod at the size workloads-ephemeral-containers draws (two 210 boxes in a 96 tall shell),
 // against the left frame edge, so the live instance sits under the state slot (centre 235 vs 230).
 const CONT_W = 210, CONT_H = 52, CONT_PAD = 20, CONT_DY = 30;
@@ -96,7 +103,7 @@ export const SCENE = {
     P.wire({ key: 'out', x: GROUND_WIRE_X, y: WIRE_OUT_Y }),
     P.wire({ key: 'exit', x: GROUND_WIRE_X, y: WIRE_EXIT_Y }),
     // A standing caption: the row below is one API record on every step, not a pipeline. It ends
-    // on the right edge of the row, clear of the corridor landing on the middle slot.
+    // on the right edge of the row at 1094, clear of the corridor landing on the middle slot.
     P.tag({ x: SLOT_X(2) + SLOT_W, y: CAPTION_Y, anchor: 'end', text: 'API · Pod.status.containerStatuses[app]' }),
     P.chip({ key: 'restartChip', x: CHIP_X, y: CHIP_Y, w: CHIP_W, h: WL.CHIP_H, name: 'restartCount', value: '1' }),
     P.packets(),

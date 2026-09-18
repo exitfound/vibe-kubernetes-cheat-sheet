@@ -6,7 +6,7 @@
 WHAT     A Job holds three workers running at once and fills a five slot completion ledger, and a
          run that fails fills nothing and spends a failure against a limit of six instead.
 LAYOUT   An INSTRUMENT panel, four bands, no `LAYOUT` preset and no `node()` frame.
-           40..120    one actor, the Job box at 420..780, centred on WL.SPINE_X per WL.L-07
+           40..120    one actor, the Job box at 484..716, centred on WL.SPINE_X per WL.L-07
            170..192   the failure budget, six ticks 44 wide at 816..1140, caption at 214
            300..406   three worker slots 300 wide at 84 / 450 / 816, caption at 430
            470..528   the completions ledger, five slots 201.6 wide at 60..1140, caption at 554
@@ -43,7 +43,7 @@ LAYOUT   An INSTRUMENT panel, four bands, no `LAYOUT` preset and no `node()` fra
 PANEL    x<=397 catalog-wide (`L-02`). Bottom per viewport: `OVERLAY_IDS=workloads-job-parallelism
          node --test report/overlay.test.mjs`. Deepest on `fail` at 1100x800, the one step whose
          narration runs to a further line, and it is what the worker band clears: at POD_Y 300 the
-         leftmost slot stands 70 below that reading. Nothing else on the card starts left of 420
+         leftmost slot stands 70 below that reading. Nothing else on the card starts left of 484
          above y=203.
 SIZES    Measured at 1100x800, the widest case. The budget caption is 306.7 wide, ends at x 1131.4
          against the 1140 wall, and its box ends at y 217.7. The wire label beside the trunk opens

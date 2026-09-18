@@ -26,7 +26,7 @@ import { sentences } from '../fixtures/prose.mjs';
 // The typed half, and its one assertion is below: this is where a card added to or removed from
 // data.js has to be acknowledged on purpose. Every other file derives its own total.
 const CARD_TOTAL = CATALOG_BASELINE.cards;
-const PER_CATEGORY = { cluster: 28, workloads: 32, network: 37, storage: 31 };
+const PER_CATEGORY = { cluster: 28, workloads: 32, network: 44, storage: 31 };
 const SUBCATEGORY_TOTAL = 15;   // 3 + 3 + 5 + 4, unique across the four categories (D-07)
 
 // The desc bands D-04 and D-05 state: 400 to 470 characters hard (410 to 460 target) and 2 to 4

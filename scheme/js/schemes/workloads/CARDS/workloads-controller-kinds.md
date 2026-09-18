@@ -36,7 +36,7 @@ SIZES    A Pod is 240 x 74 and its held-value block 216 x 42, inset 12 and dropp
          four holds. The floor is the DaemonSet Pod's `One per matching Node`, measured 137.8 as a
          12px scheme-box-label, which leaves 39.1 clear at each wall of the 216.
          The block LABEL is a heading and takes a capital while its second line stays body text,
-         which is System A (T-09). The six findings that check carries open are literal API names
+         which is System A (T-09). The seven findings that check carries open are literal API names
          where a capital would print something that does not exist, and a prose heading is not one
          of them.
          The chip column is 360 wide, 336 of it usable once valChip insets its two strings by 12.

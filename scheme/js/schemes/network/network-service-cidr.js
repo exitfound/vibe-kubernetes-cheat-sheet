@@ -1,100 +1,132 @@
 import { P, F, defineCard } from './network-kit.js';
 
-// Design notes for this card: ./CARDS.md#network-service-cidr
+// Design notes for this card: ./CARDS/network-service-cidr.md
 
 
-// Services sit on an even 260 / 600 / 940 grid with their edges flush to this band, and SVC_GAP is
-// solved from it rather than typed. The IPAddress chip spans the same band, which is what stops it
-// from being a lone chip centred on 940.
-const SCHEME_L = 120, SCHEME_R = 1080;   // content edges, mirrored about x=600
+// Two extents, and the whole card derives from them. Everything that is a FACT ABOUT THE RANGE
+// stands in one right-hand column of RANGE_W wide parts, so the two ServiceCIDR objects, the
+// address ladder and the chip column share one left edge and one width.
+const SCHEME_L = 130, SCHEME_R = 1140;     // content edges
+const RANGE_X = 700;                       // left edge of the range column
+const RANGE_W = SCHEME_R - RANGE_X;        // 440
 
-// Service row: three equal boxes with equal gaps, spanning the composition.
-const SVC_Y = 450, SVC_W = 280, SVC_H = 86;
-const SVC_GAP = (SCHEME_R - SCHEME_L - 3 * SVC_W) / 2;                 // 60
-const SVC_X = [0, 1, 2].map(i => SCHEME_L + i * (SVC_W + SVC_GAP));    // 120, 460, 800
-const SVC_CX = SVC_X.map(x => x + SVC_W / 2);                          // 260, 600, 940
+// Top of the range column: two ServiceCIDR objects side by side, the second born hidden. Their
+// width is solved from the column rather than typed, so the pair always spans it exactly.
+const CIDR_Y = 44, CIDR_H = 72, CIDR_GAP = 16;
+const CIDR_W = (RANGE_W - CIDR_GAP) / 2;   // 212
+const CIDR2_X = RANGE_X + CIDR_W + CIDR_GAP;  // 928
+const CIDR_CY = CIDR_Y + CIDR_H / 2;       // 80: both feeds leave a SIDE face, so this is the one y
 
-const POOL_X = 580;          // pool centre (kept right of the overlay band)
-const POOL_Y = 44, POOL_W = 280, POOL_H = 64;
-const POOL_BOTTOM = POOL_Y + POOL_H;   // 108: where both split lanes leave the pool
+// The address ladder: the Service range read top to bottom in address order, low band first.
+const LADDER_Y = 152, ROW_H = 34, ROW_GAP = 16, ROWS = 4;
+const rowCY = (i) => LADDER_Y + i * (ROW_H + ROW_GAP) + ROW_H / 2;     // 169, 219, 269, 319
+const DYN_ROW = ROWS - 1;                  // 3: the dynamic band, the row every allocation lands in
 
-const BAND_Y = 320, BAND_H = 84;
-const BAND_BOTTOM = BAND_Y + BAND_H;   // 404
-const STATIC_W = 280;                  // static band: 120..400, flush under Service kubernetes
-const DYN_L = 420, DYN_RIGHT = SCHEME_R;
-const STATIC_X = SVC_CX[0];            // 260: static band centre
-const DYN_X = (DYN_L + DYN_RIGHT) / 2; // 750: dynamic band centre
-const DYN_MID_Y = BAND_Y + BAND_H / 2; // 362
-const WEB_X = SVC_CX[2];               // 940: web column (Service web and the add-on CIDR align here)
+// The chip column, one x for both, which is what makes it a column rather than a strip. It carries
+// only what the ladder cannot: a chain row and a value chip render as the same rect, so a chip
+// restating a row would turn the whole right column into one run of identical bars. It stands on
+// the Service band rather than under the ladder, for the same reason.
+const CHIP_H = 34, CHIP_PITCH = 44, CHIP_Y0 = 510;
+const CHIP_Y = [0, 1].map(i => CHIP_Y0 + i * CHIP_PITCH);   // 510, 554
 
-const CHIP_Y = 556, CHIP_H = 34;
-const RAIL1 = 230;    // pool -> bands rail
-const RAIL2 = 428;    // bands -> Services rail
-const EXT_RAIL_X = 1130;   // the add-on CIDR comes down outside the bands before turning in
+// The allocation side is a HUB with one job per face, which is what keeps every lane straight. The
+// API server is pinned to the dynamic row so the pick is a single horizontal segment, the Service
+// stands directly under it so the claim and the answer are plain verticals, and the store hangs off
+// the free left face. Both actor blocks take the family width AND the family height (`NET.L-01`).
+const ACTOR_W = 232, ACTOR_H = 80;         // the 232 of `NET.L-01`, and the catalog block height
+const API_CX = 420;                        // the L-03 line: the range lane drops on it clear of the panel
+const API_X = API_CX - ACTOR_W / 2;        // 304
+const API_W = ACTOR_W, API_H = ACTOR_H;
+const API_CY = rowCY(DYN_ROW);             // 319: pinned to the dynamic row, which straightens the pick
+const API_Y = API_CY - API_H / 2;          // 279
+const API_RIGHT = API_X + API_W;           // 536
+const API_BOTTOM = API_Y + API_H;          // 359
 
-const SPLIT_STATIC  = [[POOL_X, POOL_BOTTOM], [POOL_X, RAIL1], [STATIC_X, RAIL1], [STATIC_X, BAND_Y]];
-const SPLIT_DYNAMIC = [[POOL_X, POOL_BOTTOM], [POOL_X, RAIL1], [DYN_X, RAIL1], [DYN_X, BAND_Y]];
-const K8S_ROUTE     = [[STATIC_X, BAND_BOTTOM], [STATIC_X, SVC_Y]];                                     // static band -> Service kubernetes
-const DNS_ROUTE     = [[STATIC_X, BAND_BOTTOM], [STATIC_X, RAIL2], [SVC_CX[1], RAIL2], [SVC_CX[1], SVC_Y]];
-const WEB_ROUTE     = [[DYN_X, BAND_BOTTOM], [DYN_X, RAIL2], [WEB_X, RAIL2], [WEB_X, SVC_Y]];
+// The Service shares the API server's centre line, so the two lanes between them are verticals.
+const SVC_CX = API_CX, SVC_W = ACTOR_W, SVC_H = ACTOR_H;
+const SVC_X = SVC_CX - SVC_W / 2;          // 304
+const SVC_Y = CHIP_Y0;                     // 510: the Service stands on the chip band
 
-// The opening divide is deliberately slowed (and both packets share one dur so the two bands
-// light up together) so the split into a static and a dynamic band reads clearly.
-const SPLIT_DUR = 1600;
+// The store, at the catalog size (`cluster-list-watch-informers`, `workloads-graceful-shutdown`),
+// with the cylinder overhanging the Service band by 10 a side the way those two draw it.
+const ETCD_W = 140, ETCD_H = 100;
+const ETCD_CX = SCHEME_L + ETCD_W / 2;     // 200
+const ETCD_X = SCHEME_L, ETCD_Y = SVC_Y - 10;   // 130, 500
 
-// The add-on CIDR enters the dynamic band from its right side, centred on that edge (DYN_MID_Y),
-// so the extend step reads as the range growing into the band, not a straight top-down drop.
-const EXTEND_ROUTE = [[WEB_X, POOL_BOTTOM], [WEB_X, RAIL1], [EXT_RAIL_X, RAIL1], [EXT_RAIL_X, DYN_MID_Y], [DYN_RIGHT, DYN_MID_Y]];
+// One corner apiece on the only two lanes that need one, and each turn is a right angle onto a face
+// midpoint. CREATE_SPINE is the store's own centre line, so the write drops straight onto its cap.
+const CREATE_SPINE = ETCD_CX;   // 200
+const EXT_RAIL_X = 1180;        // the add-on leaves SIDEWAYS and comes back in outside the column
 
-// The six wires predate the kit binding and carry NO role, so the arrowhead stays the neutral dim
-// one. Omitting `role: ''` here would stamp the category role and swap the marker.
-const WIRE = { dashed: true, dim: true, role: '' };
+// Two faces carry a MIRRORED PAIR about their midpoint (`L-12`) rather than two strays: the claim
+// arrives left of centre and the answer leaves right of it, on the API server bottom and on the
+// Service top alike, so the two verticals run parallel down one shared corridor.
+const FACE_DX = 20;
+const LANE_ASK = API_CX - FACE_DX, LANE_SET = API_CX + FACE_DX;   // 400, 440
 
-// A block that comes into existence mid-card: born hidden, revealed by its own 350ms fade.
+const L_RANGE  = [[RANGE_X, CIDR_CY], [API_CX, CIDR_CY], [API_CX, API_Y]];
+const L_PICK   = [[API_RIGHT, API_CY], [RANGE_X, API_CY]];
+const L_CLAIM  = [[LANE_ASK, SVC_Y], [LANE_ASK, API_BOTTOM]];
+const L_SET    = [[LANE_SET, API_BOTTOM], [LANE_SET, SVC_Y]];
+const L_CREATE = [[API_X, API_CY], [CREATE_SPINE, API_CY], [CREATE_SPINE, ETCD_Y]];
+// The add-on joins the ladder at the DYNAMIC row and not at the ladder centre: the centre falls in
+// the gap between the two well-known rows, where the arrowhead reads as pointing at kube-dns.
+const L_EXTEND = [[SCHEME_R, CIDR_CY], [EXT_RAIL_X, CIDR_CY], [EXT_RAIL_X, rowCY(DYN_ROW)], [SCHEME_R, rowCY(DYN_ROW)]];
+
+// Every wire here is an allocation route a ball rides on some step, so each takes the category role
+// from the kit and both the line and its arrowhead read cyan. `dashed` says the link is an address
+// being carved out of a range rather than a packet on a network, and `dim` is the 1.4 stroke WEIGHT
+// that keeps the bright ball readable over the line it travels on.
+const WIRE = { dashed: true, dim: true };
+
+// A part that comes into existence mid-card: born hidden, revealed by its own 350ms fade.
 const REVEAL = { keyframes: [{ opacity: 0 }, { opacity: 1 }], options: { duration: 350, fill: 'forwards', easing: 'ease-out' } };
 
-// The list order IS the append order, which is the z-order: bands and Services first, then the
-// pool row over them, then the wires above the blocks so the dim lines read, then the packets.
+// The list order IS the append order, which is the z-order: the ladder and the blocks, then the
+// wires above them so the dim lines read, then the chips, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'Service CIDR and ClusterIP allocation: the configured Service CIDR is divided into a low static band for well-known IPs like 10.96.0.1 and 10.96.0.10 and a high dynamic band the allocator draws ClusterIPs from, each tracked by an IPAddress object, and a second ServiceCIDR can be added to extend the range without disruption',
+  'aria-label': 'Service CIDR and ClusterIP allocation: one ServiceCIDR object declares the Service range 10.96.0.0/16, which the allocator inside the API server reads as a low static band holding the well-known addresses 10.96.0.1 and 10.96.0.10 and a high dynamic band it draws from first, and an address is allocated by writing an IPAddress object of that name into ETCD before the clusterIP field is set, with a second ServiceCIDR able to add a range with nothing restarted',
   parts: [
     P.defs(),
-    // The range, drawn as two adjacent bands so it reads as one divided CIDR: a small static band
-    // flush under Service kubernetes, and the much wider dynamic band filling the rest.
-    P.box({ key: 'staticBand', x: SCHEME_L, y: BAND_Y, w: STATIC_W, h: BAND_H, label: 'Static band', sublabel: 'low IPs . by hand' }),
-    P.box({ key: 'dynamicBand', x: DYN_L, y: BAND_Y, w: DYN_RIGHT - DYN_L, h: BAND_H, label: 'Dynamic band', sublabel: 'high IPs . auto-assigned' }),
-    // Three Services on an even grid, IP assigned across the steps (pending at rest).
-    P.box({ key: 'svcK8s', x: SVC_X[0], y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service kubernetes', sublabel: 'clusterIP pending' }),
-    P.box({ key: 'svcDns', x: SVC_X[1], y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service kube-dns', sublabel: 'clusterIP pending' }),
-    P.box({ key: 'svcWeb', x: SVC_X[2], y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: 'clusterIP pending' }),
-    // The IPAddress object recording the dynamic binding. It spans the whole composition, not the web
-    // column: its value names the Service it points at, and 280 units cannot clear the chip name.
-    P.chip({ key: 'ipaddrChip', x: SCHEME_L, y: CHIP_Y, w: SCHEME_R - SCHEME_L, h: CHIP_H, name: 'IPAddress', value: ' ', opacity: 0 }),
-    // Top row: the configured Service CIDR, plus a second one stacked over the web column,
-    // revealed only on the extend step.
-    P.box({ key: 'pool', x: POOL_X - POOL_W / 2, y: POOL_Y, w: POOL_W, h: POOL_H, label: 'ServiceCIDR kubernetes', sublabel: '10.96.0.0/16' }),
-    P.box({ key: 'cidr2', x: WEB_X - POOL_W / 2, y: POOL_Y, w: POOL_W, h: POOL_H, label: 'ServiceCIDR add-on', sublabel: '10.97.0.0/16', opacity: 0 }),
-    P.lane({ points: SPLIT_STATIC, ...WIRE }),
-    P.lane({ points: SPLIT_DYNAMIC, ...WIRE }),
-    P.arrow({ from: K8S_ROUTE[0], to: K8S_ROUTE[1], ...WIRE }),
-    P.lane({ points: DNS_ROUTE, ...WIRE }),
-    P.lane({ points: WEB_ROUTE, ...WIRE }),
-    P.lane({ key: 'aExtend', points: EXTEND_ROUTE, ...WIRE, opacity: 0 }),
+    // The range itself, read top to bottom in address order. The two well-known addresses are rows
+    // of the ladder rather than boxes, because they are entries in a range and not actors.
+    P.chain({
+      key: 'chain', x: RANGE_X, y: LADDER_Y, w: RANGE_W, rowH: ROW_H, gap: ROW_GAP,
+      items: [
+        'static band · 10.96.0.1 to 10.96.1.0, 256 of the /16',
+        '10.96.0.1 · Service kubernetes',
+        '10.96.0.10 · Service kube-dns',
+        'dynamic band · 10.96.1.1 to 10.96.255.254',
+      ],
+    }),
+    P.box({ key: 'cidr', x: RANGE_X, y: CIDR_Y, w: CIDR_W, h: CIDR_H, label: 'ServiceCIDR', sublabel: '10.96.0.0/16' }),
+    P.box({ key: 'cidr2', x: CIDR2_X, y: CIDR_Y, w: CIDR_W, h: CIDR_H, label: 'ServiceCIDR add-on', sublabel: '10.97.0.0/16', opacity: 0 }),
+    // The allocator is not a controller of its own, it runs inside the API server, and the SUBLABEL
+    // is what says so. The label is the catalog word `API` and not the binary name (`T-13`).
+    P.box({ key: 'api', x: API_X, y: API_Y, w: API_W, h: API_H, label: 'API', sublabel: 'ClusterIP allocator' }),
+    P.box({ key: 'svcWeb', x: SVC_X, y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: 'clusterIP pending' }),
+    P.cylinder({ key: 'etcd', x: ETCD_X, y: ETCD_Y, w: ETCD_W, h: ETCD_H, label: 'ETCD', labelY: 60 }),
+    P.lane({ points: L_RANGE, ...WIRE }),
+    P.lane({ points: L_CLAIM, ...WIRE }),
+    P.lane({ points: L_PICK, ...WIRE }),
+    P.lane({ points: L_CREATE, ...WIRE }),
+    P.lane({ points: L_SET, ...WIRE }),
+    P.lane({ key: 'aExtend', points: L_EXTEND, ...WIRE, opacity: 0 }),
+    P.chip({ key: 'rangeChip', x: RANGE_X, y: CHIP_Y[0], w: RANGE_W, h: CHIP_H, name: 'ranges in play', value: ' ' }),
+    P.chip({ key: 'ipaddrChip', x: RANGE_X, y: CHIP_Y[1], w: RANGE_W, h: CHIP_H, name: 'IPAddress', value: ' ', opacity: 0 }),
     P.packets(),
   ],
   reset: {
-    keys: ['pool', 'cidr2', 'staticBand', 'dynamicBand', 'svcK8s', 'svcDns', 'svcWeb', 'ipaddrChip'],
+    keys: ['cidr', 'cidr2', 'api', 'svcWeb', 'etcd', 'rangeChip', 'ipaddrChip'],
   },
 };
 
-// The three Service sublabels are one fact per step, so one helper states all three and no step
-// can leave a stale IP behind on the Service it is not talking about.
-const assigned = (k8s, dns, web) => ({ sublabels: { svcK8s: k8s, svcDns: dns, svcWeb: web } });
 const PENDING = 'clusterIP pending';
-const K8S_IP = 'clusterIP 10.96.0.1', DNS_IP = 'clusterIP 10.96.0.10', WEB_IP = 'clusterIP 10.96.137.42';
-// The IPAddress object, said twice on the dynamic step: once as the state it ends in, once as the
-// value the flow writes when the address lands.
-const IPADDR = '10.96.137.42 . default/web';
+const WEB_IP = 'clusterIP 10.96.137.42';
+// The address and the object recording it are ONE fact, so the two strings are written from one
+// pair of constants and each lands on the hop the narration gives it.
+const IPADDR = '10.96.137.42 · default/web';
+const ONE_RANGE = '10.96.0.0/16', TWO_RANGES = '10.96.0.0/16 and 10.97.0.0/16';
 // The add-on CIDR, its wire and the IPAddress object are revealed only on later steps.
 const LATER_HIDDEN = { cidr2: 0, aExtend: 0, ipaddrChip: 0 };
 
@@ -102,83 +134,88 @@ export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { ipaddrChip: ' ' },
-    ...assigned(PENDING, PENDING, PENDING),
+    chips: { rangeChip: ONE_RANGE, ipaddrChip: ' ' },
+    sublabels: { svcWeb: PENDING },
     opacity: LATER_HIDDEN,
+    chain: -1,
   },
   {
-    id: 'range-split',
-    duration: 2400,
-    narration: 'The range is divided into two bands. A small low static band is left for hand-picked addresses, and the much larger high dynamic band is used for automatic assignment, so a manual IP taken from the low band is very unlikely to collide with an auto-assigned one. Only once the dynamic band is exhausted does the allocator fall back to the low one.',
-    chips: { ipaddrChip: ' ' },
-    ...assigned(PENDING, PENDING, PENDING),
+    id: 'range',
+    duration: 3000,
+    narration: 'One ServiceCIDR object declares the whole Service range, here 10.96.0.0/16, and the allocator reads it as two bands. Automatic allocation takes the high dynamic band first and the low static band only once that runs out. The low band is for addresses picked by hand, so the two in it are unlikely to be taken rather than reserved.',
+    chips: { rangeChip: ONE_RANGE, ipaddrChip: ' ' },
+    sublabels: { svcWeb: PENDING },
     opacity: LATER_HIDDEN,
-    lit: ['pool'],
-    // The pool divides into the two bands: a packet rides into each, slowed and synchronized
-    // (shared SPLIT_DUR) so the divide is easy to follow and both bands light together.
+    chain: [0, DYN_ROW],
+    lit: ['cidr'],
+    // The split is what the allocator DOES on arrival, not a state the step opens with, and the
+    // order the narration gives it is drawn: dynamic on the arrival, static as the fallback after.
+    rewind: { chain: -1 },
     flow: [
-      F.route({ points: SPLIT_STATIC, dur: SPLIT_DUR, fadeIn: true, lights: ['staticBand'] }),
-      F.route({ points: SPLIT_DYNAMIC, dur: SPLIT_DUR, fadeIn: true, lights: ['dynamicBand'] }),
+      F.route({ points: L_RANGE, fadeIn: true, name: 'read', lights: ['api'] }),
+      F.set({ chain: [DYN_ROW], at: 'read' }),
+      F.set({ chain: [0, DYN_ROW], at: 'read', plus: 700 }),
     ],
   },
   {
-    id: 'well-known',
+    id: 'claim',
     duration: 2600,
-    narration: 'At cluster bootstrap two addresses are taken from the static band. 10.96.0.1 is the first address of the range and always fronts the kubernetes API Service, while installers assign kube-dns the tenth by convention, here 10.96.0.10, which is why those two IPs are predictable in most clusters.',
-    chips: { ipaddrChip: ' ' },
-    ...assigned(K8S_IP, DNS_IP, PENDING),
+    narration: 'A new Service web is created with its clusterIP field left empty, so the API server hands the request to the ClusterIP allocator. It looks in the high dynamic band, which is tried first for every automatic address, and takes one that is free, here 10.96.137.42.',
+    chips: { rangeChip: ONE_RANGE, ipaddrChip: ' ' },
+    sublabels: { svcWeb: PENDING },
     opacity: LATER_HIDDEN,
-    lit: ['staticBand'],
-    // Both Services end the step holding their reserved IP, which is what the static path shows. The
-    // animated path winds them back to pending so each address arrives with its own packet.
-    rewind: { sublabels: { svcK8s: PENDING, svcDns: PENDING } },
-    // Two reservations leave the static band together, and each ball rings on the Service it lands
-    // on: the Service boxes are receivers, and only Pods pulse.
+    chain: [DYN_ROW],
+    lit: ['svcWeb'],
+    // The row the address comes out of lights when the second ball lands in it, so the static path
+    // has to be wound back to no row at all first.
+    rewind: { chain: -1 },
     flow: [
-      F.segment({ from: K8S_ROUTE[0], to: K8S_ROUTE[1], dur: 540, name: 'k8s', lights: ['svcK8s'] }),
-      F.route({ points: DNS_ROUTE, fadeIn: true, name: 'dns', lights: ['svcDns'] }),
-      // Each IP is written where its own ball lands, 540 for the API Service and 858 for kube-dns.
-      F.set({ sublabels: { svcK8s: K8S_IP }, at: 'k8s' }),
-      F.set({ sublabels: { svcDns: DNS_IP }, at: 'dns' }),
+      F.route({ points: L_CLAIM, fadeIn: true, name: 'ask', lights: ['api'] }),
+      F.route({ points: L_PICK, after: 'ask', name: 'pick' }),
+      F.set({ chain: [DYN_ROW], at: 'pick' }),
     ],
   },
   {
-    id: 'dynamic',
-    duration: 2600,
-    narration: 'A new Service web is created with no clusterIP, so the allocator picks the next free address from the dynamic band, here 10.96.137.42, and records it as an IPAddress object that points back to the Service. Every ClusterIP in the cluster is now tracked by one of these objects.',
-    chips: { ipaddrChip: IPADDR },
-    ...assigned(K8S_IP, DNS_IP, WEB_IP),
-    // The IPAddress object ends the step present, which is what the static path shows. The animated
-    // path winds it back to hidden so its own fade can bring it in on arrival.
+    id: 'write',
+    duration: 2800,
+    narration: 'The allocation is the write. The allocator creates an IPAddress object named 10.96.137.42 that points back at the Service, and only once that object exists is the clusterIP field set. Two Services cannot end up on one address, because two objects cannot share one name.',
+    chips: { rangeChip: ONE_RANGE, ipaddrChip: IPADDR },
+    sublabels: { svcWeb: WEB_IP },
     opacity: { cidr2: 0, aExtend: 0, ipaddrChip: 1 },
-    lit: ['dynamicBand', 'ipaddrChip'],
-    // The address is one fact said in two places, the Service sublabel and the IPAddress object, so
-    // both wind back to what the step before left and both are written on the same arrival.
-    rewind: { opacity: { ipaddrChip: 0 }, sublabels: { svcWeb: PENDING }, chips: { ipaddrChip: ' ' } },
+    chain: [DYN_ROW],
+    // The store is NOT in `lit`: the ball reaches it at 700ms and `lights` cues it there. The two
+    // that are lit from the top act first, the allocator sending and the chip about to be written.
+    lit: ['api', 'ipaddrChip'],
+    // Both halves of the allocation end the step present, which is what the static path shows. The
+    // animated path winds both back so each lands on the hop the narration gives it: the object on
+    // the write into the store, the field on the answer coming back to the Service.
+    rewind: { opacity: { ipaddrChip: 0 }, chips: { ipaddrChip: ' ' }, sublabels: { svcWeb: PENDING } },
     flow: [
-      F.route({ points: WEB_ROUTE, name: 'give', lights: ['svcWeb'] }),
-      // The IPAddress object materializes once the address lands on the Service, at 700.
-      F.anim({ target: 'ipaddrChip', ...REVEAL, at: 'give' }),
-      F.set({ sublabels: { svcWeb: WEB_IP }, chips: { ipaddrChip: IPADDR }, at: 'give' }),
+      F.route({ points: L_CREATE, fadeIn: true, name: 'store', lights: ['etcd'] }),
+      F.anim({ target: 'ipaddrChip', ...REVEAL, at: 'store' }),
+      F.set({ chips: { ipaddrChip: IPADDR }, at: 'store' }),
+      F.route({ points: L_SET, after: 'store', name: 'set', lights: ['svcWeb'] }),
+      F.set({ sublabels: { svcWeb: WEB_IP }, at: 'set' }),
     ],
   },
   {
     id: 'extend',
-    duration: 2600,
-    narration: 'When the whole range fills up, the old fix was to resize the API server service-cluster-ip-range and restart it, a disruptive operation. Now you add a second ServiceCIDR object, here 10.97.0.0/16, and fresh ClusterIPs are drawn from it. The Service IP space grows with no downtime.',
-    chips: { ipaddrChip: IPADDR },
-    // Keep the earlier assignments visible.
-    ...assigned(K8S_IP, DNS_IP, WEB_IP),
+    duration: 2800,
+    narration: 'When the range fills up, the old fix was to widen the API server service-cluster-ip-range flag and restart it, a disruptive operation. Now you add a second ServiceCIDR object, here 10.97.0.0/16, the allocator has a second range to draw from, and the Service IP space grows with nothing restarted.',
+    chips: { rangeChip: TWO_RANGES, ipaddrChip: IPADDR },
+    sublabels: { svcWeb: WEB_IP },
     opacity: { cidr2: 1, aExtend: 1, ipaddrChip: 1 },
+    chain: [DYN_ROW],
     lit: ['cidr2'],
-    // The add-on CIDR and its wire arrive with the step on the static path, and fade in on the
-    // animated one, so both are wound back before the flow.
-    rewind: { opacity: { cidr2: 0, aExtend: 0 } },
+    // The add-on and its wire arrive with the step on the static path and fade in on the animated
+    // one, and the range chip takes its second value AND its cue where the feed joins the ladder.
+    rewind: { opacity: { cidr2: 0, aExtend: 0 }, chips: { rangeChip: ONE_RANGE } },
     flow: [
       F.anim({ target: 'cidr2', ...REVEAL }),
       F.anim({ target: 'aExtend', ...REVEAL }),
-      // The add-on CIDR feeds fresh addresses into the dynamic band from its right side.
-      F.route({ points: EXTEND_ROUTE, delay: 420, name: 'give', lights: ['dynamicBand'] }),
+      F.route({ points: L_EXTEND, delay: 420, name: 'grow' }),
+      F.set({ chips: { rangeChip: TWO_RANGES }, at: 'grow' }),
+      F.light({ targets: ['rangeChip'], at: 'grow' }),
     ],
   },
 ];

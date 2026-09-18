@@ -270,7 +270,150 @@ function describeSpread(spread) {
 // boxes, 5 owner boxes and the API, and 13 arrows, the trunk, both bus halves, 5 taps, 4 ownership
 // lanes and the CronJob relation. It carries NO value chip at all, which is why 29 painted elements
 // buy an eleven-block board. Nothing else in the tree moves: 2179 + 20 + 29 = 2228.
-const EXPECTED_PAINTED = 2228;
+// 2242: +14 over the one new Networking card. `network-proxy-rule-resync` is 14: the Pod shell and
+// its inner box, the EndpointSlice box, the Node kernel box, the `P.raw` sync loop (a hand-forged
+// `g.scheme-box` carrying `data-role`, so it paints like any other box), 6 value chips, the 2 lanes
+// and the ownership relation. Its two `P.tag` captions and its two `P.wire` labels carry no role,
+// because `tag` and `wire` are unroled part kinds, which is why a card with four standing strings
+// adds none of them here. Nothing else in the tree moves: 2228 + 14 = 2242.
+// 2250: +8 on `network-model`, which drops `role: ''` and gives every line the category role, so
+// the 4 Pod wires, the bus rail, its spine extension, the kubelet drop and the CNI relation each
+// start carrying `data-role` and each start PAINTING. A role-less line resolves the generic dim
+// token and this census never counted it. 2242 + 8 = 2250.
+// 2301: +51 as `A-22` lands on the other nine networking cards that suppressed the role. Same
+// mechanism: every line they draw now carries `data-role` and enters this census, where a role-less
+// one resolved `--diag-arrow-dim` and was invisible to it. `network-cni-invocation` also splits its
+// plugin spine into a relation plus a raw route, one element more than it had. Measured off the
+// walk rather than summed by hand: 2250 + 51 = 2301.
+// 2304: +3 for the network-service-cidr rebuild, which trades 7 boxes, 1 chip, 5 lanes and 1 arrow
+// for 4 boxes, a 4-row chain, 2 chips, a cylinder and 6 lanes, 14 painted elements against 17.
+// Measured off the walk rather than summed by hand: 2301 + 3 = 2304.
+// 2307: +3 for the network-dualstack rebuild, which trades 4 arrows and 3 chips for 6 arrows and 4
+// chips while its two boxes and two Pods stand unmoved, 16 painted elements against 13.
+// Measured off the walk rather than summed by hand: 2304 + 3 = 2307.
+// 2304: -3 for the network-namespaces rebuild. It trades 5 boxes, 5 relations, 1 arrow and 4 chips
+// for 8 boxes, 1 relation and 3 arrows, 13 painted elements against 16: the four values moved out
+// of a chip strip and into the sublabels of the four layer slabs, and a sublabel paints nothing of
+// its own. Measured off the walk rather than summed by hand: 2307 - 3 = 2304.
+// 2301: -3 for the network-proxy-rule-resync relayout, which drops the Pod shell, its inner box and
+// the ownership relation that joined the Pod to the slice. The Pod carried no ball on any step and
+// stood dimmed from step 2 to the end, and step 1 says in words that a deleted Pod reaches this loop
+// ONLY as a change to the slice, so drawing it argued against the card. Its two boxes and the
+// EndpointSlice keep their roles, and the sync loop, the kernel, the 6 chips and the 2 lanes are
+// untouched: the card is 11 painted elements against 14.
+// Measured off the walk rather than summed by hand: 2304 - 3 = 2301.
+// 2310: +9 for the network-conntrack-nat rebuild, which keeps the corridor (the netfilter box, both
+// Pod shells, both inner boxes and the 4 lanes) and adds a 3-row rule ladder above it, a 2-row
+// conntrack entry below it and the 4 relations that tie both bands to the corridor: 22 painted
+// elements against 13. Its 4 strip chips are unchanged in number and its two `P.tag` captions and
+// two `P.wire` labels add none, because `tag` and `wire` are unroled kinds.
+// Measured off the walk rather than summed by hand: 2301 + 9 = 2310.
+// 2312: +2 for the network-netfilter-path rebuild, which draws the routing decision as a FORK. It
+// adds the INPUT hook and the lane that reaches it, and drops the Node frame, which paints nothing
+// because `node()` takes no role (`S-42`). The second `P.wire` it gained adds none either.
+// Measured off the walk rather than summed by hand: 2310 + 2 = 2312.
+// 2349: +37 for the two cards network-foundations gained. network-packet-classification is 15,
+// its 4 stations and next hops plus the client Pod inner box, the Pod shell, the 3 strip chips
+// and the 6 wires of its trunk and fork. Its `node()` frame paints nothing (`S-42`) and its
+// riding tags are an unroled kind. network-policy is 22, 3 Pod shells and 9 boxes, 3 strip chips
+// and 7 wires. The other 129 cards still fold to 2312, so the whole move is the two arrivals.
+// Measured off the walk rather than summed by hand: 2312 + 15 + 22 = 2349.
+// 2347: -2 for the network-policy redesign. Its three NetworkPolicy objects became two and its
+// three selection relations became two, so the card falls from 22 painted elements to 20. The two
+// bars it now stands on the road are the same count as the two it used to stand inside the Pod
+// faces, and the three `P.wire` captions that name them and the plugin add nothing, because `wire`
+// is an unroled kind. Measured off the walk rather than summed by hand: 2349 - 1 - 1 = 2347.
+// 2352: +5 for the network-pod-localhost redesign. The card keeps its 2 Pod shells, its client
+// inner box and its 4 inner blocks, and gains the 3 chips of its socket table plus the two-lane
+// external call, where the old card ran one arrow. Its `P.wire` adds none, because `wire` is an
+// unroled kind. Measured off the walk rather than summed by hand: 2347 + 3 + 2 = 2352.
+// 2353: +1 for the network-cni-invocation redesign, which drops a chain row and adds two elements in
+// its place. The plugin list is the two plugins the runtime execs in order rather than three rows
+// ending in an artefact, so the ladder goes from 3 painted rows to 2, and the host-local delegate
+// becomes a box of its own with the stub that hangs it off the bridge row: 17 painted elements
+// against 16. Its 2 actor boxes, Pod shell and inner box, tap relation, raw trunk and 2 chips are
+// unmoved, its `node()` frame paints nothing (`S-42`) and its 5 `P.wire` labels add none, because
+// `wire` is an unroled kind. Measured off the walk rather than summed by hand: 2352 + 1 = 2353.
+// 2354: +1 for the network-pod-ip-and-veth redesign, which draws the veth pair as TWO ENDS where the
+// old card drew one arrow into a Pod edge. It keeps its Pod shell, its 2 lanes, its 1 relation and
+// its 4 chips, loses the CNI plugin box, and gains three: `eth0` inside the shell and `peer` outside
+// it, which are the two ends, plus the third container row: 13 painted elements against 12. Its
+// `node()` frame paints nothing (`S-42`) and its 3 `P.tag` captions add none, because `tag` is an
+// unroled kind, which is also why the card carrying no `P.wire` at all costs it nothing.
+// Measured off the walk rather than summed by hand: 2353 + 1 = 2354.
+// 2356: +2 for the network-pod-ip-and-veth audit, which gives the veth lane TWO END TICKS so the
+// pair reads as one object with two ends rather than as two interfaces with traffic between them.
+// The lane itself is unchanged, the ordinary dashed dim `P.arrow`; the ticks are a `P.raw` of 2
+// roled paths beside it. Nothing else on the card moved: the gap that drops `eth0` clear of the
+// containers, the derived frame height and the cni0 gateway sublabel all repaint elements that
+// were already counted. Measured off the walk: 2354 + 2 = 2356.
+// 2357: +1 for the `Forwarding table` box the network-pod-to-pod-same-node rebuild adds under cni0,
+// which is the element that turns its ARP exchange into a consequence the picture can show.
+// 2363: +6 for the network-pod-egress-snat rebuild, which trades one horizontal line for three
+// bands. The `Conntrack` cylinder and the exempt destination Pod (shell plus inner app box) are the
+// three blocks, and the exempt lane plus the store write and read lanes are the three wires. The old
+// masquerade box and its four lanes are repainted rather than added.
+// 2385: +22 for network-mtu-overhead, the whole painted cast of a card the catalog did not have:
+// the measure rows and the path-limit ceiling laid over them, the three sent bars, the Node frame
+// with Pod A and the NIC, the underlay hop and Pod B, the veth relation, the four path lanes and
+// the chip strip. The delta is measured off the walk rather than counted off the parts list: a
+// part and a painted roled element are not one to one.
+// 2391: +6 net for network-service-debugging replacing network-service-ports: the object board
+// adds the EndpointSlice box, two more chips and its three relations over the port card it
+// deletes. Measured off the walk: 2385 + 6 = 2391.
+// 2437: +40 across the services-endpoints redesigns (service-types, service-clusterip,
+// endpointslice-reconcile, terminating-endpoints, traffic-distribution, internal-traffic-policy,
+// externalname), read off the walk as one delta after that set landed, not per card. Then 0 net for
+// network-loadbalancer-direct-to-pods replacing network-north-south-path, and +6 net for
+// network-gateway-traffic-splitting replacing network-tls-termination. 2391 + 40 + 0 + 6 = 2437.
+// 2441: +4 net for the network-nodeport-loadbalancer redesign, where a five-chip Service row and the
+// direct lane replace the three-chip strip under the Node columns. Measured off the walk: 2437 + 4 = 2441.
+// 2448: +7 net for the network-loadbalancer-bare-metal redesign, which adds the MetalLB controller box,
+// a speaker chip per Node in place of one strip chip, and a separate announcement lane per Node beside
+// its fan leg. Measured off the walk: 2441 + 7 = 2448.
+// 2456: +8 net for the network-external-traffic-policy redesign, which adds a third Node frame, two Pods
+// with their app boxes, a share chip under each Pod and a per-Node note, and drops the keyed underlay
+// lane. Measured off the walk: 2448 + 8 = 2456.
+// 2461: +5 net for the network-loadbalancer-direct-to-pods redesign, which adds the balancer
+// controller and EndpointSlice boxes, a four-row target ladder and the watch and register lanes,
+// and drops the kube-proxy wire, two column chips and the in-cluster lane. Measured off the walk:
+// 2456 + 5 = 2461.
+// 2464: +3 net for the network-ingress-routing redesign, which adds the served-by chip, the TLS rule
+// row, the answer lane and a second Service selector relation, and drops the Service to Pod hops.
+// Measured off the walk: 2461 + 3 = 2464.
+// 2468: +4 net for the network-gateway-api redesign, which adds the proxy Pod with its app box, the
+// ReferenceGrant box and five reference relations, and drops the stack wires and the field chip strip
+// for a four-chip status column. Measured off the walk: 2464 + 4 = 2468.
+// 2469: +1 net for the network-gateway-api ladder redesign, which adds the answer lane that carries
+// HTTP 500 back to the Client, and trades the proxy programs relation for the ReferenceGrant one.
+// Measured off the walk: 2468 + 1 = 2469.
+// 2467: -2 for network-gateway-traffic-splitting, whose two Service frames become `P.node` frames,
+// which take no role, in place of two network boxes. Measured off the walk: 2469 - 2 = 2467.
+// 2471: +4 net for the network-client-ip-preservation redesign, which draws the two packets as
+// framed row stacks: +2 for the frames, +3 for the chips (three rows a side and a three-cell strip,
+// against a four-cell strip and two header chips), -1 for the ownership relation the old header
+// panel hung on. The two captions are labels and carry no role. Measured off the walk: 2467 + 4 = 2471.
+// 2473: +2 net for the network-dns-coredns redesign, which drops the CoreDNS Pod shell (-1 pod) and
+// draws its three plugin stages as network boxes instead, adds one state chip and two lane halves
+// for the climb back through cache, and loses the two inner readouts. Measured: 2471 + 2 = 2473.
+// 2475: +2 more on the same card, which fills the top band the panel leaves free on the right with
+// the API block the kubernetes plugin watches (+1 box) and the watch relation into it (+1 line).
+// Measured off the walk: 2473 + 2 = 2475.
+// 2481: +6 net for the network-nodelocal-dnscache redesign, which adds the Node-1 dataplane and the
+// upstream resolver boxes (+2) and four lane halves for the local pair and the resolver pair (+4).
+// The two Node frames take no role. Measured off the walk: 2475 + 6 = 2481.
+// 2498: +17 for the new network-dns-pod-policy: three boxes, the Pod shell and its app box, three
+// lanes and nine chips. Its Node frame takes no role. Measured off the walk: 2481 + 17 = 2498.
+// 2512: +14 for the new network-dns-egress-policy: five boxes counting the two doors, both Pod
+// shells with their inner boxes, three lanes and two selection relations. Its boundary wall is a
+// raw path carrying its role on the group. Measured off the walk: 2498 + 14 = 2512.
+// 2553: +41 NET for the Workloads growth from 25 cards to 32. The seven new modules carry 152 rows
+// between them (controller-kinds 23, deployment-strategy 25, finished-job-cleanup 18,
+// pod-garbage-collection 27, pod-replacement-guarantees 29, poststart-prestop-hooks 10,
+// statefulset-update-strategy 20) and the redesigns landing with them, cronjob, daemonset and
+// probes, give 111 of it back. Measured off the walk: 2512 + 41 = 2553, which stands cluster 555,
+// workloads 609, network 845, storage 544.
+const EXPECTED_PAINTED = 2553;
 // 29: no card draws a `workloads|scheme-arrow|workloads|` combination, because every lane in that
 // category carries `role: 'cluster'`. A role-less lane does not paint the category blue: there is
 // no `.scheme-arrow-workloads` rule in diagrams.css, so it falls to the generic dim token at
@@ -289,7 +432,17 @@ const EXPECTED_PAINTED = 2228;
 // 27: -3, workloads-pvc-stickiness was deleted and took every `workloads|<class>|storage|` row with
 // it. Its three jade chips, its PV cylinder and its two storage lanes were the only jade a
 // workloads card drew, so the whole storage half of that category's CROSS_ROLE went with the card.
-const EXPECTED_COMBINATIONS = 27;
+// 28: +1, `network|scheme-cylinder|network|rest` arrives with the network-service-cidr rebuild,
+// which draws the FIRST cylinder in the networking category. A second networking card drawing a
+// store keeps the count where it stands.
+// STILL 28 after the network-pod-ip-and-veth audit, and it is worth saying why it did not move. A
+// SOLID full-weight body was drawn there first and took the count to 29 on a new
+// `network|scheme-arrow|network|rest` row, the first undimmed lane in the category. It was rejected
+// on the rendered frame as the one mark breaking the lane idiom, so the pair is back to the
+// ordinary dashed dim lane and its two new end ticks carry that same stroke minus the dash. They
+// land in the `scheme-arrow-dim` row that was already here, which is the whole reason 28 holds
+// while EXPECTED_PAINTED above went up by 2.
+const EXPECTED_COMBINATIONS = 28;
 
 const catalogued = await cards();
 

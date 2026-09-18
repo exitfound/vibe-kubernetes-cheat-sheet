@@ -1,172 +1,210 @@
-import { P, F, defineCard, makeRidingLabel } from './network-kit.js';
+import { P, F, defineCard, makeRidingLabel, BEAT, OPACITY } from './network-kit.js';
 
-// Design notes for this card: ./CARDS.md#network-nodeport-loadbalancer
+// Design notes for this card: ./CARDS/network-nodeport-loadbalancer.md
 
 
-// The three Node frames are spread symmetrically inside SCHEME_L..SCHEME_R, and NODE_CX then centres
-// the nodePort chip, the backend Pod and the bottom info chip of each column, so one grid drives
-// every tier.
-const CX = 600;                        // canvas centre: the client, the LB and the fan origin sit on it
-const SCHEME_L = 80, SCHEME_R = 1120;  // content edges, mirrored about CX
+// Two entries into ONE Node row. The client sits beside the balancer rather than above it, inside
+// the wedge between the balancer legs to Node-2 and Node-3, which is the only place a lane from the
+// client can reach Node-2 without crossing a balancer leg. The Service fields are a row of their own
+// under the Nodes, captioned and off the column grid, so they read as one object and not per Node.
+// Panel deepest 229.82 at 1100x800 on every step: the Node-1 bus at BUS_Y clears it by 46.18.
+const SCHEME_L = 80, SCHEME_R = 1120;  // content edges, mirrored about x 600
 
-// Node row: three equal frames spanning SCHEME_L..SCHEME_R.
-const NODE_W = 300, NODE_H = 232, NODE_Y = 320;
-const NODE_GAP = (SCHEME_R - SCHEME_L - 3 * NODE_W) / 2;   // 70
+// Node row: three equal frames spanning SCHEME_L..SCHEME_R, Pods on the OUTER two.
+const NODE_W = 300, NODE_H = 226, NODE_Y = 320;
+const NODE_GAP = (SCHEME_R - SCHEME_L - 3 * NODE_W) / 2;                  // 70
 const NODE_X = [0, 1, 2].map(i => SCHEME_L + i * (NODE_W + NODE_GAP));   // 80, 450, 820
 const NODE_CX = NODE_X.map(x => x + NODE_W / 2);                          // 230, 600, 970
+const NODE_CY = NODE_Y + NODE_H / 2;                                      // 433: the cross-Node lane
 
-const NP_Y = 352, NP_W = 260, NP_H = 32;          // per-Node nodePort chip
+const NP_W = 280, NP_H = 32, NP_Y = NODE_Y + 32;  // per-Node rule chip, 14 under the frame label
 const NP_BOTTOM = NP_Y + NP_H;                    // 384
-const POD_Y = 410, POD_W = 200, POD_H = 118;      // backend Pods, centred in their Node
-const CHIP_Y = 570, CHIP_W = 300, CHIP_H = 34;    // bottom info strip, one chip per Node column
+// 36 under the rule chip: the DNAT hop between them is the shortest lane on the card.
+const POD_W = 200, POD_H = 112, POD_Y = NP_BOTTOM + 36;   // 420
 
-const CLIENT_Y = 36, CLIENT_W = 240, CLIENT_H = 64;
-const CLIENT_BOTTOM = CLIENT_Y + CLIENT_H;        // 100
-const LB_Y = 150, LB_W = 300, LB_H = 80;
-const LB_BOTTOM = LB_Y + LB_H;                    // 230: the fan origin
-const LB_RIGHT = CX + LB_W / 2;                   // 750
-const CCM_X = 800, CCM_Y = 152, CCM_W = 290, CCM_H = 76;
-const PROV_Y = CCM_Y + CCM_H / 2;                 // 190: ccm and LB share this centre line
+// Actor tier, every block NET.L-01 232 wide and 80 tall, right of the panel wall at x 420.
+const ACTOR_W = 232, ACTOR_H = 80;
+const CCM_Y = 16;                                 // straight above the balancer it provisions
+const CCM_BOTTOM = CCM_Y + ACTOR_H;               // 96
+const LB_X = 420, LB_Y = CCM_BOTTOM + 40;         // 136: the provisioning arrow is 40 long
+const LB_CX = LB_X + ACTOR_W / 2;                 // 536: the trunk drops on it into Node-2
+const LB_CY = LB_Y + ACTOR_H / 2;                 // 176
+const LB_RIGHT = LB_X + ACTOR_W;                  // 652
+const LB_BOTTOM = LB_Y + ACTOR_H;                 // 216
+// The balancer right face carries two lanes (L-12): the Node-3 leg out above, the client lane in below.
+const FACE_PAIR = 30;
+// The client centres on its lane, so it stands FACE_PAIR under the balancer and the leg clears its top by 20.
+const CLIENT_X = 700;
+const CLIENT_CY = LB_CY + FACE_PAIR;              // 206
+const CLIENT_Y = CLIENT_CY - ACTOR_H / 2;         // 166
+const CLIENT_CX = CLIENT_X + ACTOR_W / 2;         // 816
+const CLIENT_BOTTOM = CLIENT_Y + ACTOR_H;         // 246
+// Node-2 top face takes the trunk and the direct lane as a mirrored pair about its midpoint (L-12).
+const N2_DIRECT_X = 2 * NODE_CX[1] - LB_CX;       // 664
+const BUS_Y = 276;
 
-const FAN_BUS_Y = 286;
-const C_TO_LB = [[CX, CLIENT_BOTTOM], [CX, LB_Y]];
-const PROVISION = [[CCM_X, PROV_Y], [LB_RIGHT, PROV_Y]];
-const TO_N1 = [[CX, LB_BOTTOM], [CX, FAN_BUS_Y], [NODE_CX[0], FAN_BUS_Y], [NODE_CX[0], NODE_Y]];
-const TO_N2 = [[CX, LB_BOTTOM], [CX, NODE_Y]];
-const TO_N3 = [[CX, LB_BOTTOM], [CX, FAN_BUS_Y], [NODE_CX[2], FAN_BUS_Y], [NODE_CX[2], NODE_Y]];
+const PROVISION = [[LB_CX, CCM_BOTTOM], [LB_CX, LB_Y]];
+const C_TO_LB = [[CLIENT_X, CLIENT_CY], [LB_RIGHT, CLIENT_CY]];
+const TO_N1 = [[LB_CX, LB_BOTTOM], [LB_CX, BUS_Y], [NODE_CX[0], BUS_Y], [NODE_CX[0], NODE_Y]];
+const TO_N2 = [[LB_CX, LB_BOTTOM], [LB_CX, NODE_Y]];
+const TO_N3 = [[LB_RIGHT, LB_CY - FACE_PAIR], [NODE_CX[2], LB_CY - FACE_PAIR], [NODE_CX[2], NODE_Y]];
+const DIRECT = [[CLIENT_CX, CLIENT_BOTTOM], [CLIENT_CX, BUS_Y], [N2_DIRECT_X, BUS_Y], [N2_DIRECT_X, NODE_Y]];
+// Node-2 forwards frame edge to frame edge across the gap, into Node-3.
+const CROSS = [[NODE_X[1] + NODE_W, NODE_CY], [NODE_X[2], NODE_CY]];
 // The nodePort rule DNATs down into the local backend Pod on Node-1.
 const NP_TO_POD = [[NODE_CX[0], NP_BOTTOM], [NODE_CX[0], POD_Y]];
 
-// The tag that rides a ball on this card: emergeMode floats the node port address out of the balancer
-// block once the ball is on its way, and hold 0 clears each address as its hop lands.
-const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
-const tag = (p) => F.tag({ fn: ridingLabel, ...p });
-// C_TO_LB is a 50 unit drop from the client floor, so at the default -14 the tag becomes readable
-// inside the External client block and the block floor at 100 cuts it for 200ms. -4 is the only
-// offset in +-80 that clears every readable sample on 1600x1000, 1280x860 and 1100x800. On 900x650
-// nothing in +-80 is clean: at -4 the glyphs clear on all four and one 100ms sample keeps an em-box
-// graze. The ball ends level with the string rather than under it, the cost of a 50 unit lane.
-const VIP_TAG_DY = -4;
+// Service row: five equal chips spanning the Node row, so the strip centres on x 600 (L-13).
+const SVC_Y = 590, SVC_H = 34, SVC_GAP = 10;     // bottom 624 mirrors the ccm top at 16
+const SVC_W = (SCHEME_R - SCHEME_L - 4 * SVC_GAP) / 5;   // 200: `loadBalancer 203.0.113.7` is the widest pair
+const SVC_X = [0, 1, 2, 3, 4].map(i => SCHEME_L + i * (SVC_W + SVC_GAP));
+const svcChip = (i, key, name, value) => P.chip({ key, x: SVC_X[i], y: SVC_Y, w: SVC_W, h: SVC_H, name, value });
 
-// The list order IS the append order, which is the z-order: Node frames, their nodePort chips and the
-// backend Pods in back, then the upper tier, then the wires, then the bottom strip and the packets.
+// Tags ride 8 left of the lane (92 wide at 1100x800) so no vertical leg runs through the text, emerge
+// once clear of the block the ball leaves (420 under the lower client, 180 off the balancer), retire on arrival.
+const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
+const tag = (p) => F.tag({ fn: ridingLabel, dx: -54, emerge: 180, ...p });
+// The 410 unit Node-1 leg at routeDur 911 is near the fastest ball in the catalog and its tag retires
+// before it is read, so it rides the catalog median 0.273 u/ms instead (M-12, PACING in motion.test).
+const LEG_DUR = 1500;
+
+// The list order IS the append order, which is the z-order: Node frames, their rule chips and the
+// backend Pods in back, then the actor tier, then the wires, then the Service row and the packets.
 export const SCENE = {
-  'aria-label': 'NodePort and LoadBalancer: a NodePort opens the same port on every Node and DNATs to a backing Pod, while a LoadBalancer has the cloud-controller-manager provision an external load balancer targeting those Node ports',
+  'aria-label': 'NodePort and LoadBalancer: a NodePort Service opens the same port on every Node, so a client can dial any Node directly, even Node-2 which runs no backend and by default forwards the connection to the Pod on Node-3, while a LoadBalancer has the cloud-controller-manager provision an external balancer that typically targets that Node port on every Node, giving clients one address in front of them',
   parts: [
     P.defs(),
     P.node({ key: 'node1', x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
     P.node({ key: 'node2', x: NODE_X[1], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2' }),
     P.node({ key: 'node3', x: NODE_X[2], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-3' }),
-    P.chip({ key: 'np1', x: NODE_CX[0] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: 'none' }),
-    P.chip({ key: 'np2', x: NODE_CX[1] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: 'none' }),
-    P.chip({ key: 'np3', x: NODE_CX[2] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: 'none' }),
-    // Backends sit on the two outer Nodes, so the middle Node is the one that opens the port with no
-    // Pod behind it, which is what the nodePort step narrates.
+    P.chip({ key: 'np1', x: NODE_CX[0] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'chain KUBE-NODEPORTS', value: 'none' }),
+    P.chip({ key: 'np2', x: NODE_CX[1] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'chain KUBE-NODEPORTS', value: 'none' }),
+    P.chip({ key: 'np3', x: NODE_CX[2] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'chain KUBE-NODEPORTS', value: 'none' }),
     P.pod({
       key: 'pod1', innerKey: 'pod1Box', x: NODE_CX[0] - POD_W / 2, y: POD_Y, w: POD_W, h: POD_H,
       label: 'Pod web', sublabel: '10.244.1.5',
-      inner: { dx: 20, dy: 30, w: POD_W - 40, h: 48, label: 'app', sublabel: 'eth0' },
+      inner: { dx: 20, dy: 28, w: POD_W - 40, h: 46, label: 'app', sublabel: 'eth0' },
     }),
     P.pod({
       key: 'pod2', innerKey: 'pod2Box', x: NODE_CX[2] - POD_W / 2, y: POD_Y, w: POD_W, h: POD_H,
       label: 'Pod web', sublabel: '10.244.3.9',
-      inner: { dx: 20, dy: 30, w: POD_W - 40, h: 48, label: 'app', sublabel: 'eth0' },
+      inner: { dx: 20, dy: 28, w: POD_W - 40, h: 46, label: 'app', sublabel: 'eth0' },
     }),
-    P.box({ key: 'client', x: CX - CLIENT_W / 2, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'External client', sublabel: '' }),
-    P.box({ key: 'lb', x: CX - LB_W / 2, y: LB_Y, w: LB_W, h: LB_H, label: 'Cloud LoadBalancer', sublabel: 'VIP 203.0.113.7' }),
-    P.box({ key: 'ccm', x: CCM_X, y: CCM_Y, w: CCM_W, h: CCM_H, label: 'cloud-controller-manager', sublabel: 'provisions the LB' }),
-    P.arrow({ from: C_TO_LB[0], to: C_TO_LB[1], dashed: true, dim: true }),
+    P.box({ key: 'ccm', x: LB_X, y: CCM_Y, w: ACTOR_W, h: ACTOR_H, label: 'cloud-controller-manager', sublabel: 'provisions the LB' }),
+    P.box({ key: 'lb', x: LB_X, y: LB_Y, w: ACTOR_W, h: ACTOR_H, label: 'Cloud LoadBalancer', sublabel: 'not provisioned' }),
+    P.box({ key: 'client', x: CLIENT_X, y: CLIENT_Y, w: ACTOR_W, h: ACTOR_H, label: 'External client', sublabel: '' }),
     P.arrow({ from: PROVISION[0], to: PROVISION[1], dashed: true, dim: true }),
-    // All three fan legs are drawn even though a step rides one: a NodePort opens the same port on
-    // every Node, so the reader has to see the alternatives the balancer chose among (NET.A-03).
+    P.arrow({ from: C_TO_LB[0], to: C_TO_LB[1], dashed: true, dim: true }),
+    // All three balancer legs are drawn though a step rides one: the balancer targets the node port on
+    // EVERY Node, so the reader sees the Node it picked among drawn alternatives (NET.A-03).
     P.lane({ points: TO_N1, dashed: true, dim: true }),
     P.lane({ points: TO_N2, dashed: true, dim: true }),
     P.lane({ points: TO_N3, dashed: true, dim: true }),
+    P.lane({ points: DIRECT, dashed: true, dim: true }),
+    P.arrow({ from: CROSS[0], to: CROSS[1], dashed: true, dim: true }),
     P.arrow({ from: NP_TO_POD[0], to: NP_TO_POD[1], dashed: true, dim: true }),
-    // The bottom strip, one chip per Node column.
-    P.chip({ key: 'rangeChip', x: NODE_CX[0] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'port range', value: '30000-32767' }),
-    P.chip({ key: 'vipChip', x: NODE_CX[1] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'status.loadBalancer', value: 'pending' }),
-    P.chip({ key: 'chainChip', x: NODE_CX[2] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'chain', value: 'none' }),
+    P.tag({ x: SVC_X[0], y: SVC_Y - 10, text: 'Service web', anchor: 'start' }),
+    svcChip(0, 'typeChip', 'type', 'ClusterIP'),
+    svcChip(1, 'portChip', 'port', '80'),
+    svcChip(2, 'nodePortChip', 'nodePort', 'none'),
+    svcChip(3, 'targetChip', 'targetPort', '8080'),
+    svcChip(4, 'lbChip', 'loadBalancer', 'none'),
     P.packets(),
   ],
-  // pod1Box is a key, not a pod group: the pod-group list only resets inline pulse strokes, so the
-  // .highlight the client-hit step puts on the container never came off.
+  // The inner app boxes are keys, not pod groups: the pod-group list only resets inline pulse strokes.
   reset: {
-    keys: ['client', 'lb', 'ccm', 'np1', 'np2', 'np3', 'pod1Box', 'rangeChip', 'vipChip', 'chainChip'],
+    keys: ['client', 'lb', 'ccm', 'np1', 'np2', 'np3', 'pod1Box', 'pod2Box', 'typeChip', 'portChip', 'nodePortChip', 'targetChip', 'lbChip'],
     pods: ['pod1', 'pod2'],
   },
 };
 
-const PORT = ':31000', CHAIN = 'KUBE-NODEPORTS', NONE = 'none';
-// The API server service-node-port-range, true before any Service exists: a constant of the
-// diagram, stated by every step and turned over by none.
-const RANGE = '30000-32767';
-// The same port on every Node plus the kube-proxy chain that catches it: one reservation, said in
-// four places, so all four read none until the nodeport step opens them together.
-const reserved = (open) => ({
+const PORT = ':31000', NONE = 'none', LB_IP = '203.0.113.7';
+// One Service, stated whole on every step. `open` is the node port reservation, which lands in five
+// places at once: the Service field and the rule on each Node.
+const service = (type, open, lb) => ({
+  typeChip: type, portChip: '80', nodePortChip: open ? '31000' : NONE, targetChip: '8080', lbChip: lb,
   np1: open ? PORT : NONE, np2: open ? PORT : NONE, np3: open ? PORT : NONE,
-  chainChip: open ? CHAIN : NONE, rangeChip: RANGE,
+});
+// Until lb-provision the balancer is requested but not there: the box stands at pending with that
+// sublabel, while its lanes stay at full like every lane in the section. Provisioned, it names its address.
+const balancer = (up) => ({
+  opacity: { lb: up ? 1 : OPACITY.pending },
+  sublabels: { lb: up ? `${LB_IP}:80` : 'not provisioned' },
 });
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { vipChip: 'pending', ...reserved(false) },
+    chips: service('ClusterIP', false, NONE),
+    ...balancer(false),
   },
   {
     id: 'nodeport',
-    duration: 2300,
-    narration: 'A NodePort Service reserves the same high port, here 31000 out of the 30000 to 32767 range, on every Node in the cluster. The kube-proxy adds a KUBE-NODEPORTS rule so a packet arriving on that port at any Node is treated as Service traffic, even on Nodes that run no backend Pod.',
-    chips: { vipChip: 'pending', ...reserved(true) },
-    // The reservation lands with the step, and the highlight is the beat of a packet-less step.
-    lit: ['np1', 'np2', 'np3', 'chainChip'],
+    duration: 3350,
+    narration: 'Setting type NodePort on Service web makes the control plane allocate one port from the Node port range, here 31000, and every Node proxies that same port into the Service. In its default iptables mode kube-proxy writes a KUBE-NODEPORTS rule for 31000 on each Node, Node-2 included, although it runs no backend Pod.',
+    chips: service('NodePort', true, NONE),
+    ...balancer(false),
+    // A packet-less step: the reservation lands with the step and the highlight is its beat (M-27).
+    lit: ['typeChip', 'nodePortChip', 'np1', 'np2', 'np3'],
+  },
+  {
+    id: 'direct',
+    // Motion: lead 800, the direct lane 700, a 100 beat, the cross-Node hop 700, then the Pod blink 900.
+    duration: 3450,
+    narration: 'No balancer is needed to use it. A client that can reach a Node dials Node-2 on port 31000 directly. Node-2 has no backend, so under the default externalTrafficPolicy Cluster its rule DNATs the connection to a ready Pod, here 10.244.3.9 on port 8080, and forwards it across the cluster network to Node-3. Node-2 SNATs it as well.',
+    chips: service('NodePort', true, NONE),
+    ...balancer(false),
+    lit: ['client'],
+    // The animated path says the Pod was served by PULSING it, which no lights list can name.
+    reducedLit: ['pod2Box'],
+    flow: [
+      F.route({ points: DIRECT, delay: BEAT.lead, name: 'toN2', lights: ['np2'] }),
+      tag({ text: 'to Node-2:31000', points: DIRECT, delay: BEAT.lead, emerge: 420 }),
+      F.segment({ from: CROSS[0], to: CROSS[1], after: 'toN2', name: 'fwd' }),
+      F.pulse({ pod: 'pod2', at: 'fwd' }),
+    ],
   },
   {
     id: 'lb-provision',
-    duration: 2400,
-    narration: 'Asking for type LoadBalancer makes the cloud-controller-manager provision an external load balancer in the cloud, with its backends set to every Node on the nodePort. When the balancer is ready its address is written back into status.loadBalancer.ingress, giving clients one stable VIP.',
-    chips: { vipChip: '203.0.113.7', ...reserved(true) },
-    lit: ['ccm', 'vipChip'],
-    // status.loadBalancer is written back only once the balancer exists, so the chip stays pending
-    // until the provisioning hop lands at 700, the routeDur floor and the shortest lead on the card.
-    rewind: { chips: { vipChip: 'pending' } },
-    // ccm provisions the LB: one clean hop, the LB lights on arrival.
+    duration: 3300,
+    narration: 'Switching the type to LoadBalancer keeps that Node port by default. The cloud-controller-manager provisions an external load balancer, typically pointed at port 31000 on every Node. Creation happens asynchronously, so status.loadBalancer stays empty until 203.0.113.7 is published in status.loadBalancer.ingress.',
+    chips: service('LoadBalancer', true, LB_IP),
+    ...balancer(true),
+    lit: ['ccm', 'typeChip'],
+    // The balancer and status.loadBalancer both exist only once the provisioning hop lands, so both
+    // are wound back and turn over on that arrival.
+    rewind: { chips: { lbChip: NONE }, ...balancer(false) },
     flow: [
-      F.segment({ from: PROVISION[0], to: PROVISION[1], lights: ['lb'], name: 'prov' }),
-      F.set({ at: 'prov', chips: { vipChip: '203.0.113.7' } }),
+      F.segment({ from: PROVISION[0], to: PROVISION[1], delay: BEAT.lead, lights: ['lb', 'lbChip'], name: 'prov' }),
+      F.set({ at: 'prov', chips: { lbChip: LB_IP }, ...balancer(true) }),
     ],
   },
   {
     id: 'client-hit',
-    duration: 2400,
-    narration: 'An external client connects to the load balancer VIP. The balancer forwards the connection to one of its Node targets on port 31000, spreading load across the Nodes without knowing or caring which of them actually hosts a backend Pod.',
-    chips: { vipChip: '203.0.113.7', ...reserved(true) },
-    // The client dials, so only the client is lit at entry. The balancer and the nodePort each
-    // light as the connection reaches them, which is what makes the two hops read as one path.
+    // Motion: lead 800, the client lane 700, a 100 beat, the Node-1 leg at LEG_DUR and its tag, span 3660.
+    duration: 3900,
+    narration: 'An external client now dials 203.0.113.7 on port 80 and the balancer picks a Node. A balancer that targets Node ports sends the connection to Node-1 on 31000, as drawn. One that preserves the destination, which ipMode VIP declares, would deliver it still addressed to 203.0.113.7:80, and kube-proxy catches that with its load balancer IP rule.',
+    chips: service('LoadBalancer', true, LB_IP),
+    ...balancer(true),
     lit: ['client'],
-    // Each cue is its own entry because the tag rides between the packet and the box it lights, and
-    // the emission order is observable.
     flow: [
-      F.segment({ from: C_TO_LB[0], to: C_TO_LB[1], name: 'toLb' }),
-      tag({ text: 'to 203.0.113.7', points: C_TO_LB, easing: 'linear', dy: VIP_TAG_DY }),
-      F.light({ targets: ['lb'], at: 'toLb' }),
-      F.route({ points: TO_N1, after: 'toLb', name: 'toNode' }),
-      tag({ text: 'to node-1:31000', points: TO_N1, after: 'toLb', emerge: 150 }),
-      F.light({ targets: ['np1'], at: 'toNode' }),
+      F.segment({ from: C_TO_LB[0], to: C_TO_LB[1], delay: BEAT.lead, name: 'toLb', lights: ['lb'] }),
+      F.route({ points: TO_N1, after: 'toLb', dur: LEG_DUR, name: 'toNode', lights: ['np1'] }),
+      tag({ text: 'to Node-1:31000', points: TO_N1, after: 'toLb', dur: LEG_DUR }),
     ],
   },
   {
     id: 'dnat',
-    duration: 2400,
-    narration: 'On the Node that received it, the nodePort rule DNATs the packet to a backend Pod IP. That Pod can sit on this same Node, as here, or on another Node reached across the cluster network, since kube-proxy load-balances across every backend. A single external address has now reached a private Pod.',
-    chips: { vipChip: '203.0.113.7', ...reserved(true) },
+    duration: 3100,
+    narration: 'On Node-1 the KUBE-NODEPORTS rule for 31000 DNATs the connection to the local Pod 10.244.1.5:8080. The balancer only chose the Node: under the default Cluster policy the rule picks from every ready Pod, so it could as well have picked 10.244.3.9. One external address has reached a private Pod.',
+    chips: service('LoadBalancer', true, LB_IP),
+    ...balancer(true),
     lit: ['np1'],
     // The animated path says the Pod was served by PULSING it, which no lights list can name.
     reducedLit: ['pod1Box'],
-    // nodePort DNATs to the local backend Pod (one hop), which pulses on arrival.
     flow: [
-      F.segment({ from: NP_TO_POD[0], to: NP_TO_POD[1], name: 'toPod' }),
+      F.segment({ from: NP_TO_POD[0], to: NP_TO_POD[1], delay: BEAT.lead, name: 'toPod' }),
       F.pulse({ pod: 'pod1', at: 'toPod' }),
     ],
   },

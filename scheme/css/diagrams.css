@@ -138,8 +138,8 @@ svg.diagram {
   fill: none;
 }
 /* .scheme-arrow-dim sits ABOVE the three role rules at equal specificity, so the ROLE wins the
-   stroke and dim survives only as stroke-width 1.4. 315 of the catalog's 358 `dim: true` calls pass
-   a role, so dim looks like a no-op almost everywhere. IT IS NOT A BUG: dim here is a stroke WEIGHT,
+   stroke and dim survives only as stroke-width 1.4. All 458 of the catalog's `dim: true` calls pass
+   a role, so dim looks like a no-op EVERYWHERE. IT IS NOT A BUG: dim here is a stroke WEIGHT,
    not a lifecycle state, and a wire a ball rides is normally drawn dim. Measured: 601 dim lanes
    carry a packet across 511 steps. DO NOT make dim outrank role: it greys out most route wires and
    breaks the per-category colour identity. Measured: 94 of 103 rendered cards change, and the

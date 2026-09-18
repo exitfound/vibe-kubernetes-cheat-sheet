@@ -1,6 +1,6 @@
 import { P, F, defineCard, laneY, BEAT } from './network-kit.js';
 
-// Design notes for this card: ./CARDS.md#network-dns-records
+// Design notes for this card: ./CARDS/network-dns-records.md
 
 
 // Panel right <= 397, bottom <= 330, so the query row and the FQDN band both hang below it and only
@@ -28,12 +28,14 @@ const QUERY = [[CLIENT_EDGE, Q_OUT_Y], [CD_LEFT, Q_OUT_Y]];
 const REPLY = [[CD_LEFT, Q_BACK_Y], [CLIENT_EDGE, Q_BACK_Y]];
 const ANS = ROWS.map(cy => [[CD_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, cy], [PANEL_X, cy]]);
 
-// The four name segments keep their relative widths (156:116:76:100, each sized by its own text) and
-// stretch to span CD_LEFT..CONTENT_R, which puts the content bbox on 600 without a frame.
+// The first segment is CD_W wide and starts on CD_LEFT, so the service name sits exactly under the
+// resolver that answers it. The second absorbs the 7 units that frees, and the fourth still lands on
+// CONTENT_R, which keeps the content bbox on 600 without a frame.
+const SEG_GAP = 6;
 const SEG_Y = 490, SEG_H = 64;
 const SEGS = [
-  { key: 'seg1', x: CD_LEFT, w: 237 },
-  { key: 'seg2', x: 663, w: 177 },
+  { key: 'seg1', x: CD_LEFT, w: CD_W },
+  { key: 'seg2', x: CD_RIGHT + SEG_GAP, w: 184 },
   { key: 'seg3', x: 846, w: 116 },
   { key: 'seg4', x: 968, w: 152 },
 ];
@@ -75,7 +77,7 @@ export const SCENE = {
       key: 'chain', x: PANEL_X, y: ROWS_Y, w: PANEL_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
         'A: web.default.svc -> 10.96.0.20',
-        'SRV: _http._tcp.web -> :80',
+        'SRV: _http._tcp.web -> :80 web.default.svc',
         'Headless A: -> .2.7 .3.4 .1.9',
         'Pod A: 10-244-2-7.default.pod',
       ],
@@ -84,6 +86,9 @@ export const SCENE = {
     // every answer ball has a line under it. Each wire is drawn from the same array the ball rides.
     P.arrow({ from: QUERY[0], to: QUERY[1], dashed: true, dim: true }),
     P.arrow({ from: REPLY[0], to: REPLY[1], dashed: true, dim: true }),
+    // Where the query GOES, as a standing caption rather than a per-step wire: the nameserver address
+    // is true on every step, and it is the value the A record answer is confused with.
+    P.tag({ x: (CLIENT_EDGE + CD_LEFT) / 2, y: Q_OUT_Y - 12, text: 'to 10.96.0.10:53' }),
     ...ANS.map(points => P.lane({ points, ...ANS_WIRE })),
     P.chip({ key: 'qChip', x: CONTENT_L, y: CHIP_Y, w: Q_CHIP_W, h: CHIP_H, name: 'question', value: '-' }),
     P.chip({ key: 'ansChip', x: ANS_CHIP_X, y: CHIP_Y, w: ANS_CHIP_W, h: CHIP_H, name: 'answers', value: '-' }),
@@ -135,7 +140,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'fqdn',
-    duration: 2500,
+    duration: 3400,
     narration: 'The full name is web.default.svc.cluster.local: the Service, its namespace, the literal svc, then the cluster domain. A Pod resolv.conf carries search domains and ndots:5, so a short name like web is expanded to this fully qualified form before it leaves the Pod. Every record below is a variation on these four segments.',
     chips: { qChip: 'web expands to web.default.svc.cluster.local', ansChip: NO_ANS },
     ...asking(NAME_SVC),
@@ -153,7 +158,7 @@ export const STEPS_SPEC = [
     // Motion: the query out, the record up into the ladder, then the answer home to the
     // client and its arrival pulse, ending at ~4100.
     duration: 4400,
-    narration: 'Ask for the name itself and you get an A record, or AAAA on IPv6, pointing at the Service ClusterIP, 10.96.0.20. This is the common case: a name in, the stable virtual IP out, which kube-proxy then load-balances to a Pod. Note that this is the web Service address, not 10.96.0.10, which is the kube-dns ClusterIP the query was sent to.',
+    narration: 'Ask for the name itself and you get an A record, or AAAA on IPv6, pointing at the Service ClusterIP, 10.96.0.20. This is the common case: a name in, the stable virtual IP out, which kube-proxy then load-balances to a Pod. The address answered is the web Service, not the kube-dns ClusterIP the question was sent to.',
     chips: { qChip: 'web.default.svc.cluster.local  IN A', ansChip: ONE_REC },
     ...asking(NAME_SVC),
     lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],
@@ -184,9 +189,10 @@ export const STEPS_SPEC = [
   {
     id: 'pod-record',
     // Motion: the query out, the record up into the ladder, then the answer home to the
-    // client and its arrival pulse, ending at ~4100.
-    duration: 4400,
-    narration: 'Finally a Pod can be addressed directly, and here the name changes twice: the Pod IP written with dashes takes the place of the Service, and the subdomain flips from svc to pod. CoreDNS only serves this when the kubernetes plugin has pods enabled, which kubeadm sets to insecure by default, and in that mode it reads the address straight back out of the name without checking that such a Pod exists. The stable way to reach one specific replica is a StatefulSet Pod hostname under a headless Service.',
+    // client and its arrival pulse, ending at ~4100. The longest narration on the card pays
+    // for the rest of the hold.
+    duration: 5300,
+    narration: 'Finally a Pod has a record of its own, a form that predates the DNS spec, and here the name changes twice: the Pod IP written with dashes takes the place of the Service, and the subdomain flips from svc to pod. CoreDNS only serves it when the kubernetes plugin has pods enabled, which kubeadm sets to insecure by default, and in that mode it answers from the name without checking that such a Pod exists. The stable way to reach one specific replica is a StatefulSet Pod hostname under a headless Service.',
     chips: { qChip: '10-244-2-7.default.pod.cluster.local  IN A', ansChip: ONE_REC },
     ...asking(NAME_POD),
     lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],

@@ -165,15 +165,13 @@ const EXPECTED_TIMERS = floor(555);     // the 1ms deferred timers of lightBoxAt
 // bite on the other 100.
 //
 // `clamp` is the subset of those balls that also escape routeDur's floor: a ball moving faster than
-// the canon minimum. All five are short segment hops shortened on purpose.
+// the canon minimum. Every one of them is a short hop shortened on purpose, and the count is the sum
+// of the `clamp` column below rather than a number restated here to go stale.
 // ---------------------------------------------------------------------------------------------
 const PACING = new Map([
   ['network-service-clusterip',    { speed: 8, clamp: 0 }],
   ['network-ipam-pod-cidr',        { speed: 6, clamp: 3 }],
-  ['network-pod-to-pod-same-node', { speed: 6, clamp: 0 }],
-  ['network-traffic-distribution', { speed: 6, clamp: 0 }],
   ['storage-csi-capacity-tracking',{ speed: 6, clamp: 0 }],
-  ['network-service-cidr',         { speed: 3, clamp: 1 }],
   ['storage-fsgroup-ownership',    { speed: 3, clamp: 1 }],
   ['network-ebpf-dataplane',       { speed: 1, clamp: 0 }],
   // The three creation balls share the longest tap's duration so one parallel wave lands on one
@@ -192,6 +190,64 @@ const PACING = new Map([
   // spread puts the arrivals 673ms apart, which draws the owners learning it in an order. Justified
   // at the call site on `WATCH_DUR`.
   ['workloads-pod-replacement-guarantees', { speed: 3, clamp: 0 }],
+  // The chain row is three boxes across 492 units, so its two gaps are 24 apiece: shorter than any
+  // other ball in the catalog. routeDur floors them at 700ms, which is 0.034 u/ms against the 0.45
+  // canon and made them the two SLOWEST balls of the 876, oozing across 24 units while the reader
+  // waits. Geometry cannot fix it: reaching the floor honestly wants a 315 unit gap inside a 492
+  // unit row. Both gaps take GAP_MS 200 so the packet HOPS between adjacent boxes, and PAUSE is
+  // what goes on saying `stopping at each`, which is the step's actual subject. Justified at the
+  // call site on `GAP_MS`.
+  ['network-kube-proxy-modes',     { speed: 2, clamp: 2 }],
+  // One ball: the 410 unit Node-1 leg on `client-hit` rides LEG_DUR 1500, the catalog median speed,
+  // because at routeDur 911 its riding tag retires before it can be read. Justified at the call site.
+  ['network-nodeport-loadbalancer', { speed: 1, clamp: 0 }],
+  // One ball: the 330 unit ARP reply on `l2` rides ARP_DUR 1400, near the catalog median speed, because
+  // at routeDur 733 its riding tag retires before it can be read. Justified at the call site.
+  ['network-loadbalancer-bare-metal', { speed: 1, clamp: 0 }],
+  // Four balls over three steps: a TAGGED 440 unit outer leg rides LEG_DUR 1500, near the catalog
+  // median speed, because at routeDur 978 its riding tag retires before it can be read. The untagged
+  // balls on the same legs keep routeDur. Justified at the call site.
+  ['network-external-traffic-policy', { speed: 4, clamp: 0 }],
+  // Three balls over three steps: each TAGGED 442 unit balancer leg rides LEG_DUR 1800, near the
+  // catalog median speed, because at routeDur its tag, which can only show on the run over the
+  // frame, retires before it can be read. Justified at the call site.
+  ['network-loadbalancer-direct-to-pods', { speed: 3, clamp: 0 }],
+  // Two balls over two steps: each TAGGED 310 unit branch rides BRANCH_DUR 1500, near the catalog
+  // median speed, because at the 700ms floor it runs 0.44 u/ms and its tag cannot be read. Justified
+  // at the call site.
+  ['network-ingress-routing', { speed: 2, clamp: 0 }],
+  // Two balls over two steps: the TAGGED 212 unit HTTP 500 answer on `refused` and the TAGGED 212
+  // unit proxy to Pod leg on `request` each ride LEG_DUR 1500, because at the 700ms floor the tag
+  // has to clear the face it leaves and retire before the face it heads for, and is gone before it
+  // can be read. Justified at the call site.
+  ['network-gateway-api', { speed: 2, clamp: 0 }],
+  // Two balls over two steps: the TAGGED 176 unit request on `header-canary` and the TAGGED 176 unit
+  // HTTP 500 answer on `invalid` each ride LEG_DUR 1125, because at the 700ms floor the tag has to
+  // clear the face it leaves and is gone before it can be read. The untagged balls on the same lanes
+  // keep routeDur. Justified at the call site.
+  ['network-gateway-traffic-splitting', { speed: 2, clamp: 0 }],
+  // Six balls over five steps, every one of them tagged: each 307 unit leg rides TAG_DUR 1200
+  // rather than the 700ms floor its length clamps to, because inside 700 the tag cannot fade in
+  // clear of the block it leaves, stand long enough to be read, and retire before the arrival
+  // ripple. Justified at the call site.
+  ['network-client-ip-preservation', { speed: 6, clamp: 0 }],
+  // Every ball on this card carries an explicit dur, 20 over five steps. The four TAGGED legs ride
+  // LEG_DUR 1275 so the address can be read for the whole flight, and the 16 untagged hops ride
+  // HOP_MS 595, which is under the 700ms floor their 56 to 164 unit lengths clamp to: at the floor
+  // they ran 0.08 to 0.23 u/ms against the 0.45 canon and read as crawling. Justified at the call site.
+  ['network-nodelocal-dnscache', { speed: 20, clamp: 16 }],
+  // Eight balls over five steps: every 152 unit lookup leg rides HOP_MS 595 rather than the 700ms
+  // floor its length clamps to, where it ran 0.217 u/ms against the 0.45 canon and read as crawling.
+  // The two data routes are long enough to take the canon speed and carry no dur. Justified at the
+  // call site.
+  ['network-headless-service', { speed: 8, clamp: 8 }],
+  // Every ball on this card carries an explicit dur, eight over six steps: the five 100 unit poll
+  // legs and the three 132 unit write hops all ride HOP_MS 595 rather than the 700ms floor their
+  // lengths clamp to, where they ran 0.143 and 0.189 u/ms against the 0.45 canon and read as
+  // crawling. 595 is the same 15 percent off the floor `network-nodelocal-dnscache` measured for
+  // its own short hops, so the two cards of this section that hop short distances run at one pace.
+  // The card has no lane long enough to take the canon speed. Justified at the call site.
+  ['network-dns-autoscaling', { speed: 8, clamp: 8 }],
 ]);
 
 // PULSE-TOGETHER's ceiling (M-03). cluster-pod-sandbox-cri pulses appGroup alone on its last two

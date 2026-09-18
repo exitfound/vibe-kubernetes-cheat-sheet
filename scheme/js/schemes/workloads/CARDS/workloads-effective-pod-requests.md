@@ -34,8 +34,9 @@ LAYOUT   An INSTRUMENT: cpu up the page against ONE Pod life across it, so max a
          init-b at its own 78 units with a dashed idle cell filling the room above it is REJECTED
          too: it reads as an unfinished corner patched over, and a mosaic wants a tile there, not a
          hole with a lid.
-           readers  EQUAL and mirrored across WL.CX, 170 wide each with a 60 gap: Scheduler
-                    400..570, Kubelet 630..800, both on WL.TOP_Y, tied by a relation on y=80
+           readers  EQUAL at the family actor width, 232 each with a 60 gap, standing RIGHT OF
+                    THE PANEL rather than across WL.CX: Scheduler 420..652, Kubelet 712..944,
+                    both on WL.TOP_Y, tied by a relation on y=80, the pair centre 682
            chart    x 150..1050 (CH_L / CH_R), 900 wide and centred on WL.CX, SCALE 0.26
            windows  init-a 150..330, init-b 330..450, the run window 450..1050
            rows     init row 306..514 (800m), run row 345..514 (650m), overhead floor 514..579
@@ -55,8 +56,8 @@ PANEL    x<=397 catalog-wide (`L-02`). Bottom per viewport:
          A 450 character step 4 puts the panel bottom ON the init tile top, twelve lines against a
          chart hung 75 under nine, so a sentence added to one step is paid for by a sentence cut
          from the same step, and an eleventh line anywhere is the panel on the tile.
-         The one per-step readout sits at x=600 on y=28, above the actor row and above anything the
-         panel reaches on any viewport.
+         The one per-step readout sits at x=682, the pair's own centre, on y=28, above the actor
+         row and above anything the panel reaches on any viewport.
 SIZES    Every height is DERIVED from REQ through CPU(), so the drawing and the arithmetic cannot
          disagree: 800m is 208 units, 300m is 78, 200m is 52, 450m is 117, 250m is 65, and the
          reservation at 1050m is 273.
@@ -78,9 +79,10 @@ SIZES    Every height is DERIVED from REQ through CPU(), so the drawing and the 
          CENTRING, measured rather than assumed, because the whole lower block being off centre was
          a live question. The content bbox is 150..1050 on every one of the three viewports, the
          centre is 600.00 exactly and the two margins are 150.0 and 150.0. `CENTRE` (L-13) wants 600
-         +- 40 and prints nothing for this card. The actor row inside it runs 420..1050 and is NOT
-         centred, which is `WL.L-07` pinning the Scheduler to the spine and the panel taking the top
-         left: that asymmetry is above the chart, not in it.
+         +- 40 and prints nothing for this card. The actor row inside it runs 420..944 and is NOT
+         centred, because the panel takes the top left and two 232 boxes will not clear it centred
+         on the spine: that asymmetry is above the chart, not in it. Re-measured after the widening
+         and `CENTRE` still prints nothing, since neither reader is counted against the chart.
          Text is WIDER in viewBox units at the WIDE viewport and not at the narrow one, which is the
          opposite of the obvious assumption: the widest readout inks 263.8 at 1100x800 and 296.3 at
          1600x1000, and 6.89 units per character is the rate to estimate with.
@@ -99,26 +101,22 @@ LANES    Two, and both run UP. The chart PRODUCES the number and the control pla
          both: it stands at y=290, between the reservation the lanes leave and the readers they
          reach, and names the one number that rides them. A label per lane would have to sit on the
          corridor the readout already occupies.
-         The lanes ride at 485 and 715, the face midpoints of a symmetric reader pair.
+         The lanes ride at 536 and 828, the face midpoints of the two readers.
          A third line joins the two readers, and it is a RELATION rather than a lane: they read ONE
          number, which is what step 6 says in words, and nothing travels between them. No arrowhead,
          no ball, no wire label, true on every step including the poster (A-06). It runs on y=80,
          the side-face midpoint of both boxes, so it lands on a face at each end.
-         170 by 60 is the CEILING of a symmetric pair on this card, and the two numbers move against
-         each other: the pair is mirrored on WL.CX, so its left edge is 600 - gap/2 - width and
-         every unit of gap comes off both boxes. 170 puts that edge on 400, which still clears the
-         measured panel by 3.45, and anything wider walks the box behind it.
-         WL.L-02 SAYS THE ACTOR ROW STARTS NO FURTHER LEFT THAN 420, and 400 is a deliberate 20 unit
-         departure taken to buy the width. The convention carries 23.45 units of slack over the
-         physical wall, which is the measured 396.55, and this spends 20 of them. Nothing is lost to
-         the panel: the box has zero area behind it, and the sublabel inks 422..548 at its widest,
-         clearing the deepest panel by 27.2.
-         232, THE SIZE `workloads-pod-startup-conditions` GIVES ITS TWO ACTORS, WAS ASKED FOR AND IS
-         REFUSED BY ARITHMETIC, so nobody re-derives it. A symmetric 232 pair puts the left edge at
-         368 - gap/2, which is behind the 396.55 panel on every gap: at 20 the box loses 38.6 units
-         of its border on the narrowest viewport, and past a 22 gap the sublabel itself goes behind
-         the panel. That sibling can carry 232 because its pair is NOT centred: it hangs one box off
-         WL.R and the other on the spine.
+         232 IS THE FAMILY ACTOR WIDTH AND THE PAIR PAYS FOR IT BY GIVING UP THE MIRROR. A pair
+         centred on WL.CX starts at 368 - gap/2, which is behind the measured 396.55 panel at every
+         gap, so a symmetric row cannot be wider than 170 by 60 and that is what this card carried
+         until the widening was asked for. Moved right instead, the row starts on WL.L-02's own 420
+         and clears the physical wall by 23.45 with nothing behind the panel at all: the Scheduler
+         sublabel inks 474.65..597.35 at its widest, 78.1 clear of the deepest panel.
+         The 60 GAP IS KEPT from the symmetric version. It is the length the standing relation
+         between the two readers is drawn in, and shortened to buy width the line reads as a hyphen
+         joining two labels rather than as a tie between two readers.
+         THE PAIR CENTRE IS 682 and the readout above it moves with it, because the readout names
+         the number both readers take and belongs on their axis rather than on the chart's.
          WL.L-07 DOES NOT REACH THIS CARD, and that is a deliberate departure with a reason. The
          rule pins the trunk box to WL.SPINE_X so the trunk clears the two 480 wide columns at
          60..540 and 660..1140. This card draws neither column, so there is no corridor left for the
@@ -265,20 +263,21 @@ CONTENT  The formula is quoted rather than derived. The sidecar-containers page 
          draws a band the exact height of the sidecar bar standing beside it. At 450m the held room
          is 150m and matches nothing else on the canvas.
 BUDGET   The readout no longer sits between the lanes. It rides ABOVE the actor row on the WL.A-02
-         constant, y = WL.TOP_Y - 12 = 28, centred on WL.CX, and there is no cap on it any more: the
-         band up there is free from x=420 to the right edge and the widest string drawn inks 296.3
-         units over 451.8..748.2 at 1600x1000, clear of the panel by 161 at its widest.
-         IT HAD TO MOVE, and the arithmetic is worth keeping because it closes the question. A
-         symmetric pair puts the lanes at 600 +- d. The panel wall holds the left box at x>=420, so
-         d <= 180 - TOP_W/2 and the gap between the lanes is at most 360 - TOP_W. Even a 100 wide
-         box leaves 260, and the widest readout is 296.3 before any clearance. There is no box width
-         at which a symmetric pair and a between-the-lanes readout both fit. The Scheduler sublabel
-         is `bins on this request` for the same reason, against `bins on the effective request` at
-         177.9 and `bins on effective request` at 153.4. That inks 122.7, exactly what `sizes the
-         Pod cgroup` inks, so the two readers carry strings of equal width in boxes of equal width
-         and both clear their walls by 23.65. The word `effective` survives in three readouts, in
-         the aria-label and in the desc, and `this` points at the number the chart below is
-         computing.
+         constant, y = WL.TOP_Y - 12 = 28, centred on the pair's axis at 682, and there is no cap on
+         it any more: the band up there is free from x=420 to the right edge and the widest string
+         drawn inks 296.3 units over 533.9..830.1 at 1600x1000, clear of the panel by 137 at its
+         widest.
+         IT HAD TO MOVE, and the arithmetic is worth keeping because it closes the question. The
+         lanes stand 292 apart at 536 and 828, and the widest readout is 296.3 before any clearance,
+         so it does not fit between them at this width either. On the symmetric version the case was
+         closed for every width: the panel wall holds the left box at x>=420, so the gap between the
+         lanes is at most 360 - TOP_W, and even a 100 wide box leaves 260 against that 296.3.
+         The Scheduler sublabel is `bins on this request` for the same reason, against `bins on the
+         effective request` at 177.9 and `bins on effective request` at 153.4. That inks 122.7,
+         exactly what `sizes the Pod cgroup` inks, so the two readers carry strings of equal width
+         in boxes of equal width and both clear their walls by 54.65. The word `effective` survives
+         in three readouts, in the aria-label and in the desc, and `this` points at the number the
+         chart below is computing.
 NAMING   The sidecar box says `always cpu 200m` and not `init cpu 200m`, because its slot is the
          init array and its accounting is the app side, and that split is step 4.
          Step 3 and the aria-label both say REGULAR init containers run one at a time, and the word

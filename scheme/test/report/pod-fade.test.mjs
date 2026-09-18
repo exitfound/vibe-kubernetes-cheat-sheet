@@ -110,6 +110,10 @@ const RULED = new Map([
     'ball reached it, so the beat is spent. This is that termination finishing.'],
   ['cluster-cascading-deletion purge placedPod',
     'CORRECT. A second fade on a Pod that already pulsed earlier in the card, so the beat is spent.'],
+  ['network-headless-service not-ready w2',
+    'CORRECT. A failed readiness probe signals nobody the card draws, so there is no beat for web-2 to answer. The fade is the cause the lookup then shows as a smaller answer.'],
+  ['network-headless-service new-ip w0',
+    'CORRECT. The Pod is deleted, so nothing is left to blink, and a pulse would claim the old Pod answered something. The reveal that follows is the recreated web-0.'],
   ['cluster-node-restart reboot podWeb',
     'CORRECT. A reboot signals nobody, so there is no beat for a Pod to answer. A blink would claim ' +
     'an acknowledgement that never happened, and the Pod object is untouched in the API.'],

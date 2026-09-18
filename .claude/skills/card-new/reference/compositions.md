@@ -48,11 +48,11 @@ free to arrange its blocks the way its subject wants them.
 |---|---|---|
 | Actor strip over a Node floor | someone up there acts, and it lands on a Node down here | `cluster-scheduler-decision`, `workloads-probes`, `cluster-node-drain` |
 | Ladder and chip column | a pipeline of named stages, with the state it moves beside it | `cluster-admission-chain`, `workloads-force-deletion` |
-| Mirrored flow line | traffic goes out along one lane and comes back along another | `network-service-clusterip`, `network-conntrack-nat`, `network-service-ports` |
+| Mirrored flow line | traffic goes out along one lane and comes back along another | `network-service-clusterip`, `network-conntrack-nat` |
 | Vertical stack on an identity spine | this thing belongs to that thing, and data moves between them | `storage-volume-model`, `storage-hostpath`, `storage-emptydir` |
 | Two zones compared | two regimes, side by side, and they differ | `storage-ephemeral-vs-persistent`, `network-kube-proxy-modes`, `cluster-resource-quota` |
 | Peer ring | several equals, and one of them is currently the one | `cluster-etcd-raft`, `cluster-leader-election` |
-| Fan to N | one source, several drawn alternatives, one taken | `network-service-clusterip`, `storage-projected-volume`, `network-cni-invocation` |
+| Fan to N | one source, several drawn alternatives, one taken | `network-service-clusterip`, `storage-projected-volume` |
 | Multi-Node band | the same thing on several Nodes, and they are not alike | `workloads-daemonset`, `network-loadbalancer-bare-metal`, `storage-volume-attach-limits` |
 | Nested containment | this lives inside that, which lives inside that | `cluster-pod-cgroup-hierarchy`, `network-namespaces`, `storage-container-filesystem` |
 | Instrument panel | a quantity, a budget or a countdown, drawn as a measure | `cluster-cpu-throttling`, `cluster-node-allocatable`, `cluster-image-container-gc` |
@@ -187,7 +187,7 @@ some step. One of the two is the subject: the other is a caption for it.
 **Says:** this is a story about API objects, and no Pod appears in it.
 
 **Build:** boxes for the objects, relationship lines for the references between them, and the state
-of each object in its own sublabel. 24 cards in the catalog carry no Pod at all, so a Pod is not the
+of each object in its own sublabel. 25 cards in the catalog carry no Pod at all, so a Pod is not the
 price of admission: adding one to a card whose subject is a PV and a PVC puts an actor on stage who
 never speaks.
 

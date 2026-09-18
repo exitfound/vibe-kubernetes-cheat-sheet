@@ -22,6 +22,21 @@
 // cannot fail), ORPHAN (a test file no rule cites is a test whose subject is written down nowhere)
 // and NAME (the axis name has to occur in the file).
 //
+// TWO NAMESPACES SINCE 2026-09-09. A value's kind picks which map its file half is resolved in:
+// `test:` and `report:` name a file under `test/`, `skill:` names a tool under
+// `.claude/skills/*/tools/`. The second namespace was added because the column was understating
+// itself by eight rows: `poster-lint.mjs` mechanically decides eight rules of the `R` block and
+// every one of them read `review`, which says "no machine anywhere". The count was the smaller
+// half of the problem. The larger half is that NOTHING GUARDED THOSE CHECKS: a `test:` value's axis
+// cannot be renamed inside its test without this group going red, while `poster-lint.mjs` could
+// have dropped a whole branch in silence. `R-08a` is the standing proof that this is not
+// hypothetical: it tested `<polygon>` alone, walked past five of the six chevrons in the catalog,
+// and the comment beside it asserted the opposite until someone happened to look.
+//
+// The two namespaces COLLIDE and are meant to: `motion` is both `render/motion.test.mjs` and
+// `card-review/tools/motion.mjs`, and they are different machines about different things. That is
+// why the kind is a kind and not a path convention inside the existing one.
+//
 // WHAT A NAME IS, AND WHY OCCURRENCE IS THE RIGHT TEST. A test file names the rules it carries in
 // its own header, and it prints an axis label on every finding it reports. Those two are the same
 // vocabulary, so "the name occurs in the file" is the question, and it is deliberately not "the
@@ -111,19 +126,23 @@ const REPO = join(ROOT, '..');
 // genuinely spans several lines of code. What the floor was actually guarding, a walker that stops
 // finding its input and exits green, is guarded below on the RECORDS read, which is the input.
 const CATALOG_RULE_FLOOR = 235;                                                  // the L A M C T P D R S blocks
-const INDEX_ROWS = 43;                                                           // CLU 6, WL 15, NET 9, STO 13
-const CANON_ROW_FLOOR = CATALOG_RULE_FLOOR + INDEX_ROWS;                         // 274 rule rows in CANON.md
+const INDEX_ROWS = 47;                                                           // CLU 6, WL 15, NET 12, STO 14
+const CANON_ROW_FLOOR = CATALOG_RULE_FLOOR + INDEX_ROWS;                         // 275 rule rows in CANON.md
 const REF_FLOOR = 400;                                                           // measured 469 id-shaped tokens
 const LABEL_MAX_CHARS = 90;                                                      // measured max 73 (NET.C-01)
 const LABEL_MAX_OVERLAP = 55;                                                    // measured max 35 (WL.S-01)
 
-// Rule ROWS carrying at least one test: or report: value, as against `review` or `hook` alone.
-// A FLOOR, because draining `review` is the direction of travel and a DROP means rules quietly
-// went back to being a human's job, which is a change to make deliberately rather than discover.
+// Rule ROWS carrying at least one test:, report: or skill: value, as against `review` or `hook`
+// alone. A FLOOR, because draining `review` is the direction of travel and a DROP means rules
+// quietly went back to being a human's job, which is a change to make deliberately rather than
+// discover.
 // Measured 2026-08-15: 144 rows of 235 name a machine (a row may name two), against 95 `review`.
+// Measured 2026-09-09: 167 of 253, against 85 `review`. Nine of the twenty-three the count gained
+// are the `R` block finally saying out loud that `poster-lint.mjs` decides it, and four of those
+// nine keep a `review` value beside the `skill:` one because the tool sees half the rule.
 // The floor moves with the measurement, or a rule could go back to being a human's job with
 // nothing red.
-const MACHINE_ROW_FLOOR = 140;
+const MACHINE_ROW_FLOOR = 160;
 
 // Backticked PATH tokens across every Source cell. A FLOOR, and the reason is the failure this
 // group is built against: a parse that stops matching resolves nothing and reports nothing dead.
@@ -137,7 +156,7 @@ const SOURCE_SYMBOL_FLOOR = 38;
 // split is asserted rather than counted loosely, because "declared" and "merely cited" are the
 // distinction this whole group turns on, and a parser that stopped telling them apart would go
 // quiet, not red.
-const DECLARATION_SHAPES = { row: 30, heading: 11, bullet: 2 };
+const DECLARATION_SHAPES = { row: 35, heading: 10, bullet: 2 };
 
 const CATS = await categories();
 const { CATEGORY_LABEL } = await catalog();
@@ -426,8 +445,46 @@ for (const dir of [...MANDATORY_DIRS, ...REPORT_DIRS]) {
   }
 }
 
-// `test:geometry/DIAGONAL`, `report:overlay/L-02`, `test:palette`, `hook`, `review`.
-const VALUE = /^(test|report):([a-z][a-z0-9-]*)(?:\/([^\s,]+))?$/;
+// --------------------------------------------------------------------------------------------
+// The SKILL TOOLS, the second namespace a Check value can name. `.claude/skills/*/tools/*.mjs`,
+// read by SHAPE the way `skillDocs()` reads the `.md` beside them, so a tool written tomorrow is
+// covered the day it lands.
+//
+// WHY A SECOND MAP AND NOT AN ENTRY IN `TEST_FILES`. These are not test files and must never be
+// mistaken for one: `npm test` does not run them, they cannot go red, and the two namespaces
+// COLLIDE (`motion` is both `render/motion.test.mjs` and `card-review/tools/motion.mjs`). The kind
+// in front of the colon is what picks the map, which is the whole reason `skill:` is a kind rather
+// than a path convention inside the existing one.
+//
+// The basenames have to be unique among THEMSELVES for the same reason the test basenames do: a
+// value names a tool without a path. They are deliberately NOT required to be unique against the
+// test files.
+// --------------------------------------------------------------------------------------------
+const SKILL_TOOL_FLOOR = 8;                                  // 15 on disk 2026-09-09
+
+function skillTools() {
+  const out = new Map();
+  const dups = [];
+  for (const skill of readdirSync(SKILLS_DIR, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    if (!skill.isDirectory()) continue;
+    const dir = join(SKILLS_DIR, skill.name, 'tools');
+    if (!existsSync(dir)) continue;
+    for (const f of readdirSync(dir).sort()) {
+      if (!f.endsWith('.mjs')) continue;
+      const base = f.slice(0, -'.mjs'.length);
+      const rel = `.claude/skills/${skill.name}/tools/${f}`;
+      if (out.has(base)) { dups.push(`${base} is both ${out.get(base).rel} and ${rel}`); continue; }
+      out.set(base, { rel, src: readFileSync(join(dir, f), 'utf8') });
+    }
+  }
+  return { tools: out, dups };
+}
+
+const { tools: SKILL_TOOLS, dups: dupToolNames } = skillTools();
+
+// `test:geometry/DIAGONAL`, `report:overlay/L-02`, `skill:poster-lint/R-07`, `test:palette`,
+// `hook`, `review`.
+const VALUE = /^(test|report|skill):([a-z][a-z0-9-]*)(?:\/([^\s,]+))?$/;
 const parseCheck = (cell) => cell.split(',').map(s => s.trim()).filter(Boolean);
 
 // Whole word, where a word may contain `-` (CENTRE-LOW, L-05a, R2-ENTRY). Excluding `-` from both
@@ -791,14 +848,21 @@ test('D1 every id a document cites resolves to a declared rule', () => {
 // over the axis inside the value. See the header for why the axis half is the one that rots.
 // --------------------------------------------------------------------------------------------
 
-test('E1 every Check value is one of the four shapes and names a test file that exists', () => {
+test('E1 every Check value is one of the five shapes and names a file that exists', () => {
   assert.deepEqual(dupBasenames, [],
     `${dupBasenames.length} test file basename(s) are not unique, so a Check value cannot name a ` +
     `file without a path:\n  ${dupBasenames.join('\n  ')}`);
+  assert.deepEqual(dupToolNames, [],
+    `${dupToolNames.length} skill tool basename(s) are not unique, so a skill: value cannot name a ` +
+    `tool without a path:\n  ${dupToolNames.join('\n  ')}`);
   assert.ok(MANDATORY_DIRS.length > 0 && REPORT_DIRS.length > 0,
     `read ${MANDATORY_DIRS.length} mandatory and ${REPORT_DIRS.length} report director(ies) out of ` +
     'test/package.json. The scripts changed shape and this whole group is now judging nothing.');
   assert.ok(TEST_FILES.size >= 22, `found ${TEST_FILES.size} test file(s), 22 at the last green run`);
+  assert.ok(SKILL_TOOLS.size >= SKILL_TOOL_FLOOR,
+    `found ${SKILL_TOOLS.size} skill tool(s) under .claude/skills/*/tools/, floor ${SKILL_TOOL_FLOOR}. ` +
+    'A walk that finds nothing resolves nothing and passes, which is the failure this group exists ' +
+    'against.');
 
   const bad = [];
   let machine = 0;
@@ -811,10 +875,19 @@ test('E1 every Check value is one of the four shapes and names a test file that 
       const m = VALUE.exec(v);
       if (!m) {
         bad.push(`CANON.md:${line}  ${id}  Check value "${v}" is none of test:<file>[/<name>], ` +
-          'report:<file>[/<name>], hook, review');
+          'report:<file>[/<name>], skill:<tool>[/<name>], hook, review');
         continue;
       }
       const [, kind, file] = m;
+      // TOOL, in the skill namespace. Same failure, different map: the kind picked the map, so a
+      // `skill:` value is never looked for among the test files and cannot resolve to one.
+      if (kind === 'skill') {
+        if (!SKILL_TOOLS.has(file)) {
+          bad.push(`TOOL      CANON.md:${line}  ${id}  cites skill:${file}, and no ${file}.mjs ` +
+            'exists under .claude/skills/*/tools/');
+        }
+        continue;
+      }
       const f = TEST_FILES.get(file);
       if (!f) {
         bad.push(`TOOL      CANON.md:${line}  ${id}  cites ${kind}:${file}, and no ${file}.test.mjs ` +
@@ -843,15 +916,15 @@ test('E2 every name a Check value carries occurs in the file it names', () => {
     for (const v of parseCheck(check)) {
       const m = VALUE.exec(v);
       if (!m) continue;                                   // already a finding in E1
-      const [, , file, name] = m;
-      const f = TEST_FILES.get(file);
+      const [, kind, file, name] = m;
+      const f = kind === 'skill' ? SKILL_TOOLS.get(file) : TEST_FILES.get(file);
       if (!f) continue;                                   // already a finding in E1
       if (!name) { bare++; continue; }                    // the whole file is the answer
       named++;
       if (!nameOccurs(f.src, name)) {
         bad.push(`NAME      CANON.md:${line}  ${id}  cites ${v}, and "${name}" does not occur in ` +
-          `${f.rel}. Either the axis was renamed inside the test, or the rule is pointing at a ` +
-          'file that says nothing about it.');
+          `${f.rel}. Either the axis was renamed inside the ${kind === 'skill' ? 'tool' : 'test'}, ` +
+          'or the rule is pointing at a file that says nothing about it.');
       }
     }
   }
@@ -864,11 +937,18 @@ test('E2 every name a Check value carries occurs in the file it names', () => {
 test('E3 every test file is cited by at least one rule', () => {
   // ORPHAN, and it means what it meant: a test nothing cites is a test whose subject is written
   // down nowhere, so a reader of the rulebook cannot find out that the rule has a machine.
+  // `skill:` values are excluded on purpose, and the asymmetry is the honest one. A TEST runs on
+  // every green run whether or not a rule cites it, so a test nothing cites is a machine whose
+  // subject is written down nowhere. A skill TOOL runs only when someone invokes it, and several
+  // exist to PRINT rather than to judge (`deadair`, `pace`, `timing`, `montage`), so requiring
+  // every tool to be cited would either force a `skill:` value onto a rule no tool decides, or
+  // force a tool to be deleted for saying nothing a rule can be pinned to. Neither is an
+  // improvement, so the ORPHAN axis stays a statement about `test/` alone.
   const cited = new Set();
   for (const { check } of CHECK_ROWS) {
     for (const v of parseCheck(check)) {
       const m = VALUE.exec(v);
-      if (m) cited.add(m[2]);
+      if (m && m[1] !== 'skill') cited.add(m[2]);
     }
   }
   const orphans = [...TEST_FILES.entries()]
@@ -984,26 +1064,26 @@ test('F2 no rule cell outgrows one line', (t) => {
 //     carries `WHAT IS RATE LIMITED IS THE TAINT, NOT THE POD DELETE` inside its CONTENT block, and
 //     a matcher keyed on the first token alone reads that as a second `WHAT` label and reports a
 //     record that is correct. The column-9 test rejects it, because its prose starts at column 5.
-// Verified over all 128 records: the matcher finds `WHAT` exactly 128 times, one per card, and no
+// Verified over all 129 records: the matcher finds `WHAT` exactly 129 times, one per card, and no
 // column-0 line inside a layout fence goes unrecognised.
 //
-// WHY network AND storage ARE A BASELINE AND NOT AN EXEMPTION. Neither category has been through
-// the pass that put cluster and workloads on this form, so every one of their 68 sections still
-// carries a `### poster` block and 29 of each still run their labels out of order. Turning the
-// check on for them today reddens the gate on 68 sections of work nobody has done yet. The baseline
-// below is therefore a CEILING that may only fall: cleaning a section is free, and a NEW card in
-// either category that arrives off the form pushes the count past the ceiling and fails. THE TARGET
-// IS ZERO on all four, and the two numbers come down as those categories are cleaned. Cluster and
-// workloads sit at 0 today, so for them the ceiling and the rule are the same thing.
+// WHY storage IS A BASELINE AND NOT AN EXEMPTION. It has not been through the pass that put
+// cluster, workloads and network on this form, so every one of its 31 sections still carries a
+// `### poster` block and 29 of them still run their labels out of order. Turning the check on for
+// it today reddens the gate on 31 sections of work nobody has done yet. The baseline below is
+// therefore a CEILING that may only fall: cleaning a section is free, and a NEW card in that
+// category that arrives off the form pushes the count past the ceiling and fails. THE TARGET IS
+// ZERO on all four, and the two numbers come down as storage is cleaned. Cluster, workloads and
+// network sit at 0, so for them the ceiling and the rule are the same thing.
 //
 // A LABEL OUTSIDE THE VOCABULARY IS THE THIRD AXIS, AND IT IS HARD ON ALL FOUR. G2 reads the
 // ORDER of the labels it recognises, so a line that looks like a label and is in no vocabulary is
 // invisible to it: the remaining labels still run in order and the section passes. That is how
 // `COLOUR`, `QUEUES`, `SPINE` and `BASELINE` reached four workloads records. G3 is the other half,
 // a column-0 line whose prose starts at column 9 and whose word is not in the list. Measured over
-// all 128 records the count is ZERO in every category, network and storage included, so this one
-// needs no baseline and takes none: it is the one axis of the three where the two unconverted
-// categories are already on the form.
+// all 129 records the count is ZERO in every category, storage included, so this one needs no
+// baseline and takes none: it is the one axis of the three where the last unconverted category is
+// already on the form.
 //
 // WHAT THIS GROUP IS BLIND TO. Whether a block says anything true, whether the right label was
 // chosen for a note, and whether the prose under a label is in the present tense (`S-48`). All
@@ -1011,10 +1091,10 @@ test('F2 no rule cell outgrows one line', (t) => {
 // --------------------------------------------------------------------------------------------
 
 // Sections in each category that are NOT yet on the form. A CEILING that may only fall, never a
-// permission: see the header. Measured over the tree, and both numbers are the whole of the
-// category, because neither has been converted.
-const RECORD_SHAPE_CEILING = { cluster: 0, workloads: 0, network: 37, storage: 31 };
-const RECORD_LABEL_CEILING = { cluster: 0, workloads: 0, network: 29, storage: 29 };
+// permission: see the header. Measured over the tree, and both numbers are the whole of storage,
+// because it is the one category still unconverted.
+const RECORD_SHAPE_CEILING = { cluster: 0, workloads: 0, network: 0, storage: 31 };
+const RECORD_LABEL_CEILING = { cluster: 0, workloads: 0, network: 0, storage: 29 };
 
 // The column a label's prose starts on, which is what tells a label from a sentence in capitals.
 const LABEL_COL = 9;

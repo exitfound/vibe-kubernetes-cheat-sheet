@@ -12,7 +12,8 @@ the code it describes, not in a document. None of them ships (`S-41`).
 
 **HOW TO READ THIS RECORD.** This file is the preamble and the index. **The notes themselves are
 one file per card in `./CARDS/`**, named after the card id, which is the shape `cluster/` is in as
-well: `network/` and `storage/` still keep every section in one `CARDS.md`.
+well, and `network/` after it: `storage/` is the last one keeping every section in one
+`CARDS.md`.
 `unit/docs.test.mjs` reads the shape off the tree rather than off a list of category names, so both
 forms are checked by the same walk and neither is a special case.
 

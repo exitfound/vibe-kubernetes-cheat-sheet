@@ -8,11 +8,11 @@ import { P, F, defineCard, ladder, laneY, midX, WL, LAYOUT, FADE, BEAT } from '.
 
 // Band 1, the actor row. The API is centred on WL.CX because BOTH corridors leave its bottom face
 // midpoint (WL.L-07), so the controller takes the right end of the row instead of the usual left.
-const API_W = 280, API_X = WL.CX - API_W / 2;            // 460..740, centred on CX for the spine
-const CTRL_W = 300, CTRL_X = WL.R - CTRL_W;              // 840..1140, right edge on the chip strip
+const API_W = 232, API_X = WL.CX - API_W / 2;            // 484..716, centred on CX for the spine
+const CTRL_W = 232, CTRL_X = WL.R - CTRL_W;              // 908..1140, right edge on the chip strip
 const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;                  // 80
 const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
-const WIRE_X = midX(API_X + API_W, CTRL_X);              // 790
+const WIRE_X = midX(API_X + API_W, CTRL_X);              // 812
 const WIRE_Y = WL.TOP_Y - 12;                            // above the actor row, off the spine
 
 // Band 2, the Job object itself. It is the subject of the card, so it is a block and not a chip
@@ -46,7 +46,7 @@ const SPINE_A = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, JOB_Y]];
 const SPINE_B = [[WL.SPINE_X, JOB_Y + JOB_H], [WL.SPINE_X, NODE_Y]];
 const SPINE_B_UP = [...SPINE_B].reverse();
 
-// The top-row hops, stated once. 100 units apart, so both sit on the routeDur floor at 700ms and
+// The top-row hops, stated once. 192 units apart, so both sit on the routeDur floor at 700ms and
 // a fixed HOP_MS would agree with routeDur here anyway.
 const WATCH = { from: API_X + API_W, to: CTRL_X, y: RESP_Y };
 const DELETE = { from: CTRL_X, to: API_X + API_W, y: REQ_Y };

@@ -1,6 +1,6 @@
-import { P, F, defineCard, makeRidingLabel, routeDur, shade, strip, BEAT, OPACITY } from './network-kit.js';
+import { P, F, defineCard, makeRidingLabel, shade, strip, BEAT, OPACITY } from './network-kit.js';
 
-// Design notes for this card: ./CARDS.md#network-traffic-distribution
+// Design notes for this card: ./CARDS/network-traffic-distribution.md
 
 
 // The two setting chips are a full-width bottom strip across this span, the grammar the rest of the
@@ -10,14 +10,20 @@ const FLOW_Y = 320;                          // central flow line
 
 const CLIENT_X = SCHEME_L, CLIENT_W = 200, CLIENT_H = 110;
 const CLIENT_OUT = [CLIENT_X + CLIENT_W, FLOW_Y];   // 260: client right edge
-const KP_X = 440, KP_W = 190, KP_H = 80;
-const KP_IN = [KP_X, FLOW_Y];                // kube-proxy left edge (connection arrives)
-const KP = [KP_X + KP_W, FLOW_Y];            // 630: kube-proxy right edge (fan origin, after the pick)
+// The control column: the Node dataplane on the flow line over kube-proxy, both NET.L-01 232x80. Its
+// right edge 588 stands 10 short of a riding tag on the rail: the record LAYOUT says why it is not 420.
+const COL_X = 356, COL_W = 232;
+const COL_CX = COL_X + COL_W / 2;            // 472: the relation from kube-proxy lands here
+const DP_H = 80, KP_H = 80, REL_GAP = 44;
+const DP_TOP = FLOW_Y - DP_H / 2;            // 280
+const KP_Y = DP_TOP + DP_H + REL_GAP;        // 404: under the dataplane, clear of the panel
+const DP_IN = [COL_X, FLOW_Y];               // dataplane left edge (connection arrives)
+const DP_OUT = [COL_X + COL_W, FLOW_Y];      // 588: dataplane right edge, where the fan leaves
 const RAIL_X = 700;                          // shared vertical fan rail, left of the zones (740)
 const ZONE_X = 740, ZONE_W = SCHEME_R - 740, ZONE_H = 240;   // 740..1140
 const ZONE_A_Y = 60, ZONE_B_Y = 340;         // mirrored about FLOW_Y
 const POD_W = 240, POD_H = 96;
-const POD_L = ZONE_X + (ZONE_W - POD_W) / 2; // 820: Pod centred in the zone, clear of its top-left label
+const POD_L = ZONE_X + 92;                   // 832: 12 right of centre, so the frame label ends 13 short of it
 const POD_PAD = (ZONE_H - 2 * POD_H) / 3;    // 16: equal padding above, between and below the two Pods
 // Backend Pod centre rows: zone-a stacked on top (a1, a2), zone-b below (b1, b2), symmetric about
 // FLOW_Y so the fan is balanced.
@@ -29,10 +35,12 @@ const B2Y = B1Y + POD_H + POD_PAD;           // 516
 // Bottom strip: two equal chips spanning the composition, so the row centres on 600 like the rest.
 const CHIP_Y = 592, CHIP_H = 34, CHIP_GAP = 20;
 const CHIPS = strip({ from: SCHEME_L, to: SCHEME_R, count: 2, gap: CHIP_GAP });   // 530 wide each
-const FAN_A1 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, A1Y], [POD_L, A1Y]];
-const FAN_A2 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, A2Y], [POD_L, A2Y]];
-const FAN_B1 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, B1Y], [POD_L, B1Y]];
-const FAN_B2 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, B2Y], [POD_L, B2Y]];
+// Every leg ends on its zone frame face at x 740, never on a Pod inside it (A-21), at the mirrored
+// offsets +-56 about each face midpoint (L-12).
+const FAN_A1 = [DP_OUT, [RAIL_X, FLOW_Y], [RAIL_X, A1Y], [ZONE_X, A1Y]];
+const FAN_A2 = [DP_OUT, [RAIL_X, FLOW_Y], [RAIL_X, A2Y], [ZONE_X, A2Y]];
+const FAN_B1 = [DP_OUT, [RAIL_X, FLOW_Y], [RAIL_X, B1Y], [ZONE_X, B1Y]];
+const FAN_B2 = [DP_OUT, [RAIL_X, FLOW_Y], [RAIL_X, B2Y], [ZONE_X, B2Y]];
 
 const POD_INNER = { dx: 18, dy: 30, w: POD_W - 36, h: 44, label: 'app', sublabel: 'eth0' };
 const backend = (key, cy, ip) => P.pod({
@@ -41,151 +49,161 @@ const backend = (key, cy, ip) => P.pod({
 });
 
 // The list order IS the append order, which is the z-order: the zone frames in back, then the Pods
-// inside them, the client and kube-proxy, then the wires ABOVE, then the chips, then the packets.
+// inside them, the client and the control column, then the wires ABOVE, then the chips, then packets.
 export const SCENE = {
-  'aria-label': 'Session affinity and traffic distribution: kube-proxy spreads connections across all endpoints by default, sessionAffinity pins a client to one Pod, and trafficDistribution PreferSameZone keeps traffic in the client zone with a fallback to other zones',
+  'aria-label': 'Session affinity and traffic distribution: kube-proxy on a zone-a Node writes the Service rules and the Node dataplane picks a backend per connection. By default every ready endpoint is in the rules and zones are ignored. sessionAffinity ClientIP makes the dataplane pin a client source IP to one Pod while that Pod stays in the rules and the client connects again within a sticky window, 10800 seconds by default. trafficDistribution PreferSameZone makes kube-proxy write only the endpoints hinted for its own zone, and when that zone has no ready endpoint it falls back to every ready endpoint in the cluster.',
   parts: [
     P.defs(),
-    P.node({ key: 'zoneA', x: ZONE_X, y: ZONE_A_Y, w: ZONE_W, h: ZONE_H, label: 'zone-a' }),
-    P.node({ key: 'zoneB', x: ZONE_X, y: ZONE_B_Y, w: ZONE_W, h: ZONE_H, label: 'zone-b' }),
+    // `in zone-a`, not `zone-a`: the frame is the endpoints in that zone, and the client in zone-a
+    // stands outside it. It inks 67 wide at 1600x1000, so the Pods sit at 832 rather than centred.
+    P.node({ key: 'zoneA', x: ZONE_X, y: ZONE_A_Y, w: ZONE_W, h: ZONE_H, label: 'in zone-a' }),
+    P.node({ key: 'zoneB', x: ZONE_X, y: ZONE_B_Y, w: ZONE_W, h: ZONE_H, label: 'in zone-b' }),
     backend('a1', A1Y, '10.244.2.7'),
     backend('a2', A2Y, '10.244.2.8'),
     backend('b1', B1Y, '10.244.3.4'),
     backend('b2', B2Y, '10.244.3.5'),
     P.pod({
       key: 'client', innerKey: 'clientBox', x: CLIENT_X, y: FLOW_Y - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H,
-      label: 'Client . zone-a', sublabel: '10.244.2.50',
-      inner: { dx: 16, dy: 34, w: CLIENT_W - 32, h: 48, label: 'app', sublabel: 'to Service web' },
+      label: 'Client Pod · zone-a', sublabel: '10.244.2.50',
+      inner: { dx: 20, dy: 34, w: CLIENT_W - 40, h: 48, label: 'app', sublabel: 'to Service web' },
     }),
-    P.box({ key: 'kproxy', x: KP_X, y: FLOW_Y - KP_H / 2, w: KP_W, h: KP_H, label: 'kube-proxy', sublabel: 'endpoint pick' }),
-    // Dim dashed wires: client -> kube-proxy, plus the four fan routes (no route crosses a Pod). All
-    // five carry `role: ''` so they keep the dim arrowhead the card shipped with instead of the cyan one.
-    P.arrow({ from: CLIENT_OUT, to: KP_IN, dashed: true, dim: true, role: '' }),
-    P.lane({ points: FAN_A1, dashed: true, dim: true, role: '' }),
-    P.lane({ points: FAN_A2, dashed: true, dim: true, role: '' }),
-    P.lane({ points: FAN_B1, dashed: true, dim: true, role: '' }),
-    P.lane({ points: FAN_B2, dashed: true, dim: true, role: '' }),
-    P.chip({ key: 'modeChip', x: CHIPS.x(0), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'distribution', value: 'unset . spread' }),
-    P.chip({ key: 'pinChip', x: CHIPS.x(1), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'session', value: 'None' }),
+    P.box({ key: 'kproxy', x: COL_X, y: KP_Y, w: COL_W, h: KP_H, label: 'kube-proxy', sublabel: 'reads zone hints · writes rules' }),
+    P.box({ key: 'dp', x: COL_X, y: DP_TOP, w: COL_W, h: DP_H, label: 'Node dataplane · zone-a', sublabel: 'Service rules · conntrack' }),
+    // Dim dashed wires: client -> dataplane, plus the four fan routes (no route crosses a Pod). None
+    // names a role, so the kit fills the networking one (S-42). `dim` is a stroke WEIGHT (A-22).
+    P.arrow({ from: CLIENT_OUT, to: DP_IN, dashed: true, dim: true }),
+    // kube-proxy WRITES the rules the dataplane runs and never forwards a packet: no head, no ball.
+    P.relation({ points: [[COL_CX, KP_Y], [COL_CX, DP_TOP + DP_H]], dash: '5 5' }),
+    P.lane({ key: 'legA1', points: FAN_A1, dashed: true, dim: true }),
+    P.lane({ key: 'legA2', points: FAN_A2, dashed: true, dim: true }),
+    P.lane({ key: 'legB1', points: FAN_B1, dashed: true, dim: true }),
+    P.lane({ key: 'legB2', points: FAN_B2, dashed: true, dim: true }),
+    P.chip({ key: 'modeChip', x: CHIPS.x(0), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'trafficDistribution', value: 'unset · all zones' }),
+    P.chip({ key: 'pinChip', x: CHIPS.x(1), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'sessionAffinity', value: 'None' }),
     P.packets(),
   ],
   reset: {
-    keys: ['kproxy', 'modeChip', 'pinChip', 'clientBox', 'a1Box', 'a2Box', 'b1Box', 'b2Box'],
+    keys: ['kproxy', 'dp', 'modeChip', 'pinChip', 'clientBox', 'a1Box', 'a2Box', 'b1Box', 'b2Box'],
     pods: ['client', 'a1', 'a2', 'b1', 'b2'],
   },
 };
 
 // The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: hold 260
 // keeps the source IP up while the backend pulses, so the address and the chosen zone read as one.
-const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
+const ridingLabel = makeRidingLabel({ role: 'network', inMs: 160, outMs: 200, hold: 260 });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
-
-// One shared multiplier on the fan, and the label rides the SAME dur or it unglues (M-30). Speed
-// stays distance-normalized, and the card is registered in ALLOW_EXPLICIT_DUR. It is not the tag
-// that the slow ride buys: the tag is cut by the zone frame and the Pod inside it for every readable
-// sample of every fan leg, so 1.6 times the routeDur is 1.6 times the time the reader spends with a
-// struck-through address.
-const FAN_SLOW = 1.6;
-const fanDur = (points) => Math.round(routeDur(points) * FAN_SLOW);
+// The tag is up from departure and trails LEFT of the rail, above the dataplane on an up ride and below
+// it on a down ride, parking past the rail end. The inner legs a2 and b1 have no such clear end.
+const TAG_UP = { dx: -56, dy: -52 };
+const TAG_DOWN = { dx: -56, dy: 60 };
 
 // Two connections landing on ONE Pod are held a whole PULSE_POD.ms (900) apart, so the second blink
 // starts on the millisecond the first one ends. The 540 of the default step is for two DIFFERENT Pods.
 const SAME_POD_GAP = 900;
 
 const CLIENT_IP = 'src 10.244.2.50';
+const AFFINITY = 'ClientIP · 10800s';
+const PINNED = 'ClientIP · .2.50 pinned to .2.7 · 10800s';
 
-// One fan leg: the ball, the source-IP tag riding the SAME slowed dur so it stays glued to it, then
+// One connection into the dataplane: the ball, lighting the dataplane on arrival because the rules
+// that pick the backend run there.
+const arrive = (name, delay) => F.segment({ from: CLIENT_OUT, to: DP_IN, delay, name, lights: ['dp'] });
+
+// One fan leg: the ball, the source-IP tag riding its routeDur so it stays glued to it (M-30), then
 // the backend Pod pulsing on arrival.
 const fan = (points, pod, name, after, plus) => [
-  F.route({ points, after, plus, dur: fanDur(points), name }),
-  tag({ text: CLIENT_IP, points, after, plus, dur: fanDur(points) }),
+  F.route({ points, after, plus, name }),
+  tag({ text: CLIENT_IP, points, after, plus, ...(points === FAN_A1 ? TAG_UP : TAG_DOWN) }),
   F.pulse({ pod, at: name }),
 ];
 
-// Every backend is stated on every step, because the step reset clears highlights and wires but not
-// opacity: a zone the step does not prefer is dimmed here and nowhere else.
-const ALL_UP = { a1: 1, a2: 1, b1: 1, b2: 1 };
-const zoneDown = (keys) => ({ opacity: { ...ALL_UP, ...shade(keys, OPACITY.notready) } });
+// What the rules on the client Node hold, as ONE opacity field (A-16): an endpoint left out of the
+// rules dims from step entry, while the headed leg that would reach it stays at full on every step.
+const ALL_UP = { a1: 1, a2: 1, b1: 1, b2: 1, legA1: 1, legA2: 1, legB1: 1, legB2: 1 };
+const ZONE_A = ['a1', 'a2'];
+const ZONE_B = ['b1', 'b2'];
+const stage = (out = []) => ({ opacity: { ...ALL_UP, ...shade(out, OPACITY.notready) } });
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { modeChip: 'unset . spread', pinChip: 'None' },
-    opacity: ALL_UP,
+    chips: { modeChip: 'unset · all zones', pinChip: 'None' },
+    ...stage(),
   },
   {
     id: 'default',
     duration: 4600,
-    narration: 'With both fields unset, kube-proxy spreads connections roughly evenly across every ready endpoint and ignores zones. Two connections from the same client can land on Pods in different zones, here one in zone-a and one in zone-b. Load is balanced but traffic may cross the zone boundary.',
-    chips: { modeChip: 'unset . spread all', pinChip: 'None' },
-    opacity: ALL_UP,
+    narration: 'With both fields unset, kube-proxy writes every ready endpoint into the Service rules on the client Node and ignores zones. The dataplane picks a backend per connection, so two connections from one client can land in different zones, here zone-a and zone-b. Load spreads evenly, but traffic may cross the zone boundary.',
+    chips: { modeChip: 'unset · all zones', pinChip: 'None' },
+    ...stage(),
     lit: ['modeChip'],
     // The animated path says the two backends were served by PULSING them, which no lights list names.
     reducedLit: ['a1Box', 'b2Box'],
     // TWO connections from one client, the second staggered by 540 so they read as two rides rather
-    // than one ball splitting. kube-proxy is still the RECEIVER of the client hop, so it lights on it.
+    // than one ball splitting.
     flow: [
       F.pulse({ pod: 'client' }),
-      F.segment({ from: CLIENT_OUT, to: KP_IN, delay: BEAT.afterPulse, name: 'arr', lights: ['kproxy'] }),
+      arrive('arr', BEAT.afterPulse),
       ...fan(FAN_A1, 'a1', 'fa1', 'arr'),
-      F.segment({ from: CLIENT_OUT, to: KP_IN, delay: BEAT.afterPulse + 540, name: 'arr2' }),
+      arrive('arr2', BEAT.afterPulse + 540),
       ...fan(FAN_B2, 'b2', 'fb2', 'arr2'),
     ],
   },
   {
     id: 'session-affinity',
-    // Motion: the first connection reaches a1 at 2973 and the second at 3873, whose blink ends at 4773.
+    // Motion: the first connection reaches a1 at 2373 and the second at 3273, whose blink ends at 4173.
     duration: 4900,
-    narration: 'First lever: stickiness. Set sessionAffinity to ClientIP and the opening connection still picks a backend freely, then kube-proxy pins that client source IP to the chosen Pod, here 10.244.2.7. Every later connection from the same client returns to that one Pod, so a session stays put.',
-    chips: { modeChip: 'unset . spread all', pinChip: 'ClientIP . pin .2.7' },
-    opacity: ALL_UP,
+    narration: 'First lever, per client: set sessionAffinity to ClientIP. The opening connection still picks a backend freely, and the dataplane pins source 10.244.2.50 to the Pod it picked, 10.244.2.7. Later connections from that client return there while that Pod stays in the rules and the client reconnects within the sticky window, 10800 seconds by default.',
+    chips: { modeChip: 'unset · all zones', pinChip: PINNED },
+    ...stage(),
     lit: ['pinChip'],
     // The animated path says the pinned backend was served by PULSING it, which no lights list names.
     reducedLit: ['a1Box'],
-    // The narration is explicit that the opening connection picks freely and the pin follows, so the
-    // chip holds None until that first connection reaches 10.244.2.7 at 2973.
-    rewind: { chips: { pinChip: 'None' } },
-    // Two connections from the same client both land on the SAME Pod (a1, 10.244.2.7), so the second
-    // is staggered by SAME_POD_GAP: both arrivals blink a1, and neither blink runs into the other.
+    // The setting stands from entry. The pin is runtime state, written as the dataplane DNATs the first connection.
+    rewind: { chips: { pinChip: AFFINITY } },
+    // Both connections land on the SAME Pod (a1, 10.244.2.7), so the second waits SAME_POD_GAP.
     flow: [
       F.pulse({ pod: 'client' }),
-      F.segment({ from: CLIENT_OUT, to: KP_IN, delay: BEAT.afterPulse, name: 'arr', lights: ['kproxy'] }),
+      arrive('arr', BEAT.afterPulse),
       ...fan(FAN_A1, 'a1', 'fa1', 'arr'),
       ...fan(FAN_A1, 'a1', 'fa2', 'arr', SAME_POD_GAP),
-      F.set({ at: 'fa1', chips: { pinChip: 'ClientIP . pin .2.7' } }),
+      F.set({ at: 'arr', chips: { pinChip: PINNED } }),
     ],
   },
   {
     id: 'topology',
     duration: 4000,
-    narration: 'Second lever: locality, independent of the first. Set trafficDistribution to PreferSameZone (older clusters spell it PreferClose) and kube-proxy favors endpoints in the same zone as the client. The zone-a client is routed to a zone-a Pod, keeping traffic in-zone, which cuts latency and the cross-zone data charges a cloud would bill.',
-    chips: { modeChip: 'PreferSameZone . in-zone', pinChip: 'None' },
-    // The far zone is not preferred: dim its Pods.
-    ...zoneDown(['b1', 'b2']),
-    lit: ['modeChip', 'pinChip'],
+    narration: 'Second lever, per zone: set trafficDistribution to PreferSameZone (PreferClose is its deprecated alias). Each ready endpoint in the EndpointSlice carries a zone hint, and kube-proxy on this zone-a Node writes only the zone-a endpoints into its rules. The connection stays in zone-a, which can cut latency and cross-zone costs.',
+    chips: { modeChip: 'PreferSameZone · zone-a only', pinChip: 'None' },
+    // Programming time: the zone-b endpoints are not in the rules before any connection is made.
+    ...stage(ZONE_B),
+    // sessionAffinity is back to None, a changed value, so it is cued with the setting that replaced it.
+    lit: ['modeChip', 'kproxy', 'pinChip'],
     // The animated path says the in-zone backend was served by PULSING it, which no lights list names.
     reducedLit: ['a1Box'],
     flow: [
       F.pulse({ pod: 'client' }),
-      F.segment({ from: CLIENT_OUT, to: KP_IN, delay: BEAT.afterPulse, name: 'arr', lights: ['kproxy'] }),
+      arrive('arr', BEAT.afterPulse),
       ...fan(FAN_A1, 'a1', 'fa1', 'arr'),
     ],
   },
   {
     id: 'fallback',
     duration: 3800,
-    narration: 'PreferSameZone is a preference, not a hard rule. The field has not changed, but if zone-a has no ready endpoint kube-proxy falls back to a Pod in another zone rather than dropping the connection, so the client still reaches zone-b. Availability wins over locality.',
-    chips: { modeChip: 'PreferSameZone . fallback', pinChip: 'None' },
-    // zone-a has no ready endpoint: dim its Pods, traffic falls back to zone-b.
-    ...zoneDown(['a1', 'a2']),
-    lit: ['modeChip'],
+    narration: 'PreferSameZone is a preference, not a hard rule. When zone-a has no ready endpoint, kube-proxy finds none hinted for its zone and writes every ready endpoint in the cluster instead, which here is only the two in zone-b. The connection crosses zones rather than failing. Availability wins over locality.',
+    chips: { modeChip: 'PreferSameZone · fallback to all zones', pinChip: 'None' },
+    // a1 and a2 are ready=false, so the rules kube-proxy rewrote hold neither of them.
+    ...stage(ZONE_A),
+    lit: ['modeChip', 'kproxy'],
     // The animated path says the fallback backend was served by PULSING it, which no lights list names.
     reducedLit: ['b1Box'],
+    // No source tag on this ride: the rail runs on past the b1 stub, so any tag parked there is struck.
     flow: [
       F.pulse({ pod: 'client' }),
-      F.segment({ from: CLIENT_OUT, to: KP_IN, delay: BEAT.afterPulse, name: 'arr', lights: ['kproxy'] }),
-      ...fan(FAN_B1, 'b1', 'fb1', 'arr'),
+      arrive('arr', BEAT.afterPulse),
+      F.route({ points: FAN_B1, after: 'arr', name: 'fb1' }),
+      F.pulse({ pod: 'b1', at: 'fb1' }),
     ],
   },
 ];

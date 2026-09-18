@@ -14,7 +14,11 @@ repeated here:
   is `scheme/test/package.json`, where it executes. `scheme/test/tools/` holds three probes that
   are NOT checks: `settled-dump.mjs`, `buildframe.mjs` and `canon.mjs`, each documented in its own
   header. `canon.mjs` queries THIS file: `--check=review` is the subset a human is the only machine
-  for, which is what a card review is for.
+  for, which is what a card review is for. Beside them `mutate.mjs` (`npm run selftest`) asserts,
+  and what it asserts is the SUITE: it breaks a card one known defect at a time and requires the
+  check this file names to go red on it. A rule whose `Check` column names a machine that does not
+  actually see the defect is the one failure a green run cannot show, and `R-08a` is the standing
+  example of it having happened.
 
 A rule here is a rule you should KNOW, not a rule you must obey. The concept of a card is not
 constrained: a new card may break a row deliberately, and the way to do that is to write the reason
@@ -30,13 +34,14 @@ accident.
 | `Check` | who enforces it, see below |
 | `Source` | where the long form, the measurement or the implementation lives. **A file, never a line number**, because line numbers drift. Both columns are machine-read: the `Check` column by group E, and every repo path cited here by `C4`, which resolves all 202 of them |
 
-The `Check` column takes exactly four values, and it is the most useful column in the file. It
-names a TEST, not a tool: the script harness is gone and `scheme/test/` replaced it.
+The `Check` column takes exactly five values, and it is the most useful column in the file. It
+names a MACHINE and says which one: the script harness is gone and `scheme/test/` replaced it.
 
 | Value | Means |
 |---|---|
 | `test:<file>/<name>` | `cd scheme/test && npm test` fails. Cannot land broken |
 | `report:<file>/<name>` | a test measures it and prints it, and does not fail on it. Read a finding against the card note before calling it a regression |
+| `skill:<tool>/<name>` | a skill tool under `.claude/skills/*/tools/` decides it and emits a finding. Nothing runs on its own: a human or a skill invokes it |
 | `hook` | `.claude/hooks/check-js.sh` fires on write and can hard-fail the edit with exit code 2 |
 | `review` | no machine anywhere. A human is the only thing between this rule and a defect |
 
@@ -46,6 +51,35 @@ runs and it never fails. `<name>` is the label that run PRINTS for this rule: an
 `PHASE`, `SPREAD`) where the file has one, otherwise the rule id, which is how the file's own header
 names it. A row may carry more than one value, comma separated, and may name a file with no `/<name>`
 when the whole file is the answer.
+
+**`skill:` is why the column stopped saying "a TEST, not a tool".** It was added on 2026-09-09 to
+close a gap that had the column understating its own coverage by eight rows: `poster-lint.mjs`
+mechanically decides eight rules of the `R` block and every one of them read `review`, which says
+"no machine anywhere". Two things followed from the lie, and the second is the worse one. The
+rulebook made the least-checked block in the file look emptier than it is, and NOTHING guarded
+those checks: group E resolves the file and the axis of every `test:` and `report:` value, so a
+renamed axis inside a test is caught, while `poster-lint.mjs` could have dropped its R-07 branch
+with nothing anywhere going red. `R-08a` is the standing proof that this is not hypothetical: it
+tested `<polygon>` alone, walked past five of the six chevrons in the catalog, and the comment
+beside it asserted the opposite until 2026-09-05.
+
+`<tool>` is the tool's basename without `.mjs`, and those basenames are unique among themselves.
+They are NOT unique against the test files (`motion` is both `render/motion.test.mjs` and
+`card-review/tools/motion.mjs`), which is why the kind in front of the colon is what picks the
+namespace, and why a `skill:` value can never be read as a `test:` one.
+
+**A tool that only PRINTS is not a `skill:` value.** The line is the same one that separates `test:`
+from `report:`, one step further out: `report:` measures and prints and does not fail, `skill:`
+decides and emits a finding and does not run unless asked. `deadair.mjs`, `pace.mjs`, `timing.mjs`
+and `motion.mjs` cite rule ids in their output and judge none of them: they hand a reader numbers
+and the reader decides. Those rules stay `review`, and marking them otherwise would re-create the
+overstatement in the other direction.
+
+A row may carry `skill:` AND `review` together, and eight do. That pair is not a contradiction, it
+is the honest reading of a partial check: `poster-lint.mjs` can see that a poster is FLAT, with one
+fill and one stroke width and no accent anywhere, and it cannot see whether the element carrying the
+accent is the one the poster is ABOUT. The machine half is written down so it cannot rot silently,
+the human half stays in `--check=review` where a card review will still find it.
 
 **`report:` on a `render/` or `unit/` file is not a contradiction**, it is the honest reading, and
 11 rows use it. Seven belong to the `M` block: `render/motion.test.mjs` measures and PRINTS them on
@@ -66,7 +100,7 @@ strings, and the file list `dashTargets` names.
 
 ## The numbers this file is written against
 
-128 cards: cluster 28, workloads 32, network 37, storage 31. 790 steps. Re-measure before trusting
+135 cards: cluster 28, workloads 32, network 44, storage 31. 860 steps. Re-measure before trusting
 any figure below that carries a date-free absolute, and if you change one, change it here.
 
 ---
@@ -128,6 +162,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | A-19 | A ball never travels under or over a block: every endpoint sits on an EDGE, so a rewrite INSIDE a box (DNAT, SNAT, port remap, conntrack) is drawn as a fade at one edge and a re-emergence at the far edge | review | `js/schemes/network/CLAUDE.md` (`NET.A-01`) |
 | A-21 | A lane from the actor row into a Node band ends on the FRAME FACE, never on a Pod inside the frame: an endpoint on the Pod pierces the frame and draws the actor reaching THROUGH the Node rather than acting on it | report:frame-face/WL.A-03 | `js/schemes/workloads/CLAUDE.md` (`WL.A-03`), and `test/report/frame-face.test.mjs` for the queue |
 | A-20 | **A relation is DASHED whether it says so or not, and takes a role it never asked for**: `relationPath` classes every one `scheme-arrow-dashed`, so `dash` only OVERRIDES that pattern, and `P.relation` fills `role` from the kit binding | review | `lib/scheme-kit.js` `relationPath`, `lib/scene-spec.js` `roledPart`, `css/diagrams.css` |
+| A-22 | **Every drawn line takes its category ROLE, and `role: ''` says nothing.** Suppressing it drops the hue from the stroke AND the arrowhead. Weight is `dim`, recession is `.scheme-arrow-relation` at 0.45, and both of those KEEP the hue | review | `css/diagrams.css`, the note above `.scheme-arrow-dim`, and `A-20` for the mechanism |
 
 ## M: motion
 
@@ -292,18 +327,19 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | ID | Rule | Check | Source |
 |---|---|---|---|
 | R-01 | **Describe the intended abstract concept in one line and get sign-off BEFORE rendering a full poster.** Posters are the single biggest source of rework in this project | review | root `CLAUDE.md` |
-| R-02 | **A poster is one sentence, not a small diagram.** It renders about 200px wide, so a faithful miniature is unreadable. Decide the sentence first, keep only the elements that carry it, drop the rest even when they are on the card | review | this file |
-| R-03 | Give the brightest fill to the one element the poster is about | review | this file |
-| R-04 | viewBox `0 0 320 180`, `stroke="currentColor"`, fills as literal `rgba(255,255,255,...)`, **never** `var(--token)`: SVG presentation attributes do not reliably resolve CSS variables | review | `js/schemes/<cat>/posters.js` |
-| R-05 | **A poster is judged next to its SIBLINGS, not on its own.** Build a montage of the card plus two neighbours at about 260 percent before deciding | review | this file |
-| R-06 | Siblings are 76 to 80 unit blocks with fills between 0.03 and 0.10. Specks at 200px, a track dimmed below its siblings and a quarter of the canvas left as empty air are all invisible on the file and obvious on the montage | review | this file |
-| R-07 | House idiom one: the accent is a `rect` with `fill="currentColor"` at `opacity="0.9"` INSIDE the block it belongs to, with the losers carrying the same bar at 0.3. Never a bright fill on a whole shape | review | this file |
-| R-08 | House idiom two: **a poster carries no arrowhead by default.** Direction comes from the composition being closed, or from a dashed leg, or from a fill ramp. 126 of the 128 have none, and the two that do are the `R-08a` allowlist | review | `.claude/skills/card-poster/tools/poster-lint.mjs` |
-| R-08a | The exception, and it is earned rather than tolerated: **TWO posters carry a chevron, three between them**, and the registry in `poster-lint.mjs` names who is allowed one: the sentence has to BE a direction that composition cannot say | review | measured 2026-09-06 |
-| R-09 | **A poster carries no packet dot**: a ball frozen on a wire reads as a paused animation | review | this file |
+| R-02 | **A poster is one sentence, not a small diagram.** It renders about 200px wide, so a faithful miniature is unreadable. Decide the sentence first, keep only the elements that carry it, drop the rest even when they are on the card | skill:poster-lint/R-02, review | this file |
+| R-03 | Give the brightest fill to the one element the poster is about | skill:poster-lint/R-03, review | this file |
+| R-03b | **Something in the drawing has to be BRIGHT.** The brightest mark, measured through every `<g>` above it, reaches 0.55, or the poster reads as absent on the grid whatever its composition says | skill:poster-lint/R-03b | `.claude/skills/card-poster/tools/poster-lint.mjs` |
+| R-04 | viewBox `0 0 320 180`, `stroke="currentColor"`, fills as literal `rgba(255,255,255,...)`, **never** `var(--token)`: SVG presentation attributes do not reliably resolve CSS variables | skill:poster-lint/R-04 | `js/schemes/<cat>/posters.js` |
+| R-05 | **A poster is judged next to its SIBLINGS, not on its own.** Build a montage of the card plus two neighbours at about 260 percent before deciding. The lint signs each poster by silhouette and names a neighbour that shares it | skill:poster-lint/R-05, review | this file |
+| R-06 | Siblings are 76 to 80 unit blocks with fills between 0.03 and 0.10. Specks at 200px, a track dimmed below its siblings and a quarter of the canvas left as empty air are all invisible on the file and obvious on the montage | skill:poster-lint/R-06, review | this file |
+| R-07 | House idiom one: the accent is a `rect` with `fill="currentColor"` at `opacity="0.9"` INSIDE the block it belongs to, with the losers carrying the same bar at 0.3. Never a bright fill on a whole shape | skill:poster-lint/R-07, review | this file |
+| R-08 | House idiom two: **a poster carries no arrowhead by default.** Direction comes from the composition being closed, or from a dashed leg, or from a fill ramp. 127 of the 129 have none, and the two that do are the `R-08a` allowlist | skill:poster-lint/R-08 | `.claude/skills/card-poster/tools/poster-lint.mjs` |
+| R-08a | The exception, and it is earned rather than tolerated: **TWO posters carry a chevron, three between them**, and the registry in `poster-lint.mjs` names who is allowed one: the sentence has to BE a direction that composition cannot say | skill:poster-lint/R-08a | measured 2026-09-06 |
+| R-09 | **A poster carries no packet dot**: a ball frozen on a wire reads as a paused animation | skill:poster-lint/R-09 | this file |
 | R-10 | No literal copy of the card diagram, no reused two-box layout, no plain "dumb circles" | review | root `CLAUDE.md` |
 | R-11 | `FALLBACK_POSTER` in `js/app.js` breaks R-08 and R-09 on purpose. Do not "fix" it into canon and do not delete it: it is the failure mode made visible | test:catalog/D-06 | `js/app.js` |
-| R-12 | A poster is drawn once against the sibling montage and is not revised with the card, so the record carries no note for it. `network/` and `storage/` still hold a `### poster` subsection per card, and `S-51` is what holds the two that do not | test:docs/G1 | `test/unit/docs.test.mjs` |
+| R-12 | A poster is drawn once against the sibling montage, so its note is a comment above that poster in the folder's `posters.js` and never a block in the record. `storage/` alone still holds a `### poster` subsection | test:docs/G1, skill:poster-lint/R-12 | `test/unit/docs.test.mjs` |
 
 ## S: module structure
 
@@ -407,9 +443,9 @@ first four, group E for `S-47` and group G for the FORM the last two state.
 | S-52 | **A record's labels come from "The record vocabulary" above, in that order, each at most once, `WHAT` first.** A note that fits none of them fits `NOTE` | test:docs/G2 | `test/unit/docs.test.mjs` |
 | S-53 | **A line in the label column carries a label and no other word.** `S-52` ranks the labels it knows, so a word outside the vocabulary is invisible to it: this is the half that sees one. Prose belongs at the column at 9 | test:docs/G3 | `test/unit/docs.test.mjs` |
 
-`S-51` and `S-52` are held on `cluster/` and `workloads/` and carried as a falling CEILING on
-`network/` and `storage/`, which have not been through the pass that put the other two on this form.
-The target is zero on all four and the two numbers come down as those categories are cleaned. `S-53`
+`S-51` and `S-52` are held on `cluster/`, `workloads/` and `network/`, and carried as a falling
+CEILING on `storage/`, which has not been through the pass that put the other three on this form.
+The target is zero on all four and the two numbers come down as that category is cleaned. `S-53`
 takes no baseline: every category already stands at zero on it.
 
 ---
@@ -466,13 +502,16 @@ wrong file.
 | ID | Subject |
 |---|---|
 | `NET.C-01` | the tint, and the one category colour that is a literal in `diagrams.css` |
+| `NET.L-01` | 232 by 80 is the actor-block size, 232 by 104 for a Pod, and what may overrule it |
 | `NET.S-01` | what a Pod is built from here |
 | `NET.A-01` | endpoints on a block edge |
 | `NET.A-02` | traffic delivered to a Node |
 | `NET.A-03` | N destinations, N wires |
+| `NET.A-04` | no line suppresses its role |
 | `NET.T-01` | addresses ride the ball |
 | `NET.S-02` | the inner app boxes named in `resetStep` |
 | `NET.S-03` | the exemplar card |
+| `NET.S-04` | the two things a record here has to name that no check sees |
 | `NET.D-01` | the subcategory split |
 
 ### `STO.*` storage, `js/schemes/storage/CLAUDE.md`
@@ -491,6 +530,7 @@ wrong file.
 | `STO.S-02` | a block and its lanes as one construction |
 | `STO.S-03` | the z-order |
 | `STO.S-04` | the exemplar card |
+| `STO.S-05` | the record shape this category is still on |
 | `STO.D-01` | the subcategory split |
 
 ---
@@ -684,21 +724,43 @@ of every relation it builds, `css/diagrams.css` gives that class `stroke-dasharr
 `role` is the half that really defaults, but only at the primitive. `P.relation` is `roledPart`,
 which fills an `undefined` role from the kit binding (`S-42`), so a `P.relation` with no `role` is
 not a role-less relation. Only a raw `relationPath` call, or an explicit `role: ''`, reaches the
-generic dim fallback instead of a category suffix, and `role: ''` is a deliberate idiom on the
-networking cards where a cyan arrowhead would misread.
+generic dim fallback instead of a category suffix. `A-22` says why neither is a way to express
+anything: the fallback drops the hue, and hue is not the axis either weight or recession runs on.
 
 The spread of dash patterns is inherited rather than chosen, and normalising it is an undeclared
 visual change, not a tidy-up.
 
-Measured 2026-09-01 over 70 call sites in `js/schemes/`, 68 of them `P.relation` and 2 raw
-`relationPath` (both on `network-model`, the bus rail): 27 pass a `dash`, of which 24 are `5 5`, 2
-are `4 6` (both on `storage-ephemeral-vs-persistent`) and 1 is `4 4`
-(`storage-ephemeral-storage-eviction`). The other 43 pass none AND STILL RENDER `5 5`, off the
-class, so 24 of the 27 are writing out a value they already have.
+Measured over 72 call sites in `js/schemes/`, every one of them a `P.relation` and none a raw
+`relationPath`: 27 pass a `dash`, of which 21 are `5 5`, 4 are `4 4` (`storage-ephemeral-storage-
+eviction` and three `workloads-*` cards) and 2 are `4 6` (both on `storage-ephemeral-vs-persistent`).
+The other 45 pass none AND STILL RENDER `5 5`, off the class, so 21 of the 27 are writing out a
+value they already have.
 
-`role` is omitted at 50 of the 70 call sites, and on a `P.relation` that is not a role-less
-relation: `roledPart` fills it from the kit binding (`S-42`). The two raw `relationPath` calls are
-the only ones that genuinely reach the generic fallback without asking for it.
+`role` is omitted at 54 of the 72 call sites, and none of those is a role-less relation: `roledPart`
+fills it from the kit binding (`S-42`). Nothing in the catalog reaches the generic fallback, so every
+relation carries its category hue and separates from a route on OPACITY alone.
+
+### A-22
+
+A role-less line is not a quieter line, it is a line drawn out of a different palette.
+
+`.scheme-arrow-dim` and the three role rules sit at equal specificity, so the ROLE wins the stroke
+and `dim` keeps only `stroke-width: 1.4` (`A-18`, `A-20`). With no role there is nothing to win it,
+and the line resolves `--diag-arrow-dim`: rgb(53, 125, 140) against rgb(79, 229, 255) in networking,
+rgb(63, 93, 138) against rgb(91, 184, 255) in workloads. `pathArrow` picks the marker off the same
+argument, so the arrowhead goes with it.
+
+The two axes a card actually wants are already there and both keep the hue. WEIGHT is `dim`, which
+is what a wire a ball rides is normally drawn at. RECESSION is `.scheme-arrow-relation`, stroke
+-opacity 0.45, which is how a line that carries no ball on any step says so without leaving the
+category. A missing role is neither: it says only that the line does not belong to the picture.
+
+`workloads` prices the same defect in its own source, on `workloads-pod-scheduling-gates`: omitting
+the role on the two lanes the balls ride costs rgb(63, 93, 138) against rgb(91, 184, 255).
+
+Measured over the rendered catalog: 0 lines resolve a dim token, 718 resolve a category colour, over
+129 cards. `grep -rn "role: ''" js/schemes/` returns nothing, which is the whole check this row
+needs until something reintroduces one.
 
 ### M-03
 
@@ -1015,9 +1077,9 @@ a reader whose input is the rendered diagram.
 
 `report/arrival.test.mjs` carries all seven of those in `R2_STEP_CARRIED` with the reason on each: a
 value RETURNING to the steady state after a conditional aside (`cluster-list-watch-informers` crd x3,
-`cluster-static-pods` edit-file), a panel emptying because THIS MODE has no such field
-(`network-client-ip-preservation` passthrough x2), and a suffix explaining an unchanged state
-(`cluster-oom-kill` oomkill, where the state really is still Running).
+`cluster-static-pods` edit-file, `network-client-ip-preservation` passthrough), a row emptying
+because THIS MODE has no such field (`network-client-ip-preservation` passthrough), and a suffix
+explaining an unchanged state (`cluster-oom-kill` oomkill, where the state really is still Running).
 
 Cueing any of them announces an event that did not happen, and each is written down in its own
 record section as well.
@@ -1073,6 +1135,25 @@ forwards an incoming `#...` to one sub-app, so the bare namespace belongs to `/c
 default target. Matching on the `#scheme=` and `#at=` prefixes is what keeps a copy of this catalog's
 section keys out of the hub, where nothing would notice it going stale.
 
+### R-03b
+
+Measured 2026-09-11 across the catalog: the reference set (`workloads` + `cluster`) lands a mark at
+0.55 or brighter on 57 of its 60 posters, network on 23 of 40 and storage on 0 of 31, whose brightest
+mark anywhere in the category is 0.20. It is the single widest gap between the posters the project
+reads as finished and the posters it does not, and no other rule here reaches it: a poster can carry
+the right sentence, the right family and a correct composition and still be one a reader's eye slides
+off.
+
+Brightness is not readable off one attribute. It arrives three ways that multiply: the fill itself
+(`currentColor` is full white, `rgba(255,255,255,a)` is `a`), the element's own `opacity` and
+`fill-opacity`, and the same two on every `<g>` above it. An accent bar at 0.9 inside a group at 0.35
+lands at 0.32, so the check walks the group stack rather than the tag.
+
+The floor says nothing about WHICH mark is brightest. The `R-07` accent bar is the usual way, a heavy
+stroke on the one centre is another, and a single solid form in a field of outlines is a third.
+
+`poster-lint.mjs --calibrate` re-snaps this number, and it is the only way it should ever move.
+
 ### R-08a
 
 2 workloads and no storage: `pod-restart-policy` (two filled `path` triangles on the two restart
@@ -1092,6 +1173,16 @@ points or fewer and fills with `currentColor`. Testing the tag alone reads only 
 
 It is the shape shown when a card has no poster, `R-poster` guarantees that never happens, and
 nothing renders it today.
+
+### R-12
+
+**A poster note belongs beside the poster, not in the record.** `S-51` gives a record section one
+`### layout` heading and nothing else, so a `### poster` block cannot live there, and the note has
+one honest home: the comment directly above that card's entry in `js/schemes/<cat>/posters.js`,
+where the next poster author is already looking. It says what the composition is, what the hero is
+and what the poster deliberately is NOT, and it never restates the SVG under it. Three of the four
+categories are on that shape; `storage/` still carries the subsection and its G1 ceiling records
+how many sections that is.
 
 ### S-01
 
@@ -1155,11 +1246,12 @@ can never precede the reset.
 Only the middle is per card, and it is DECLARED (`keys`, `pods`, `extra`) rather than written.
 
 **`reset.extra` running LAST is load-bearing, and an extra put before `clearWires` fails silently.**
-The one extra in the catalog (`network-pod-ip-and-veth`) writes `style.strokeOpacity` on a lane and
-nothing a wire label owns, so an extra that wrote a wire label would be wiped by the clear that
-follows it. No cluster card declares one, and `js/schemes/cluster/CLAUDE.md` records why the
-candidate there cannot want one: `dashed: true` writes the dash as an ATTRIBUTE, which an inline
-style never touches.
+No card in the catalog declares one today, so the ordering is a rule with no population behind it
+and the reason to keep it stated is that the failure it prevents is invisible: an extra that wrote a
+wire label would be wiped by the clear that follows it, with nothing going red. The last one to run,
+on `network-pod-ip-and-veth`, wrote `style.strokeOpacity` on a lane and nothing a wire label owns.
+`js/schemes/cluster/CLAUDE.md` records why the one candidate there cannot want one: `dashed: true`
+writes the dash as an ATTRIBUTE, which an inline style never touches.
 
 ### S-12
 
@@ -1297,13 +1389,13 @@ records still carry a copy. The cluster record is the worked example.
 
 ### S-50
 
-They name 122 distinct ids between them and carry no copy of a rule text, which is what keeps a skill
+They name 124 distinct ids between them and carry no copy of a rule text, which is what keeps a skill
 short and what stops it drifting from the rulebook it drives.
 
 ### S-38
 
-`unit/docs.test.mjs` anchors each note to a line of code with ``### before `<line>` ``. **50 anchors
-today**, all four records (cluster 0, workloads 0, network 35, storage 15), and that is a count of
+`unit/docs.test.mjs` anchors each note to a line of code with ``### before `<line>` ``. **15 anchors
+today**, all four records (cluster 0, workloads 0, network 0, storage 15), and that is a count of
 what is there rather than a quota to hold. **Cluster and workloads carry none by design**: a record
 there is one `### layout` block of labelled notes and nothing else, and what an anchor used to hold
 sits under the label it belongs to. **The walk fails on a record it cannot read instead of
@@ -1324,7 +1416,7 @@ stale note cost more than keeping it, so there is none.
 section, or a `CARDS/<card-id>.md` per card with `CARDS.md` keeping the preamble and the index.
 `recordFiles` in `test/fixtures/catalog.mjs` decides which by looking for the folder, so a category
 choosing either is covered without a reader knowing its name, and a `CARDS/` that exists and reads
-empty is a failure rather than a shorter walk. Cluster and workloads are split, network and storage are not.
+empty is a failure rather than a shorter walk. Cluster, workloads and network are split, storage is not.
 
 **An anchor is unique only WITHIN its `## <card id>` section, never across a record.** The resolver
 looks the line up in that card alone, so a duplicate is legal where it sits: 0 anchor texts are

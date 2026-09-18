@@ -34,9 +34,9 @@
 //     of false findings stops being read, and a real typo drowns in it.
 // Q2  CLOSED, and the slot is kept so Q3 to Q5 keep their numbers. The rule and the code agree:
 //     S-11 puts reset.extra LAST and makeResetStep (js/lib/scene-spec.js) runs packetLayer,
-//     clearHighlights, clearWires, extra in that order. The one extra in the catalog is
-//     network-pod-ip-and-veth's, which writes style.strokeOpacity on a lane and owns no wire label,
-//     so the clear that would wipe it never reaches what it writes. No cluster card declares one.
+//     clearHighlights, clearWires, extra in that order. NO card in the catalog declares a
+//     reset.extra, so that ordering is a guarantee held against the next one rather than against a
+//     live site, and section 4 below is where the count is read rather than asserted here.
 // Q3  S-12 ("no card declares clearHL(s)") has NO successor as a statement about data, and none is
 //     invented in the unit file. A migrated card writes no prologue, so there is nothing to fold;
 //     `clearHL` is on no kit, so no card could import one. The only remaining form of the rule is the

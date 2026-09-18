@@ -678,9 +678,6 @@ describe('the strings the scene draws', () => {
     // The flat-network band is a hand-forged g.scheme-box: it holds a .scheme-box-sublabel child of
     // its own, which is why setBoxSublabel reaches it and six steps write through it.
     'network-model.bus': 'box',
-    // The Pod shell here is primitives.pod(), not podShell() + inner: it writes an inline fill on
-    // .scheme-pod-rect no other Pod carries, and the card hangs TWO sibling containers off it.
-    'network-pod-ip-and-veth.podShell': 'podShell',
   };
 
   test('every string a step writes lands on a part of the scene that can hold it', (t) => {

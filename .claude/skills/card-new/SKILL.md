@@ -212,6 +212,12 @@ geometry before the narration exists means measuring it twice.
 4. **Take the category grammar** rather than typing coordinates: the A/B/C column presets where the
    category has them (`L-08a`, `WL.L-06`), the vertical stack where it does not (`STO.L-01`), the
    frame family from the category record (`L-23`, `CLU.L-01`).
+   **A block's SIZE comes from the same place as its position, and the height is half of it.** An
+   actor block is 232 by 80 and a Pod 232 by 104 with a 192 by 44 app box (`NET.L-01`; measured
+   catalog-wide, 41 of the 132 modules type 80 as a block height and 14 type 104). Taking the width
+   from the rule and inventing the height is the half that gets skipped, and it makes a block read
+   as a different KIND of object beside its neighbours. A departure carries the string or the column
+   that forced it, in the record, exactly as a width departure does.
 5. **Derive, do not type.** Measured inputs stay as literals with the comment that says where they
    came from (`L-07`); everything else comes through the kit formulas. A constant nothing reads is
    a defect the catalog has zero of.

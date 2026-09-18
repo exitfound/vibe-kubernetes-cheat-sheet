@@ -8,15 +8,16 @@ WHAT     A restart does not erase a death: the Terminated record of the instance
          survive exactly one more restart.
 LAYOUT   Own geometry, no A / B / C preset: there is no ladder and no flanking chip column, so the
          two columns the presets choose between do not exist. Three tiers.
-           actor row   kubectl 460..740 on TOP_Y, the one actor that is outside the Node
-           board       three record slots 280 wide on y 250..330, spread 90..1110 so the slot
-                       centres are 230, 600 and 970: state, lastState, and a standing sign that
+           actor row   kubectl 484..716 on TOP_Y, the family actor width, the one actor that is
+                       outside the Node
+           board       three record slots 248 wide on y 250..330, spread 106..1094 so the slot
+                       centres stay 230, 600 and 970: state, lastState, and a standing sign that
                        nothing older is stored, at OPACITY.notready
-           Node band   on the floor 484..624 and on the slot row's own 90..1110, NOT the full
-                       WL.L..WL.R: the frame is a row under a row and takes the row's edges, so
-                       the two share one silhouette. The Pod at 110..590 holds the live instance
-                       and the previous one, the Kubelet at 850..1090 sits inside the frame,
-                       both inset FRAME_PAD 20 from its edges
+           Node band   on the floor 484..624 and on 90..1110, NOT the full WL.L..WL.R: the frame
+                       is a row under a row and states that span itself, since the slots above it
+                       are narrower than it is. The Pod at 110..590 holds the live instance and
+                       the previous one, the Kubelet at 850..1090 sits inside the frame, both
+                       inset FRAME_PAD 20 from its edges
          The composition is a shift register drawn twice: the slots are ROLES, and so are the two
          container boxes, whose sublabels change per step while the boxes stay put. The live
          instance is centred on 235 under the state slot (230), so the record above it is the record
@@ -43,9 +44,10 @@ PANEL    x<=397 catalog-wide (`L-02`). Bottom per viewport: `OVERLAY_IDS=workloa
          to the RIGHT end of the board (inks 841..1110) because at 1100x800 its baseline sits under
          the panel bottom and the panel reaches x 397: a left-anchored caption would run under the
          panel edge.
-SIZES    Slot 280: the widest sublabel, `Terminated · exitCode 137 · OOMKilled`, inks 223.1 wide,
-         leaving 28 a side. Container box 210 x 52: `app #2 · exited 137 · kept` inks 156.8, leaving
-         26 a side. Pod 480 x 96 (three 20 pads around two boxes), Kubelet 240 x 80 with `writes
+SIZES    Slot 248 and not the 232 the actor row takes: the widest sublabel, `Terminated · exitCode
+         137 · OOMKilled`, inks 223.1 wide, so 232 would leave 4.5 a side and 248 leaves 12.5.
+         Container box 210 x 52: `app #2 · exited 137 · kept` inks 156.8, leaving 26 a side. Pod
+         480 x 96 (three 20 pads around two boxes), Kubelet 240 x 80 with `writes
          containerStatuses[]` inside it.
          The chip is the slot width, centred under the middle slot, so the strip centre is 600. The
          frame label `Node-1` inks to y 505.4 from x 102, and the Pod starts at x 110: the Pod top

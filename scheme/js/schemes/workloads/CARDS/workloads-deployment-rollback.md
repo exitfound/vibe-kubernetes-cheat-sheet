@@ -11,7 +11,7 @@ LAYOUT   TWO REGISTERS OF ONE SET, drawn one above the other so a reader can see
          upper band is what EXISTS, four ReplicaSets in creation order. The lower band is what
          `kubectl rollout history` PRINTS, one narrow cell per live revision, in revision order. One
          connector per live revision joins a row to the object that carries its annotation.
-           actor row  y 40..120, Deployment 450..750, 300 wide, centred on WL.SPINE_X (WL.L-07)
+           actor row  y 40..120, Deployment 484..716, 232 wide, centred on WL.SPINE_X (WL.L-07)
            rail       y 272, `created first` and `created last` as end caps outside the bus
            read       the one upward route, x 425 from 330 to 80, into the owner's LEFT face
            shelf      FOUR objects 330..402, 246 wide, xs 60 / 338 / 616 / 894 from `spread`

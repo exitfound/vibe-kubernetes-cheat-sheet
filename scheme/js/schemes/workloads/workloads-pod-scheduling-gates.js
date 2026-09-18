@@ -23,15 +23,15 @@ const SCH_W = 240, SCH_X = GB_X + GATE_W + RUN_W;        // 900..1140, which end
 
 // The API, centred on WL.SPINE_X (WL.L-07). Both writes leave its face as an L-12 mirrored pair at
 // +-90, which is the gate half-width, so each drop lands on a gate top midpoint.
-const API_W = 280, API_X = WL.CX - API_W / 2;            // 460..740
+const API_W = 232, API_X = WL.CX - API_W / 2;            // 484..716, the family actor width
 const DROP = laneY(WL.CX, GATE_W / 2);                   // 510 and 690
 // The controller that owns the gates, on the actor row right of the API and ending on WL.R: every
 // PATCH the narration names leaves HERE, and the API only accepts or refuses it (A-09). The
 // top-row pair is WL.A-01: the request runs leftward on REQ_Y, the refusal comes back on RESP_Y.
-const OWN_W = 280, OWN_X = WL.R - OWN_W;                 // 860..1140, a 120 gap to the API
+const OWN_W = 232, OWN_X = WL.R - OWN_W;                 // 908..1140, a 192 gap to the API
 const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
 const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);   // 68 and 92
-const API_R = API_X + API_W;                             // 740, the face both top lanes end on
+const API_R = API_X + API_W;                             // 716, the face both top lanes end on
 // Built ONCE each: the drawn lane and every ball on it index the same array (A-02), which a
 // factory called per use cannot do because it makes two arrays that are only equal.
 const drop = (x) => [[x, WL.TOP_BOTTOM], [x, FLOOR_Y]];  // 220 units, no turn

@@ -1,14 +1,33 @@
-# CLAUDE.md `schemes/workloads/` (Pods and controllers)
+# CLAUDE.md `js/schemes/workloads/` (Pods and controllers)
 
-What is true of Workloads cards ALONE. Everything catalog-wide is in **`scheme/CANON.md`** (the
-rulebook: layout, arrows, motion, colour, text, chips, metadata, posters, module structure) and
-`scheme/CLAUDE.md` (the contract: folder, module, catalog, checklists). **If a rule here would also
-be true of another category, it is in the wrong file.**
+## What this file is
+
+The contract for the Workloads category and nothing wider. Three documents sit above it and are not
+repeated here:
+
+| Document | Holds |
+|---|---|
+| `scheme/CANON.md` | the rulebook: layout, arrows, motion, colour, text, chips, metadata, posters, module structure. Load it before designing, reviewing or repairing a card |
+| `scheme/CLAUDE.md` | the sub-app contract: folder shape, module contract, catalog wiring, the test suite and its checklists |
+| `./CARDS.md` | the preamble and the catalog-order index of the per-card design records in `./CARDS/` |
+
+**If a rule stated here would also be true of another category, it belongs in the canon, not here.**
+
+The section order is the one all four folder contracts share, so a reader who knows one knows the
+others: what this file is, the folder, the catalog, the tint, the kit surface, the geometry, the
+escape hooks, the reduced path, the records, the exemplar, then whatever `WL.*` rules no section
+above holds. The closing section on the four catalog-wide lane rules is this category's own and has
+no counterpart in the other three.
 
 The rows below carry `WL.*` ids and are indexed from `scheme/CANON.md`. **The TEXT of a `WL.*` rule
 lives here and only here**: the canon carries the id and a subject label, never a second copy of the
 rule. Where an id could name two different rules, the FOLDER keeps it: `WL.L-03`, `WL.L-04` and
 `WL.L-05` mean what the rows below say and nothing else.
+
+Every count in this file is measured off the tree. `report/skeleton-census.test.mjs` prints the hook
+and step censuses, `unit/docs-census.test.mjs` asserts the numbers stated below against the same
+census, and `unit/docs.test.mjs` asserts the record structure. Do not edit a number here to make a
+sentence read better: re-measure, or the assertion goes red.
 
 ## The folder
 
@@ -19,7 +38,7 @@ rule. Where an id could name two different rules, the FOLDER keeps it: `WL.L-03`
 | `workloads-kit.js` | the tint, the two pulse wrappers, the `WL` layout constants and the `LAYOUT` A/B/C column presets, plus the `P` / `F` / `defineCard` bindings; everything else is re-exported from `lib/scheme-kit.js` and `lib/layout.js` |
 | `workloads-*.js` | one module per card |
 | `CARDS.md` | the record's preamble and its index, and no `## ` heading of its own |
-| `CARDS/<id>.md` | the design record for ONE card, a single `### layout` block of labelled notes and no other heading, which `S-51` states and `test:docs/G1` holds. This category and `cluster/` are the two in the split shape, and `recordFiles` in `test/fixtures/catalog.mjs` is what reads the shape off the tree |
+| `CARDS/<id>.md` | the design record for ONE card, a single `### layout` block of labelled notes and no other heading, which `S-51` states and `test:docs/G1` holds. This category, `cluster/` and `network/` are the three in the split shape, and `recordFiles` in `test/fixtures/catalog.mjs` is what reads the shape off the tree, so `storage/` on the monolith is walked by the same code and is not a special case |
 
 A card reaches `./workloads-kit.js` and no further (`S-21`): all 32 import the kit, 14 also import
 `lib/svg.js` and 6 `lib/primitives.js`. Those are element constructors no part kind builds, and they
@@ -33,13 +52,38 @@ and `chip` or `box` from `lib/primitives.js` on `container-states`, `ephemeral-c
 `init-containers-and-sidecars`, `pod-pending-init-states`, `pod-startup-conditions` and
 `termination-order`. Nothing else may live here (`S-20`).
 
-## Tint (`WL.C-01`)
+## The catalog
+
+32 cards, 207 declared steps, three subcategories. It is the largest step count in the catalogue,
+though not the highest per card: at 6.5 it sits behind storage and cluster and well ahead of
+network. The subject is a STATE MACHINE rather than a path, and a Pod with phases to walk or a
+controller with a reconcile to finish takes more beats to narrate than a packet crossing a Node.
+
+### Subcategories (`WL.D-01`)
+
+| key | label | cards | what belongs here |
+|---|---|---|---|
+| `pods-bootstrap` | Pods Bootstrap | 8 | anything that has to be settled before the app container is running: what is holding a Pod that is not Running yet, the gates and the conditions it clears before a Node is chosen, what the Scheduler reserves for it, image pull, init and sidecar ordering, the environment assembled at launch, and the QoS class it is born with. A subject is admitted only if it finishes at or before the first app container process starts |
+| `pods-lifecycle` | Pods Lifecycle | 12 | one Pod's own state machine: phases, restart policy, hooks, probes, container states, crash loops, in-place resize, shutdown, force deletion, and what removes the object once the Pod is done |
+| `controllers` | Controllers | 12 | an object that manages Pods rather than being one: Deployment, ReplicaSet, StatefulSet, DaemonSet, Job, CronJob |
+
+The line between the first two is whether the app container has started.
+
+The order of `SUBCATEGORIES`, and of the cards inside each, is an editorial argument about what a
+reader meets first (`D-10`). It is never alphabetical, and `CARDS.md` indexes the records in that
+same order.
+
+## Tint
 
 ```js
 WORKLOADS_TINT = { base: 'rgb(91, 184, 255)', bright: 'rgb(142, 198, 247)' }   // sky blue
 ```
 
 `base` is the Pod's resting stroke, measured under `reducedMotion` (`M-05`).
+
+| ID | Rule |
+|---|---|
+| `WL.C-01` | Sky blue is the category tint, and a workloads Pod is drawn IN it rather than against it: the binding is `{ role: 'workloads', podRole: 'workloads', tint: null }`, so `podRole` equals the category role and no Pod tint is pinned. Three of the four kits are in that position and only `cluster-kit.js` differs, because cluster is the one category drawing a FOREIGN Pod and it has to pin `POD_VIOLET`. Retinting either half is `C-22` |
 
 ## Kit surface
 
@@ -48,59 +92,13 @@ and the six `lib/layout.js` formulas (`laneY`, `ladder`, `strip`, `spread`, `mid
 `WORKLOADS_TINT` and its two pulses. Two names are workloads-only: `WL`, the layout canon below, and
 `LAYOUT`, its A/B/C column presets.
 
-The binding is `{ role: 'workloads', podRole: 'workloads', tint: null }`. `podRole` equals the
-category role and the tint is null **because a workloads Pod is already the category blue**: only
-cluster draws a FOREIGN Pod and therefore has to pin `POD_VIOLET`. A card writes no `role:` for its
-own elements, so every surviving `role:` literal is a deliberate cross-category override.
+The binding is the one `WL.C-01` states above. What follows from it here: a card writes no `role:`
+for its own elements, so a surviving `role:` literal is either a deliberate CROSS-CATEGORY override
+(a workloads card drawing a control-plane block in cluster indigo) or a primitive called past the
+kit binding by a `P.raw` or a `part.tune`, which has to be handed its role by hand. The escape-hook
+section below counts the second kind.
 
-## Subcategories (`WL.D-01`)
-
-| key | label | cards | what belongs here |
-|---|---|---|---|
-| `pods-bootstrap` | Pods Bootstrap | 8 | anything that has to be settled before the app container is running: what is holding a Pod that is not Running yet, the gates and the conditions it clears before a Node is chosen, what the Scheduler reserves for it, image pull, init and sidecar ordering, the environment assembled at launch, and the QoS class it is born with. A subject is admitted only if it finishes at or before the first app container process starts |
-| `pods-lifecycle` | Pods Lifecycle | 12 | one Pod's own state machine: phases, restart policy, hooks, probes, container states, crash loops, in-place resize, shutdown, force deletion, and what removes the object once the Pod is done |
-| `controllers` | Controllers | 10 | an object that manages Pods rather than being one: Deployment, ReplicaSet, StatefulSet, DaemonSet, Job, CronJob |
-
-The line between the first two is whether the app container has started.
-
-## Exemplar (`WL.S-02`)
-
-**The exemplar is copied whole, so what it gets wrong is copied whole. Where it deviates from a rule
-of this folder, the deviation is named HERE and in its own record, beside the shape a copy takes
-instead.** Naming it is not a licence to leave it: it is what stops the next card inheriting it.
-
-`workloads-pod-startup-conditions.js`, 242 lines and fully declarative. **New cards go in this
-form.** Copy its shape rather than inventing one:
-
-- One import line from `./workloads-kit.js`, plus `lib/svg.js` and `lib/primitives.js` where a `raw`
-  factory needs them, the `S-36` pointer comment, the geometry header, `SCENE`, step-local
-  constants, `STEPS_SPEC`, then `init` last.
-- The header keeps its MEASURED numbers as literals with their comments (`L-07`) and derives the
-  rest through the kit's formulas, and it is written in BANDS: each band opens with a comment saying
-  what it is and why it sits where it does.
-- `SCENE.parts` is an ordered list and the order IS the z-order, so it reproduces what a
-  hand-written `build()` said by where a line sat. `reset.keys` and `reset.pods` are written out.
-- Its corridor is `[[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, NODE_Y]]`, ending on the Node FRAME
-  face and never on the Pod inside it, which is `WL.A-03` done right. This is the reason the
-  exemplar is this card.
-- The actor row is a PAIR at 232 wide, the left box centred on `WL.CX` because `WL.L-07` needs the
-  spine to leave a face midpoint, the right box right-aligned on `WL.R` where the chip column below
-  it also ends.
-- It takes NO `LAYOUT` preset and says so in its record: A / B / C choose which column holds the
-  ladder and which the chips, and a card carrying neither has nothing for them to choose. Copying
-  the exemplar is copying its SHAPE, never its arrangement.
-
-**The one thing not to copy.** Its `P.raw` staircase is five treads plus two rail segments built by
-one factory, and a factory bypasses the kit binding, so every one of those calls writes its own
-`role:` by hand. That is the price of a raw instrument and not a pattern: a card whose blocks are
-blocks takes `P.box` and writes no role at all.
-
-**`workloads-probes` was the exemplar until its redesign** and is no longer one. It now carries
-seven lanes and a three-lane fan that no other card in this category has, which is a composition
-answering its own subject rather than a shape to copy, and copying it would converge the section on
-a fan. Its corridor pair idiom survives the move and is described above.
-
-## Rules of this category only (`WL.*`)
+## Geometry
 
 ### The layout canon (`WL.L-01`)
 
@@ -135,21 +133,21 @@ construction.
 | `WL.L-05` | **C** (`LAYOUT.C`) tall panel, neither column fits below it: ladder right, Node just under the panel, chips as a full-width bottom strip **two or three per row** (532 or 350.7 wide). Never four or five across: 258 and 205 are narrower than the strings, and that produced 79 chip collisions |
 | `WL.L-06` | The choice itself is `L-08a`, which cluster obeys too. What is workloads alone: the split over these 32 cards, measured off the CODE with comments stripped, A 0, B 2, C 8, and 22 that read no preset at all and state their own geometry, because a card carrying neither a ladder nor a flanking chip column has no columns for A / B / C to choose between. Comments are stripped because five cards name a preset only in one (`workloads-deployment-strategy`, `workloads-env-before-pid-1`, `workloads-pod-pending-init-states`, `workloads-pod-resize` and `workloads-pod-scheduling-gates`), and a mention is not a read. TWO of the eight C readers, `workloads-finished-job-cleanup` and `workloads-deployment-rollback`, take only `LAYOUT.C.strip.two` and no column at all: neither carries a ladder or a flanking column, and each reads C purely for the WL.L-05 two-across chip width. Nothing in `test/fixtures/census.mjs` guards this split the way it guards cluster's, so it is re-measured by hand |
 | `WL.L-07` | The trunk has to run in the `540..660` corridor to clear both columns and still leave a face midpoint, so **the actor box it leaves must be centred on `WL.SPINE_X`**. That is why several cards carry a first actor box of `420..780` rather than `420..640` |
-| `WL.A-01` | The top-row lane PAIR: `REQ_Y = TOP_CY - LANE_DY` carries the request to the API and `RESP_Y = TOP_CY + LANE_DY` carries the answer back. Measured over the 32: **17 draw the pair and 13 of those ride the answer**, and `workloads-pod-qos-classes` is the one card that rides a single answer lane on `TOP_CY` with no pair at all, because no step of it names anything going the other way. Whether the answer lane is an arrow or a relation is decided by the step's own words (`A-06`) |
-| `WL.A-02` | **The top-row wire label goes ABOVE the actor row**, at `WIRE_Y = WL.TOP_Y - 12`, never below it. Below, centred at `WIRE_X` on y=146, it lands on the lane and across the spine's step. Nine cards carry that constant identically |
-| `WL.A-03` | **A lane between the actor row and the Node band ends on the FRAME face midpoint, in both directions**, never on a Pod inside the frame. This is the cluster grammar and it holds here too: an endpoint on `POD_Y` makes the lane pierce the frame it crosses, which draws the Kubelet reaching THROUGH the Node rather than acting on it. The frame's top midpoint therefore has to equal `WL.SPINE_X`, so a frame narrower than the full width is centred on `WL.CX`. The catalog is NOT converted, and `report/frame-face.test.mjs` prints the queue: NO card here still ends on `POD_Y`, against 12 already on the rule (`workloads-daemonset`, `workloads-ephemeral-containers`, `workloads-finished-job-cleanup`, `workloads-force-deletion`, `workloads-graceful-shutdown`, `workloads-image-pull-registry-auth`, `workloads-init-containers-and-sidecars`, `workloads-pod-qos-classes`, `workloads-pod-resize`, `workloads-pod-pending-init-states`, `workloads-pod-startup-conditions`, `workloads-termination-order`), 4 whose every frame lane runs on the ground and is out of the rule's reach (`workloads-crashloopbackoff` among them: its Kubelet sits inside the frame), 1 whose only lane across the frame edge leaves the interior UPWARD, the Kubelet inside it reporting out (`workloads-container-states`, which the report prints apart as interior), and 15 that draw no `node()` frame at all, so nothing on them can meet it (`workloads-pod-replacement-guarantees` is the newest of them: its five columns are five unrelated owners, so a frame anywhere on it would say two of those five Pods share a Node, which nothing about five separate controllers promises, and the one Node it names is named in words. `workloads-statefulset-update-strategy`: its two Pod slots are the maxUnavailable BUDGET drawn as places, so a frame around the pair would say the two unavailable Pods share a Node, which nothing about an update promises. `workloads-cronjob`: its seven slots are the seven TICKS of a schedule rather than seven places, so one frame around the row would say the runs share a Node, which a CronJob does not promise, and the card was the last member of the queue above until its redesign took the frame out. `workloads-job-parallelism` is an instrument panel whose three worker slots are the `parallelism` cap drawn as a length, so a frame around all three would say a Job promises they share a Node, which it does not. `workloads-statefulset-ordered-rollout` carries the same argument, three ordinal columns whose subject is the ORDER they are created in and not where they run, so one frame around all three would say they share a Node, which a StatefulSet does not promise. `workloads-deployment-rollback` is an object board whose whole cast is a Deployment and four ReplicaSets, and `workloads-replicaset` states the argument they share: the subject is which ReplicaSet owns how many Pods and not where they run, so a frame there is a block no step narrates, and on `rolling-update` one frame spanning both owner columns would say the split is by Node). Nothing in the suite can see either shape, because `check-geometry` scores where a lane ENDS and both endpoints are legal to it |
-| `WL.S-03` | **A record opens on `WHAT`, uses the canon's labels in the canon's ORDER, uses each at most once, and carries no heading but `### layout`.** That half is `S-51` and `S-52` catalog-wide, held on all 32 of these by `test:docs/G1` and `test:docs/G2`. What stays workloads-only is the panel reading below. A heading written onto the end of the closing fence above it is swallowed by that fence and is invisible to every `^### ` reader in the tree, the record walk included. Every record here carries a `PANEL` block, 32 of 32, naming the command that prints the extent rather than storing a number that goes stale with the next prose edit. These records are the longest in the catalogue after cluster's |
-| `WL.S-01` | Each card owns its own `SPINE` points array, and the same array feeds both the drawn wire and the ball. **There is no shared connector helper, and there must not be one**: a helper holding the ball's points in the kit while the card holds the wire's leaves two independent copies of the same numbers |
 
 `WL.L-05` is the rule that cost the most: stretching the chip strip to straddle 600 closes a
 `CENTRE` finding and produces the 79 collisions, so the rule goes green on a drawing that is
 rejected under `L-16`.
 
-## The escape hooks this category still needs
+## The escape hooks this category needs
 
-All 32 cards are in the declarative form. **8 are fully declarative**; 24 carry a hook, and each
-exists for something with no honest general verb. `step.enter`, `step.motion`, `F.run` and
-`reset.extra` are used by NOBODY here, and migrating the category required the DSL to grow zero times.
+All 32 cards are in the declarative form. **8 are fully declarative**; 24 carry a hook, **101
+sites in all**, and migrating the category required the DSL to grow zero times. `step.enter`,
+`step.motion`, `F.run` and `reset.extra` are used by NOBODY here, so every one of those sites is a
+`P.raw` or a `part.tune`, which is what makes this the largest hook population in the catalogue and
+the narrowest by KIND.
+
+The counts are SITES the layer actually receives, read off the imported specs the way
+`report/skeleton-census.test.mjs` totals them, never off grep.
 
 | Card | Hook | What it wraps, and why no field expresses it |
 |---|---|---|
@@ -190,15 +188,89 @@ append the same way. A `P.raw` factory drawing a naked instrument writes no role
 what `workloads-cronjob`, `workloads-effective-pod-requests`, `workloads-job-parallelism`,
 `workloads-deployment-strategy` and `workloads-rolling-update` do.
 
-`reducedLit` is declared on **10 cards over 34 steps** (`cronjob` 5, `rolling-update` 5,
-`statefulset-update-strategy` 5, `force-deletion` 4, `daemonset`, `replicaset`,
-`statefulset-ordered-rollout` and `pod-lifecycle-phases` 3 each, `pod-replacement-guarantees` 2,
-`pod-garbage-collection` 1),
-against 2 steps in the whole of cluster. The shape is usually the same: the animated path says "this
-Pod is here now" by PULSING the wrapper, and no `lightBoxAt` names the inner box, so `flowLights`
-cannot derive it. `force-deletion` is the second shape, a chip turned over inside an `F.set` at an
-arrival, which carries no `lights` list either. A wrong derivation lands on the HIGHLIGHT axis of
-`render/reduced.test.mjs`, which is enforced, so `npm test` is what catches it.
+## The reduced path
+
+`reducedLit` is **declared on 10 cards over 34 steps here**, against 142 in network, 2 in cluster
+and 0 in storage: the second largest population in the catalogue, and second by a wide margin.
+The reason is the subject. 173 of the 207 steps light something through `lit:` or a `lights` list,
+so `flowLights` derives most of the static path for free, and what it cannot derive is a step
+whose whole animated statement is a PULSE: "this Pod is here now" is said by blinking the wrapper,
+and no `lightBoxAt` names the inner box.
+
+`workloads-force-deletion` is the second shape, a chip turned over inside an `F.set` at an
+arrival, which carries no `lights` list either. One card, `workloads-cronjob`, is the limit case:
+no step of it declares `lights:` or an `F.light` at all, so `flowLights` returns `[]` on every
+step and its entire static path rests on `reducedLit`. A wrong derivation lands on the HIGHLIGHT
+axis of `render/reduced.test.mjs`, which is enforced, so `npm test` is what catches it.
+
+## The records
+
+| ID | Rule |
+|---|---|
+| `WL.S-03` | **A record opens on `WHAT`, uses the canon's labels in the canon's ORDER, uses each at most once, and carries no heading but `### layout`.** That half is `S-51` and `S-52` catalog-wide, held on all 32 of these by `test:docs/G1` and `test:docs/G2`. What stays workloads-only is the panel reading below. A heading written onto the end of the closing fence above it is swallowed by that fence and is invisible to every `^### ` reader in the tree, the record walk included. Every record here carries a `PANEL` block, 32 of 32, naming the command that prints the extent rather than storing a number that goes stale with the next prose edit. These records are the longest in the catalogue after cluster's |
+
+The block labels a record may use are ONE list for all four categories, in `scheme/CANON.md` under
+"The record vocabulary", each used at most once and in that order. That is `S-52`, and
+`test:docs/G2` reads the vocabulary off the canon and holds all 32 records here to it, so a label
+outside the list, a duplicate or a run out of order fails the gate rather than a review.
+
+A `PANEL` block states the READING, not the extent: the right edge is `x<=397` catalog-wide
+(`L-02`), and the bottom moves non-monotonically per card and per viewport (`L-04`, `L-06`), so
+each block names the command that prints it, `OVERLAY_IDS=<card-id> node --test
+report/overlay.test.mjs` from `scheme/test/`, and keeps only which step is deepest, what stands
+under the panel and how much clearance is left.
+
+The length the rule row names is earned by measurement rather than by prose: this category carries
+the deepest panel in the whole catalogue, 503 units on
+`workloads-pod-lifecycle-phases` (`L-04`), so more of its cards had to be measured at three
+viewports before their geometry could be settled. `tools/canon.mjs` prints the lengths when the
+question is actually asked.
+
+## Exemplar (`WL.S-02`)
+
+**The exemplar is copied whole, so what it gets wrong is copied whole. Where it deviates from a rule
+of this folder, the deviation is named HERE and in its own record, beside the shape a copy takes
+instead.** Naming it is not a licence to leave it: it is what stops the next card inheriting it.
+
+`workloads-pod-startup-conditions.js`, 242 lines and fully declarative. **New cards go in this
+form.** Copy its shape rather than inventing one:
+
+- One import line from `./workloads-kit.js`, plus `lib/svg.js` and `lib/primitives.js` where a `raw`
+  factory needs them, the `S-36` pointer comment, the geometry header, `SCENE`, step-local
+  constants, `STEPS_SPEC`, then `init` last.
+- The header keeps its MEASURED numbers as literals with their comments (`L-07`) and derives the
+  rest through the kit's formulas, and it is written in BANDS: each band opens with a comment saying
+  what it is and why it sits where it does.
+- `SCENE.parts` is an ordered list and the order IS the z-order, so it reproduces what a
+  hand-written `build()` said by where a line sat. `reset.keys` and `reset.pods` are written out.
+- Its corridor is `[[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, NODE_Y]]`, ending on the Node FRAME
+  face and never on the Pod inside it, which is `WL.A-03` done right. This is the reason the
+  exemplar is this card.
+- The actor row is a PAIR at 232 wide, the left box centred on `WL.CX` because `WL.L-07` needs the
+  spine to leave a face midpoint, the right box right-aligned on `WL.R` where the chip column below
+  it also ends.
+- It takes NO `LAYOUT` preset and says so in its record: A / B / C choose which column holds the
+  ladder and which the chips, and a card carrying neither has nothing for them to choose. Copying
+  the exemplar is copying its SHAPE, never its arrangement.
+
+**The one thing not to copy.** Its `P.raw` staircase is five treads plus two rail segments built by
+one factory, and a factory bypasses the kit binding, so every one of those calls writes its own
+`role:` by hand. That is the price of a raw instrument and not a pattern: a card whose blocks are
+blocks takes `P.box` and writes no role at all.
+
+**`workloads-probes` was the exemplar until its redesign** and is no longer one. It now carries
+seven lanes and a three-lane fan that no other card in this category has, which is a composition
+answering its own subject rather than a shape to copy, and copying it would converge the section on
+a fan. Its corridor pair idiom survives the move and is described above.
+
+## Rules of this category only (`WL.*`)
+
+| ID | Rule |
+|---|---|
+| `WL.A-01` | The top-row lane PAIR: `REQ_Y = TOP_CY - LANE_DY` carries the request to the API and `RESP_Y = TOP_CY + LANE_DY` carries the answer back. Measured over the 32: **17 draw the pair and 13 of those ride the answer**, and `workloads-pod-qos-classes` is the one card that rides a single answer lane on `TOP_CY` with no pair at all, because no step of it names anything going the other way. Whether the answer lane is an arrow or a relation is decided by the step's own words (`A-06`) |
+| `WL.A-02` | **The top-row wire label goes ABOVE the actor row**, at `WIRE_Y = WL.TOP_Y - 12`, never below it. Below, centred at `WIRE_X` on y=146, it lands on the lane and across the spine's step. Nine cards carry that constant identically |
+| `WL.A-03` | **A lane between the actor row and the Node band ends on the FRAME face midpoint, in both directions**, never on a Pod inside the frame. This is the cluster grammar and it holds here too: an endpoint on `POD_Y` makes the lane pierce the frame it crosses, which draws the Kubelet reaching THROUGH the Node rather than acting on it. The frame's top midpoint therefore has to equal `WL.SPINE_X`, so a frame narrower than the full width is centred on `WL.CX`. The catalog is NOT converted, and `report/frame-face.test.mjs` prints the queue: NO card here still ends on `POD_Y`, against 12 already on the rule (`workloads-daemonset`, `workloads-ephemeral-containers`, `workloads-finished-job-cleanup`, `workloads-force-deletion`, `workloads-graceful-shutdown`, `workloads-image-pull-registry-auth`, `workloads-init-containers-and-sidecars`, `workloads-pod-qos-classes`, `workloads-pod-resize`, `workloads-pod-pending-init-states`, `workloads-pod-startup-conditions`, `workloads-termination-order`), 4 whose every frame lane runs on the ground and is out of the rule's reach (`workloads-crashloopbackoff` among them: its Kubelet sits inside the frame), 1 whose only lane across the frame edge leaves the interior UPWARD, the Kubelet inside it reporting out (`workloads-container-states`, which the report prints apart as interior), and 15 that draw no `node()` frame at all, so nothing on them can meet it (`workloads-pod-replacement-guarantees` is the newest of them: its five columns are five unrelated owners, so a frame anywhere on it would say two of those five Pods share a Node, which nothing about five separate controllers promises, and the one Node it names is named in words. `workloads-statefulset-update-strategy`: its two Pod slots are the maxUnavailable BUDGET drawn as places, so a frame around the pair would say the two unavailable Pods share a Node, which nothing about an update promises. `workloads-cronjob`: its seven slots are the seven TICKS of a schedule rather than seven places, so one frame around the row would say the runs share a Node, which a CronJob does not promise, and the card was the last member of the queue above until its redesign took the frame out. `workloads-job-parallelism` is an instrument panel whose three worker slots are the `parallelism` cap drawn as a length, so a frame around all three would say a Job promises they share a Node, which it does not. `workloads-statefulset-ordered-rollout` carries the same argument, three ordinal columns whose subject is the ORDER they are created in and not where they run, so one frame around all three would say they share a Node, which a StatefulSet does not promise. `workloads-deployment-rollback` is an object board whose whole cast is a Deployment and four ReplicaSets, and `workloads-replicaset` states the argument they share: the subject is which ReplicaSet owns how many Pods and not where they run, so a frame there is a block no step narrates, and on `rolling-update` one frame spanning both owner columns would say the split is by Node). Nothing in the suite can see either shape, because `check-geometry` scores where a lane ENDS and both endpoints are legal to it |
+| `WL.S-01` | Each card owns its own `SPINE` points array, and the same array feeds both the drawn wire and the ball. **There is no shared connector helper, and there must not be one**: a helper holding the ball's points in the kit while the card holds the wire's leaves two independent copies of the same numbers |
 
 ## Four catalog-wide lane rules the canon sources here
 

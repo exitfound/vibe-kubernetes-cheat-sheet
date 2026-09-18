@@ -1,179 +1,240 @@
 import { P, F, defineCard, makeRidingLabel, BEAT } from './network-kit.js';
 
-// Design notes for this card: ./CARDS.md#network-client-ip-preservation
+// Design notes for this card: ./CARDS/network-client-ip-preservation.md
 
 
-// The content band is symmetric about the canvas centre by construction, so the flow row and the
-// chip strip both centre on 600 without anything being stretched to make them.
-const CONTENT_L = 65, CONTENT_R = 1135;         // midpoint 600, the canvas centre
-// Narration panel measured at bottom <= 355 over 1600x1000 / 1280x860 / 1100x800, the deepest
-// in networking. FLOW_Y clears it, so a longer narration invalidates the row placement.
-const FLOW_Y = 410;                            // Client top lands at 372, clear of the panel
+// Two connections drawn as two packets, the edge standing OVER both of them. The content band is
+// symmetric about the canvas centre, so the edge, both packet frames and the strip centre on 600.
+const SCHEME_L = 60, SCHEME_R = 1140;          // midpoint 600, the canvas centre
 
-const CLIENT_X = CONTENT_L, CLIENT_W = 230, CLIENT_H = 76;
-const CLIENT_Y = FLOW_Y - CLIENT_H / 2;        // 372, below the narration panel
-const CLIENT_RIGHT = CLIENT_X + CLIENT_W;      // 295
+// The edge is the APEX: it stands above both packets and each leg meets it on a SIDE face, so a
+// side block leaves its OWN TOP face, rises to the leg row, and turns 90 degrees into the edge.
+const EDGE_W = 232, POD_H = 124;               // NET.L-01 width, the category Pod height
+const EDGE_X = 600 - EDGE_W / 2;               // 484
+const EDGE_R = EDGE_X + EDGE_W;                // 716
+// 244: the ENTRY tag rides 14 UNDER its ball and inks from 248, clearing the 1100x800 panel floor
+// of 219.69 by 28.31. The row itself clears it by 24.31.
+const LANE_Y = 244;
+// The edge hangs OFF the row, not the row off the edge: L-11 wants a lone endpoint on the MIDPOINT
+// of the face it lands on, so both side faces centre on LANE_Y.
+const EDGE_Y = LANE_Y - POD_H / 2;             // 182, edge 182..306
+// The side blocks hang under the leg row. 286 and no lower: Pod web is 124 deep and the caption
+// over the right packet inks from 418.8, which its bottom at 410 clears by 8.8.
+const ROW_Y = 286;
 
-const PROXY_X = 455, PROXY_W = 230, PROXY_H = 124;
-const PROXY_TOP = FLOW_Y - PROXY_H / 2;        // 348
-const PROXY_RIGHT = PROXY_X + PROXY_W;         // 685
-const PROXY_CX = PROXY_X + PROXY_W / 2;        // 570
+// A packet frame holds three rows sized by the widest value either side ever writes,
+// `192.0.2.1, 198.51.100.9`. The two frames close on the content edges, so the gap to the wall is derived.
+const ROW_W = 290, ROW_H = 28, ROW_GAP = 8, FRAME_PAD = 14;
+const FRAME_W = ROW_W + 2 * FRAME_PAD;         // 318
+const FRAME_H = 3 * ROW_H + 2 * ROW_GAP + 2 * FRAME_PAD;   // 128
+const FRAME_Y = 444;                           // frames 444..572, under the tag band and the captions
+const L_FRAME_X = SCHEME_L;                    // 60..378
+const R_FRAME_X = SCHEME_R - FRAME_W;          // 822..1140
+const frameCX = (x) => x + FRAME_W / 2;        // 219 and 981
+const rowY = (i) => FRAME_Y + FRAME_PAD + i * (ROW_H + ROW_GAP);   // 458 / 494 / 530
+const CAP_Y = FRAME_Y - 14;                    // 430: the caption baseline over each frame
 
-const POD_W = 210, POD_H = 124;
-const POD_X = CONTENT_R - POD_W;               // 925
-const POD_TOP = FLOW_Y - POD_H / 2;            // 348, and the Pod right edge is CONTENT_R 1135
+// Each actor centres on its own packet frame, so a column reads as one column.
+const ACTOR_W = 232, CLIENT_H = 80;
+const CLIENT_CX = frameCX(L_FRAME_X);                      // 219: the leg leaves this top face
+const CLIENT_X = CLIENT_CX - ACTOR_W / 2;                  // 103, Client 286..366
+const POD_CX = frameCX(R_FRAME_X);                         // 981: the leg drops on this top face
+const POD_X = POD_CX - ACTOR_W / 2;                        // 865, Pod web 286..410
 
-const PANEL_W = 260;
-const PANEL_X = PROXY_CX - PANEL_W / 2;        // 440, clear of the narration panel edge (397)
-const PANEL_BOTTOM = 190;                      // bottom edge of the lower header chip
-const CHIP_Y = 552;
+// Chip strip: three cells spanning the content edges, each sized for its own longest value.
+const CHIP_Y = 592, CHIP_H = 32, CHIP_GAP = 20;
+const CHIP_WS = [340, 360, 340];               // sums with the gaps to SCHEME_R - SCHEME_L
+const CHIP_X = i => SCHEME_L + CHIP_WS.slice(0, i).reduce((a, w) => a + w + CHIP_GAP, 0);
 
-// Four chips spanning CONTENT_L..CONTENT_R, so the strip centres on 600 by construction.
-const CHIP_GAP = 20, CHIP_H = 34;
-const CHIP_WS = [300, 220, 250, 240];          // sums with the gaps to CONTENT_R - CONTENT_L
-const CHIP_X = i => CONTENT_L + CHIP_WS.slice(0, i).reduce((a, w) => a + w + CHIP_GAP, 0);
+// Each static wire and the ball that rides it share the same endpoints. Both are an L of 307 units,
+// a 42 rise off a TOP face and a 265 run into a SIDE face of the edge, mirrored about the centre.
+const ENTRY = [[CLIENT_CX, ROW_Y], [CLIENT_CX, LANE_Y], [EDGE_X, LANE_Y]];
+const DELIVER = [[EDGE_R, LANE_Y], [POD_CX, LANE_Y], [POD_CX, ROW_Y]];
 
-// Each static wire and the ball that rides it share the same endpoints.
-const ENTRY = [[CLIENT_RIGHT, FLOW_Y], [PROXY_X, FLOW_Y]];
-const DELIVER = [[PROXY_RIGHT, FLOW_Y], [POD_X, FLOW_Y]];
+// A TAGGED leg rides 1200, not the 700 its 307 units floor at: inside 700 the tag cannot fade in
+// clear of the sender, be read, AND retire before the arrival ripple (M-12, PACING).
+const TAG_DUR = 1200;
+// A TAG IS VISIBLE FOR ITS WHOLE FLIGHT: the default fade-in opens 150 before the ball leaves and
+// hold -180 closes the fade-out ON its arrival, so the string never waits in the middle of the leg.
+// Each rides on the side AWAY FROM THE EDGE, because centred on a face a tag prints over the app
+// box inside it. ENTRY trails 95 to clear EDGE_X 484 on arrival, DELIVER leads 110 to clear 716.
+const labelIn = makeRidingLabel({ role: 'network', dy: 14, dx: -95, hold: -180 });
+const labelOut = makeRidingLabel({ role: 'network', dy: -14, dx: 110, hold: -180 });
+// Both legs are multi-point routePackets, which glide EASED, so each tag takes the same default
+// easing: mismatched, it drifts off its ball mid-flight and rejoins only at the ends (M-30).
+const tagIn = (p) => F.tag({ fn: labelIn, ...p });
+const tagOut = (p) => F.tag({ fn: labelOut, ...p });
 
-// The tag rides the free band BELOW the row: every hop is shorter than the header it carries, and
-// the panel floor at 355 leaves nothing above, so on the lane the proxy face prints through it.
-const TAG_DY = PROXY_H / 2 + 20;      // +82: 10 under the row, 57 clear of the chip strip
+const podInner = { dx: 20, dy: 34, w: ACTOR_W - 40, h: 52, label: 'app', sublabel: 'eth0' };
+const row = (key, i, x, name) => P.chip({ key, x: x + FRAME_PAD, y: rowY(i), w: ROW_W, h: ROW_H, name, value: 'none' });
 
-// Every ball on this card is a linear segmentPacket, so the tag rides LINEAR too: the eased default
-// drifts off its ball mid-flight and rejoins at the ends.
-const ridingLabel = makeRidingLabel({ role: 'network', hold: 140, easing: 'linear', dy: TAG_DY });
-const tag = (p) => F.tag({ fn: ridingLabel, ...p });
-
-const podInner = (w) => ({ dx: 20, dy: 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0' });
-
-// The list order IS the append order, which is the z-order: body blocks, then wires + panel above
-// them, then chips, then the packet layer with its riding tags on top.
+// The list order IS the append order, which is the z-order: body blocks and the two packet frames,
+// then the wires and captions above them, then the chips, then the packet layer with its tags on top.
 export const SCENE = {
-  'aria-label': 'Preserving the client IP: an edge proxy terminates the client connection and opens a new one to the backend from its own Pod address, so the backend socket no longer carries the client. The edge writes the original address into the X-Forwarded-For and Forwarded headers, which only the trusted edge hop may set, and for raw TCP or TLS passthrough it prepends a PROXY protocol preamble instead',
+  'aria-label': 'Preserving the client IP: an edge proxy ends the connection the client opened and starts one of its own to the backend, so the two packets carry different source addresses and the backend socket no longer names the client. The edge writes the original address into X-Forwarded-For, which a client can also send, so the row becomes a list a reader must trust from its last entry inwards, and for raw TCP or TLS passthrough the PROXY protocol prepends a preamble instead',
   parts: [
     P.defs(),
-    P.box({ key: 'client', x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client', sublabel: '198.51.100.9' }),
+    P.box({ key: 'client', x: CLIENT_X, y: ROW_Y, w: ACTOR_W, h: CLIENT_H, label: 'Client', sublabel: '198.51.100.9' }),
     P.pod({
-      key: 'proxy', innerKey: 'proxyBox', x: PROXY_X, y: PROXY_TOP, w: PROXY_W, h: PROXY_H,
-      label: 'Edge proxy Pod', sublabel: '10.244.0.9', inner: podInner(PROXY_W),
+      key: 'proxy', innerKey: 'proxyBox', x: EDGE_X, y: EDGE_Y, w: EDGE_W, h: POD_H,
+      label: 'Edge proxy Pod', sublabel: '10.244.0.9', inner: podInner,
     }),
     P.pod({
-      key: 'podW', innerKey: 'podWBox', x: POD_X, y: POD_TOP, w: POD_W, h: POD_H,
-      label: 'Pod web', sublabel: '10.244.2.7', inner: podInner(POD_W),
+      key: 'podW', innerKey: 'podWBox', x: POD_X, y: ROW_Y, w: ACTOR_W, h: POD_H,
+      label: 'Pod web', sublabel: '10.244.2.7', inner: podInner,
     }),
-    P.arrow({ from: ENTRY[0], to: ENTRY[1], dashed: true, dim: true }),
-    P.arrow({ from: DELIVER[0], to: DELIVER[1], dashed: true, dim: true }),
-    // Ownership marker, NOT a traffic path: those headers are what this Pod writes, so the link
-    // carries no arrowhead.
-    P.relation({ points: [[PROXY_CX, PROXY_TOP], [PROXY_CX, PANEL_BOTTOM]], dash: '5 5' }),
-    P.tag({ x: PROXY_CX, y: 100, text: 'headers written by the edge' }),
-    P.chip({ key: 'xffChip', x: PANEL_X, y: 110, w: PANEL_W, h: 36, name: 'X-Forwarded-For', value: 'none' }),
-    P.chip({ key: 'fwdChip', x: PANEL_X, y: 154, w: PANEL_W, h: 36, name: 'Forwarded', value: 'none' }),
-    P.chip({ key: 'srcChip', x: CHIP_X(0), y: CHIP_Y, w: CHIP_WS[0], h: CHIP_H, name: 'src at backend', value: 'none' }),
-    P.chip({ key: 'readsChip', x: CHIP_X(1), y: CHIP_Y, w: CHIP_WS[1], h: CHIP_H, name: 'app reads', value: 'none' }),
+    // The two packets. Same three rows on both sides, so a difference between them reads as a
+    // difference and not as two unrelated readouts.
+    // The keys are required: a text-bearing part must declare text or carry one, which
+    // `unit/spec-scene.test.mjs` holds. `statics.mjs` reports them UNREAD and is a heuristic here.
+    P.box({ key: 'lFrame', x: L_FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H }),
+    P.box({ key: 'rFrame', x: R_FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H }),
+    P.lane({ points: ENTRY, dashed: true, dim: true }),
+    P.lane({ points: DELIVER, dashed: true, dim: true }),
+    P.tag({ x: frameCX(L_FRAME_X), y: CAP_Y, text: 'connection 1  ·  client to edge' }),
+    P.tag({ x: frameCX(R_FRAME_X), y: CAP_Y, text: 'connection 2  ·  edge to backend' }),
+    row('lSrc', 0, L_FRAME_X, 'src'),
+    row('lXff', 1, L_FRAME_X, 'X-Forwarded-For'),
+    row('lPre', 2, L_FRAME_X, 'PROXY preamble'),
+    row('rSrc', 0, R_FRAME_X, 'src'),
+    row('rXff', 1, R_FRAME_X, 'X-Forwarded-For'),
+    row('rPre', 2, R_FRAME_X, 'PROXY preamble'),
+    P.chip({ key: 'readsChip', x: CHIP_X(0), y: CHIP_Y, w: CHIP_WS[0], h: CHIP_H, name: 'app reads', value: 'none' }),
+    P.chip({ key: 'ipChip', x: CHIP_X(1), y: CHIP_Y, w: CHIP_WS[1], h: CHIP_H, name: 'client IP', value: 'unknown' }),
     P.chip({ key: 'modeChip', x: CHIP_X(2), y: CHIP_Y, w: CHIP_WS[2], h: CHIP_H, name: 'edge mode', value: 'L7 proxy' }),
-    P.chip({ key: 'ipChip', x: CHIP_X(3), y: CHIP_Y, w: CHIP_WS[3], h: CHIP_H, name: 'client IP', value: 'unknown' }),
     P.packets(),
   ],
   reset: {
-    keys: ['client', 'xffChip', 'fwdChip', 'srcChip', 'readsChip', 'modeChip', 'ipChip', 'proxyBox', 'podWBox'],
+    keys: ['client', 'lSrc', 'lXff', 'lPre', 'rSrc', 'rXff', 'rPre', 'readsChip', 'ipChip', 'modeChip', 'proxyBox', 'podWBox'],
     pods: ['proxy', 'podW'],
   },
 };
+
+// The left packet is what the CLIENT sent and the right what the EDGE sent, so most left rows read
+// none: that emptiness is the control the right side is compared against.
+const L_QUIET = { lSrc: '198.51.100.9', lXff: 'none', lPre: 'none' };
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { xffChip: 'none', fwdChip: 'none', srcChip: 'none', readsChip: 'none', modeChip: 'L7 proxy', ipChip: 'unknown' },
+    chips: {
+      lSrc: 'none', lXff: 'none', lPre: 'none', rSrc: 'none', rXff: 'none', rPre: 'none',
+      readsChip: 'none', ipChip: 'unknown', modeChip: 'L7 proxy',
+    },
   },
   {
     id: 'arrive',
-    duration: 2400,
-    narration: 'The client opens the connection to the edge, an Ingress or Gateway proxy Pod. On this leg the source address is still the real one, 198.51.100.9, so the edge is the last place on the path that sees the client without having to be told.',
-    chips: { xffChip: 'none', fwdChip: 'none', srcChip: 'none', readsChip: 'none', modeChip: 'L7 proxy', ipChip: 'seen at the edge' },
-    lit: ['client', 'ipChip'],
-    // The animated path says the proxy Pod received the request by PULSING it, which no lights list
+    duration: 2800,
+    narration: 'The client opens the connection to the edge, an Ingress or Gateway proxy Pod. Its packets carry the real source address, 198.51.100.9, and they arrive unchanged only because nothing on the way rewrote them. That is the assumption everything below rests on.',
+    chips: {
+      ...L_QUIET, rSrc: 'none', rXff: 'none', rPre: 'none',
+      readsChip: 'none', ipChip: 'seen at the edge', modeChip: 'L7 proxy',
+    },
+    lit: ['client', 'lSrc', 'ipChip'],
+    // The animated path says the proxy received the request by PULSING it, which no lights list
     // can name.
     reducedLit: ['proxyBox'],
-    // Down-arrow: the request arrives at the proxy Pod, which pulses on arrival. The true source
-    // rides with the ball, because that is what this leg still carries.
+    // `client IP` is what the EDGE observes, so it waits for the arrival. `lSrc` does not: the
+    // source the client put on its own packet is true the moment it sends (`P-03`).
+    rewind: { chips: { ipChip: 'unknown' } },
+    // Down-arrow: the request reaches the proxy, which pulses on arrival. The true source rides with
+    // the ball, because that is what this leg still carries.
     flow: [
-      F.segment({ from: ENTRY[0], to: ENTRY[1], name: 'inb' }),
-      tag({ text: 'src 198.51.100.9', points: ENTRY }),
+      F.route({ points: ENTRY, dur: TAG_DUR, name: 'inb' }),
+      tagIn({ text: 'src 198.51.100.9', points: ENTRY, dur: TAG_DUR }),
       F.pulse({ pod: 'proxy', at: 'inb' }),
+      F.set({ at: 'inb', chips: { ipChip: 'seen at the edge' } }),
     ],
   },
   {
-    id: 'reproxy',
-    duration: 2800,
-    narration: 'The proxy terminates that connection and opens a brand new one to the backend, out of its own Pod address. The packet the app receives has source 10.244.0.9, the proxy, and nothing in it mentions the client. Read from the socket, the client address is simply lost.',
-    chips: { xffChip: 'none', fwdChip: 'none', srcChip: 'proxy 10.244.0.9', readsChip: 'socket', modeChip: 'L7 proxy', ipChip: 'lost' },
-    lit: ['srcChip', 'readsChip', 'ipChip'],
-    // The animated path says the backend Pod was served by PULSING it, which no lights list can name.
+    id: 'terminate',
+    duration: 3200,
+    narration: 'The edge does not forward those packets. It ends that connection and opens a new one of its own to the backend, so what the app receives is sourced from the proxy Pod, 10.244.0.9. Compare the two src rows: read from the socket, the client address is gone.',
+    chips: {
+      ...L_QUIET, rSrc: '10.244.0.9', rXff: 'none', rPre: 'none',
+      readsChip: 'socket', ipChip: 'lost', modeChip: 'L7 proxy',
+    },
+    lit: ['rSrc', 'readsChip', 'ipChip'],
     reducedLit: ['podWBox'],
-    // All three read the packet the backend RECEIVES, so the animated path starts on what the
-    // arrive step left and writes them together when that packet lands.
-    rewind: { chips: { srcChip: 'none', readsChip: 'none', ipChip: 'seen at the edge' } },
+    // All three read the packet the BACKEND receives and cannot be true before it lands, so the
+    // animated path winds them back to what `arrive` left and turns them over on the arrival.
+    rewind: { chips: { rSrc: 'none', readsChip: 'none', ipChip: 'seen at the edge' } },
     flow: [
       F.pulse({ pod: 'proxy' }),
-      F.segment({ from: DELIVER[0], to: DELIVER[1], delay: BEAT.afterPulse, name: 'out' }),
-      tag({ text: 'src 10.244.0.9 (proxy)', points: DELIVER, delay: BEAT.afterPulse }),
+      F.route({ points: DELIVER, delay: BEAT.afterPulse, dur: TAG_DUR, name: 'out' }),
+      tagOut({ text: 'src 10.244.0.9 (proxy)', points: DELIVER, delay: BEAT.afterPulse, dur: TAG_DUR }),
       F.pulse({ pod: 'podW', at: 'out' }),
-      F.set({ at: 'out', chips: { srcChip: 'proxy 10.244.0.9', readsChip: 'socket', ipChip: 'lost' } }),
+      F.set({ at: 'out', chips: { rSrc: '10.244.0.9', readsChip: 'socket', ipChip: 'lost' } }),
     ],
   },
   {
     id: 'xff',
-    duration: 2800,
-    narration: 'So the edge writes the address down instead. Before proxying it adds X-Forwarded-For with the client address, and the standard Forwarded header carries the same value. The socket still says 10.244.0.9, but the application reads the header and logs the real client.',
-    chips: { xffChip: '198.51.100.9', fwdChip: 'for=198.51.100.9', srcChip: 'proxy 10.244.0.9', readsChip: 'header', modeChip: 'L7 proxy', ipChip: 'recovered' },
-    lit: ['xffChip', 'fwdChip', 'readsChip', 'ipChip'],
+    duration: 3200,
+    narration: 'So the edge writes the address into the request instead. Before proxying it adds X-Forwarded-For carrying the client address, and the RFC 7239 Forwarded header carries the same address as for=198.51.100.9. The socket still reads 10.244.0.9, and the app reads the header.',
+    chips: {
+      ...L_QUIET, rSrc: '10.244.0.9', rXff: '198.51.100.9', rPre: 'none',
+      readsChip: 'header', ipChip: 'recovered', modeChip: 'L7 proxy',
+    },
+    lit: ['rXff', 'readsChip', 'ipChip'],
     reducedLit: ['podWBox'],
-    // Same up-arrow as the previous step, but now the request the proxy sends carries the header, so
-    // that is what rides the ball. The backend pulses on arrival.
+    rewind: { chips: { rXff: 'none', readsChip: 'socket', ipChip: 'lost' } },
     flow: [
       F.pulse({ pod: 'proxy' }),
-      F.segment({ from: DELIVER[0], to: DELIVER[1], delay: BEAT.afterPulse, name: 'out' }),
-      tag({ text: 'X-Forwarded-For: 198.51.100.9', points: DELIVER, delay: BEAT.afterPulse }),
+      F.route({ points: DELIVER, delay: BEAT.afterPulse, dur: TAG_DUR, name: 'out' }),
+      tagOut({ text: 'X-Forwarded-For: 198.51.100.9', points: DELIVER, delay: BEAT.afterPulse, dur: TAG_DUR }),
       F.pulse({ pod: 'podW', at: 'out' }),
+      F.set({ at: 'out', chips: { rXff: '198.51.100.9', readsChip: 'header', ipChip: 'recovered' } }),
     ],
   },
   {
-    id: 'trust',
-    duration: 2600,
-    narration: 'A header is only data, and a client can send an X-Forwarded-For of its own to claim any address it likes. That is why the edge overwrites the header rather than appending to whatever arrived, and why an app should believe the value only when it comes from a proxy it trusts. Behind two proxies the header becomes a list, and only the hop written by your own edge can be trusted.',
-    // Short by necessity: the chip name is the longest on the card, so a value beyond ~12 characters
-    // collides with it. "rewritten" is the whole point anyway: the forged claim did not survive.
-    chips: { xffChip: 'rewritten', fwdChip: 'for=198.51.100.9', srcChip: 'proxy 10.244.0.9', readsChip: 'header', modeChip: 'L7 proxy', ipChip: 'trusted hop only' },
-    lit: ['client', 'xffChip', 'ipChip'],
-    reducedLit: ['proxyBox'],
-    // Down-arrow: the client sends its own forged header, and the proxy pulses as it receives it and
-    // overwrites the value. The forged claim is what rides the ball, so the spoof is literal traffic.
+    id: 'forge',
+    duration: 4400,
+    narration: 'A header is only data, and the client can send an X-Forwarded-For of its own claiming any address. An edge that keeps what arrived appends what it saw, so the row becomes a list: the forged value first, your own edge last. Trust that list from its last entry inwards.',
+    chips: {
+      lSrc: '198.51.100.9', lXff: '192.0.2.1', lPre: 'none',
+      rSrc: '10.244.0.9', rXff: '192.0.2.1, 198.51.100.9', rPre: 'none',
+      readsChip: 'header', ipChip: 'trusted hop only', modeChip: 'L7 proxy',
+    },
+    lit: ['client', 'lXff', 'rXff', 'ipChip'],
+    reducedLit: ['proxyBox', 'podWBox'],
+    // The only two-hop step: the forged claim arrives, the edge appends to it, and the list leaves.
+    // Each row turns over on the arrival that produces it.
+    rewind: { chips: { lXff: 'none', rXff: '198.51.100.9', ipChip: 'recovered' } },
     flow: [
-      F.segment({ from: ENTRY[0], to: ENTRY[1], name: 'inb' }),
-      tag({ text: 'X-Forwarded-For: 1.2.3.4', points: ENTRY }),
+      F.route({ points: ENTRY, dur: TAG_DUR, name: 'inb' }),
+      tagIn({ text: 'X-Forwarded-For: 192.0.2.1', points: ENTRY, dur: TAG_DUR }),
       F.pulse({ pod: 'proxy', at: 'inb' }),
+      F.set({ at: 'inb', chips: { lXff: '192.0.2.1' } }),
+      // The list itself and no header name: naming the header here as well as in the row it lands
+      // in is what drove this tag to 229 units and into the caption (DO NOT).
+      F.route({ points: DELIVER, at: 'inb', plus: BEAT.afterPulse, dur: TAG_DUR, name: 'out' }),
+      tagOut({ text: '192.0.2.1, 198.51.100.9', points: DELIVER, at: 'inb', plus: BEAT.afterPulse, dur: TAG_DUR }),
+      F.pulse({ pod: 'podW', at: 'out' }),
+      F.set({ at: 'out', chips: { rXff: '192.0.2.1, 198.51.100.9', ipChip: 'trusted hop only' } }),
     ],
   },
   {
     id: 'passthrough',
-    duration: 2800,
-    narration: 'Not every protocol has a header to write into. With raw TCP, or with TLS passed through untouched, the edge cannot add anything to the payload. The PROXY protocol solves it by prepending a short preamble ahead of the first bytes, carrying the original source and destination, and the backend has to be configured to expect it or it reads that preamble as part of the request. At layer 4 there is one more option: externalTrafficPolicy Local keeps the real source on the packet itself, with no header and no preamble.',
-    // A raw TCP stream carries no headers, so the panel goes back to none and stays unlit: this mode
-    // recovers the address a different way.
-    chips: { xffChip: 'none', fwdChip: 'none', srcChip: 'proxy 10.244.0.9', readsChip: 'preamble', modeChip: 'TCP passthrough', ipChip: 'recovered' },
-    lit: ['modeChip', 'readsChip', 'ipChip'],
+    duration: 3200,
+    narration: 'Raw TCP and passed-through TLS have no header to write into. The PROXY protocol prepends a short preamble to the first bytes of the stream, carrying the original source address, and the backend must be configured to expect it or it reads the preamble as request bytes.',
+    // A raw stream carries no HTTP header, so the X-Forwarded-For row empties on both sides: this
+    // mode HAS none, which is a property of the mode and not an event on this step.
+    chips: {
+      ...L_QUIET, rSrc: '10.244.0.9', rXff: 'none', rPre: 'TCP4 198.51.100.9',
+      readsChip: 'preamble', ipChip: 'recovered', modeChip: 'TCP passthrough',
+    },
+    lit: ['rPre', 'readsChip', 'modeChip'],
     reducedLit: ['podWBox'],
-    // Up-arrow again: the proxy pulses as it prepends the preamble, then the stream leaves carrying it
-    // and the backend pulses on arrival.
+    // `client IP` rides the same beat as the other two: all three are one reading of the stream the
+    // backend receives (`P-04`). It takes no cue, which `R2-STEP` carries as a restoration.
+    rewind: { chips: { rPre: 'none', readsChip: 'header', ipChip: 'trusted hop only' } },
     flow: [
       F.pulse({ pod: 'proxy' }),
-      F.segment({ from: DELIVER[0], to: DELIVER[1], delay: BEAT.afterPulse, name: 'out' }),
-      tag({ text: 'PROXY TCP4 198.51.100.9', points: DELIVER, delay: BEAT.afterPulse }),
+      F.route({ points: DELIVER, delay: BEAT.afterPulse, dur: TAG_DUR, name: 'out' }),
+      tagOut({ text: 'PROXY TCP4 198.51.100.9', points: DELIVER, delay: BEAT.afterPulse, dur: TAG_DUR }),
       F.pulse({ pod: 'podW', at: 'out' }),
+      F.set({ at: 'out', chips: { rPre: 'TCP4 198.51.100.9', readsChip: 'preamble', ipChip: 'recovered' } }),
     ],
   },
 ];

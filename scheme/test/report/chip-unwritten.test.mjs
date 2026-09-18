@@ -30,9 +30,8 @@
 //                     nobody is claiming anything about it, so the question is only whether a chip
 //                     is the right part kind for it.
 //
-// The exemplar of the sharp form is `network-north-south-path svcChip`, named in the D1 inventory:
-// three steps highlight it, none writes it, and the highlight is the cue for a value that never
-// changes.
+// The sharp form, as the D1 inventory named it: a chip that several steps highlight, that none
+// writes, so the highlight is the cue for a value that never changes.
 //
 // ===========================================================================================
 // WHY report/ AND NOT unit/

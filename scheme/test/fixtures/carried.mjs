@@ -150,6 +150,262 @@ const ENTRIES = [
   // on its queue. Each entry still carries the card-specific half, which is where the cue
   // actually lands and what closing the row would cost.
   // ---------------------------------------------------------------------------------------
+  { axis: 'R2-ENTRY', card: 'network-nodeport-loadbalancer', where: ['4', 'loadBalancer'],
+    why: 'not a change on client-hit: the address is written by the F.set on the provisioning arrival '
+      + 'of lb-provision, which lights the chip there, and a frame frozen at t=0 of lb-provision reads '
+      + 'the rewind value none. R2-STEP, off the settled step, reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-loadbalancer-bare-metal', where: ['2', 'loadBalancer'],
+    why: 'not a change on l2: the address is written by the F.set on the controller write arrival of '
+      + 'pool, which lights the chip there, and a frame frozen at t=0 of pool reads the rewind value '
+      + 'pending. R2-STEP, off the settled step, reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-api', where: ['2', 'GatewayClass Accepted'],
+    why: 'written and lit by the F.set STATUS_MS into platform, when the class is taken, and a frame '
+      + 'frozen at t=0 of platform reads the rewind value none. R2-STEP, off the settled step, reports '
+      + 'nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-api', where: ['2', 'listener allowedRoutes'],
+    why: 'written and lit on the Gateway reveal arrival of platform, whose frame frozen at t=0 reads the '
+      + 'rewind value none. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-api', where: ['3', 'HTTPRoute Accepted'],
+    why: 'written and lit STATUS_MS after the route reveal of rejected, whose frame frozen at t=0 reads '
+      + 'the rewind value none. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-api', where: ['4', 'listener allowedRoutes'],
+    why: 'written and lit on the edit beat of admitted, whose frame frozen at t=0 reads the rewind '
+      + 'value from: Same. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-api', where: ['4', 'HTTPRoute Accepted'],
+    why: 'written and lit STATUS_MS after the edit beat of admitted, whose frame frozen at t=0 reads '
+      + 'the rewind value. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-api', where: ['4', 'HTTPRoute ResolvedRefs'],
+    why: 'written and lit on the last beat of admitted, whose frame frozen at t=0 reads the rewind '
+      + 'value none. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-api', where: ['6', 'HTTPRoute ResolvedRefs'],
+    why: 'written and lit STATUS_MS after the ReferenceGrant reveal of grant, whose frame frozen at t=0 reads the '
+      + 'rewind value. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-traffic-splitting', where: ['2', 'request'],
+    why: 'written and lit by the F.set on the request arrival of header-canary, whose frame frozen at t=0 '
+      + 'reads the rewind value, against the rewind value none of one-backend. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-traffic-splitting', where: ['2', 'matched rule'],
+    why: 'written and lit by the F.set on the request arrival of header-canary, whose frame frozen at t=0 '
+      + 'reads the rewind value, against the rewind value none of one-backend. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-traffic-splitting', where: ['3', 'request'],
+    why: 'written and lit by the F.set on the first request arrival of weights, whose frame frozen at t=0 '
+      + 'reads the rewind value of header-canary. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-traffic-splitting', where: ['3', 'matched rule'],
+    why: 'written and lit by the F.set on the first request arrival of weights, whose frame frozen at t=0 '
+      + 'reads the rewind value of header-canary. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-traffic-splitting', where: ['4', 'request'],
+    why: 'not a change on invalid: the value is the one weights settles on, and the frame frozen at t=0 of '
+      + 'weights reads its rewind value instead. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-traffic-splitting', where: ['4', 'matched rule'],
+    why: 'not a change on invalid: the value is the one weights settles on, and the frame frozen at t=0 of '
+      + 'weights reads its rewind value instead. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-gateway-traffic-splitting', where: ['4', 'default rule weights'],
+    why: 'not a change on invalid: 90 + 10 = 100 is what weights settles on as its bar stops, and the '
+      + 'frame frozen at t=0 of weights reads its rewind value 1 (default). R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-ingress-routing', where: ['3', 'Host'],
+    why: 'not a change on match-web: the value is written by the F.set on the request arrival of entry, '
+      + 'which lights the chip there, and a frame frozen at t=0 of entry reads the rewind value none. '
+      + 'R2-STEP, off the settled step, reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-ingress-routing', where: ['3', 'path'],
+    why: 'not a change on match-web: written and lit on the request arrival of entry, whose frame '
+      + 'frozen at t=0 reads the rewind value none. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-ingress-routing', where: ['3', 'TLS'],
+    why: 'not a change on match-web: written and lit on the request arrival of entry, whose frame '
+      + 'frozen at t=0 reads the rewind value none. R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-ingress-routing', where: ['4', 'served by'],
+    why: 'the cue lands on the branch arrival of match-web, and t=0 of match-api reads its rewind value. '
+      + 'R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-ingress-routing', where: ['5', 'path'],
+    why: 'the cue lands on the request arrival of match-api, and t=0 of no-match reads its rewind value. '
+      + 'R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-ingress-routing', where: ['5', 'served by'],
+    why: 'the cue lands on the branch arrival of match-api, and t=0 of no-match reads its rewind value. '
+      + 'R2-STEP reports nothing' },
+  { axis: 'R2-ENTRY', card: 'network-service-debugging', where: ['3', 'Pod labels'],
+    why: 'not the mid-step class: a restoration to app=web, carried with its reason on R2-STEP' },
+  { axis: 'R2-ENTRY', card: 'network-service-debugging', where: ['4', 'Pod Ready'],
+    why: 'a restoration to True, carried with its reason on R2-STEP' },
+  { axis: 'R2-ENTRY', card: 'network-service-debugging', where: ['4', 'serving'],
+    why: 'a restoration to the healthy endpoint, carried with its reason on R2-STEP' },
+  { axis: 'R2-ENTRY', card: 'network-proxy-rule-resync', where: ['3', 'endpoint changes'],
+    why: 'the price of the P-03 repair, and the trade is the right way round. The count turns over '
+      + 'INSIDE step 2, where a `rewind` holds it at `none yet` and an `F.set` bound to the arrival '
+      + 'of the EndpointSlice update writes `100 in one window`, with an `F.light` on the same '
+      + 'arrival so the reader sees the value land under its own cue. This axis reads both frames '
+      + 'frozen at t=0, so it never sees that turnover and attributes it to step 3, which does not '
+      + 'light the chip because that step is about the cost of a floor of 0s and not about how many '
+      + 'changes arrived. R2-STEP, settled against settled, holds this card on neither list. DO NOT '
+      + 'close this by lighting the change count on step 3.' },
+  { axis: 'R2-ENTRY', card: 'network-proxy-rule-resync', where: ['4', 'kernel updates'],
+    why: 'the same construction one chip along: the update count turns over inside step 3 on the '
+      + 'arrival of the write, under an `F.light` fired at that same arrival, which is why the axis '
+      + 'itself marks this row CUE LANDS LATER rather than uncued. Frozen at t=0 the change is read '
+      + 'a step late. R2-STEP does not list this card.' },
+  { axis: 'R2-ENTRY', card: 'network-proxy-rule-resync', where: ['5', 'kernel updates'],
+    why: 'the second reading of the same chip and the same idiom: it turns over inside step 4 on the '
+      + 'write arrival, from 100 one-per-change updates to about 5 of 20 endpoints each, which is '
+      + 'the whole sentence of that step. Frozen at t=0 it is attributed to step 5, which does not '
+      + 'light it because that step is about the staleness window and not about the count. DO NOT '
+      + 'close this by lighting the update count on step 5.' },
+  { axis: 'R2-ENTRY', card: 'network-proxy-rule-resync', where: ['6', 'rules vs API server'],
+    why: 'the lag turns over inside step 5 on the arrival that draws the window bracket, with an '
+      + '`F.light` on the same arrival, which is why the axis marks this row CUE LANDS LATER. '
+      + 'Frozen at t=0 it is read a step late, on the syncPeriod step. R2-STEP does not list it.' },
+  { axis: 'R2-ENTRY', card: 'network-conntrack-nat', where: ['2', 'ct state'],
+    why: 'the miss turns over INSIDE `send`, at the arrival of the first packet in netfilter: a '
+      + 'flow is not known to be unmatched until the packet is there to be matched. Every value '
+      + 'on this card is written on a packet arrival or a ladder rung through `rewind` plus an '
+      + '`F.set`, with an `F.light` on the same beat, so nothing is already true when a step '
+      + 'opens. This axis reads both of its frames frozen at t=0, where the rewind is in force '
+      + 'and no `at()` callback has fired, so it reads every turnover one step late. R2-STEP, '
+      + 'settled against settled and the reading the canon asks for, holds this card on neither '
+      + 'its queue nor its carried list.' },
+  { axis: 'R2-ENTRY', card: 'network-conntrack-nat', where: ['2', 'rule walk'],
+    why: 'the pending walk turns over on the same `send` arrival and under the same `F.light`, '
+      + 'which is why the axis marks this row CUE LANDS LATER rather than uncued. Every value on '
+      + 'this card is written on a packet arrival or a ladder rung through `rewind` plus an '
+      + '`F.set`, with an `F.light` on the same beat, so nothing is already true when a step '
+      + 'opens. This axis reads both of its frames frozen at t=0, where the rewind is in force '
+      + 'and no `at()` callback has fired, so it reads every turnover one step late. R2-STEP, '
+      + 'settled against settled and the reading the canon asks for, holds this card on neither '
+      + 'its queue nor its carried list.' },
+  { axis: 'R2-ENTRY', card: 'network-conntrack-nat', where: ['3', 'rule walk'],
+    why: 'the walk turns over INSIDE `walk`, on the third rung at 1200ms, under an `F.light` fired '
+      + 'at that same 1200ms. Frozen at t=0 it is read on `insert`, which does not light the chip '
+      + 'because the walk does not happen again there. DO NOT close this by lighting `rule walk` '
+      + 'on `insert`: that says the rules were read a second time, which the card exists to deny. '
+      + 'Every value on this card is written on a packet arrival or a ladder rung through '
+      + '`rewind` plus an `F.set`, with an `F.light` on the same beat, so nothing is already true '
+      + 'when a step opens. This axis reads both of its frames frozen at t=0, where the rewind is '
+      + 'in force and no `at()` callback has fired, so it reads every turnover one step late. '
+      + 'R2-STEP, settled against settled and the reading the canon asks for, holds this card on '
+      + 'neither its queue nor its carried list.' },
+  { axis: 'R2-ENTRY', card: 'network-conntrack-nat', where: ['3', 'backend'],
+    why: 'the pick turns over on the same third rung and under the same `F.light`. It cannot be '
+      + 'stated any earlier: before the ladder is read there is no backend to name. Every value '
+      + 'on this card is written on a packet arrival or a ladder rung through `rewind` plus an '
+      + '`F.set`, with an `F.light` on the same beat, so nothing is already true when a step '
+      + 'opens. This axis reads both of its frames frozen at t=0, where the rewind is in force '
+      + 'and no `at()` callback has fired, so it reads every turnover one step late. R2-STEP, '
+      + 'settled against settled and the reading the canon asks for, holds this card on neither '
+      + 'its queue nor its carried list.' },
+  { axis: 'R2-ENTRY', card: 'network-conntrack-nat', where: ['4', 'original'],
+    why: 'the entry does not exist until conntrack writes it, which is the sentence of `insert`. '
+      + 'Both rows are written at the reveal of the record group, 500ms in, under an `F.light` on '
+      + 'the same beat, and the group stands at `OPACITY.pending` with blank rows until then. '
+      + 'Frozen at t=0 the fill is read on `reply`. Every value on this card is written on a '
+      + 'packet arrival or a ladder rung through `rewind` plus an `F.set`, with an `F.light` on '
+      + 'the same beat, so nothing is already true when a step opens. This axis reads both of its '
+      + 'frames frozen at t=0, where the rewind is in force and no `at()` callback has fired, so '
+      + 'it reads every turnover one step late. R2-STEP, settled against settled and the reading '
+      + 'the canon asks for, holds this card on neither its queue nor its carried list.' },
+  { axis: 'R2-ENTRY', card: 'network-conntrack-nat', where: ['4', 'reply'],
+    why: 'the second row of the same record, written on the same reveal beat and under the same '
+      + '`F.light`, which is why the axis marks this row CUE LANDS LATER. Every value on this '
+      + 'card is written on a packet arrival or a ladder rung through `rewind` plus an `F.set`, '
+      + 'with an `F.light` on the same beat, so nothing is already true when a step opens. This '
+      + 'axis reads both of its frames frozen at t=0, where the rewind is in force and no `at()` '
+      + 'callback has fired, so it reads every turnover one step late. R2-STEP, settled against '
+      + 'settled and the reading the canon asks for, holds this card on neither its queue nor its '
+      + 'carried list.' },
+  { axis: 'R2-ENTRY', card: 'network-conntrack-nat', where: ['4', 'ct state'],
+    why: 'NEW is what the write MAKES true, so it lands on the reveal beat with the two rows, '
+      + 'under the same `F.light`. The axis marks this row CUE LANDS LATER. Every value on this '
+      + 'card is written on a packet arrival or a ladder rung through `rewind` plus an `F.set`, '
+      + 'with an `F.light` on the same beat, so nothing is already true when a step opens. This '
+      + 'axis reads both of its frames frozen at t=0, where the rewind is in force and no `at()` '
+      + 'callback has fired, so it reads every turnover one step late. R2-STEP, settled against '
+      + 'settled and the reading the canon asks for, holds this card on neither its queue nor its '
+      + 'carried list.' },
+  { axis: 'R2-ENTRY', card: 'network-conntrack-nat', where: ['4', 'table'],
+    why: 'the table holds one entry only once the entry has been written, so this value lands on '
+      + 'the same reveal beat and under the same `F.light` as the two rows it counts. Every value '
+      + 'on this card is written on a packet arrival or a ladder rung through `rewind` plus an '
+      + '`F.set`, with an `F.light` on the same beat, so nothing is already true when a step '
+      + 'opens. This axis reads both of its frames frozen at t=0, where the rewind is in force '
+      + 'and no `at()` callback has fired, so it reads every turnover one step late. R2-STEP, '
+      + 'settled against settled and the reading the canon asks for, holds this card on neither '
+      + 'its queue nor its carried list.' },
+  { axis: 'R2-ENTRY', card: 'network-conntrack-nat', where: ['5', 'ct state'],
+    why: 'ESTABLISHED is what SEEING the reply makes true, so it lands at the arrival of the reply '
+      + 'packet in netfilter and not at the step opening. Frozen at t=0 it is read on `fastpath`, '
+      + 'which does not light it because that step is about the cost of a later packet and not '
+      + 'about the state. Every value on this card is written on a packet arrival or a ladder '
+      + 'rung through `rewind` plus an `F.set`, with an `F.light` on the same beat, so nothing is '
+      + 'already true when a step opens. This axis reads both of its frames frozen at t=0, where '
+      + 'the rewind is in force and no `at()` callback has fired, so it reads every turnover one '
+      + 'step late. R2-STEP, settled against settled and the reading the canon asks for, holds '
+      + 'this card on neither its queue nor its carried list.' },
+  { axis: 'R2-ENTRY', card: 'network-conntrack-nat', where: ['5', 'rule walk'],
+    why: 'the return path reads no rule at all, which is the sentence of `reply`, and the chip '
+      + 'says so at the arrival of the reply packet under the same `F.light`. The axis marks this '
+      + 'row CUE LANDS LATER. Every value on this card is written on a packet arrival or a ladder '
+      + 'rung through `rewind` plus an `F.set`, with an `F.light` on the same beat, so nothing is '
+      + 'already true when a step opens. This axis reads both of its frames frozen at t=0, where '
+      + 'the rewind is in force and no `at()` callback has fired, so it reads every turnover one '
+      + 'step late. R2-STEP, settled against settled and the reading the canon asks for, holds '
+      + 'this card on neither its queue nor its carried list.' },
+  { axis: 'R2-ENTRY', card: 'network-ipam-pod-cidr', where: ['3', 'node.spec.podCIDR'],
+    why: 'the three slice chips share one name, so this key stands for the two rows the axis reads '
+      + 'late. All three turn over INSIDE step 2, where a `rewind` holds them at `pending` and an '
+      + '`F.set` bound to the centre allocation arrival writes the three /24s, while `lit` on that '
+      + 'step carries all three chips so every value lands under its own cue. Frozen at t=0 the '
+      + 'change is attributed to step 3, which lights slice1 alone because that step is about Node-1 '
+      + 'and the Pod scheduled to it. R2-STEP, settled against settled, does not list this card. DO '
+      + 'NOT close this by lighting the Node-2 and Node-3 slices on the Node-1 step.' },
+  { axis: 'R2-ENTRY', card: 'network-service-cidr', where: ['4', 'IPAddress'],
+    why: 'the IPAddress object does not exist until the write lands, so step 3 `write` holds the '
+      + 'chip at opacity 0 with a blank value through its `rewind` and turns both over on the store '
+      + 'arrival at 700ms, an `F.anim` reveal and an `F.set`, with the chip in that step `lit` list '
+      + 'from 0ms so the value appears under its own cue. Frozen at t=0 the axis reads the wound '
+      + 'back blank and attributes the change to step 4 `extend`, which does not light it because '
+      + 'that step is about a second range and not about the object already written. R2-STEP, '
+      + 'settled against settled, lists this card on neither of its lists. DO NOT close this by '
+      + 'lighting the IPAddress chip on `extend`, which cues a value that step never moves.' },
+  { axis: 'R2-ENTRY', card: 'network-dualstack', where: ['3', 'Pod IP v6'],
+    why: 'the price of the P-03 repair, and the trade is the right way round. The v6 address turns '
+      + 'over INSIDE step 2, where a `rewind` holds the cell at `none` and an `F.set` bound to the '
+      + 'drop out of the config band writes fd00::1:5 at 700ms, with the cell in that step `lit` '
+      + 'list from 0ms so the value lands under its own cue. Frozen at t=0 the axis never sees that '
+      + 'turnover and attributes it to step 3, which does not light the cell because that step is '
+      + 'about the SERVICE getting a second ClusterIP and not about the Pod address. Before the '
+      + 'rewind the cell read fd00::1:5 from 0ms while the ball carrying it was still 700ms out, '
+      + 'which is a defect a viewer can see and which stood on the FORM-B queue of '
+      + 'report/chip-beat.test.mjs. R2-STEP, settled against settled, holds this card on neither '
+      + 'list. DO NOT close this by lighting Pod IP v6 on `service-two-clusterips`.' },
+  { axis: 'R2-ENTRY', card: 'network-pod-egress-snat', where: ['5', 'conntrack'],
+    why: 'the value is CARRIED from the end of step 4 `reply`, where it is the news and is lit: a '
+      + '`rewind` holds the chip at `entry matched` while the reply crosses and an `F.set` on the '
+      + 'return arrival writes `translation reversed` at 918ms under the `lights` that cue the rule '
+      + 'box. Frozen at t=0 the axis reads that wound back value and attributes the change to step 5 '
+      + '`deliver`, which only holds it. Cueing it again on `deliver` would say the reversal happens '
+      + 'twice, once at the boundary and once in the Pod. DO NOT close this by naming ctChip in the '
+      + '`lit` list of `deliver`.' },
+  { axis: 'R2-ENTRY', card: 'network-pod-to-pod-same-node', where: ['2', 'datapath'],
+    why: 'the first reading of the same idiom, on the one step of the card that moves no packet. '
+      + '`onlink` rewinds the chip to `one subnet` and an `F.set` at `duration - SETTLE`, 1500ms of '
+      + '2500, writes `dst on-link` under an `F.light` on the same beat, which is the conclusion the '
+      + 'step reaches rather than the state it opens in. That beat is also what keeps the step off '
+      + 'the `deadair.mjs` queue: cued at `BEAT.afterPulse` instead it is swallowed by the 900ms Pod '
+      + 'pulse and the step stands still for 68 percent of its length. Frozen at t=0 the axis reads '
+      + 'the wound back value and attributes the change to step 2, which is that same step seen from '
+      + 'its entry. DO NOT close this by naming pathChip in the `lit` list of `onlink`, which points '
+      + 'the eye at a conclusion the step has not reached yet.' },
+  { axis: 'R2-ENTRY', card: 'network-pod-to-pod-same-node', where: ['3', 'datapath'],
+    why: 'the datapath chip turns over INSIDE step 2 `arp`, where a `rewind` holds it at `dst '
+      + 'on-link` and an `F.set` bound to the request arrival inside cni0 writes `ARP who-has .6` at '
+      + '1500ms, under an `F.light` fired at that same arrival so the value lands with its own cue. '
+      + 'Frozen at t=0 the axis reads the wound back value and attributes the change to step 3 '
+      + '`forward`, which itself rewinds the chip and lights it on the bridge arrival. The '
+      + 'alternative is the FORM-B reading, lit from entry and pointing at a value the step has not '
+      + 'written for 1500ms, which is worse. DO NOT close this by naming pathChip in the `lit` list '
+      + 'of either step.' },
+  { axis: 'R2-ENTRY', card: 'network-pod-to-pod-same-node', where: ['4', 'datapath'],
+    why: 'the same construction one step along: step 3 `forward` rewinds the chip to `ARP who-has '
+      + '.6` and an `F.set` at the `hop1` arrival writes `L2 bridge` at 1500ms with an `F.light` on '
+      + 'the same arrival, which is the moment the switching decision is taken. Step 4 `no-nat` '
+      + 'holds that settled value and lights the src, dst and NAT chips instead, because the closing '
+      + 'claim is about the addresses and not about the datapath. DO NOT close this by cueing a '
+      + 'value `no-nat` never moves.' },
   { axis: 'R2-ENTRY', card: 'cluster-cpu-throttling', where: ['2', 'cpu.weight'],
     why: 'the axis samples both steps frozen at t=0, where `rewind` has rolled cpu.weight back and '
       + 'the `F.set` has not landed, so the turnover shows up one step late, at `quota`. R2-STEP, '
@@ -564,6 +820,58 @@ const ENTRIES = [
       + 'at 1500ms, so the change lands on `ordinal-2` when both samples are frozen. DO NOT close '
       + 'either row by dropping the rewind, which puts a Ready ordinal on screen before its Pod '
       + 'exists.' },
+  { axis: 'R2-ENTRY', card: 'network-headless-service', where: ['2', 'query'],
+    why: 'the frozen-sample artefact, on every row of this card. Each step winds its chips back in '
+      + '`rewind` and turns them over with an `F.set` on the arrival that produces them, `q` for the '
+      + 'query row and `a` for the record rows, lighting them in the same beat. Frozen at t=0 the '
+      + 'turnover is invisible in the step that makes it and is attributed to the NEXT step, whose '
+      + 'settled frame is then read for the cue, which is why these rows print NO CUE IN STEP. The '
+      + 'turnover of `query` belongs to step 1, lit on the query arrival. R2-STEP lists nothing. '
+      + 'DO NOT close it by dropping the rewind: every row would read its answer before the lookup '
+      + 'is drawn' },
+  { axis: 'R2-ENTRY', card: 'network-headless-service', where: ['2', 'A web-0'],
+    why: 'step 1 turns the row to pending on the query arrival and lights it there, as `query` above' },
+  { axis: 'R2-ENTRY', card: 'network-headless-service', where: ['2', 'A web-1'],
+    why: 'step 1 turns the row to pending on the query arrival and lights it there, as `query` above' },
+  { axis: 'R2-ENTRY', card: 'network-headless-service', where: ['2', 'A web-2'],
+    why: 'step 1 turns the row to pending on the query arrival and lights it there, as `query` above' },
+  { axis: 'R2-ENTRY', card: 'network-headless-service', where: ['3', 'A web-0'],
+    why: 'step 2 `answer` writes the address on the answer arrival and lights it there, as `query` above' },
+  { axis: 'R2-ENTRY', card: 'network-headless-service', where: ['3', 'A web-1'],
+    why: 'step 2 `answer` writes the address on the answer arrival and lights it there, as `query` above' },
+  { axis: 'R2-ENTRY', card: 'network-headless-service', where: ['3', 'A web-2'],
+    why: 'step 2 `answer` writes the address on the answer arrival and lights it there, as `query` above' },
+  { axis: 'R2-ENTRY', card: 'network-headless-service', where: ['5', 'A web-2'],
+    why: 'step 4 `not-ready` writes `not ready, left out` on its answer arrival and lights it there, as `query` above' },
+  { axis: 'R2-ENTRY', card: 'network-headless-service', where: ['6', 'query'],
+    why: 'step 5 `pod-name` writes the Pod name on its query arrival and lights it there, as `query` above' },
+  { axis: 'R2-ENTRY', card: 'network-headless-service', where: ['6', 'A web-1'],
+    why: 'step 5 `pod-name` writes `not asked` on its answer arrival and lights it there, as `query` above' },
+  { axis: 'R2-ENTRY', card: 'network-headless-service', where: ['6', 'A web-2'],
+    why: 'step 5 `pod-name` writes `not asked` on its answer arrival and lights it there, as `query` above' },
+
+  // network-dns-autoscaling turns every one of these over MID-step, on the arrival of the ball that
+  // produced it, and lights it there through `lit`. A frozen entry sample therefore first sees the
+  // new value on the step AFTER the one that wrote it, where the cue has legitimately already been
+  // shown and cleared. R2-STEP, the axis that answers the canon question, reports none of them.
+  { axis: 'R2-ENTRY', card: 'network-dns-autoscaling', where: ['2', 'nodes'],
+    why: 'step 1 `poll` writes 16 on the counts arrival and lights `nodes` there' },
+  { axis: 'R2-ENTRY', card: 'network-dns-autoscaling', where: ['2', 'cores'],
+    why: 'step 1 `poll` writes 128 on the counts arrival and lights `cores` there' },
+  { axis: 'R2-ENTRY', card: 'network-dns-autoscaling', where: ['3', 'key'],
+    why: 'step 2 `params` writes `linear` on the ConfigMap arrival and lights `key` there' },
+  { axis: 'R2-ENTRY', card: 'network-dns-autoscaling', where: ['3', 'preventSinglePointFailure'],
+    why: 'step 2 `params` writes `true` on the ConfigMap arrival and lights the chip there' },
+  { axis: 'R2-ENTRY', card: 'network-dns-autoscaling', where: ['3', 'includeUnschedulableNodes'],
+    why: 'step 2 `params` writes `true` on the ConfigMap arrival and lights the chip there' },
+  { axis: 'R2-ENTRY', card: 'network-dns-autoscaling', where: ['3', 'min'],
+    why: 'step 2 `params` writes `1 by default` on the ConfigMap arrival and lights `min` there' },
+  { axis: 'R2-ENTRY', card: 'network-dns-autoscaling', where: ['5', 'replicas'],
+    why: 'step 4 `floor` writes 2 on the scale-write arrival and lights `replicas` there' },
+  { axis: 'R2-ENTRY', card: 'network-dns-autoscaling', where: ['6', 'nodes'],
+    why: 'step 5 `grow` writes 48 on the counts arrival and lights `nodes` there' },
+  { axis: 'R2-ENTRY', card: 'network-dns-autoscaling', where: ['6', 'cores'],
+    why: 'step 5 `grow` writes 1536 on the counts arrival and lights `cores` there' },
 
   // ---------------------------------------------------------------------------------------
   // R3. One entry. A block that receives a ball must be dark when the step opens, and the
@@ -574,6 +882,25 @@ const ENTRIES = [
     why: 'Node-4 is lit on `score`, on `bind` and on `placed`, and dropping it for the 1500ms of '
       + 'the two hops reads as the winner being un-chosen. The arrival still has a receiver: the '
       + 'Kubelet lights on its own hop.' },
+
+  // Two more, one shape. A bar on this card is a boundary a policy raised, and it is the SUBJECT of
+  // every step it is drawn on rather than a block that receives anything: it is lit identically on
+  // all four of those steps. R3 sees only the two where a route happens to END at it.
+  ...['2', '5'].map(step => ({ axis: 'R3', card: 'network-policy', where: [step, '.scheme-box'],
+    why: 'the bar is drawn on exactly the four steps the Pod it belongs to is isolated on, and lit '
+      + 'on all four of them, including `allow` and `both-ends` where a packet passes through it '
+      + 'and nothing lands. Going dark on the two steps where a packet DIES in it would dim the '
+      + 'subject at the one moment it acts. The bar carries no label, which is why this row names '
+      + 'it by selector: a string inside it would sit where the road runs.' })),
+
+  // Three more of that shape, one card down. A door on the egress boundary is the thing the step is
+  // ABOUT on every step it is drawn on, and the ball that reaches it is refused rather than served.
+  ...['2', '3', '4'].map(step => ({ axis: 'R3', card: 'network-dns-egress-policy', where: [step, '.scheme-box'],
+    why: 'the shut door is lit from entry on the three steps it refuses a query on, because it '
+      + 'exists from the moment a policy selects the Pod and the ball demonstrates what it does '
+      + 'rather than revealing that it is there. Lighting it on arrival would credit the query with '
+      + 'raising the boundary that stops it. The door carries no label, which is why this row names '
+      + 'it by selector: a string inside it would sit where the road runs.' })),
 
   // ---------------------------------------------------------------------------------------
   // R4. The catalog queue is 40 rows deep and unworked, so an entry here is not a card opting
@@ -592,10 +919,51 @@ const ENTRIES = [
       + 'be a second ball for traffic this step does not narrate (M-10). What the step lights '
       + 'instead is the two values the cascade produces.' },
 
+  { axis: 'R4', card: 'network-hostnetwork-hostport', where: ['1', 'Node eth0'],
+    why: 'the ball this step opens with is delivered TO the Node (NET.A-02): it stops on the frame top face midpoint at NODE_Y and never crosses the border, so the NIC 25 units inside receives no arrival R4 can see. The mid-chain shape is what the step runs, `F.light` on the `inb` arrival at 700ms with the onward hop leaving at 800ms, one BEAT.afterHop later, which is the separation every chained hop in the catalogue uses. R4 reads a frame frozen at t=0 and its own header names this class. The other shape was measured: `eth` in `lit` closes both rows, 42 back to 40 catalog-wide, with no R3 row and a green render, and it costs the only arrival beat the step has, because a box already lit at entry does not light again when the ball lands on the Node. The exemplar draws the same shape, `network-nodeport-loadbalancer client-hit` lights np1 on the frame arrival, and escapes R4 only because a chip is not a block it judges.' },
+  { axis: 'R4', card: 'network-loadbalancer-direct-to-pods', where: ['4', 'Cloud LoadBalancer'],
+    why: 'the balancer is MID-CHAIN on `replace` and is cued as one: the register ball from the controller lands on the bottom face of the target ladder that hangs flush under the balancer, `lights: [\'lb\']` lights the balancer on that arrival, and the health check leaves it one BEAT.afterHop later. R4 matches an earlier arrival by where the ball stops, and the ladder is a chain, not the box, so it sees no arrival on the balancer. The other shape, `lb` in `lit`, would say the balancer acts first on a step the EndpointSlice opens. `register` draws the same arrival and escapes R4 only because no ball leaves the balancer there.' },
+  { axis: 'R4', card: 'network-hostnetwork-hostport', where: ['3', 'Node eth0'],
+    why: 'the ball this step opens with is delivered TO the Node (NET.A-02): it stops on the frame top face midpoint at NODE_Y and never crosses the border, so the NIC 25 units inside receives no arrival R4 can see. The mid-chain shape is what the step runs, `F.light` on the `inb` arrival at 700ms with the onward hop leaving at 800ms, one BEAT.afterHop later, which is the separation every chained hop in the catalogue uses. R4 reads a frame frozen at t=0 and its own header names this class. The other shape was measured: `eth` in `lit` closes both rows, 42 back to 40 catalog-wide, with no R3 row and a green render, and it costs the only arrival beat the step has, because a box already lit at entry does not light again when the ball lands on the Node. The exemplar draws the same shape, `network-nodeport-loadbalancer client-hit` lights np1 on the frame arrival, and escapes R4 only because a chip is not a block it judges.' },
+
+  { axis: 'R4', card: 'network-pod-localhost', where: ['4', 'eth0'],
+    why: 'the same class as the `network-hostnetwork-hostport` rows above, one layer in. The inbound '
+      + 'ball stops on the Pod SHELL face, which is where every endpoint on this catalog sits '
+      + '(`NET.A-01`), and `lights: [\'eth0\']` cues the interface inside the shell on that '
+      + 'arrival, '
+      + 'so R4 matches no ball landing on the eth0 box itself. The delivery up to the app leaves one '
+      + 'BEAT.afterHop later, the separation every chained hop in the catalogue uses, so the cue is '
+      + 'registered before the departure it is judged against. The other shape, `eth0` in `lit`, '
+      + 'says the interface is already the subject on a step the outside client opens, and it costs '
+      + 'the step the one arrival beat it has: a box lit at entry does not light again when the ball '
+      + 'lands.' },
+
+  // The same class as the two `network-hostnetwork-hostport` rows above, on all six steps of one
+  // card: a watch ball delivered to a Node frame under NET.A-02 lights the sender inside it, and
+  // R4 cannot see a cue carried by a ball that lands on the frame instead of on the block.
+  ...['1', '2', '3', '4', '6'].map(step => ({
+    axis: 'R4', card: 'network-dns-pod-policy', where: [step, 'resolvConf file'],
+    why: 'the watch ball is delivered TO the Node (NET.A-02): it stops on the frame top face midpoint at NODE_Y=260 on x=600 and never crosses the border, so the file box standing 40 units inside receives no arrival R4 can see. The mid-chain shape is what the step runs, `lights` on the watch arrival at 1500ms with the file hop leaving at 1600ms, one BEAT.afterHop later. The other shape is measured and rejected: `hostFile` in `lit` closes the row, and it lights a block inside the frame 1500ms before the ball that addresses it gets there, which reads as the file answering a request nobody has sent yet. The picture wins over the row, and R4 reads a frame frozen at t=0 where no arrival cue exists yet.' })),
+  { axis: 'R4', card: 'network-dns-pod-policy', where: ['5', 'Kubelet'],
+    why: 'dnsPolicy None reads no file, so the Kubelet is the sender of the only hop after the watch ball, and it is cued exactly as the file box is on the other five steps: `lights` on the watch arrival at 1500ms, with the CRI hop leaving at 1600ms. The watch ball stops on the Node frame face (NET.A-02) and lands on no block, so R4 sees no arrival to credit. `kubelet` in `lit` closes the row and lights the Kubelet from 0ms, while the ball carrying the Pod spec to it is still falling.' },
+
   // ---------------------------------------------------------------------------------------
   // FORM-B. The queue is hundreds of rows deep and ranked by lead, so an entry here says the
   // ranking put a row high and a person read it and kept it.
   // ---------------------------------------------------------------------------------------
+  { axis: 'FORM-B', card: 'network-dns-coredns', where: ['fall-through', 'cacheChip'],
+    why: 'the miss is true the moment the step opens. The query reached cache in the PREVIOUS step, '
+      + 'and a lookup that finds nothing is decided where the request already stands. What the ball '
+      + 'of THIS step carries is the fall to the kubernetes plugin, so binding the chip to that '
+      + 'arrival would say cache had not answered until the request had already left it.' },
+  { axis: 'FORM-B', card: 'network-dns-coredns', where: ['fall-through', 'fwdChip'],
+    why: 'the chip is a caption for the leg drawn down to forward, and that leg stands on the canvas '
+      + 'from idle carrying no ball ever (`NET.A-03`). `outside zone only` states what the leg is '
+      + 'FOR, which no arrival on this card produces.' },
+  { axis: 'FORM-B', card: 'network-dns-coredns', where: ['answer', 'cacheChip'],
+    why: 'cache holds the answer before this step opens: the climb of the previous step is what '
+      + 'stores it, and that step binds the value to its own arrival. `answers within TTL` is the '
+      + 'steady state the card closes on, while the ball here carries the answer OUT to the client.' },
   { axis: 'FORM-B', card: 'workloads-deployment-rollback', where: ['roll', 'condChip'],
     why: 'condChip is the Deployment own status condition, and Progressing=True is what makes the '
       + 'controller SEND the create rather than something the create produces: the template hash '
@@ -733,6 +1101,25 @@ const ENTRIES = [
       + 'same fact. No ball of this step produces it: the bind travels to Node-1 and places Pod '
       + 'NEW. Its two neighbours wait because the API writes both on the binding itself. Winding '
       + 'this one back would redraw a Pod the card has already said exited.' },
+  { axis: 'FORM-E', card: 'network-nodeport-loadbalancer', where: ['lb-provision', 'typeChip'],
+    why: '`type LoadBalancer` is the REQUEST this step opens with, and the one ball of the step is '
+      + 'the cloud-controller-manager provisioning the balancer in answer to it: the arrival does '
+      + 'not produce the type, the type is why the ball leaves. Its neighbour `status.loadBalancer` '
+      + 'waits because the address is published only once that balancer exists, which the narration '
+      + 'calls asynchronous. Binding the type to the arrival would draw the controller acting on a '
+      + 'Service that was still NodePort.' },
+  { axis: 'FORM-E', card: 'network-client-ip-preservation', where: ['arrive', 'lSrc'],
+    why: 'the left packet is what the CLIENT sent, and the address it put on its own packet is true '
+      + 'before the packet moves: no arrival on this step produces it. Its neighbour `client IP` '
+      + 'waits precisely because that chip states what the EDGE has observed, which is what the '
+      + 'arrival produces. Winding `src` back would draw a request leaving the client carrying no '
+      + 'source address at all, which is the one thing this step exists to say it does carry.' },
+  { axis: 'FORM-E', card: 'network-client-ip-preservation', where: ['passthrough', 'modeChip'],
+    why: '`TCP passthrough` is the CONFIGURATION the step opens with, and the one ball of the step '
+      + 'is the preamble the edge prepends BECAUSE of it: the arrival does not produce the mode, the '
+      + 'mode is why there is a preamble to send at all. Its two neighbours wait because both are '
+      + 'what the backend receives, the preamble row and what the app reads out of it. Binding the '
+      + 'mode to that arrival would draw an edge still terminating HTTP while it sends a raw stream.' },
   { axis: 'FORM-E', card: 'cluster-node-pressure-eviction', where: ['relieve', 'memChip'],
     why: 'memory.available is a cAdvisor reading of the Node, and the one ball of this step is the '
       + 'PATCH carrying MemoryPressure=False to the API, which does not produce it: the memory '
@@ -799,12 +1186,22 @@ const ENTRIES = [
   { axis: 'FORM-E', card: 'network-internal-traffic-policy', where: ['local', 'policyChip'],
     why: 'internalTrafficPolicy is a FIELD OF THE SERVICE that the operator set before anything is '
       + 'dialed, and the card record says so in as many words: the policy is a property of the '
-      + 'Service, so it is true from the start, while the scope, the hop and the result are '
-      + 'outcomes of a call. Those three are exactly what this step now waits on, at kube-proxy '
-      + '(1500) and at the local Pod (2300). The rest of the entry frame is written from the same '
-      + 'premise: the two endpoint notes read in scope and out of scope and the remote Pod is '
-      + 'already dimmed, so binding the chip alone would leave it reading Cluster over a picture '
+      + 'Service, so it is true from the start. What the policy CAUSES waits for a beat: each rule '
+      + 'set flips when its kube-proxy writes it (300) and the result waits for the local legs '
+      + '(2900). The cross-node legs already stand dimmed at entry, because they are in no rule '
+      + 'set under Local, so binding the chip alone would leave it reading Cluster over a picture '
       + 'that is already the Local one.' },
+  { axis: 'FORM-E', card: 'network-external-traffic-policy', where: ['local', 'modeChip'],
+    why: 'externalTrafficPolicy Local is the FIELD the operator sets, and it is the premise of the '
+      + 'step: both connections are drawn under it, so it is true before either ball leaves. What the '
+      + 'policy CAUSES waits for a beat, `client src IP` on the served connection landing on Node-1 '
+      + 'and the three shares on the dropped one landing on Node-3. Binding the policy to an arrival '
+      + 'would draw the first connection served locally while the chip still reads Cluster.' },
+  { axis: 'FORM-E', card: 'network-external-traffic-policy', where: ['local', 'hcChip'],
+    why: 'healthCheckNodePort is allocated by the API server in the same write that sets the policy '
+      + 'to Local on a LoadBalancer Service (the Source IP tutorial: `You should immediately see the '
+      + 'service.spec.healthCheckNodePort field allocated`), so no ball of this step produces it. '
+      + 'The narration says so: the field is allocated, and the balancer has not acted on it yet.' },
   { axis: 'FORM-E', card: 'workloads-daemonset', where: ['match', 'focusChip'],
     why: 'focusChip is named `focus` and every step of this card writes it as a caption of what that '
       + 'step is DOING, not as object state. Here it reads `list Nodes, match the selector`, which '
@@ -845,6 +1242,41 @@ const ENTRIES = [
       + 'the delete. Winding it back would draw a controller that deletes first and reaches the '
       + 'deadline afterwards, which inverts the one comparison the card is about. What the arrival '
       + 'earns is statusChip, and that is the chip this step holds back.' },
+  { axis: 'FORM-E', card: 'network-proxy-rule-resync', where: ['immediate', 'floorChip'],
+    why: 'minSyncPeriod is a CONFIGURATION FIELD the operator set before anything happened, and the '
+      + 'step opens on it in words: `With minSyncPeriod set to 0s kube-proxy resyncs immediately`. '
+      + 'The 0s is the premise the whole step reasons from, not something the write produces, and '
+      + 'the write is its consequence. What the arrival earns on this step is updateChip, the count '
+      + 'of kernel updates that setting costs, and that is the chip this step holds back. Winding '
+      + 'the floor back would draw a card whose configuration changes when a rule is written.' },
+  { axis: 'FORM-E', card: 'network-proxy-rule-resync', where: ['batched', 'floorChip'],
+    why: 'The mirror of `immediate floorChip` and the same argument: the default 1s floor is the '
+      + 'premise this step reasons from, and its narration opens on it. updateChip is the outcome '
+      + 'the write earns and is what this step defers.' },
+  { axis: 'FORM-E', card: 'network-pod-egress-snat', where: ['reply', 'srcChip'],
+    why: 'The reply is a packet the SERVER sent, so its source is 1.1.1.1 from the moment it leaves '
+      + 'the Internet box, which is where this step opens. No arrival on this step produces it: the '
+      + 'one ball crosses back to the Node carrying that source the whole way. Its two neighbours '
+      + 'wait for a beat because both are what the arrival EARNS, the destination being rewritten '
+      + 'back and the entry being reversed, and that split is the sentence the step makes. Binding '
+      + 'this one to the arrival would claim the server address appears when the reply reaches the '
+      + 'Node rather than when the server chose it.' },
+  { axis: 'FORM-E', card: 'network-pod-egress-snat', where: ['reply', 'ruleChip'],
+    why: 'The narration of this step is `the reply walks no rule at all`, so `none, conntrack only` '
+      + 'is the premise the step reasons from and is true for its whole length rather than at a '
+      + 'moment inside it. The card has the deferral technique and applies it to the two chips the '
+      + 'arrival does earn. Deferring this one would leave the step reading MASQUERADE for its '
+      + 'first 700ms, which is the claim the step exists to deny.' },
+  { axis: 'FORM-E', card: 'network-mtu-overhead', where: ['path', 'wireChip'],
+    why: 'The size of the frame is settled where the frame is BUILT, inside Pod A, so 1500 B is '
+      + 'true from the moment the step opens and the 100 over half of it is a comparison against '
+      + 'the limit the first line of the narration states. Its two neighbours wait for a beat '
+      + 'because both are what the refusal EARNS: the ICMP exists only once the hop has dropped the '
+      + 'datagram, and the Node estimate moves only once that reply lands on the Node. That split IS '
+      + 'the sentence of the step, a frame that was always this size meeting a limit nobody on the '
+      + 'Node knew about. Deferring this one to the arrival would say the hop decided how big the '
+      + 'frame was, and would leave the strip reading 114 B from the previous ping while the bar on '
+      + 'the third measure row is already drawn at full length under it.' },
   { axis: 'FORM-B', card: 'workloads-finished-job-cleanup', where: ['watch', 'clockChip'],
     why: 'The third and last reading of the same clock on this card, and the same argument the two '
       + 'FORM-E entries above carry. '
@@ -854,6 +1286,109 @@ const ENTRIES = [
       + 'what it earns is ctrlEl lighting on arrival. Binding the clock to that arrival would say '
       + 'time advances because a watch event landed, and it would also make the one chip that must '
       + 'move independently of the traffic look like traffic.' },
+  // network-cni-invocation, three rows and one ruling. CNI op is a STEP-SCOPED label naming the
+  // operation in flight, not the result of a hop, so it is stated at entry on every step that
+  // changes which operation the picture is about.
+  { axis: 'FORM-B', card: 'network-cni-invocation', where: ['sandbox', 'opChip'],
+    why: 'CNI op names the operation in flight, and on this step the answer is that there is none: '
+      + 'not called yet is TRUE from the moment the step opens, because the whole point of the '
+      + 'sandbox step is that the plugin list has not run. Neither ball carries it. RunPodSandbox '
+      + 'goes Kubelet to runtime and create netns goes runtime to sandbox, and what those arrivals '
+      + 'earn is the runtime lighting and the Pod pulsing. The two chips that ARE results on this '
+      + 'card, the address on delegate and ADD ok on result, both wait for their arrivals through '
+      + 'a rewind and an F.set, and neither is on this queue.' },
+  { axis: 'FORM-B', card: 'network-cni-invocation', where: ['exec', 'opChip'],
+    why: 'ADD is the operation this step NAMES rather than one its ball produces: the runtime sets '
+      + 'CNI_COMMAND=ADD before it execs anything, which is what the narration says in words, so '
+      + 'the value is true at the departure and not at the arrival. What the exec ball earns is the '
+      + 'bridge row it lands on. Binding the chip to that arrival would say the plugin decided '
+      + 'which operation it was being run for.' },
+  { axis: 'FORM-B', card: 'network-cni-invocation', where: ['join', 'opChip'],
+    why: 'DEL on delete is a P-02 conditional rather than an operation in flight, and the qualifier '
+      + 'is what keeps the frame legal under T-35: a reader seeing only this frame cannot conclude '
+      + 'DEL has run. The one ball here is the Kubelet starting the app containers into the '
+      + 'namespace that is already wired, which has nothing to do with delete, so there is no '
+      + 'arrival to bind it to. Carrying ADD ok forward instead leaves the canvas silent about the '
+      + 'half of the step that narrates DEL.' },
+  { axis: 'FORM-B', card: 'network-pod-to-pod-cross-node', where: ['encap', 'outerChip'],
+    why: 'the wrap is made inside cni1 on Node-1 BEFORE the one ball of this step departs, so the '
+      + 'outer header exists at the moment the step opens. The single F.route IS the wrapped packet '
+      + 'crossing the underlay, and its 1244ms arrival is that packet reaching Node-2, which is a '
+      + 'different event: what it earns is cni2 lighting. Binding the outer slot to it would say '
+      + 'Node-2 wrote the header it is receiving. The narration is in that order too, wraps first '
+      + 'and crosses the underlay last.' },
+  { axis: 'FORM-B', card: 'network-pod-to-pod-cross-node', where: ['encap', 'encapChip'],
+    why: 'VXLAN/UDP 8472 is the same premise read from the other side: the encapsulation is chosen '
+      + 'and applied by cni1 before the ball leaves, and the packet on the underlay lane is already '
+      + 'the encapsulated one. The arrival on cni2 is the wrapped packet landing, not the wrap '
+      + 'being decided. inner src/dst is the chip this step deliberately leaves uncued, because it '
+      + 'reports the one thing the wrap does not touch.' },
+  { axis: 'FORM-B', card: 'network-pod-to-pod-cross-node', where: ['decap', 'outerChip'],
+    why: 'stripped is the state this step OPENS in. The underlay crossing finished on the previous '
+      + 'step, so the kernel of Node-2 strips the outer headers on receipt and the one ball drawn '
+      + 'here is the bare inner frame already on its veth hop into Pod B. That 700ms arrival earns '
+      + 'the Pod B pulse, and binding the outer slot to it would say Pod B did the stripping.' },
+  { axis: 'FORM-B', card: 'network-pod-to-pod-cross-node', where: ['decap', 'encapChip'],
+    why: 'encap returning to none is the same receipt event as stripped beside it, true before the '
+      + 'frame starts moving: the packet on the veth carries no encapsulation, which is exactly why '
+      + 'it can be bridged into a Pod. The alternative is to hold VXLAN/UDP 8472 on screen while '
+      + 'the frame the canvas is drawing has no such header.' },
+  { axis: 'FORM-B', card: 'network-pod-to-pod-cross-node', where: ['routed', 'modeChip'],
+    why: 'routed · BGP is the PREMISE of the closing step and not a result inside it: the step '
+      + 'opens by naming a different plugin, and all five flow entries are drawn under that premise '
+      + 'from t=0. The 1500ms first arrival is Pod A frame reaching cni1 over the veth, and what it '
+      + 'earns is cni1 lighting. Bound to that beat the strip would say a veth hop chose the '
+      + 'dataplane mode, and the two steps before it would have been running in an unnamed one.' },
+  { axis: 'FORM-B', card: 'network-pod-to-pod-cross-node', where: ['routed', 'outerChip'],
+    why: 'none here reports that no wrap is EVER made on this path, which is true of the frame from '
+      + 'its first millisecond rather than at any arrival. It is cued because it is a different '
+      + 'fact from the stripped before it, an absence by construction against an absence after a '
+      + 'removal, and that distinction is the whole reason the step exists. No single hop of the '
+      + 'three earns it, since it holds equally on all of them.' },
+  { axis: 'FORM-B', card: 'network-mtu-overhead', where: ['small', 'wireChip'],
+    why: '114 B is the SIZE OF THE FRAME the step sends, which is settled when Pod A builds it and '
+      + 'not by anything the ball reaches. The four arrivals of this step earn the underlay hop '
+      + 'lighting and the two Pod pulses, and binding the size to one of them would say the hop '
+      + 'decided how big the ping was. The bar drawn on the third measure row is the same premise '
+      + 'in the picture, and it is revealed at the departure for the same reason.' },
+  { axis: 'FORM-B', card: 'network-mtu-overhead', where: ['blackhole', 'icmpChip'],
+    why: 'filtered is the PREMISE the step opens with, a firewall that drops ICMP, and this step '
+      + 'draws no arrival at all: the two balls are the frame and its retransmission going out, and '
+      + 'the return lane is deliberately empty. There is nothing for the value to wait for, and '
+      + 'waiting is exactly what the step is about.' },
+  { axis: 'FORM-B', card: 'network-mtu-overhead', where: ['blackhole', 'pmtuChip'],
+    why: '1500 · stale follows from the filtering in the same instant and from no event on the '
+      + 'canvas: the estimate is stale precisely BECAUSE nothing arrives to correct it. The card '
+      + 'has no beat to bind it to, which is the finding and the subject at once.' },
+  { axis: 'FORM-B', card: 'network-mtu-overhead', where: ['clamp', 'icmpChip'],
+    why: 'not needed is what the clamp MEANS, so it is true the moment the step opens and is the '
+      + 'reason the step exists: the fix works without the reply the two steps before it waited for. '
+      + 'Neither arrival could earn it, since both are the clamped frame travelling and arriving is '
+      + 'not what makes an ICMP unnecessary. It is cued because filtered to not needed is a real '
+      + 'move and the step that makes it is this one.' },
+  { axis: 'FORM-B', card: 'network-mtu-overhead', where: ['clamp', 'wireChip'],
+    why: 'the clamp is a rule already standing on the path when the step opens, so the segment is '
+      + 'built at 1400 from its first millisecond. The two arrivals here are the frame reaching the '
+      + 'hop and then Pod B, and what they earn is the hop lighting and Pod B pulsing: the frame '
+      + 'does not become 1400 bytes by arriving anywhere.' },
+  { axis: 'FORM-B', card: 'network-service-debugging', where: ['no-match', 'labelsChip'],
+    why: 'every failure step opens on a STATE the call runs into (T-21): nothing on the canvas '
+      + 'relabels the Pod, so app=web-v2 is true before the client dials. The ball reaching the '
+      + 'Service edge earns the Service lighting, not the labels.' },
+  { axis: 'FORM-B', card: 'network-service-debugging', where: ['no-match', 'servingChip'],
+    why: 'the empty serving set follows from the mismatch in the same instant, before any call. The '
+      + 'ball ending at the Service edge shows the consequence and cannot be what empties the slice.' },
+  { axis: 'FORM-B', card: 'network-service-debugging', where: ['not-ready', 'readyChip'],
+    why: 'the failing readiness is the premise of the step, standing before the call. Readiness '
+      + 'gating itself is animated by network-endpointslice-reconcile, which this card cedes it to.' },
+  { axis: 'FORM-B', card: 'network-service-debugging', where: ['wrong-port', 'listenChip'],
+    why: 'the container listens on 8080 before the client dials: a state, not an arrival. The ball '
+      + 'reaching the Pod edge unanswered is the consequence the chip explains.' },
+  { axis: 'FORM-B', card: 'network-service-debugging', where: ['named-port', 'servingChip'],
+    why: 'the slice resolves the named port when the Service is written, not when a call lands, so '
+      + '10.244.2.7:8080 is true from the first millisecond. The delivered tag rides that value.' },
+  { axis: 'FORM-B', card: 'network-service-debugging', where: ['named-port', 'targetChip'],
+    why: 'targetPort http is the Service spec the step opens on. No arrival writes a spec field.' },
 
   // ---------------------------------------------------------------------------------------
   // R2-STEP. All seven are ONE class: the chip TEXT changed while the FACT it reports did not,
@@ -875,10 +1410,24 @@ const ENTRIES = [
       + 'unchanged fact, and the turnover the reader must catch is on the observe step, where the '
       + 'chip IS lit' },
   { axis: 'R2-STEP', card: 'network-client-ip-preservation', where: ['5', 'X-Forwarded-For'],
-    why: 'raw TCP carries no headers, so the header panel empties because this mode has none. The '
-      + 'news is the mode, the reader and the recovered address, all three lit' },
-  { axis: 'R2-STEP', card: 'network-client-ip-preservation', where: ['5', 'Forwarded'],
-    why: 'same, the other header of the pair' },
+    why: 'a raw TCP stream carries no HTTP header, so the row empties on BOTH packets because this '
+      + 'mode HAS none rather than because anything cleared it. The news of the step is the '
+      + 'preamble row, what the app reads and the mode, and all three are lit' },
+  { axis: 'R2-STEP', card: 'network-client-ip-preservation', where: ['5', 'client IP'],
+    why: 'the address is recovered on the xff step and recovered again here, by a different '
+      + 'mechanism. `trusted hop only` is the caveat the forge step adds, and this step is not '
+      + 'about trust, so the value returns to the steady reading the card has already given. A cue '
+      + 'would say the preamble recovered an address the header had lost. The two rows that DID '
+      + 'change, the preamble and what the app reads, are the ones lit' },
+  { axis: 'R2-STEP', card: 'network-service-debugging', where: ['3', 'Pod labels'],
+    why: 'the labels go BACK to the healthy app=web once the no-match aside is over. The news of '
+      + 'not-ready is the Ready chip turning False, and that chip is lit. A cue here would say the '
+      + 'labels broke again' },
+  { axis: 'R2-STEP', card: 'network-service-debugging', where: ['4', 'Pod Ready'],
+    why: 'the Pod is Ready again, a restoration. wrong-port is diagnosed by WHICH ROW lights: the '
+      + 'port row is lit and the slice row stays dark, and lighting this chip would light both rows' },
+  { axis: 'R2-STEP', card: 'network-service-debugging', where: ['4', 'serving'],
+    why: 'same restoration, the endpoint the healthy step served' },
 
   // ---------------------------------------------------------------------------------------
   // CENTRE, CENTRE-LOW and OCCLUDED. These are the `L-16` population: the rule can only be
@@ -894,6 +1443,15 @@ const ENTRIES = [
       + 'score the kubectl block 100% under the panel, and the trade is the point: a composition '
       + 'leaning 70 units off centre costs a reader less than an actor block the panel deletes on '
       + 'six steps of eight.' },
+  { axis: 'CENTRE-LOW', card: 'network-dns-coredns', where: [],
+    why: 'the block that balances this card is the one the rule cannot count. CENTRE-LOW reads only '
+      + 'what sits BELOW the panel bottom of one viewport, 143 at 1600x1000, and the API server '
+      + 'block stands at 60..140 in the band the panel leaves free on the right (`L-01`), which is '
+      + 'where the card puts it on purpose: it carries the composition out to x=1130 and closed the '
+      + 'CENTRE finding this card used to hold. The five blocks the rule does see span 70..852. At '
+      + 'the narrower viewports the panel is deeper still, 171.42 and 204.97, so the block stays '
+      + 'above the line on every one of them and no reading of this metric can ever include it. '
+      + 'Dropping it under 143 to be counted re-opens the empty top band it was added to fill.' },
   { axis: 'CENTRE-LOW', card: 'cluster-cascading-deletion', where: [],
     why: 'the same lean as the CENTRE row on this card, with the frame walls left out. CENTRE-LOW '
       + 'judges against the panel bottom of ONE viewport, 177 at 1600x1000, and the blind-spot '
@@ -909,6 +1467,76 @@ const ENTRIES = [
       + 'CENTRE-LOW judges against the panel bottom of ONE viewport, 143 at 1600x1000, and the '
       + 'blind-spot block below says so itself: at the worst-of-three bottom, 230, the finding '
       + 'drops.' },
+  { axis: 'CENTRE', card: 'network-loadbalancer-direct-to-pods', where: [],
+    why: 'the chip strip reads off centre because `L-17` pools the two nodePort chips under the Pods, '
+      + '134..366 and 834..1066, with the two readouts in the top right corner, 780..1120, so the pool '
+      + 'spans 134..1120 on centre 627. The drawn extent measures 80..1120 on centre 600: the two Node '
+      + 'frames mirror about the spine on x 600. The readouts stand top right because it is the one '
+      + 'corner the narration panel leaves free, and mirroring them top left would put them under it.' },
+  { axis: 'CENTRE', card: 'network-external-traffic-policy', where: [],
+    why: 'the chip strip reads 94..1088 on centre 591 because `L-17` pools the three share chips '
+      + 'under the Pods, 94..664, with the Service strip. The strip itself is four 232 chips at a 16 '
+      + 'gap across 112..1088, centred on 600 by construction, and the Node row spans 80..1120. The '
+      + 'share chips sit under Pods that stand on two Nodes of three because Node-3 runs none, which '
+      + 'is the subject: a share chip on Node-3 would be a readout for a Pod that does not exist.' },
+  { axis: 'CENTRE-LOW', card: 'network-external-traffic-policy', where: [],
+    why: 'the six blocks below the panel are the three Pods and their inner boxes, 94..664 on centre '
+      + '379, since frames and chips are not counted. Two Pods on Node-1, one on Node-2 and none on '
+      + 'Node-3 is the uneven spread the card exists to price, and centring the Pods means moving one '
+      + 'onto Node-3, which removes both the drop and the imbalance. The drawn extent is 80..1120.' },
+  { axis: 'CENTRE', card: 'network-gateway-api', where: [],
+    why: 'the chip strip is the condition column, 424..900 on centre 662, each chip on the row of the '
+      + 'object that reports it, 28 left of the ladder at 928..1160, with the ReferenceGrant centred '
+      + 'under it. The drawn extent 40..1160 is centred on 600 and so is the proxy Pod on the rail. A '
+      + 'column centred on 600 would start at 362, behind the panel wall at every height it occupies, '
+      + 'and a bottom strip would lose the row alignment that ties a condition to its object' },
+  { axis: 'CENTRE', card: 'network-gateway-traffic-splitting', where: [],
+    why: 'the chip column spans 564..924 on centre 744 because it stands in the gap between two '
+      + 'Service frames of unequal width, 40..484 for three Pods and 1004..1160 for one, and the drawn '
+      + 'extent 40..1160 is centred on 600. Moving the column to 600 puts it over the web-v1 frame, '
+      + 'and equalising the frames means drawing web-v2 with Pods it does not have or web-v1 with '
+      + 'fewer, which removes the 3 against 1 the split is argued against.' },
+  { axis: 'CENTRE', card: 'network-headless-service', where: [],
+    why: 'the chip strip is the answer COLUMN, 760..1160 on centre 960, standing beside the discovery '
+      + 'column at 444..676 with its rows level with the EndpointSlice and CoreDNS, and the drawn extent '
+      + '60..1160 is centred on 610. A column centred on 600 would start at 400, on top of the '
+      + 'discovery column the answer is derived from, and splitting it breaks the one set of records the '
+      + 'card is about.' },
+  { axis: 'CENTRE', card: 'network-externalname', where: [],
+    why: 'the report reads the three chips as one strip spanning 454..1140 on centre 797, and they '
+      + 'are two placements rather than a strip: the SNI and cert pair stands under the host it '
+      + 'describes, and the endpoint row is a field inside the slice frame. Centring them on 600 '
+      + 'breaks both bindings, which is the whole reading of the card.' },
+  { axis: 'CENTRE-LOW', card: 'network-ipam-pod-cidr', where: [],
+    why: 'the four blocks below the overlay span 130..700 on centre 415, and the rule cannot see '
+      + 'Node frames, so what it measures is the two Pods. Those sit in Node-1 and Node-2 because '
+      + 'the narration names those two Nodes: moving either Pod to Node-3, reordering the Nodes or '
+      + 'inventing a third Pod each makes the card say something different. The composition itself '
+      + 'is centred, three equal frames spanning 80..1120 under a control-plane column on their '
+      + 'common centre line, and `L-17` is why the rule cannot close.' },
+  { axis: 'CENTRE', card: 'network-service-cidr', where: [],
+    why: 'the chip column spans 700..1140 on centre 920. It is a COLUMN by design and the lever no '
+      + 'sibling here carries: centring it on 600 means either a strip across the width, which is '
+      + 'the house reading this card exists to leave, or moving the range stack into the middle and '
+      + 'putting the ladder over the allocation flow. There is no room to slide it either, since a '
+      + '440 wide strip centred on 600 runs 380..820 at CHIP_Y0 510 and that band already holds '
+      + 'Service web at 304..536 and the ETCD cylinder at 130..270.' },
+  { axis: 'CENTRE-LOW', card: 'network-service-cidr', where: [],
+    why: 'the three blocks the rule sees below the panel span 130..536 on centre 333: the ETCD '
+      + 'cylinder 130..270, the API block 304..536 and Service web 304..536. The store stands left '
+      + 'because that is the face the write leaves from without a corner budget, and the two actor '
+      + 'blocks share one centre line because that is what makes the claim and the answer verticals. '
+      + 'The rule counts neither the chain nor the chips, which are the parts that balance those '
+      + 'three, and the drawn bodies span 130..1140 on centre 635. `L-17`.' },
+  { axis: 'CENTRE', card: 'network-service-terminating-endpoints', where: [],
+    why: 'the three chips read as a strip spanning 74..366 on centre 220, and they are the ROWS of '
+      + 'the slice frame and take its column. Centring them means moving the slice off the line '
+      + 'kube-proxy reads it on, or stretching the rows past their own frame. The ruler under them '
+      + 'spans 60..1140 and centres on 600.' },
+  { axis: 'CENTRE', card: 'network-service-types', where: [],
+    why: 'the chip column spans 908..1140 on centre 1024, and it is a column beside the stack on '
+      + 'purpose, reading the Service fields next to the layers they describe. Centring it puts it '
+      + 'on the spine, and a bottom strip has no room because the Node frame reaches 624.' },
   { axis: 'OCCLUDED', card: 'cluster-resource-quota', where: ['ReplicaSet web'],
     why: 'the ReplicaSet box starts at 340 and the panel reaches 396.55 at 1100x800 and 377.76 at '
       + '1280x860, so its left BORDER is behind the panel on the two smaller viewports, by 56.55 '
@@ -984,6 +1612,25 @@ const ENTRIES = [
       + 'CENTRE reads 0 findings on this card today because the actor row carries the bbox out to '
       + 'WL.R. Trading a clean CENTRE for a clean CENTRE-LOW is the L-16 case exactly. The record '
       + 'carries the same argument under OPEN.' },
+  // CENTRE fires TWICE on this card, on the pooled strip and on the content bbox, and `where: []`
+  // gives both rows one key, so carriedMap keeps one reason and it has to answer both.
+  { axis: 'CENTRE', card: 'network-pod-ip-and-veth', where: [],
+    why: 'both rows are the same column read from two sides. The chip strip the metric pools IS a '
+      + 'column, at 60..360 on centre 210, and the column is the composition rather than a '
+      + 'placement: a wide strip would run straight through the namespace boundary at x=760 that '
+      + 'the whole card is built on, and would read as four independent readouts where these four '
+      + 'are facts about ONE object, so closing that row means taking the strip 5 of the other 6 '
+      + 'cards in this section take. The CONTENT lean, 420..1140 on centre 780, is what is left '
+      + 'once `L-17` drops those same chips. Measured with them, the card spans 60..1140 and '
+      + 'centres on 600 exactly, with margins of 60 and 60. The diagram sits right of x=420 '
+      + 'because the panel measures 396.55 wide and `L-03` allows nothing left of that line above '
+      + 'the panel bottom, so the only way to drag the bbox back to 600 is to put blocks in the '
+      + 'gutter the column already fills.' },
+  { axis: 'CENTRE-LOW', card: 'network-pod-ip-and-veth', where: [],
+    why: 'the same six blocks as the CENTRE content row, 450..1110 on centre 780, with the frame '
+      + 'wall left out and the chip column still uncounted. CENTRE-LOW also judges against the '
+      + 'panel bottom of ONE viewport, 143 at 1600x1000, and this card measures 204.97 at 1100x800, '
+      + 'which is the blind spot the block below this one states about itself.' },
 
   // ---------------------------------------------------------------------------------------
   // A-05. NET.A-03 says a fan leg nothing rides is correct, so most of this set is that.
@@ -999,35 +1646,31 @@ const ENTRIES = [
       + 'whole claim is that the two columns are identical and only the field differs. The ruling '
       + 'was in storage/CARDS.md as NOT A DEFECT before this table existed and was simply never '
       + 'imported into it.' },
-  { axis: 'A-05', card: 'network-ebpf-dataplane', where: ['[[660,312],[790,312],[790,442],[920,442]]'],
-    why: 'TO_PODY, the ALTERNATIVE backend of the map lookup. network/CARDS.md under this card: '
+  { axis: 'A-05', card: 'network-ebpf-dataplane', where: ['[[672,312],[796,312],[796,442],[920,442]]'],
+    why: 'TO_PODY, the ALTERNATIVE backend of the map lookup. network/CARDS/network-ebpf-dataplane.md: '
       + '"TO_PODY carries no ball. It is the ALTERNATIVE backend, drawn so the reader can see the '
       + 'map lookup picked one of two, and the card says so in words. N destinations, N wires." '
       + 'NET.A-03.' },
-  { axis: 'A-05', card: 'network-headless-service', where: ['[[290,485],[355,485],[355,520],[820,520],[820,472],[880,472]]'],
-    why: 'TO_W2, the third leg of the data fan. network/CARDS.md: "TO_W2 in the data fan rides '
-      + 'nothing. N destinations get N wires so the reader can see the client picked one of three." '
+  { axis: 'A-05', card: 'network-headless-service', where: ['[[176,372],[176,596],[1044,596],[1044,544]]'],
+    why: 'TO_POD[2], the leg to web-2. network/CARDS/network-headless-service.md: "TO_POD[2], the '
+      + 'lane to web-2, rides nothing. N destinations get N wires so the reader can see the client picked '
+      + 'one of three." '
       + 'NET.A-03, and the record two cards down names this one as the precedent for the nodeport '
       + 'fan.' },
-  { axis: 'A-05', card: 'network-nodeport-loadbalancer', where: ['[[600,230],[600,320]]'],
-    why: 'TO_N2. network/CARDS.md: "TO_N2 and TO_N3 carry no ball on a given step. A NodePort opens '
-      + 'the SAME port on EVERY Node, which is the card whole first claim, so all three lanes have '
-      + 'to exist for the reader to see that any Node would have served the request." NET.A-03.' },
-  { axis: 'A-05', card: 'network-nodeport-loadbalancer', where: ['[[600,230],[600,286],[970,286],[970,320]]'],
+  { axis: 'A-05', card: 'network-nodeport-loadbalancer', where: ['[[536,216],[536,320]]'],
+    why: 'TO_N2. network/CARDS/network-nodeport-loadbalancer.md: "The balancer legs `TO_N2` and '
+      + '`TO_N3` carry no ball. The balancer targets the node port on EVERY Node, so all three legs '
+      + 'exist for the reader to see that it picked Node-1 among drawn alternatives." NET.A-03. '
+      + 'Node-2 is still reached by a ridden lane, the direct one, which is not this leg.' },
+  { axis: 'A-05', card: 'network-nodeport-loadbalancer', where: ['[[652,146],[970,146],[970,320]]'],
     why: 'TO_N3, the other half of the same pair and the same record entry. Which of the three legs '
       + 'a step takes is the arbitrary part, and drawing only the taken one would make the '
       + 'arbitrary look like the only. NET.A-03.' },
-  { axis: 'A-05', card: 'network-traffic-distribution', where: ['[[630,320],[700,320],[700,236],[820,236]]'],
-    why: 'FAN_A2. network/CARDS.md: "FAN_A2 carries no ball on its step. It is the endpoint the '
-      + 'traffic distribution did NOT pick, and the point of the card is that the choice was made '
+  { axis: 'A-05', card: 'network-traffic-distribution', where: ['[[588,320],[700,320],[700,236],[740,236]]'],
+    why: 'FAN_A2. network/CARDS/network-traffic-distribution.md: "FAN_A2 carries no ball on its step. It '
+      + 'is the endpoint the traffic distribution did NOT pick, and the point of the card is that '
+      + 'the choice was made '
       + 'among the drawn candidates rather than forced." NET.A-03.' },
-  { axis: 'A-05', card: 'network-model', where: ['[[990,172],[990,280]]'],
-    why: 'CNI_CONNECTOR, and this one is NOT a fan leg. network/CARDS.md: "CNI_CONNECTOR IS '
-      + 'animated, with the repeating MARCH dash offset rather than a ball: this card vocabulary '
-      + 'for this is what implements the model. No packet rides it because nothing DISCRETE '
-      + 'travels, the plugin is not sending a message, it is the thing that makes the flat space '
-      + 'exist." An F.anim on the dash offset is motion this file does not read as traffic, and '
-      + 'should not.' },
   { axis: 'A-05', card: 'storage-reclaim-policy', where: ['[[712,336],[712,390]]'],
     why: 'W_RET_WIPE, and the card says so at the declaration: "drawn, never travelled: that is '
       + 'Retain". The whole subject of the card is that the Retain column HAS the lane the Delete '

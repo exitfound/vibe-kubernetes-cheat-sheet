@@ -107,9 +107,9 @@ const KNOWN_CASING = [
   // Four DNS and mount names drawn as block labels. Lowercase is the literal being named
   // (a DNS subdomain, a projected volume key), so capitalising it would print something that
   // does not exist.
+  'network-dns-coredns         scheme-box-label   UP    "forward"',
   'network-dns-records         scheme-box-label   UP    "default"',
   'network-dns-records         scheme-box-label   UP    "svc"',
-  'network-service-ports       scheme-box-label   UP    "http"',
   'storage-projected-volume    scheme-box-label   UP    "labels"',
   'storage-projected-volume    scheme-box-label   UP    "password"',
   'storage-projected-volume    scheme-box-label   UP    "token"',
@@ -117,6 +117,9 @@ const KNOWN_CASING = [
   // a value, which is the case System A has no way to spell.
   'network-dns-records         scheme-chip-text   DOWN  "Headless A: -> .2.7 .3.4 .1.9"',
   'storage-configmap-secret-mount scheme-label    DOWN  "Volume /etc/config"',
+  // A dnsPolicy value in a chip. `Default` is the API enum as the Pod spec spells it, so lowering
+  // it would print a policy that does not exist, the same reason as the DNS names above.
+  'network-dns-pod-policy      scheme-chip-text   DOWN  "Default"',
 ].sort();
 
 // T-13: one object, one label, compared only inside the same position class.
@@ -126,7 +129,7 @@ const KNOWN_DRIFT = [
   // which is out of scope for this file.
   // The count is not what this list freezes, the PAIR is: a new pair is a defect, a higher
   // count is not.
-  'pod: "Pod" x26 vs "pod" x1',
+  'pod: "Pod" x27 vs "pod" x1',
   'podc: "Pod C" x3 vs "pod-c" x1',
 ].sort();
 

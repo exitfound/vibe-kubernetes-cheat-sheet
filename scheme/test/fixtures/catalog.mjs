@@ -41,7 +41,7 @@ const importFromRoot = (...seg) => import(pathToFileURL(join(ROOT, ...seg)).href
 // Changing a number here is how a card being added or removed is acknowledged on purpose. If you
 // are about to edit one of these to make a run go green, read what the run is telling you first.
 // ---------------------------------------------------------------------------------------------
-export const CATALOG_BASELINE = Object.freeze({ cards: 128, steps: 790 });
+export const CATALOG_BASELINE = Object.freeze({ cards: 135, steps: 860 });
 
 // ---------------------------------------------------------------------------------------------
 // SCHEME_IDS=a,b restricts the BROWSER walks to those cards, the way OVERLAY_IDS already restricts

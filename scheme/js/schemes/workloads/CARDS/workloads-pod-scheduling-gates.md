@@ -11,8 +11,9 @@ LAYOUT   A THRESHOLD, and it takes no A / B / C preset: with neither a ladder no
          category on that footing (WL.L-06). The subject is one line a Pod is on the wrong side of,
          so the canvas is TWO tiers and not the three or more every other card in this section
          carries. `kin.mjs --id` is where that count is read, per card and fresh.
-           actors   API 460..740 at 40..120, centred on WL.SPINE_X (WL.L-07), and the Controller
-                    860..1140 on the same row, ending on WL.R with a 120 gap to the API
+           actors   API 484..716 at 40..120, the family actor width, centred on WL.SPINE_X
+                    (WL.L-07), and the Controller 908..1140 on the same row, ending on WL.R with
+                    a 192 gap to the API
            floor    ONE band at 340..420, holding all four of the other bodies at h 80:
                     Pod 60..300, gateA 420..600, gateB 600..780, Scheduler 900..1140
            chips    two rows of two, 532 wide, 60..592 and 608..1140, at 500..534 and 542..576
@@ -54,19 +55,21 @@ SIZES    Measured at 1100x800, the deepest and narrowest of the set.
          tightest cell keeps 38.45 either side. `removed from the list` is the widest string a gate
          takes at 128.8 and leaves 25.6 inside gateB, the tightest clearance on the card.
          The Pod is 240 against `no Node assigned` at 98.2, the queue 240 against `filters and
-         scores from here` at 171.8, the writer 280 against `writes the gates at admission` at
-         177.9.
+         scores from here` at 171.8, the API 232 against `writes the gates at admission` at
+         177.9, which leaves 27 either side.
          The chips are 532 rather than the 350.7 of a three-across strip: `PodScheduled` inks 73.6
          against a `False · SchedulingGated` pill of 141.1, and `scheduler_pending_pods` 135 against
          `queue="gated"` at 79.8, so the tightest name-to-pill gap is 293 where chipfit asks for 4.
          Four across is refused outright by WL.L-05.
          The widest wire label is `POST Pod test-pod · a gate can be set only here` at 288.3,
          centred on WL.CX, so it inks 455.8..744.2 and stands 59.3 clear of the panel column and
-         115.8 clear of the Controller.
-         The Controller is 280 against `tries to put example.com/bar back` at 202.5, its widest
-         sublabel, which leaves 38.75 either side. `POSTs the Pod, two gates on it` is 184.
+         163.8 clear of the Controller. It is the one string on the card wider than the actor box
+         under it, and it clears the row it labels vertically rather than horizontally.
+         The Controller is 232 against `tries to put example.com/bar back` at 202.5, its widest
+         sublabel, which leaves 14.75 either side, the tightest box on the actor row. `POSTs the
+         Pod, two gates on it` is 184.
 LANES    SIX lanes and no relation. The top-row pair (WL.A-01) runs between the Controller and the
-         API: the request leftward on 68 from 860 to 740, the answer back on 92, and the answer is
+         API: the request leftward on 68 from 908 to 716, the answer back on 92, and the answer is
          ridden on ONE step, the refusal, which is the only thing the API ever sends back here
          (A-06). Two writes drop from the API onto the two gates, and the route runs in TWO pieces
          with the gate assembly between them.
@@ -228,7 +231,7 @@ SCOPE    The decision itself is cluster-scheduler-decision, and the last step ha
          five values all sit at or after Pending. SchedulingGated is the value BEFORE its first, and
          this card draws it as one reading among four rather than as a table.
 OPEN     THE BAND BETWEEN THE WRITER AND THE FLOOR CARRIES THE TWO DROPS AND NOTHING ELSE.
-         120..340 is 220 units deep, and right of the panel column it is empty from x=740 to x=1140
+         120..340 is 220 units deep, and right of the panel column it is empty from x=716 to x=1140
          on every step and every viewport. The Controller above it fills the actor row to `WL.R`, so
          the band reads as the gap under a full row rather than as a hole beside a lone box.
          It stays open on three measurements. The depth is what the drops are made of: at a floor of

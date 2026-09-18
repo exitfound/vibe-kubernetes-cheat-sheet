@@ -14,8 +14,9 @@ LAYOUT   THREE PARALLEL PROBE LANES, and no A / B / C preset. This card was the 
          workloads-poststart-prestop-hooks and workloads-graceful-shutdown. The lever taken instead
          is THREE OR MORE RELATIONSHIP LINES, which this section had never used and the catalog uses
          on 10 cards.
-           actors  Kubelet 460..740 at 40..120, centred on CX so the middle lane leaves a face
-                   midpoint (WL.L-07). EndpointSlice 850..1060, right-aligned on the NODE FRAME
+           actors  Kubelet 484..716 at 40..120, the family actor width, centred on CX so the
+                   middle lane leaves a face midpoint (WL.L-07). EndpointSlice 850..1060,
+                   right-aligned on the NODE FRAME
            chips   LEFT, 140..450 at 276..436, four rows of CHIP_H on an 8 gap
            lanes   528 / 600 / 672, from the Kubelet bottom face to the Node frame top face
            node    920 wide at 140..1060, y 476..616, Pod 370..830 at 498..594, app 450..750

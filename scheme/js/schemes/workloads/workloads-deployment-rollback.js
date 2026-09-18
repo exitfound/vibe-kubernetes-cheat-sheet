@@ -10,7 +10,7 @@ const PANEL_B = 230;
 
 // The owner, alone on the actor row. WL.L-07 needs the trunk to leave a face midpoint, so the box
 // is centred on WL.SPINE_X. Its SUBLABEL carries the live .spec.template and turns over per step.
-const DEP_W = 300, DEP_X = WL.CX - DEP_W / 2;            // 450..750
+const DEP_W = 232, DEP_X = WL.CX - DEP_W / 2;            // 484..716, the family object width
 
 // The delivery band: one rail under the owner and four taps down to the objects. Every write this
 // card draws lands on a ReplicaSet, so the rail feeds the SHELF and never the register below it.
@@ -45,7 +45,7 @@ const LANE = i => [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, RAIL_Y], [SLOT_CX(i
 // and enters that box on its LEFT face midpoint, where nothing else on the card arrives. A-03 asks
 // for a lane of its own and WL.LANE_DY is not enough of one here, which the record LANES block
 // measures. Drawn on `undo` alone, or its head would point at the Deployment with nothing riding it.
-const READ_X = 425;              // 28.5 clear of the widest panel, 25 of DEP_X, 175 of the trunk
+const READ_X = 425;              // 28.5 clear of the widest panel, 59 of DEP_X, 175 of the trunk
 const READ_CY = WL.TOP_Y + WL.BOX_H / 2;                 // 80, the owner's left face midpoint
 const READ = [[READ_X, RS_Y], [READ_X, READ_CY], [DEP_X, READ_CY]];
 

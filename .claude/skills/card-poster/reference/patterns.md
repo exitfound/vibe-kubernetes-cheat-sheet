@@ -9,8 +9,12 @@ is here is the vocabulary the rules leave open: which composition says which kin
 its rhythm is built, and how it fails.
 
 **How to use it.** Write the sentence first, in words, then pick the family that says that KIND of
-sentence, then place the accent. A poster fails when the family is chosen first and the sentence is
-bent to fit it.
+sentence, then pick the MARKS from the glyph vocabulary near the bottom of this file, then place the
+accent. A poster fails when the family is chosen first and the sentence is bent to fit it.
+
+**The family is only half of a poster and it is the half that gets all the attention.** Two posters
+in the same family look nothing alike when their blocks are furnished differently, and two posters
+in different families look identical when both are four empty outlines. See **Glyph vocabulary**.
 
 | Family | The sentence it says | Open these |
 |---|---|---|
@@ -28,7 +32,7 @@ bent to fit it.
 | Segmented budget bar | one capacity, divided | `cluster-node-allocatable` |
 | Flatline into a wait | a signal stops, and what follows is mostly waiting | `cluster-node-failure` |
 | Gauge columns | a proportion consumed | `cluster-cpu-throttling` |
-| Fan | one source to many, or many into one | `storage-projected-volume`, `storage-configmap-secret-mount`, `network-cni-invocation` |
+| Fan | one source to many, or many into one | `storage-projected-volume`, `storage-configmap-secret-mount` |
 | The break | something snaps, is crossed out, or is refused | `cluster-oom-kill`, `storage-multi-attach-error` |
 | The wall | two things exist and one cannot reach the other | `cluster-node-registration` |
 | Rank ladder | several things are ordered, and the order decides | `cluster-pod-priority-preemption` |
@@ -331,6 +335,60 @@ lighter one.
 
 ---
 
+## Glyph vocabulary
+
+The family says how the elements are ARRANGED. This section says what the elements are MADE OF, and
+it is the axis that decides whether a category reads as designed or as one drawing repeated.
+
+**Measured 2026-09-11, and the first surprise is how small the alphabet is.** Across the 60
+reference posters, 5 carry an arc, 2 carry a jagged trace, 6 carry a circle and 2 carry a polyline.
+Everything else is rectangles, straight lines, dashes and one heavy stroke. So the cure for a dull
+poster is NEVER a more exotic shape. A poster assembled out of unusual marks is the bag-of-mismatched-details
+failure, which is a worse picture than the dull one it replaced. Two things separate the
+reference set from the weak categories, and both are boring:
+
+1. **Ink.** The reference set lands a mark at 0.55 or brighter on 57 of its 60 posters. Storage does
+   it on 0 of 31, and its brightest mark anywhere in the category is 0.20. `poster-lint.mjs` now
+   fails a poster under that line (`R-03b`), and that one line is most of the gap.
+2. **Interior furniture.** The reference median is 4 marks sitting INSIDE a larger block. Storage's
+   median is 1, and 12 of its 31 posters have none at all. A block with nothing in it is a
+   silhouette, and four silhouettes is the same poster every category already drew. The furniture is
+   what makes a Node frame read as a Node holding Pods rather than as a rounded rectangle.
+
+   This is deliberately not a lint check. 6 of the 60 reference posters carry no furniture and are
+   right to (a ring of states, a hub of circles, a bare fan). It is a question to ask, not a rule.
+
+### What the mark says
+
+Pick the mark from the KIND of claim, not from what the component looks like in real life. A
+PersistentVolume is not obliged to be a cylinder, and drawing it as one three cards in a row is how
+storage lost its variety.
+
+| The claim is about | The mark | In use |
+|---|---|---|
+| a quantity held or consumed | a bar inside a frame, or a column of them | `cluster-node-allocatable`, `cluster-cpu-throttling` |
+| a proportion of one capacity | one long bar cut into segments | `workloads-pod-resize` |
+| a value over time | a jagged trace that ends flat | `workloads-pod-lifecycle-phases`, `cluster-node-failure` |
+| a fixed order | a stack, or a ladder of rungs that shorten | `workloads-termination-order`, `cluster-pod-priority-preemption` |
+| a cycle with no end | an arc or a broken ring | `workloads-rolling-update`, `cluster-kubelet-reconcile-loop` |
+| belonging, scope, ownership | a frame around the thing, with the thing furnished | `cluster-static-pods`, `workloads-pod-lifecycle-phases` |
+| not real yet, leaving, optional | the same shape at `stroke-dasharray="4 3"` | 46 of the 60 reference posters |
+| refusal, death, a snap | two crossing lines, or a jag through a frame | `cluster-oom-kill`, `storage-multi-attach-error` |
+| a population rather than an object | a field of slivers, a dozen of them | `cluster-list-watch-informers` |
+| a roster, a list, a record | three or four short bars stacked inside a block | `cluster-node-conditions` |
+| the one that matters | a `fill="currentColor"` bar at 0.9 inside its block | `R-07`, everywhere |
+
+### The three questions this section exists to force
+
+- **What is inside each block?** If the honest answer is "nothing", the poster is a set of
+  silhouettes and the family is carrying the whole picture on its own.
+- **Does the mark say the claim, or does it say the component?** A cylinder for a disk, a cloud for a
+  registry and a circle for a controller are pictures of NOUNS. The poster has to say a VERB.
+- **Which single mark is at full brightness?** If the answer is none, the poster will fail `R-03b`
+  and, more to the point, a reader's eye will land nowhere.
+
+---
+
 ## Choosing
 
 Ask, in this order:
@@ -339,9 +397,12 @@ Ask, in this order:
 2. Is the sentence about **structure** (hub, nesting, layers, zones, held object, wall), **sequence**
    (chain, ring, branch, fan) or **quantity** (budget bar, gauge, rank ladder)? That answers the
    family in one step.
-3. What is the subject of the sentence? That gets the accent, and only that.
-4. What does the sibling on each side look like? Open `montage.mjs` before drawing: if a neighbour
-   already uses that family, either differentiate the rhythm or pick the next family.
+3. What KIND of claim is it, and what mark says that kind? Read **Glyph vocabulary**, and answer
+   what goes inside each block while you are there. This is the step that gets skipped.
+4. What is the subject of the sentence? That gets the accent, at full brightness, and only that.
+5. What does the sibling on each side look like? `poster-lint.mjs <card-id>` answers this as `R-05`
+   by comparing silhouettes, and `montage.mjs <card-id>` shows you the two. If a neighbour already
+   uses that family, either differentiate the rhythm or pick the next family.
 
 ## Combinations that already failed here
 
@@ -352,5 +413,12 @@ Ask, in this order:
 - A packet dot frozen on a wire (`R-09`): it reads as a paused animation, not as traffic.
 - An arrowhead used to say a direction that the composition could have said (`R-08`).
 - More than one accent (`R-07`): with three bright things, none of them is bright.
+- NO bright thing at all (`R-03b`). A drawing that tops out at 10 percent white reads as absent on
+  the grid however correct its composition is, and it is the single most common defect in the
+  catalog: 44 of the 71 non-reference posters fail this line.
+- Blocks left as empty outlines. Four silhouettes is a poster every category has already drawn, and
+  the furniture inside them is what makes this one this one. See **Glyph vocabulary**.
+- Reaching for an unusual shape to cure a dull poster. The reference set has 3 arcs and 1 trace in
+  60 posters: the cure is ink and furniture, not a new glyph.
 - A barrier bar laid DOWN instead of standing up. Under the thing it blocks it reads as a shelf
   that thing is standing on, and on a frame's top edge it reads as a lid. See **The wall**.

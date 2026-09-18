@@ -8,7 +8,7 @@ WHAT     A Job that succeeded is still an object, and a TTL clock started at its
 LAYOUT   An object stack read top to bottom, and NOT the A / B / C column preset. There is no ladder
          and no flanking chip column here, so A / B / C have nothing to choose between, which is the
          case WL.L-06 counts over this category.
-           actors   40..120, API 460..740 centred on CX, ttl-after-finished 840..1140 on WL.R
+           actors   40..120, API 484..716 centred on CX, ttl-after-finished 908..1140 on WL.R
            Job      176..256, 420..780, the object the whole card is about
            Node     312..464 full width, two Pods 170..550 and 650..1030 at 336..442
            chips    492..610, SIX chips two per row at 532, three rows
@@ -38,12 +38,12 @@ SIZES    The chip strip is 532 wide against a longest name of `spec.ttlSecondsAf
          longest value of `Complete · delete issued`. Together they take 358.3 of the 508 a chip
          leaves between its 12 unit insets, and the worst reading is 1600x1000 rather than the
          narrowest viewport, so `extents.mjs` is asked for all three before a string here grows. The
-         actor row is 280 and 300 rather than one width: the API label is one word over a sublabel
-         of `keeps the objects`, 107 at its widest, and the controller carries
-         `kube-controller-manager`, which measures 144.8 at its widest. Both readings are at
-         1280x860, which is the widest viewport for this row and not for the chip strip above it.
-         The controller takes the wider box and is right-aligned on WL.R where the chip strip also
-         ends.
+         actor row is the family width 232 on both boxes, so the two actors read as one row: the
+         API label is one word over a sublabel of `keeps the objects`, 107 at its widest, and the
+         controller carries `kube-controller-manager`, which measures 144.8 at its widest, inside
+         the 208 a 232 box leaves between its 12 unit insets. Both readings are at 1280x860, which
+         is the widest viewport for this row and not for the chip strip above it. The controller is
+         right-aligned on WL.R where the chip strip also ends.
          The Pods are 380 wide with a 100 gap, so the pair spans 170..1030 and centres on CX. The
          frame keeps the WL.L-02 full width, so the content bbox centres on CX by construction.
 LANES    Two corridors on ONE spine at WL.SPINE_X, and they are not the same shape.
