@@ -159,8 +159,8 @@ test('palette across every step (report only, never fails)', async () => {
   const bad = conflicts(union);
   // A conflict whose SECOND and later colours come only from played samples is the sampling
   // artefact the original avoided by running under reducedMotion: the kit pulse animates the stroke
-  // from tint.base to tint.bright with fill forwards, enterStep freezes it at its first keyframe, so
-  // a lit element reads back as resting. Separating the two is the difference between a card
+  // from the rect's own stroke to tint.bright, enterStep freezes it at its first keyframe, so a lit
+  // element reads back as resting. Separating the two is the difference between a card
   // finding and a note about this file.
   const playedOnly = bad.filter(([, byColour]) =>
     [...byColour.values()].slice(1).every(sites => sites.every(s => s.includes('@played'))));

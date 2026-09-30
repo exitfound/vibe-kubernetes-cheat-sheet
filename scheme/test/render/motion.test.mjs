@@ -68,7 +68,7 @@
 // WHAT STAYS WITH A PERSON, and why (the other 24 rows of M):
 //   M-04  pulse is brightness and never scale: a scale would be visible in the keyframes, but the
 //         rule is about a composition clash a probe cannot judge.
-//   M-05  the pulse base equals the Pod's resting stroke: a colour question, palette.test.mjs's job.
+//   M-05  the pulse returns to the rect's own stroke: a colour question, palette.test.mjs's job.
 //   M-07  a DIM Pod needs pulsePodDim: whether a blink is VISIBLE against 0.55 is a perception call.
 //   M-10  a packet must represent traffic the step narrates: needs the narration read against the
 //         picture. This is the single most valuable row in the block and the least mechanisable.
@@ -171,8 +171,63 @@ const EXPECTED_TIMERS = floor(555);     // the 1ms deferred timers of lightBoxAt
 const PACING = new Map([
   ['network-service-clusterip',    { speed: 8, clamp: 0 }],
   ['network-ipam-pod-cidr',        { speed: 6, clamp: 3 }],
-  ['storage-csi-capacity-tracking',{ speed: 6, clamp: 0 }],
+  // storage-csi-capacity-tracking was on this list at speed 6 and is off it: its redesign rides
+  // routeDur on every ball.
   ['storage-fsgroup-ownership',    { speed: 3, clamp: 1 }],
+  // Seven balls over three steps, each tagged with the object, the file or the version it carries.
+  // Every one rides its own length at ONE speed, 0.14 units per ms, rather than routeDur, which
+  // clamps the 102 unit watch leg and the 266 unit write to the same 700ms floor. Justified at the
+  // call site.
+  ['storage-configmap-secret-mount', { speed: 7, clamp: 0 }],
+  // storage-projected-volume was on this list at speed 9 and is off it: every one of its thirteen
+  // balls now rides routeDur, which puts all three lane lengths on the 700ms floor.
+  // Nine balls over six steps, each tagged with the call or the file it carries: the 48 to 212
+  // unit legs ride LEG_DUR 1500 rather than routeDur, where most sit on the 700ms floor and the
+  // tag retires unread. Justified at the call site.
+  ['storage-csi-ephemeral-volume', { speed: 9, clamp: 0 }],
+  // storage-csidriver was on this list at speed 6 and is off it: every one of its six balls now
+  // rides routeDur, which puts both lane lengths on the 700ms floor, as on storage-emptydir.
+  // Six balls over five steps, each tagged with the version it carries: the 84 to 458 unit legs
+  // ride LEG_DUR 1500 rather than routeDur, where the two writer legs sit on the 700ms floor and
+  // the tag retires unread. Justified at the call site.
+  ['storage-subpath',              { speed: 6, clamp: 0 }],
+  // storage-image-volume was on this list at speed 5 and is off it: every one of its five balls now
+  // rides routeDur, which puts all five leg lengths on the 700ms floor.
+  // Five tagged balls over four steps: the 100 unit mount lanes sit on the 700ms floor, and every
+  // ball rides LEG_DUR 580, 20 percent faster than that floor and under it, on request (M-13).
+  ['storage-volume-model',         { speed: 5, clamp: 5 }],
+  // Four tagged writes over four steps, each tagged with the file it writes: the 224 unit legs
+  // ride LEG_DUR 1500 rather than routeDur, where every one sits on the 700ms floor and the tag
+  // retires unread. The untagged drop to the Node keeps routeDur. Justified at the call site.
+  ['storage-recursive-readonly',   { speed: 4, clamp: 0 }],
+  // storage-ephemeral-storage-eviction was on this list at speed 6 and is off it: every one of its
+  // six balls now rides routeDur, which puts all three lane lengths on the 700ms floor.
+  // Five tagged balls over five steps, each tagged with the file it carries: the 52 to 316 unit grid
+  // legs ride LEG_DUR 1304 rather than routeDur, where four of them sit on the 700ms floor and the
+  // tag retires unread. The 923 unit volume shaft rides its routeDur sped up 15 percent, 1784.
+  // Justified at the call site.
+  ['storage-container-filesystem', { speed: 6, clamp: 0 }],
+  // Two tagged writes over two steps ride LEG_DUR 1200 rather than routeDur: the 132 unit leg down
+  // the mount sits on the 700ms floor otherwise and the tag retires unread. Every other ball keeps routeDur.
+  ['storage-hostpath',             { speed: 2, clamp: 0 }],
+  // Two tagged ascents over two steps, the mount and the write, each tagged with what it carries:
+  // the 70 unit leg from the claim to the Pod floor rides MOUNT_DUR 1500 rather than routeDur, where
+  // it sits on the 700ms floor and the tag retires unread. Justified at the call site.
+  ['storage-pvc-protection',       { speed: 2, clamp: 0 }],
+  // Two tagged balls over two steps, the mount into the Pod and the deny into the second claim: the
+  // 70 and 66 unit legs ride LEG_DUR 1500 rather than routeDur, where both sit on the 700ms floor and
+  // the tag, which must fade before the box it lands on, retires unread. Justified at the call site.
+  ['storage-pvc-binding',          { speed: 2, clamp: 0 }],
+  // One tagged ball, the retroactive write: the 80 unit hop from the controller into data-c rides
+  // LEG_DUR 1500 rather than routeDur, where it sits on the 700ms floor and the tag retires unread.
+  // Justified at the call site.
+  ['storage-default-storageclass', { speed: 1, clamp: 0 }],
+  // Three tagged balls over three steps, the patch and the two verdicts on the rival: the admin
+  // lane and the rival lane, 128 units each, ride SHORT_DUR 1200 rather than routeDur, where both
+  // sit on the 700ms floor and the tag retires unread. Justified at the call site.
+  ['storage-pv-reservation',       { speed: 3, clamp: 0 }],
+  // storage-volume-mode was on this list at speed 2 and is off it: its redesign carries no riding tag,
+  // and all four balls ride routeDur.
   ['network-ebpf-dataplane',       { speed: 1, clamp: 0 }],
   // The three creation balls share the longest tap's duration so one parallel wave lands on one
   // beat: the two outer taps ARE their own routeDur, so only the middle one deviates, once per
@@ -241,6 +296,10 @@ const PACING = new Map([
   // The two data routes are long enough to take the canon speed and carry no dur. Justified at the
   // call site.
   ['network-headless-service', { speed: 8, clamp: 8 }],
+  // Four balls over four steps: the TAGGED 130 unit query leg rides LEG_DUR 1200 rather than the
+  // 700ms floor its length clamps to, because the tag has to lead its ball over both block tops and
+  // is gone before it can be read at the floor. Justified at the call site.
+  ['network-dns-records', { speed: 4, clamp: 0 }],
   // Every ball on this card carries an explicit dur, eight over six steps: the five 100 unit poll
   // legs and the three 132 unit write hops all ride HOP_MS 595 rather than the 700ms floor their
   // lengths clamp to, where they ran 0.143 and 0.189 u/ms against the 0.45 canon and read as
@@ -499,8 +558,8 @@ test('the explicit-dur registry has no dead and no under-sized entries', FULL_ON
 });
 
 test('PULSE-TOGETHER: a Pod blinks with everything inside it (M-03, reported)', (t) => {
-  // Reported with a ceiling rather than asserted to zero. The two findings are real and neither is
-  // written down in the card record, but closing them is a card change and this file only measures.
+  // Reported with a ceiling rather than asserted to zero. The two findings are deliberate and argued
+  // as NOT A DEFECT in that card's record (see WHOLE_POD above), so this file only measures them.
   // The ceiling is per card, so a NEW one anywhere is red while fixing one of these is not.
   const byCard = new Map();
   for (const line of together) {

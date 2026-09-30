@@ -73,9 +73,9 @@ MOTION   Three things move the bar: `enter` pins the web-v1 rect width on BOTH p
          Each tag is readable from the moment its ball leaves, and stands on the side of the ball
          AWAY from the face it heads for: `traffic: test` 62 left of and 14 UNDER its ball, so it
          clears the Client bottom at departure, `HTTP 500` 50 right of and 14 OVER its ball, so it
-         clears the Gateway top. Hold -400 retires each one 400 before arrival, 62.6 units short of
-         the face it is heading for, so neither string is ever drawn over a block or struck by its
-         own lane.
+         clears the Gateway top. Each lives exactly as long as its segment ball (M-30a): out over
+         the 100ms after arrival (`inMs: 100, outMs: 100, hold: 0`), so it reaches the face it is
+         heading for with the ball, which is accepted.
 WIRE LABELS
          `r1Label`, `w1Label` and `w2Label` sit 6 above their bars and carry the weights per step,
          `web-v1 · 1` and `web-v2 · not listed` before web-v2 is named. `r1Label` reads

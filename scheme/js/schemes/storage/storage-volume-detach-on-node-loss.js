@@ -1,10 +1,9 @@
-import { P, F, defineCard, BEAT, FADE, OPACITY } from './storage-kit.js';
-// Design notes for this card: ./CARDS.md#storage-volume-detach-on-node-loss
+import { P, F, defineCard, BEAT, FADE, OPACITY, makeRidingLabel } from './storage-kit.js';
+// Design notes for this card: ./CARDS/storage-volume-detach-on-node-loss.md
 
 
-// The panel wall, ~2 units of slack against a measured 398.29. LAD_Y 448 clears the deepest SAMPLED
-// bottom of 329.20 by 119, and does not clear the 497.86 the evict step reaches at 900x650, so the
-// bottom band is the tier a longer narration takes out first.
+// The panel wall, ~2 units of slack against a measured 398.29. LAD_Y 448 clears the 436.3 the evict step
+// reaches at 900x650 by 11.7, so the bottom band is the tier a longer narration takes out first.
 const LEFT_X = 400;
 
 const NODE_Y = 48, NODE_H = 160;
@@ -17,7 +16,10 @@ const B_X = A_X + NODE_W + NODE_GAP;                     // 608, node-2 frame
 const CONTENT_CX = A_X + (NODE_W * 2 + NODE_GAP) / 2;    // 600: canvas center, every tier uses it
 const NODE_BOTTOM = NODE_Y + NODE_H;                     // 208, where the attach lanes terminate
 
-const POD_Y = 76, POD_W = NODE_W - NODE_PAD * 2, POD_H = 104;   // 168 wide, family two-column height
+// The Pod is the catalog 104 tall around a 44 tall app box 26 under its label (NET.L-01), but only as
+// wide as its node column leaves: two 232 columns from the panel wall would centre on 652.
+const POD_Y = 76, POD_W = NODE_W - NODE_PAD * 2, POD_H = 104;   // 168 wide
+const APP_W = POD_W - 40, APP_H = 44, APP_DY = 26;              // 128 wide, the catalog 20 unit side pads
 const A_CX = A_X + NODE_W / 2;                           // 496, node-1 centre
 const B_CX = B_X + NODE_W / 2;                           // 704, and (496 + 704) / 2 == CONTENT_CX
 
@@ -40,9 +42,9 @@ const CHIPS_Y = 598;
 
 const LAD_X = M, LAD_Y = 448, LAD_W = 380, LAD_ROW = 38, LAD_GAP = 9;
 const LAD_BOTTOM = LAD_Y + LAD_ROW * 3 + LAD_GAP * 2;    // 580
-const ESC_W = 230, ESC_H = 72;
-const ESC_X = CONTENT_CX - ESC_W / 2;                    // 485
-const ESC_Y = LAD_Y + (LAD_BOTTOM - LAD_Y - ESC_H) / 2;  // 478, vertically centered on the ladder
+const ESC_W = 232, ESC_H = 80;                           // the catalog actor block (NET.L-01)
+const ESC_X = CONTENT_CX - ESC_W / 2;                    // 484
+const ESC_Y = LAD_Y + (LAD_BOTTOM - LAD_Y - ESC_H) / 2;  // 474, vertically centered on the ladder
 const ESC_CX = CONTENT_CX;                               // on the spine, under the disk it acts on
 const ESC_TOP = ESC_Y;
 // T-35: the counterfactual caption, in the gap above the escape box. Right of the spine so the
@@ -56,12 +58,16 @@ const W_ATTACH_B = [[CONTENT_CX + LANE, DK_TOP], [CONTENT_CX + LANE, CORRIDOR_Y]
 const DK_BOTTOM = DK_Y + DK_H;                              // 386
 // The taint arrives from directly below, on the spine, so it needs no elbow and crosses nothing.
 const W_TAINT = [[ESC_CX, ESC_TOP], [ESC_CX, DK_BOTTOM]];
+// The taint tag rides LEFT of its lane, clear of the branch caption that starts 20 right of it, and
+// 22 UNDER its ball, so it parks under the disk floor rather than inside the disk. It leaves the escape
+// box top, so it fades in once clear of it (./CARDS/storage-volume-detach-on-node-loss.md).
+const TAINT_TAG = { dx: -51, dy: 22, fn: makeRidingLabel({ role: 'storage', emergeMode: true }), emerge: 250 };
 
 
 // The two Pods differ only in x, name and sublabel: same shell, same inner box, same footprint.
 const podBlock = ({ key, shellKey, innerKey, x, label, sublabel, opacity }) => P.pod({
   key, shellKey, innerKey, x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0,
-  inner: { dx: 14, dy: 30, w: POD_W - 28, h: 44, label: 'app', sublabel: 'writes PV web' },
+  inner: { dx: (POD_W - APP_W) / 2, dy: APP_DY, w: APP_W, h: APP_H, label: 'app', sublabel: 'writes PV web' },
   opacity,
 });
 
@@ -132,8 +138,8 @@ export const STEPS_SPEC = [
     narration: 'Node-1 stops answering. Its Kubelet goes silent and the Node is marked NotReady, but there is no word from Node-1 about whether the old Pod actually stopped. It might be dead. It might be a network blip with the Pod still writing.',
     chipsCued: chips('NotReady', 'attached to Node-1', 'not created'),
     podSublabels: pods('status unknown', 'Pending'),
-    // Node-2 stays empty: nothing can create a second web-0 while the first is still a live object
-    // with no deletionTimestamp. The replacement appears on the evict step, which writes it.
+    // Node-2 stays empty: a ReplicaSet replaces a Pod only once it carries a deletionTimestamp, so the
+    // replacement appears on the evict step, which writes it.
     opacity: { oldPod: 1, newPod: 0, wAttachA: 1, wAttachB: 0, wTaint: 0 },
     lit: ['disk'],
     chain: -1,
@@ -143,7 +149,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'refuse',
-    duration: 2800,
+    duration: 3800,
     narration: 'So Kubernetes refuses to detach the disk. Notice what it is not waiting on: no other Pod holds the volume and nothing is contending for it. It is waiting on doubt. Pull PV web off Node-1 while the old Pod might still be writing and two Nodes write one filesystem, which corrupts it. Refusing is the safe answer to a question that cannot be answered.',
     chipsCued: chips('NotReady', 'held on Node-1', 'not created'),
     podSublabels: pods('may still write', 'Pending'),
@@ -157,8 +163,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'evict',
-    duration: 2600,
-    narration: 'The clocks start. First the eviction wait: Node-1 takes the unreachable taint, and the old Pod tolerates that for 300 seconds by default before it is marked for deletion. On a reachable Node that would delete the Pod cleanly and release the volume. On an unreachable Node the deletion cannot be confirmed, so the disk is still held. That same deletion mark is what finally lets a replacement be created on Node-2, where it sits in ContainerCreating waiting for a disk it cannot have.',
+    duration: 4200,
+    narration: 'The clocks start. Node-1 takes the unreachable taint, and the old Pod tolerates it for 300 seconds by default before it is marked for deletion. On a reachable Node that deletes the Pod and frees the volume. Here the deletion cannot be confirmed, so the disk stays held, but the mark lets the Deployment create a replacement on Node-2, stuck in ContainerCreating waiting for that disk.',
     chipsCued: chips('NotReady', 'held on Node-1', 'ContainerCreating'),
     podSublabels: pods('marked for deletion', 'ContainerCreating'),
     wires: { disk: 'still held' },
@@ -180,8 +186,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'forcedetach',
-    duration: 2800,
-    narration: 'Then the force-detach timeout, roughly six minutes after that Pod deletion fails to complete. At that point Kubernetes gives up waiting for Node-1 and rips the attachment away, on the assumption that after this long the old Pod cannot still be running. Only now is the disk free.',
+    duration: 3300,
+    narration: 'Then the force-detach timeout, roughly six minutes after that Pod deletion fails to complete. Unless it is disabled in the controller manager, Kubernetes then gives up waiting for Node-1 and rips the attachment away, assuming the old Pod cannot still be running after this long. Only now is the disk free.',
     chipsCued: chips('NotReady', 'force-detached', 'ContainerCreating'),
     podSublabels: pods('assumed gone', 'ContainerCreating'),
     wires: { disk: 'force-detach' },
@@ -221,8 +227,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'escape',
-    duration: 3200,
-    narration: 'If an operator knows the Node is really dead, waiting out both clocks is wasted downtime. Non-graceful node shutdown is the escape hatch: tainting the Node out-of-service tells Kubernetes to stop assuming the Pod might live, so it deletes the Pod and detaches the volume at once. The safety wait exists for uncertainty, and the taint is how you remove the uncertainty by hand.',
+    duration: 3900,
+    narration: 'If an operator knows the Node is really dead, both clocks are wasted downtime. Tainting it out-of-service, the non-graceful shutdown escape hatch, tells Kubernetes to stop assuming the Pod might live, so it deletes the Pod and detaches the volume at once. A StatefulSet needs this most: its replacement cannot even be created while the old Pod keeps the name.',
     chipsCued: chips('NotReady, tainted', 'detached at once', 'Running'),
     podSublabels: pods('deleted by taint', 'Running'),
     wires: { disk: 'skip the wait', branch: 'if instead the taint lands first' },
@@ -237,7 +243,7 @@ export const STEPS_SPEC = [
     flow: [
       F.fade({ target: 'wTaint', from: 0, to: 1, dur: 300, fill: 'forwards', easing: 'ease-out' }),
       F.route({ points: W_TAINT, delay: BEAT.lead, name: 'taint' }),
-      F.tag({ text: 'out-of-service', points: W_TAINT, delay: BEAT.lead }),
+      F.tag({ text: 'out-of-service', points: W_TAINT, delay: BEAT.lead, ...TAINT_TAG }),
       F.light({ targets: ['disk'], at: 'taint' }),
     ],
   },

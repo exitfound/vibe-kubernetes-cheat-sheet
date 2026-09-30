@@ -42,10 +42,10 @@ LANES    REQ, ANSWER and TO_POD are the lanes, and each is ridden. REQ and ANSWE
          stands at full opacity on every step: an object not yet created is pending, and the grant says
          `not created yet` in its sublabel rather than through a shaded line.
 MOTION   Both tagged legs ride LEG_DUR 1500 (PACING in `render/motion.test.mjs`): at the 700 floor a
-         tag that has to clear the face it leaves and retire before the face it heads for is readable
-         for under half a second. `HTTP 500` emerges 230 after departure and retires with hold -400,
-         `to 10.244.1.5` emerges 360 in and retires with hold -530, neither inking over a block on the
-         1100x800 and 1600x1000 frames. The Service lights LOOKUP_MS 400 into the proxy pulse, as the
+         tag is readable for under half a second. Both tags live exactly as long as their segment
+         ball (M-30a): in over the 100ms before departure, out over the 100ms after arrival
+         (`inMs: 100, outMs: 100, hold: 0`), so each crosses the face it leaves and the face it
+         lands on for a moment, which is accepted. The Service lights LOOKUP_MS 400 into the proxy pulse, as the
          lookup that picks the endpoint. No ball carries a status. Every condition chip turns over
          STATUS_MS 800 after the change that causes it, through rewind plus an F.set, so the cause
          reads first. `platform` chains the class turnover at 800 and the Gateway reveal at 1200,

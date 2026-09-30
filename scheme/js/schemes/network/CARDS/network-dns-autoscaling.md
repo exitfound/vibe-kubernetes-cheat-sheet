@@ -74,7 +74,7 @@ MOTION   Eight balls, all with an explicit `dur` of HOP_MS 595, and `render/moti
          replica row from 6 to 5.
          `params` is the one READING-bound step and its 3900 is bought by prose, not by motion: 388
          characters against a span of 1955, so the narration and not the motion sets the hold. The
-         other six run 11.1 to 15.4 ms per character with no help. Do not close the resulting 64
+         other six run 10.1 to 15.4 ms per character with no help. Do not close the resulting 64
          percent still time by cutting the narration: those are the sentences that separate what the
          manifest PASSES from what the ConfigMap holds.
 WIRE LABELS
@@ -157,6 +157,26 @@ CONTENT  Every value is read against k8s 1.35 off one of two primary sources, bo
          the README comparison section, `The actual CPU or memory utilization of the target
          controller pods is not an input to the control loop, the sole inputs are number of
          schedulable cores and nodes in the cluster`.
+         THE AUTOSCALER IS OPT-IN, so the `desc` says `When enabled`, the `aria-label` `where it is
+         enabled` and `poll` `When DNS autoscaling is enabled` (`T-23`). The task page is written
+         around enabling it, `If you see "kube-dns-autoscaler" in the output, DNS horizontal
+         autoscaling is already enabled`, and then creates the Deployment itself. A bare `A separate
+         kube-dns-autoscaler Deployment polls` is rejected: it reads as a component of every
+         cluster, and a cluster without it keeps whatever replica count the CoreDNS Deployment sets.
+         The README details are read against the upstream source as well as the README, because the
+         card leans on them. `ladderParams` holds exactly `coresToReplicas`, `nodesToReplicas` and
+         `includeUnschedulableNodes`, which is what the two `absent` chips on `ladder` rest on.
+         `parseParams` in the linear controller sets `min` to 1 when it is 0 or unset, which is the
+         `1 by default` chip and `A ladder may name 0 replicas, which linear may not`.
+         The source applies `min` and `max` to EACH axis before taking the larger, and
+         `preventSinglePointFailure` lifts the nodes axis to 2 when the counted nodes exceed one. On
+         every input this card draws that gives the same number as the task page equation followed
+         by the clamps, since no `max` is set, so `floor` keeps the task page order. A card that ever
+         sets a `max` has to re-read this: the source does not cap the single-point-failure floor.
+         The node count comes from a node informer (`list, watch nodes` in the ClusterRole) that the
+         loop reads every poll period, and the cores are the sum of `status.allocatable` cpu. `polls
+         the API server` is the task page wording, `An autoscaler Pod runs a client that polls the
+         Kubernetes API server for the number of nodes and cores`, and is kept.
 BUDGET   Nine lines at 1100x800 on `params`, 388 characters, reading 294.23. The meter band opens at
          368, so a tenth line is about 25 units and there is room for two more before a narration
          starts moving the meters. Re-measure after any prose edit: this card's clearance is spent

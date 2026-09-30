@@ -40,7 +40,7 @@ sentence read better: re-measure, or the assertion goes red.
 | `cluster-kit.js` | the tint, the two pulse wrappers, the `CLU` grammar and the `LAYOUT` presets. Everything else is re-exported from `lib/scheme-kit.js` |
 | `cluster-*.js` | one module per card, 28 of them |
 | `CARDS.md` | the record preamble and its index, and no `## ` heading of its own |
-| `CARDS/<id>.md` | the design record for ONE card, a single `### layout` block of labelled notes and no other heading, which `S-51` states and `test:docs/G1` holds. This category, `workloads/` and `network/` are the three in the split shape, and `recordFiles` in `test/fixtures/catalog.mjs` reads that shape off the tree rather than off a list of category names, so `storage/` on the monolith is walked by the same code and is not a special case |
+| `CARDS/<id>.md` | the design record for ONE card, a single `### layout` block of labelled notes and no other heading, which `S-51` states and `test:docs/G1` holds. All four categories are in the split shape, and `recordFiles` in `test/fixtures/catalog.mjs` reads that shape off the tree rather than off a list of category names, so no category is a special case |
 
 Nothing else may live here (`S-20`). A card reaches `./cluster-kit.js` and no further (`S-21`): all
 28 import the kit, 4 also import `lib/svg.js` and 1 `lib/primitives.js`. Those are element
@@ -70,10 +70,10 @@ same order.
 ## Tint
 
 ```js
-CLUSTER_TINT = { base: 'rgb(192, 176, 255)', bright: 'rgb(224, 214, 255)' }   // violet
+CLUSTER_TINT = { bright: 'rgb(224, 214, 255)' }   // violet
 ```
 
-`base` is the Pod's resting stroke, measured under `reducedMotion` (`M-05`).
+Only the pulse peak is named: the blink ramps from and back to the rect's own stroke (`M-05`).
 
 | ID | Rule |
 |---|---|
@@ -134,7 +134,7 @@ before you touch it: a reset key here can be born in a `tune` and not in a part.
 ## The reduced path
 
 **`reducedLit` is declared on 2 steps here**, `cluster-object-create-path`'s `create-pod` and
-`cluster-node-pressure-eviction`'s `rank`, against 142 in network, 34 in workloads and 0 in storage.
+`cluster-node-pressure-eviction`'s `rank`, against 141 in network, 34 in workloads and 0 in storage.
 That is the lowest non-zero count in the catalogue, and the reason is that cluster's steps name
 their receivers in `lights:`, so `flowLights` derives most of the static path for free: **154 of the
 184 steps light something** through `lit:` or a `lights` list. One card, `cluster-node-restart`, is

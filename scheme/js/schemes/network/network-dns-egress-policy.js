@@ -56,7 +56,7 @@ const QUERY_REFUSED = [[WEB_X, Q_Y], [RING_X, Q_Y]];
 // centre reads it as the nearer cause. 252 is what buys that mirror: below 244.54 the panel takes
 // no width, so the left block may stand at 352, which is 44.55 left of what L-03 allows above it.
 // 7.46 of clearance, the floor, against the 7.34 network-pod-to-pod-cross-node closed its own
-// finding at. The panel reads 246.43 deep on every step but `fix`, so the band cannot rise.
+// finding at. The panel reads 244.54 deep on every step but `fix`, so the band cannot rise.
 const POL_Y = 252, POL_B = POL_Y + BOX_H;            // 252 .. 332
 const POL_GAP = 32;
 const EG_POL_X = WEB_CX - POL_GAP / 2 - BOX_W, EG_POL_CX = EG_POL_X + BOX_W / 2;     // 352, 468
@@ -85,9 +85,9 @@ const CAP_Y = DNS_Y + BOX_H + 20, CAP_Y2 = CAP_Y + 22;           // 546, 568
 // line as the first caption line: the two never meet, because the caption stands in the corridor
 // right of the block and this one is centred on the block itself.
 const SVC_TAG_Y = CAP_Y;                             // 546
-// The boundary names itself in its own bottom-left corner, inside the ring and under the Pod: both
-// selections come down at WEB_CX -+ 64, so the top-left corner reads as belonging to neither.
-const RING_CAP = [RING_X + 12, RING_B - 16];
+// The boundary names itself centred on the ring, inside its bottom wall and under the Pod: both
+// selections come down onto the Pod top, so the bottom is the one face no road reaches.
+const RING_CAP = [WEB_CX, RING_B - 16];
 
 const RING_INK = 'rgba(79, 229, 255, 0.6)';          // the cyan literal C-21 keeps for this category
 
@@ -115,7 +115,7 @@ const workload = (key, x, label, sublabel, inner) => P.pod({
 // them, the lanes ON TOP of the boundary so each road runs visibly through its door, then the
 // captions and the packet layer.
 export const SCENE = {
-  'aria-label': 'What a NetworkPolicy does to name resolution: a Pod that no policy selects reaches the cluster DNS Service and then the address it was given, a policy that selects that Pod for Egress allows only what its rules allow so the lookup dies on the way out while the one address the rules name still connects, an egress rule to the DNS Pods that states port 53 with no protocol opens TCP alone because protocol defaults to TCP, the same rule stating 53 UDP and 53 TCP lets the query out and the reply back in without a rule of its own, and the TCP half is what carries the retry when an answer comes back truncated.',
+  'aria-label': 'What a NetworkPolicy does to name resolution: a Pod that no policy selects reaches the cluster DNS Service and then the address it was given, a policy that selects that Pod for Egress allows only what its rules allow so the lookup dies on the way out while the one Pod the rules select still connects, an egress rule to the DNS Pods that states port 53 with no protocol opens TCP alone because protocol defaults to TCP, the same rule stating 53/UDP and 53/TCP lets the query out and the reply back in without a rule of its own, and the TCP half is what carries the retry when an answer comes back truncated.',
   parts: [
     P.defs(),
     P.box({ key: 'coredns', x: DNS_X, y: DNS_Y, w: BOX_W, h: BOX_H, label: 'CoreDNS Pods', sublabel: 'k8s-app=kube-dns' }),
@@ -141,8 +141,8 @@ export const SCENE = {
     P.lane({ points: TO_DB, dashed: true, dim: true }),
     P.tag({ x: DNS_X + BOX_W / 2, y: DNS_Y - 20, text: 'kubernetes.io/metadata.name=kube-system' }),
     P.tag({ x: DNS_X + BOX_W / 2, y: SVC_TAG_Y, text: 'behind Service kube-dns 10.96.0.10' }),
-    P.tag({ x: DB_X + WEB_W / 2, y: WEB_Y - 20, text: 'headless Service db.shop' }),
-    P.wire({ key: 'ringCap', x: RING_CAP[0], y: RING_CAP[1], anchor: 'start' }),
+    P.tag({ x: DB_X + WEB_W / 2, y: WEB_Y - 20, text: 'headless Service db in shop' }),
+    P.wire({ key: 'ringCap', x: RING_CAP[0], y: RING_CAP[1] }),
     P.wire({ key: 'dnsCap', x: DNS_CAP_CX, y: CAP_Y }),
     P.wire({ key: 'dnsCap2', x: DNS_CAP_CX, y: CAP_Y2 }),
     P.wire({ key: 'dbCap', x: DB_CAP_CX, y: CAP_Y }),
@@ -206,7 +206,7 @@ export const STEPS_SPEC = [
   {
     id: 'open',
     duration: 5200,
-    narration: 'No NetworkPolicy selects any of these Pods, so Pod web is non-isolated for egress and nothing restricts what it opens. The app looks up db.shop, the query leaves on UDP port 53 for the kube-dns Service address in resolv.conf, and the CoreDNS Pods behind that Service answer with the address of Pod db-0.',
+    narration: 'No NetworkPolicy selects any of these Pods, so Pod web is non-isolated for egress and no egress rule limits it. The app looks up db.shop, the query leaves on UDP port 53 for the kube-dns Service address in resolv.conf, and the CoreDNS Pods behind that Service answer with the address of Pod db-0.',
     ...stage({}),
     wires: { ringCap: '', ...caps(['', ''], ['', '']) },
     reducedLit: ['webBox', 'dbBox'],
@@ -236,7 +236,7 @@ export const STEPS_SPEC = [
   {
     id: 'by-ip',
     duration: 3600,
-    narration: 'Nothing else changed, which is what makes this hard to read from inside the Pod. A connection to the address of Pod db-0 on 5432 matches the one rule and goes straight out, while the same lookup dies at the boundary. Addresses still work and names do not, so the workload looks half broken rather than blocked.',
+    narration: 'Nothing else changed, which is what makes this hard to read from inside the Pod. A connection to the address of Pod db-0 on 5432 matches the one rule and goes straight out, while the same lookup dies at the boundary. The address still works and the name does not, so the workload looks half broken rather than blocked.',
     ...stage({ ring: 1, dns: 1, policies: 1 }),
     wires: { ringCap: RING_CAPTION, ...caps(NO_DNS_RULE, DB_RULE) },
     lit: ['polEgress', 'doorDns'],
@@ -270,7 +270,7 @@ export const STEPS_SPEC = [
   {
     id: 'fix',
     duration: 4400,
-    narration: 'With 53 UDP and 53 TCP both listed the query passes the boundary, the CoreDNS Pods answer, and the reply comes back without a rule of its own, because replies on an allowed connection are allowed implicitly. Policies are additive, so this rule adds to the database rule rather than replacing it.',
+    narration: 'With 53/UDP and 53/TCP both listed the query passes the boundary, the CoreDNS Pods answer, and the reply comes back without a rule of its own, because replies on an allowed connection are allowed implicitly. Policies are additive, so this rule adds to the database rule rather than replacing it.',
     ...stage({ ring: 1, policies: 2 }),
     wires: { ringCap: RING_CAPTION, ...caps(BOTH, DB_RULE) },
     sublabels: { polDns: DNS_RULE_BOTH },

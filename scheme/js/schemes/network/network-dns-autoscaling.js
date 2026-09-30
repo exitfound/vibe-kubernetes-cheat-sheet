@@ -83,7 +83,7 @@ const meters = (nodes, cores, reps) => ({
 // the Deployment frame and its replica row, then the lanes with their captions, then the chips,
 // then the packet layer so the ball rides above everything.
 export const SCENE = {
-  'aria-label': 'DNS horizontal autoscaling: a separate kube-dns-autoscaler Deployment polls the API server for the Node and core counts of the cluster and reads a parameter set from a ConfigMap, then the linear control pattern divides each count by its own per-replica figure, rounds both up and keeps the larger, clamps the result with min and with preventSinglePointFailure, and writes it to the scale subresource of the CoreDNS Deployment, so the replica row grows as the cluster grows, while the ladder pattern answers the same two counts from two step tables instead',
+  'aria-label': 'DNS horizontal autoscaling: where it is enabled, a separate kube-dns-autoscaler Deployment polls the API server for the Node and core counts of the cluster and reads a parameter set from a ConfigMap, then the linear control pattern divides each count by its own per-replica figure, rounds both up and keeps the larger, clamps the result with min and with preventSinglePointFailure, and writes it to the scale subresource of the CoreDNS Deployment, so the replica row grows as the cluster grows, while the ladder pattern answers the same two counts from two step tables instead',
   parts: [
     P.defs(),
     P.box({ key: 'api', x: BOX_X, y: API_Y, w: BOX_W, h: BOX_H, label: 'API server', sublabel: 'Node objects and their cores' }),
@@ -182,7 +182,7 @@ export const STEPS_SPEC = [
   {
     id: 'poll',
     duration: 3000,
-    narration: 'The kube-dns-autoscaler Deployment is a separate controller and no part of CoreDNS. It runs a client that polls the API server for the number of Nodes and for the cores those Nodes add up to, every 10 seconds by default. This cluster answers with 16 Nodes and 128 cores.',
+    narration: 'When DNS autoscaling is enabled, the kube-dns-autoscaler Deployment runs a separate controller, no part of CoreDNS. Its Pod runs a client that polls the API server for the number of Nodes and for the cores those Nodes add up to, every 10 seconds by default. This cluster answers with 16 Nodes and 128 cores.',
     chips: { ...UNREAD, ...SMALL, cReplicas: '-' },
     wires: { ...AXIS_IDLE, back: '16 Nodes, 128 cores' },
     opacity: meters(0, 0, 0),
@@ -218,7 +218,7 @@ export const STEPS_SPEC = [
   {
     id: 'linear',
     duration: 2900,
-    narration: 'The linear pattern reads both axes and rounds each one up. The Nodes axis gives ceil of 16 over 16, which is 1, and the cores axis gives ceil of 128 over 256, which is also 1. The equation keeps the larger of the two, so both meters read one replica.',
+    narration: 'The linear pattern reads both axes and rounds each one up. The Nodes axis gives ceil of 16 over 16, which is 1, and the cores axis gives ceil of 128 over 256, which is also 1. The equation keeps the larger of the two, which is 1 either way.',
     chips: { ...LINEAR, ...SMALL, cReplicas: '-' },
     wires: { ...READ_SMALL, back: '16 Nodes, 128 cores' },
     opacity: meters(1, 1, 0),

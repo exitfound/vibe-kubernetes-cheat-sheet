@@ -262,7 +262,8 @@ SCOPE    This card is the SECOND card of the section and the on-ramp to it: ever
          `SchedulingDisabled` in the Conditions block while `SchedulingDisabled is not a Condition
          in the Kubernetes API`. Naming it here would put a non-condition in a table of five
          conditions.
-         `storage-ephemeral-storage-eviction` already touches DiskPressure from the storage side.
+         `storage-ephemeral-storage-eviction` names DiskPressure only as the condition its Node never
+         reaches: its eviction is the per-Pod limit, and node-pressure eviction is one pointer there.
          Here DiskPressure is one row of a table and one NoSchedule taint.
          `kubectl describe node` IS NAMED WITH NO kubectl BLOCK ON THE CANVAS, unlike
          `cluster-node-drain`, which draws one. It is the reader's own command and the frame the

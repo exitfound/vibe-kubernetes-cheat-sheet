@@ -366,8 +366,8 @@ House rules for writing any of it:
   lives in the canon or the folder contract.
 - Numbers are MEASURED and fresh. A number carried over from before the change is a lie with a
   decimal point in it.
-- **The record shape is per category, and a machine holds it.** `cluster/` and `workloads/` records
-  are ONE `### layout` section holding one fenced block: no `### poster` note, no
+- **The record shape is one shape in all four categories, and a machine holds it.** A record is
+  ONE `### layout` section holding one fenced block: no `### poster` note, no
   ``### before `<line>` `` anchors, no label used twice, and no word in the label column that is
   not a label (`S-51`, `S-52`, `S-53`, held by
   `unit/docs.test.mjs` groups G1, G2 and G3, which are in `npm test`). A note that would have taken an
@@ -375,9 +375,10 @@ House rules for writing any of it:
   ON that constant (`S-34`, `S-35`). The two labels wider than the 8 column, `WIRE LABELS` and
   `NOT A DEFECT`, stand alone on their line with the prose at column 9 under them: G2 reads the
   column and rejects a label padded any other way.
-- `network/` and `storage/` still carry both. There an anchor (``### before `<line of code>` ``) is
-  DATA copied off the source verbatim (`S-38`): never reword one, replace it with the new line
-  verbatim if the anchored line changes, and never leave an anchor with an empty body.
+- No record carries an anchor or a poster note today. `S-38` still lets the walk resolve an anchor
+  (``### before `<line of code>` ``) as DATA copied off the source verbatim, but `S-51` fails the
+  gate on one in any record, so a note that wants one goes under its label instead, and a poster
+  note is the comment above that poster in `posters.js` (`R-12`).
 - No em-dashes, no semicolons in user-visible prose, and a code comment stays inside the two-line
   ceiling with anything longer moving into the record (`S-34`, `S-35`).
 

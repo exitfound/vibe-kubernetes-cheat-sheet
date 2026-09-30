@@ -49,7 +49,7 @@ LANES    Ridden: `ENTRY` on `arrive` and `forge`, `DELIVER` on `terminate`, `xff
          chosen. The length is unique in the catalog. EVERY leg rides TAG_DUR 1200 rather than the
          700ms PKT_DUR_MIN its length clamps to, so all six balls run 0.256 u/ms, just under the
          catalog median `pace.mjs` prints: inside 700 a tag cannot fade in clear of the block it
-         leaves, stand long enough to be read, and retire before the arrival ripple. No leg is an
+         leaves and stand long enough to be read before it dissolves with the ball. No leg is an
          exception, which is what keeps the two balls of `forge` from crossing the same 307 units at
          different speeds.
          No lane is dimmed on any step and no step carries an `opacity` field: every block on the
@@ -73,9 +73,10 @@ MOTION   `arrive` and `forge` send UP into the edge, where the client sends and 
          ranking `timing.mjs` prints. Still time runs 300 to 700ms, the low end of the catalog,
          which is the price of six legs each riding 1200.
 WIRE LABELS
-         One riding tag per ridden leg, and each is visible for the WHOLE flight: the fade-in opens
-         150 before its ball leaves and hold -180 closes the fade-out on the arrival, so no string
-         appears mid-leg. Full opacity runs 870ms on ENTRY and 1020ms on DELIVER, which is what the
+         One riding tag per ridden leg, and each lives exactly as long as its ball (M-30a): DELIVER
+         fades in over the 200 before its ball leaves and out over the 200 after arrival, and ENTRY,
+         whose route ball leaves at t=0 with no fade-in, shows at once (`inMs: 0`), so no string
+         appears mid-leg or leaves early. Full opacity runs 870ms on ENTRY and 1020ms on DELIVER, which is what the
          1200 leg buys: the string is readable for the whole crossing rather than a glimpse of it.
          Each rides on the side AWAY FROM THE EDGE, because a tag centred on a face prints over the
          app box inside it. ENTRY trails dx -95 at dy 14, which clears EDGE_X 484 by 20 on arrival

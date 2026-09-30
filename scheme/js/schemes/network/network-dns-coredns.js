@@ -37,8 +37,8 @@ const WATCH_X = 876;                          // between the stage column and th
 // deliberate lane pair (L-12). The answer climbing back through cache is the whole point.
 const SEAM_DX = 12;
 const SEAM_Y = midX(stB(0), ST_Y[1]) + 4;     // 404: the seam gap, the two half labels sit on it
-const FALL_LABEL_X = 660;                     // `outside the zone` inks 110, ending 25 clear of x=736
-// `watch` inks 32 and stands 16 off its own rail: on the rail the text lies across the line, and
+const FALL_LABEL_X = 660;                     // `outside the zone` inks 110, ending 21 clear of x=736
+// `watch` inks 34 and stands 15 off its own rail: on the rail the text lies across the line, and
 // far from it the caption reads as attached to nothing.
 const WATCH_LABEL_X = 844;
 const DESCENT = [[ST_CX - SEAM_DX, stB(0)], [ST_CX - SEAM_DX, ST_Y[1]]];
@@ -62,7 +62,7 @@ const chipY = (i) => stCY(i) - CH_H / 2;
 // The list order IS the append order, which is the z-order: the client Pod, the API and the three
 // stages, resolv.conf and the captions, the lanes with their labels, the readouts, then the packets.
 export const SCENE = {
-  'aria-label': 'DNS resolution via CoreDNS: the Pod resolv.conf points at the kube-dns ClusterIP, and the query enters the CoreDNS plugin chain at its first stage. Cache holds nothing for a fresh name, so the request falls down the chain to the kubernetes plugin, which answers the cluster zone from its own watch of Services and EndpointSlices on the API, and the answer climbs back up through cache, which keeps a copy, before it returns to the client',
+  'aria-label': 'DNS resolution via CoreDNS: the Pod resolv.conf points at the kube-dns ClusterIP, and the query runs down the CoreDNS plugin chain to cache, the first stage that can answer it. Cache holds nothing for a fresh name, so the request falls down the chain to the kubernetes plugin, which answers the cluster zone from its own watch of Services and EndpointSlices on the API, and the answer climbs back up through cache, which keeps a copy, before it returns to the client',
   parts: [
     P.defs(),
     P.pod({
@@ -71,7 +71,7 @@ export const SCENE = {
       inner: { dx: 20, dy: 26, w: BOX_W - 40, h: 44, label: 'app', sublabel: 'eth0' },
     }),
     P.box({ key: 'api', x: API_X, y: API_Y, w: BOX_W, h: BOX_H, label: 'API server', sublabel: 'holds Services and EndpointSlices' }),
-    P.box({ key: 'pCache', x: ST_X, y: ST_Y[0], w: BOX_W, h: BOX_H, label: 'cache', sublabel: 'first stage in the chain' }),
+    P.box({ key: 'pCache', x: ST_X, y: ST_Y[0], w: BOX_W, h: BOX_H, label: 'cache', sublabel: 'first stage that can answer' }),
     P.box({ key: 'pK8s', x: ST_X, y: ST_Y[1], w: BOX_W, h: BOX_H, label: 'kubernetes', sublabel: 'answers the cluster zone' }),
     // The stage this story never reaches stands at notready, which is the shade for a block outside
     // the path (`C-14`), and the caption on its leg says why.
@@ -123,7 +123,7 @@ export const STEPS_SPEC = [
   {
     id: 'resolv',
     duration: 2200,
-    narration: 'The Pod /etc/resolv.conf was written by the Kubelet at startup. Its nameserver is the kube-dns Service ClusterIP, it lists the cluster search domains, and it sets ndots:5. The app asks for a name and knows nothing about CoreDNS.',
+    narration: 'The Kubelet configured the Pod /etc/resolv.conf when the Pod started. Its nameserver is the kube-dns Service ClusterIP, it lists the cluster search domains, and it sets ndots:5. The app asks for a name and knows nothing about CoreDNS.',
     chips: { cacheChip: 'empty', ansChip: '-', fwdChip: 'not used', ...RESOLV },
     lit: ['rcNS', 'rcSearch', 'rcNdots'],
     // The client consults its own resolv.conf by PULSING, which no lights list can name.
@@ -133,7 +133,7 @@ export const STEPS_SPEC = [
   {
     id: 'query',
     duration: 2800,
-    narration: 'The short name web has fewer than 5 dots, so the resolver expands it against the search list to web.default.svc.cluster.local and sends it to the kube-dns ClusterIP. The query reaches a CoreDNS Pod and enters its plugin chain at the first stage.',
+    narration: 'The short name web has fewer than 5 dots, so the resolver expands it against the search list to web.default.svc.cluster.local and sends it to the kube-dns ClusterIP. The query reaches a CoreDNS Pod and runs down its plugin chain to cache, the first stage that can answer it.',
     chips: { cacheChip: 'looking up', ansChip: '-', fwdChip: 'not used', ...RESOLV },
     wires: { q: `A? ${FQDN}` },
     // Both lines the expansion rule reads: search supplies the suffix, ndots decides it is tried first.
@@ -179,8 +179,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'answer',
-    duration: 2600,
-    narration: 'The answer leaves the chain at the stage that stored it and travels home. The client now has an address and opens its connection to that ClusterIP, which is where the kube-proxy path takes over. While the record is inside its TTL the next lookup of this name is answered by cache alone.',
+    duration: 2800,
+    narration: 'The answer leaves the chain the way the query came in and travels home. The client now has an address and opens its connection to that ClusterIP, which is where the kube-proxy path takes over. While the record is inside its TTL the next lookup of this name that lands on this Pod is answered by cache alone.',
     chips: { cacheChip: 'answers within TTL', ansChip: '10.96.0.20', fwdChip: 'outside zone only', ...RESOLV },
     wires: { a: 'A 10.96.0.20' },
     lit: ['pCache', 'cacheChip', 'ansChip'],

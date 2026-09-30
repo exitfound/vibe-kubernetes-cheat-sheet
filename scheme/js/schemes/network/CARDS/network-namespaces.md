@@ -85,9 +85,9 @@ MOTION   THE CABLE STANDS AT FULL STRENGTH ON EVERY STEP AND NO STEP WRITES ITS 
          them.
          A VALUE WAITS FOR THE BEAT THAT PRODUCES IT, by hand, on every layer that turns. `door`
          states its end values above the guard, winds `slabRoutes` and `slabIface` back to `none`
-         and `lo only` in `rewind`, and turns them over in
-         `F.set({ at: 'hop', plus: BEAT.afterPulse })`, the `plus` being there because that arrival
-         is answered by the pulse first. `join` does the same for `slabPorts` at `at: 'down'`.
+         and `lo only` in `rewind`, and turns them over and lights them in
+         `F.set({ at: 'hop', plus: BEAT.afterPulse, lights })`, the `plus` being there because that
+         arrival is answered by the pulse first. `join` does the same for `slabPorts` at `at: 'down'`.
          `private` carries no ball, so `slabRules` winds
          back to `no rules` and turns over at `F.set({ delay: BEAT.afterPulse })`, which is the
          shape four other catalog cards write a pulse-produced value in over six sites. MEASURED
@@ -268,22 +268,4 @@ NOT A DEFECT
          `L-13` wants, inside the 40 it admits, and `report/geometry-soft.test.mjs` files no
          `CENTRE`, `CENTRE-LOW` or `OCCLUDED` row for this card over the 135 it walks. Filling it
          means moving the host off the shell midline, which is the pairing `HOST_Y` exists to hold.
-OPEN     A `lit` BLOCK INSIDE THE POD DOES NOT PAINT ON A STEP THAT PULSES. `open` is not one of
-         them, because it carries no pulse, which is what lets `pause` and `slabIface` paint. It
-         bites twice: `private` shows only `host`,
-         which stands outside `podGroup`, and `door` cannot cue the two layers it turns over, so it
-         declares them in `reducedLit` and on the animated path the turnover of the value is the
-         only cue those two layers get.
-         `pulsePodWithTint` animates `stroke`, `strokeWidth` and `strokeOpacity` on every
-         `.scheme-box-rect` inside the pod with `fill: forwards`, and a filling animation sits above
-         every author rule for the rest of the step, so `.scheme-box.highlight .scheme-box-rect`
-         cannot paint. MEASURED at 1100x800 on a real play at t=1500 of a 3000ms step, 600ms after
-         the pulse ends: `host` reads `rgb(158, 234, 247)` at 2.4px and stroke-opacity 1, while
-         `slabPorts`, `slabRules` and `slabRoutes` all carry `.highlight` and read
-         `rgb(79, 229, 255)` at 1.2px and 0.65, the resting shade. `report/palette.test.mjs` prints
-         it as a CONFLICT row on `network|scheme-box|network|highlight|stroke`. The reduced path is
-         unaffected, since no flow runs there and the class paints, so the `lit` lists are the
-         static readout and stay. It is open rather than fixed because the fix is in
-         `js/lib/scheme-kit.js` and reaches every card that pulses a pod holding a lit box, which
-         the same report names in storage and workloads over five conflicting tuples.
 ```

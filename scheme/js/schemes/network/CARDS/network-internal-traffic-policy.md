@@ -52,7 +52,7 @@ LANES    Every lane carries a ball on some step. Both client hops ride on `clust
          (`NET.A-01`) and stops on the other frame bottom (`NET.A-02`). Each frame bottom holds an
          `L-12` pair about its dataplane axis, out at -70 and in at +70, 8 inside the dataplane
          edges, so Node-1 carries 240 out and 380 in and Node-2 carries 820 out and 960 in. The 140
-         between the two verticals of a frame bottom is what holds a riding tag (MOTION). The legs
+         between the two verticals of a frame bottom is what holds a riding tag at departure (MOTION). The legs
          are nested: 820..380 runs on the inner lane at 530, 240..960 on the outer lane at 562, so
          neither vertical crosses the other horizontal.
          Every headed lane stands at full opacity on every step, whether its endpoint is in the
@@ -74,15 +74,12 @@ MOTION   Programming comes before traffic on every step. The policy chip and the
          agent-1 / drop / dropped on Node-2.
          The four client hops are 38 units and run on the 700ms floor at 0.054 u/ms.
          The riding tags ride the cross legs only, dy 18 below the ball and TWIN 70 behind it, and
-         fade in over the 150ms before departure at 1600. At departure each stands centred on its
+         live exactly as long as their route ball (M-30a, `inMs: 200, outMs: 200, hold: 0`). At departure each stands centred on its
          dataplane axis between the two verticals of that frame bottom: at 1280x860, where it inks
          widest, 830.2..949.8 and 110.2..229.8, 10.2 clear of both, and 7.5 under the frame bottom.
          Trailing is the only side clear at departure: a tag leading its ball stands over its own
-         lane as the ball drops. Trailing, it would cross that lane as the ball rises, so each fade
-         ENDS on the millisecond the ball turns the rise corner: the inner tag shows 1450..2514 of a
-         1600..2676 flight (hold -332), the outer 1450..3110 of 1600..3440 (hold -500), and neither
-         tag is up for the last 162 or 330ms of the rise. Swept every 20ms from fade-in to
-         fade-out at all three viewports, no tag touches a block, a frame edge or a lane. On the
+         lane as the ball drops. Trailing, it crosses that lane as the ball rises and stays up to
+         the arrival, which is accepted: a tag never retires before its ball lands. On the
          outer lane the tag inks 569.5..583.1, 12.9 clear of the chip tops at 596, and on the inner
          lane 537.5..551.1, 10.9 clear of the outer lane.
 WIRE LABELS

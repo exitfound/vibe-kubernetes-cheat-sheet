@@ -374,11 +374,11 @@ What a NEW card owes beyond what a review would add:
 - `SIZES`, `LANES`, `MOTION`: the numbers that were measured rather than chosen
 - `SCOPE`: what this card leaves to a named sibling, from phase 2
 
-In `cluster/` and `workloads/` that is the whole record: one `### layout` section, one fenced block,
-every label used at most once and in the canon's order, and no other heading. That is `S-51` and
-`S-52`, and `npm test` holds it through `unit/docs.test.mjs` G1, G2 and G3, so a record off the form
-fails the gate rather than a review. In `network/` and `storage/` the section also carries a
-`### poster` subsection, written by `card-poster` (`R-12`).
+In all four categories that is the whole record: one `### layout` section, one fenced block, every
+label used at most once and in the canon's order, and no other heading. That is `S-51` and `S-52`,
+and `npm test` holds it through `unit/docs.test.mjs` G1, G2 and G3, so a record off the form fails
+the gate rather than a review. The poster note is not in the record: `card-poster` writes it as the
+comment above the poster in `posters.js` (`R-12`).
 
 ---
 

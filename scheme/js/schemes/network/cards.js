@@ -521,7 +521,7 @@ export const CARDS = [
     title: 'DNS Resolution via CoreDNS',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'When a Pod connects to a Service by name, who turns that name into an IP? The Kubelet writes a resolv.conf pointing at the kube-dns ClusterIP, so the query reaches a CoreDNS Pod where the plugin chain checks its cache first and falls through to the kubernetes plugin on a miss. That plugin answers the cluster zone from its own watch of Services and EndpointSlices, never querying the API per lookup, and returns an A record holding the ClusterIP.',
+    desc: 'When a Pod connects to a Service by name, who turns that name into an IP? The Kubelet configures a resolv.conf pointing at the kube-dns ClusterIP, so the query reaches a CoreDNS Pod where the plugin chain checks its cache first and falls through to the kubernetes plugin on a miss. That plugin answers the cluster zone from its own watch of Services and EndpointSlices, never querying the API per lookup, and returns an A record holding the ClusterIP.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -536,7 +536,7 @@ export const CARDS = [
     title: 'DNS Records and FQDN',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'What decides the shape of the DNS answer a cluster gives back? A Service name is really web.default.svc.cluster.local, built from the Service, its namespace, the literal svc and the cluster domain, and the svc segment marks it a Service record. The name returns an A record holding the ClusterIP, or one A record per ready Pod when headless, while a named port publishes SRV under a _http._tcp prefix. A Pod is reachable at 10-244-2-7.default.pod.cluster.local.',
+    desc: 'What decides the shape of the DNS answer a cluster gives back? A Service name is really web.default.svc.cluster.local, built from the Service, its namespace, the literal svc that marks a Service record, and the cluster domain. It returns an A record holding the ClusterIP, or one A record per ready Pod when headless, while a named port publishes SRV under a _http._tcp prefix. With pods enabled in CoreDNS, a Pod is reachable at 10-244-2-7.default.pod.cluster.local.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -550,7 +550,7 @@ export const CARDS = [
     title: 'Pod DNS Policy and dnsConfig',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'Where does the resolv.conf inside a Pod come from? The Kubelet builds it from its own clusterDNS settings, the resolver file its resolvConf setting names and the Pod spec, and dnsPolicy picks the source: ClusterFirst when unset, Default for the Node file, None for dnsConfig alone. A hostNetwork Pod left on ClusterFirst silently gets the Node file, and dnsConfig merges on top, appending nameservers up to three and overriding options by name.',
+    desc: 'Where does the resolv.conf inside a Pod come from? The Kubelet configures it from its own clusterDNS settings, the resolver file its resolvConf setting names and the Pod spec, and dnsPolicy picks the source: ClusterFirst when unset, Default for the Node file, None for dnsConfig alone. A hostNetwork Pod left on ClusterFirst silently gets the Node file, and dnsConfig merges on top, appending nameservers up to three and overriding options by name.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -564,7 +564,7 @@ export const CARDS = [
     title: 'Search Domains and ndots',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'Why can one lookup of an external name like api.example.com cost eight DNS queries from a Pod? With ndots:5 any name with fewer than five dots is relative, so the resolver tries it with every search domain before trying it as written, and asks for A and AAAA each time. A Service in the same namespace answers on the first candidate, one in another namespace on the second, and a trailing dot skips the search list.',
+    desc: 'Why can one lookup of an external name like api.example.com cost eight DNS queries from a Pod? With ndots:5 any name with fewer than five dots and no trailing dot is relative, so the resolver tries it with every search domain before trying it as written, and asks for A and AAAA each time. A Service in the same namespace answers on the first candidate, one in another namespace on the second, and a trailing dot skips the search list.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -577,7 +577,7 @@ export const CARDS = [
     title: 'DNS and a Default Deny Egress Policy',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'Why does a Pod stop resolving names the moment it gets an egress policy? A NetworkPolicy that selects a Pod for Egress allows only what its own rules allow, and a lookup to the cluster DNS Service is not one of them until a rule says so, so every name fails while the addresses the policy allows still connect. The rule that repairs it selects the DNS Pods by namespace and Pod labels, and it lists port 53 for both UDP and TCP.',
+    desc: 'Why does a Pod stop resolving names the moment it gets an egress policy? Once a NetworkPolicy selects a Pod for Egress, the Pod may open only the connections an egress rule allows, and a lookup to the cluster DNS Service is not one of them until a rule says so, so name resolution fails while the addresses the policy allows still connect. The rule that repairs it selects the DNS Pods by namespace and Pod labels, and it lists port 53 for both UDP and TCP.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -592,7 +592,7 @@ export const CARDS = [
     title: 'NodeLocal DNSCache',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'Why does cluster DNS stall under load, and what does a cache on every Node change? Without one, each lookup is a UDP query that kube-proxy DNATs to a CoreDNS Pod, often on another Node, with a conntrack entry per lookup. In iptables mode NodeLocal DNSCache answers that ClusterIP on the Node with no DNAT or conntrack, sends cluster misses to CoreDNS over TCP and other names to the Node resolvers, and caches answers for up to 30 seconds.',
+    desc: 'Why does cluster DNS stall under load, and what does a cache on every Node change? Without one, each lookup from a ClusterFirst Pod is a UDP query that kube-proxy DNATs to a CoreDNS Pod, often on another Node, with a conntrack entry per lookup. In iptables mode NodeLocal DNSCache answers that ClusterIP on the Node with no DNAT or conntrack, sends cluster misses to CoreDNS over TCP and other names to the Node resolvers, and caches answers for up to 30 seconds.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -606,7 +606,7 @@ export const CARDS = [
     title: 'DNS Horizontal Autoscaling',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'How does a cluster end up running the right number of CoreDNS replicas? A separate kube-dns-autoscaler Deployment polls the API server for the Node and core counts and takes its parameters from a ConfigMap, so nothing here watches CPU the way a HorizontalPodAutoscaler does. Linear mode divides each count by its per-replica figure, rounds up, keeps the larger and writes that to the CoreDNS scale subresource. Ladder mode looks the same counts up in step tables.',
+    desc: 'How does a cluster end up running the right number of CoreDNS replicas? When enabled, a separate kube-dns-autoscaler Deployment polls the API server for Node and core counts and takes its parameters from a ConfigMap, so nothing here watches CPU the way a HorizontalPodAutoscaler does. Linear mode divides each count by its per-replica figure, rounds up, keeps the larger, clamps it and writes it to the CoreDNS scale subresource. Ladder mode uses step tables instead.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

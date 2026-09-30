@@ -19,22 +19,22 @@ in different families look identical when both are four empty outlines. See **Gl
 | Family | The sentence it says | Open these |
 |---|---|---|
 | Hub and spokes | everything talks to one thing | `cluster-architecture`, `network-pod-localhost` |
-| Row of peers, one accented | several equals, and this is the one | `cluster-leader-election`, `storage-ephemeral-storage-eviction` |
-| Overlapping sets | two owners, and the subject is what they share | `cluster-server-side-apply` |
-| Chain of stages | a thing passes through steps in order | `cluster-admission-chain`, `storage-csi-attach-mount`, `storage-mount-path-chain` |
-| Stack of layers | one thing is built out of layers | `storage-container-filesystem`, `storage-mount-path-chain` |
+| Row of peers, one accented | several equals, and this is the one | `cluster-leader-election`, `storage-csi-architecture` |
+| Overlapping sets | two owners, and the subject is what they share | `cluster-server-side-apply`, `storage-mount-path-chain` |
+| Chain of stages | a thing passes through steps in order | `cluster-admission-chain`, `storage-csi-attach-mount`, `storage-csi-ephemeral-volume` |
+| Stack of layers | one thing is built out of layers | `storage-container-filesystem` (an offset cascade of equal sheets, each hiding most of the one behind), `storage-hostpath` (equal strata pierced by one shaft, ordered by exposure) |
 | Stream into a cache | a source feeds a copy that answers | `cluster-list-watch-informers` |
-| Two zones compared | two regimes, and they differ | `storage-ephemeral-vs-persistent`, `storage-volume-mode`, `cluster-resource-quota`, `cluster-node-eviction-rate` |
+| Two zones compared | two regimes, and they differ | `storage-volume-mode`, `cluster-resource-quota`, `cluster-node-eviction-rate` |
 | Ghost zone to solid zone | it moves from there to here, or dies there and lives here | `cluster-node-drain` |
-| Branch | one input, two outcomes | `storage-reclaim-policy` |
+| Branch | one input, two outcomes | `storage-reclaim-policy`, `storage-configmap-secret-mount` (a switch: one blade on a pivot between two whole versions) |
 | Ring of states | it cycles, or it has phases | `storage-pv-lifecycle-phases`, `cluster-kubelet-reconcile-loop` |
-| Nested containment | this lives inside that | `cluster-pod-sandbox-cri`, `cluster-static-pods`, `storage-hostpath` |
+| Nested containment | this lives inside that | `cluster-pod-sandbox-cri`, `storage-ephemeral-storage-eviction` (the container frame inside the Pod frame, with the emptyDir share spilling out through a gap in the Pod wall) |
 | Segmented budget bar | one capacity, divided | `cluster-node-allocatable` |
 | Flatline into a wait | a signal stops, and what follows is mostly waiting | `cluster-node-failure` |
 | Gauge columns | a proportion consumed | `cluster-cpu-throttling` |
-| Fan | one source to many, or many into one | `storage-projected-volume`, `storage-configmap-secret-mount` |
+| Fan | one source to many, or many into one | `workloads-env-before-pid-1` |
 | The break | something snaps, is crossed out, or is refused | `cluster-oom-kill`, `storage-multi-attach-error` |
-| The wall | two things exist and one cannot reach the other | `cluster-node-registration` |
+| The wall | two things exist and one cannot reach the other | `cluster-node-registration`, `storage-volumeattachment` (the bar is one FIELD: the device is already on the Node, the Pod waits on the other side) |
 | Rank ladder | several things are ordered, and the order decides | `cluster-pod-priority-preemption` |
 | Held object | it is marked to go, and this is what keeps it | `cluster-cascading-deletion` |
 
@@ -347,11 +347,12 @@ poster is NEVER a more exotic shape. A poster assembled out of unusual marks is 
 failure, which is a worse picture than the dull one it replaced. Two things separate the
 reference set from the weak categories, and both are boring:
 
-1. **Ink.** The reference set lands a mark at 0.55 or brighter on 57 of its 60 posters. Storage does
-   it on 0 of 31, and its brightest mark anywhere in the category is 0.20. `poster-lint.mjs` now
-   fails a poster under that line (`R-03b`), and that one line is most of the gap.
+1. **Ink.** The reference set lands a mark at 0.55 or brighter on 57 of its 60 posters. Storage did
+   it on 0 of 31 at that date, with 0.20 its brightest mark anywhere, and does it on 15 of 35 today
+   (`poster-lint.mjs --calibrate`, 2026-09-19), its median brightest mark still 0.17. The lint fails
+   a poster under that line (`R-03b`), and that one line is most of the gap.
 2. **Interior furniture.** The reference median is 4 marks sitting INSIDE a larger block. Storage's
-   median is 1, and 12 of its 31 posters have none at all. A block with nothing in it is a
+   median was 1 at that date, and 12 of its 31 posters then had none at all. A block with nothing in it is a
    silhouette, and four silhouettes is the same poster every category already drew. The furniture is
    what makes a Node frame read as a Node holding Pods rather than as a rounded rectangle.
 

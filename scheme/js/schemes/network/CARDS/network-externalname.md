@@ -51,19 +51,16 @@ MOTION   `lookup`, `connect` and `vip` open on a client pulse and send at `BEAT.
          certificate at `BEAT.lead`, and the SNI and cert chips light on its arrival, where `cert`
          turns from `none` to api.partner.example. `slice` lights the slice and sends the watch at
          `BEAT.lead`, kube-proxy lights on arrival, and 100ms later the dataplane lights and its
-         sublabel becomes `10.96.0.40 -> 203.0.113.5` with no ball. Every tag fades in over the
-         150ms before its ball leaves and crosses no face, lane or tag at 1100x800, 1280x860 or
-         1600x1000. The three vertical tags lead their ball on the outer side of the lane and
-         fade out over 170ms that end with the ink at least 4 short of the far face on all three
-         viewports, 1280x860 the tightest. The query tag rides at dx -54, 12 above, ink
-         484..576, 8 left of the lane, 9.5 over the client top at departure, gone at 465 of
-         700ms with its ink top 5.1 under CoreDNS, 4.4 at 1280x860. The answer tag rides at dx
-         86, 16 below, ink 625.3..778.7, 9.3 right of the lane, gone at 495 with 4.9 to the
-         client top, 4.3 at 1280x860. The query tag is gone 185ms before the answer tag starts to
-         appear. The drop tag rides at dx -65, 18 below, ink 476.7..593.3, 6.7 left of the lane
-         and away from the exit tag, gone at 540 with 4.7 to the dataplane top, 4.0 at 1280x860,
-         never near kube-proxy or the relation. The horizontal tags fade out over the 170ms after
-         their ball lands, each out of both face bands. The SNI tag leads by 64 and rides 36
+         sublabel becomes `10.96.0.40 -> 203.0.113.5` with no ball. Every tag lives exactly as
+         long as its ball (M-30a): the segment tags on `inMs: 100, outMs: 100, hold: 0`, the watch
+         tag on a route binding at 200. The three vertical tags lead their ball on the outer side
+         of the lane and reach the far face with it, which is accepted. The offsets below are
+         measured at departure. The query tag rides at dx -54, 12 above, ink
+         484..576, 8 left of the lane, 9.5 over the client top at departure. The answer tag rides
+         at dx 86, 16 below, ink 625.3..778.7, 9.3 right of the lane. The drop tag rides at dx
+         -65, 18 below, ink 476.7..593.3, 6.7 left of the lane and away from the exit tag, never
+         near kube-proxy or the relation. The horizontal tags fade out with their ball as it
+         lands, each out of both face bands. The SNI tag leads by 64 and rides 36
          above, 5.7 right of the client face and 5.5 over the host top. The cert tag rides 41
          below and 80 behind in the 20 unit gap under the host, 3.2 and 4.5 clear, 2.5 and 3.9 at
          1280x860, where the string is 13.6 tall and centred in 20 would get 3.2 a side. The

@@ -1068,9 +1068,9 @@ test('F2 no rule cell outgrows one line', (t) => {
 // column-0 line inside a layout fence goes unrecognised.
 //
 // WHY storage IS A BASELINE AND NOT AN EXEMPTION. It has not been through the pass that put
-// cluster, workloads and network on this form, so every one of its 31 sections still carries a
-// `### poster` block and 29 of them still run their labels out of order. Turning the check on for
-// it today reddens the gate on 31 sections of work nobody has done yet. The baseline below is
+// cluster, workloads and network on this form, so 30 of its sections still carry a
+// `### poster` block and 28 of them still run their labels out of order. Turning the check on for
+// it today reddens the gate on 30 sections of work nobody has done yet. The baseline below is
 // therefore a CEILING that may only fall: cleaning a section is free, and a NEW card in that
 // category that arrives off the form pushes the count past the ceiling and fails. THE TARGET IS
 // ZERO on all four, and the two numbers come down as storage is cleaned. Cluster, workloads and
@@ -1093,8 +1093,8 @@ test('F2 no rule cell outgrows one line', (t) => {
 // Sections in each category that are NOT yet on the form. A CEILING that may only fall, never a
 // permission: see the header. Measured over the tree, and both numbers are the whole of storage,
 // because it is the one category still unconverted.
-const RECORD_SHAPE_CEILING = { cluster: 0, workloads: 0, network: 0, storage: 31 };
-const RECORD_LABEL_CEILING = { cluster: 0, workloads: 0, network: 0, storage: 29 };
+const RECORD_SHAPE_CEILING = { cluster: 0, workloads: 0, network: 0, storage: 0 };
+const RECORD_LABEL_CEILING = { cluster: 0, workloads: 0, network: 0, storage: 0 };
 
 // The column a label's prose starts on, which is what tells a label from a sentence in capitals.
 const LABEL_COL = 9;

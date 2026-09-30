@@ -2,7 +2,7 @@
 // poster-lint.mjs: the mechanical half of the poster canon, read off the source in milliseconds.
 // It cannot tell you whether a poster is GOOD. It tells you whether it breaks a rule that has a
 // literal shape: a token that will not resolve, an arrowhead, a packet dot frozen on a wire, a
-// flat drawing with no subject, a canvas left mostly empty, or a missing record note.
+// flat drawing with no subject, a canvas left mostly empty, or a missing poster note.
 //
 // EVERY THRESHOLD IS CALIBRATED rather than guessed. The first cut used round numbers and reported
 // 260 findings, which is a backlog rather than a lint.
@@ -195,7 +195,11 @@ for (const cat of readdirSync(SCHEMES)) {
   const src = readFileSync(file, 'utf8');
   const re = /'([\w-]+)':\s*`([\s\S]*?)`,?\n/g;
   let m;
-  while ((m = re.exec(src))) posters.set(m[1], { cat, svg: m[2] });
+  while ((m = re.exec(src))) {
+    // R-12 reads the line above the entry: the poster note is the comment directly over it.
+    const above = src.slice(0, m.index).replace(/\s+$/, '').split('\n').pop();
+    posters.set(m[1], { cat, svg: m[2], noted: /^\s*\/\//.test(above) });
+  }
 }
 
 // R-05: a poster is judged next to its SIBLINGS, and until now nothing but a human eye could say
@@ -394,20 +398,10 @@ for (const id of ids) {
     say('R-06', `the drawing covers ${(air.cover * 100).toFixed(0)}% of the canvas (reference median is 54%): x ${air.bx[0]}..${air.bx[1]}, y ${air.by[0]}..${air.by[1]}, and dead air reads as a mistake`);
   }
 
-  // R-12: the note that explains the choice, in the one category that still carries it in the record.
-  // `cluster/`, `workloads/` and `network/` records are a single `### layout` block and hold no
-  // poster note by design (their note is the comment above the poster in `posters.js`), so asking
-  // them for one is a finding on every card rather than a check.
-  if (cat === 'storage') {
-    const perCard = join(SCHEMES, cat, 'CARDS', `${id}.md`);
-    const md = existsSync(perCard) ? perCard : join(SCHEMES, cat, 'CARDS.md');
-    if (existsSync(md)) {
-      const rel = existsSync(perCard) ? `${cat}/CARDS/${id}.md` : `${cat}/CARDS.md`;
-      const section = (readFileSync(md, 'utf8').split(`## ${id}\n`)[1] || '').split('\n## ')[0];
-      if (!section) say('R-12', `no "## ${id}" section in ${rel}`);
-      else if (!section.includes('### poster')) say('R-12', 'the record has no "### poster" subsection explaining the choice');
-    }
-  }
+  // R-12: the note that explains the choice is the comment directly above the entry in the
+  // folder's `posters.js`, in all four categories. A record is one `### layout` block (`S-51`) and
+  // holds no poster note, so asking a record for one would ask for what G1 fails the gate on.
+  if (!entry.noted) say('R-12', `no comment above this poster in ${cat}/posters.js saying what its composition is`);
 
   if (out.length) {
     console.log(`\n${id}  (${cat}, ${shapes} primitives)`);

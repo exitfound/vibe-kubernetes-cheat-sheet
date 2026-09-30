@@ -130,11 +130,9 @@ SCOPE    This card owns THE CALL and THE PORT SPACE: 127.0.0.1, the one table th
          attachment belong to `network-pod-ip-and-veth`, and eth0 appears here only as the interface
          the outside call lands on.
 NOTE     The three port slots are `P.chip` and are top-level parts rather than children of the Pod.
-         `pulsePod` animates `.scheme-box-rect` with `fill: forwards`, and a filling animation sits
-         above every author rule for the rest of the step, so a lit BOX inside a pulsing Pod cannot
-         paint (the finding `network-namespaces` carries OPEN). A chip carries no `.scheme-box-rect`,
-         so the table keeps painting through the pulse the `external` step fires, which is the step
-         that lights `:8080` on arrival.
+         A chip carries no `.scheme-box-rect`, so the pulse the `external` step fires never touches
+         the table, which is the step that lights `:8080` on arrival. The pulse holds nothing once
+         it ends, so a lit box inside the Pod shows its `.highlight` again after the blink.
 WHY NOT  A 2x2 grid of `app`, `sidecar`, `eth0` and `lo` as four equal boxes. It
          draws the two interfaces as peers of the two containers, wires neither of them to
          anything, and sends the localhost call straight across from app to sidecar, so the picture

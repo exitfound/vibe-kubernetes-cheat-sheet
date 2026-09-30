@@ -257,11 +257,10 @@ NOT A DEFECT
          three are step-scoped labels saying what this step is about rather than the result of a
          hop, which is the `network-cni-invocation` `CNI op` reading. 700ms is the `PKT_DUR_MIN`
          floor exactly, so those two stand for one hop and no longer.
-         `report:palette` lists this card in the `network|scheme-box|network|highlight|stroke`
-         conflict at played step 2, alongside `network-dualstack` and `network-namespaces`. The
-         class predates this card: a highlighted box inside a pulsing Pod resolves to
-         `NETWORK_TINT.base` because the non-persist pulse fills forwards to `base`, which the kit
-         states on the constant.
+         A highlighted box inside the pulsing Pod paints its `.highlight` once the blink ends: the
+         non-persist pulse in `js/lib/scheme-kit.js` holds no fill, so the rect falls back to its CSS.
+         A played sample taken INSIDE the blink reads the pulse colour, which is what
+         `report:palette` compares against the static one.
 OPEN     `M-19a` on `pair` and `unit`, which stand 100 percent still for their whole 2700ms at rank
          634 of 683. The fix that row allows is the motion or the narration and both cost more than
          the hold: a ball on either beat would be traffic neither one narrates (`M-10`), and the

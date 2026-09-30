@@ -73,10 +73,10 @@ same order.
 ## Tint
 
 ```js
-NETWORK_TINT = { base: 'rgb(79, 229, 255)', bright: 'rgb(158, 234, 247)' }   // cyan
+NETWORK_TINT = { bright: 'rgb(158, 234, 247)' }   // cyan
 ```
 
-`base` is the Pod's resting stroke, measured under `reducedMotion` (`M-05`).
+Only the pulse peak is named: the blink ramps from and back to the rect's own stroke (`M-05`).
 
 | ID | Rule |
 |---|---|
@@ -127,15 +127,15 @@ is this section, re-measured.
 **232 is the de-facto object width of this catalog, and a networking card aims at it** (`NET.L-01`
 states the rule, this section carries the measurements behind it). The other three categories state
 it where they can: `CLU.BOX_W` is 232 and resolves on 14 cluster cards,
-`STO.CHIP_W` is 232 on 12 storage cards, and 101 of the 135 modules type the number somewhere.
+`STO.CHIP_W` is 232 on 14 storage chip strips, and 114 of the 139 modules type the number somewhere.
 Networking has no grammar object to state it in, so each card types its own width: 147 `_W`
 constants across the 44 cards, of which 232 is far the commonest at 53, against 200 on 12, 210 on 7,
 320 and 180 on 6 each and 300 on 5. Where a width drifts off that, two actors side by side read as
 two unrelated boxes instead of one row, and holding the number card by card is what this section
 buys instead of a `NET` grammar.
 
-**The height is 80, and it is a measurement rather than a habit.** Counted over the tree: 48 of the
-135 modules carry an `_H` constant of 80, 64 such constants in all and 44 of them here, and the Pod
+**The height is 80, and it is a measurement rather than a habit.** Counted over the tree: 79 of the
+139 modules carry an `_H` constant of 80, 99 such constants in all and 41 of them here, and the Pod
 form of the same block is 232 by 104, a height 12 constants in this folder hold, with a 192 by 44
 app box inside (`network-gateway-api`). 14 records here already write `232 by 80 (NET.L-01)` in
 their `SIZES` block, which is the practice running ahead of the rule text. A card that picks its own
@@ -208,7 +208,7 @@ card turns the gate red rather than sitting there as litter.
 
 ## The reduced path
 
-`reducedLit` is declared on **41 of the 44 cards over 142 steps**, against 34 steps in workloads and
+`reducedLit` is declared on **40 of the 44 cards over 141 steps**, against 34 steps in workloads and
 2 in the whole of cluster. It is by a wide margin the largest reduced population in the catalogue,
 and the reason is structural rather than stylistic: on a path card the animated path says "the
 packet got here" by moving a ball and pulsing what it reached, and a pulse names nothing that
@@ -292,7 +292,7 @@ True of every card here unless its own record in `./CARDS/<id>.md` says otherwis
 
 | ID | Rule |
 |---|---|
-| `NET.L-01` | **An actor block is 232 by 80, and a Pod 232 by 104, unless a measurement says otherwise.** The HEIGHT is measured the same way the width is: 80 is what 48 of the 135 modules hold in an `_H` constant, 44 of those constants standing here, 104 is the Pod height 12 constants in this folder hold, and 14 records here already state `232 by 80 (NET.L-01)` as though the rule always covered the height. 232 is the de-facto object width of the catalog (`CLU.BOX_W`, `STO.CHIP_W`, 101 of the 135 modules), and this category is the one with no grammar object to state it in. A new or rebuilt card starts at 232 and departs only for a measured string that does not fit, for the narration panel wall, or for a column or row the block is sized BY, with the arithmetic in its record. The Geometry section above carries the numbers, and says how a structure and a width in conflict are settled |
+| `NET.L-01` | **An actor block is 232 by 80, and a Pod 232 by 104, unless a measurement says otherwise.** The HEIGHT is measured the same way the width is: 80 is what 79 of the 139 modules hold in an `_H` constant, 41 of those constants standing here, 104 is the Pod height 12 constants in this folder hold, and 14 records here already state `232 by 80 (NET.L-01)` as though the rule always covered the height. 232 is the de-facto object width of the catalog (`CLU.BOX_W`, `STO.CHIP_W`, 114 of the 139 modules), and this category is the one with no grammar object to state it in. A new or rebuilt card starts at 232 and departs only for a measured string that does not fit, for the narration panel wall, or for a column or row the block is sized BY, with the arithmetic in its record. The Geometry section above carries the numbers, and says how a structure and a width in conflict are settled |
 | `NET.S-01` | **A Pod is `podShell(...)` plus an inner `box(...)`** (app, eth0) in one `g`, which is what `P.pod` builds. The client, kube-proxy, CoreDNS, a bridge and a NIC are infrastructure and light rather than pulse. 41 of the 44 cards draw at least one Pod, and the three that draw none (`network-service-cidr`, `network-proxy-rule-resync`, `network-dns-autoscaling`) are drawing the machinery under the Pods rather than the Pods |
 | `NET.A-01` | **Every endpoint sits on a block EDGE**, so a ball never travels under or over a block: it fades at one edge and re-emerges at the far edge. That is how a rewrite INSIDE a box (DNAT, SNAT, port remap, conntrack) is drawn, because the box is where the decision happens |
 | `NET.A-02` | **Traffic is delivered TO A NODE.** A ball stops on the Node frame edge and the Pod inside pulses to show it was served. No wire and no ball crosses a Node border. It reaches every NODE frame here, the one that holds no Pod included: a ball that stops on the edge of an empty frame is still saying the Node was the destination. The three frames that are not Nodes (Geometry above names them) are a grouping and not a destination, so the rule does not reach them |

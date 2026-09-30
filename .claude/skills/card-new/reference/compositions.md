@@ -49,18 +49,19 @@ free to arrange its blocks the way its subject wants them.
 | Actor strip over a Node floor | someone up there acts, and it lands on a Node down here | `cluster-scheduler-decision`, `workloads-probes`, `cluster-node-drain` |
 | Ladder and chip column | a pipeline of named stages, with the state it moves beside it | `cluster-admission-chain`, `workloads-force-deletion` |
 | Mirrored flow line | traffic goes out along one lane and comes back along another | `network-service-clusterip`, `network-conntrack-nat` |
-| Vertical stack on an identity spine | this thing belongs to that thing, and data moves between them | `storage-volume-model`, `storage-hostpath`, `storage-emptydir` |
-| Two zones compared | two regimes, side by side, and they differ | `storage-ephemeral-vs-persistent`, `network-kube-proxy-modes`, `cluster-resource-quota` |
+| Vertical stack on an identity spine | this thing belongs to that thing, and data moves between them | `storage-pvc-binding`, `storage-dynamic-provisioning`, `storage-generic-ephemeral-volume` |
+| Two zones compared | two regimes, side by side, and they differ | `network-kube-proxy-modes`, `cluster-resource-quota` |
 | Peer ring | several equals, and one of them is currently the one | `cluster-etcd-raft`, `cluster-leader-election` |
-| Fan to N | one source, several drawn alternatives, one taken | `network-service-clusterip`, `storage-projected-volume` |
-| Multi-Node band | the same thing on several Nodes, and they are not alike | `workloads-daemonset`, `network-loadbalancer-bare-metal`, `storage-volume-attach-limits` |
-| Nested containment | this lives inside that, which lives inside that | `cluster-pod-cgroup-hierarchy`, `network-namespaces`, `storage-container-filesystem` |
+| Fan to N | one source, several drawn alternatives, one taken | `network-service-clusterip` |
+| Multi-Node band | the same thing on several Nodes, and they are not alike | `workloads-daemonset`, `network-loadbalancer-bare-metal`, `storage-volume-attach-limits`, `storage-emptydir` |
+| Nested containment | this lives inside that, which lives inside that | `cluster-pod-cgroup-hierarchy`, `network-namespaces`, `storage-hostpath` |
+| Precedence grid | which of several stacked sources answers depends on the row order, per key | `storage-container-filesystem` |
 | Instrument panel | a quantity, a budget or a countdown, drawn as a measure | `cluster-cpu-throttling`, `cluster-node-allocatable`, `cluster-image-container-gc` |
 | Object board, no Pod | the story is about API objects and no Pod is in it | `storage-pv-lifecycle-phases`, `cluster-server-side-apply`, `storage-reclaim-policy` |
 | Chain into a store | a request passes stages and ends in something that keeps it | `cluster-admission-chain`, `cluster-object-create-path` |
 | Hub and spokes | everything talks to one thing | `cluster-architecture` |
 | Branch | one input, two outcomes, and one of them is counterfactual | `storage-reclaim-policy`, `storage-volume-detach-on-node-loss`, `network-dns-ndots` |
-| Timeline | time is the axis, and most of the card is waiting | `cluster-node-failure`, `cluster-node-eviction-rate` |
+| Timeline | time is the axis, and most of the card is waiting | `cluster-node-failure`, `cluster-node-eviction-rate`, `storage-projected-volume` |
 
 ---
 
@@ -106,12 +107,17 @@ asymmetric mechanism is a lie the composition tells before any word is read.
 
 **Says:** this volume belongs to this Pod, and containers reach it.
 
-**Build:** `STO.L-01`. Pod on top with its containers inside, the disk below, a dashed markerless
-spine between them saying ownership, and one L-shaped mount lane per container entering the
-cylinder through its SIDE. One-way traffic gets one lane, a round trip gets a lane each way.
+**Build:** `STO.L-01`. Pod on top with its containers inside, the claim, the disk below, all on one
+centre line. A line nothing travels is the markerless identity spine (`STO.A-01`, the Bound link on
+`storage-dynamic-provisioning`), and a line a ball rides is a mount lane with its arrowhead at the
+receiving end (`STO.A-02`), run up the centre line itself on `storage-pvc-binding` and
+`storage-generic-ephemeral-volume`. One-way traffic gets one lane, a round trip gets a lane each
+way. It is the grammar of the claim cards: the storage folder contract lists the cards that draw it
+and the families the others chose.
 
-**Fails when:** the spine grows an arrowhead, which turns ownership into traffic. And when a second
-disk is added without a second reason: two cylinders say two volumes, and a reader counts them.
+**Fails when:** a line nothing rides grows an arrowhead, which turns ownership into traffic. And
+when a second disk is added without a second reason: two cylinders say two volumes, and a reader
+counts them.
 
 ### Two zones compared
 
@@ -171,6 +177,17 @@ the brightest state.
 **Fails when:** the nesting is drawn with equal margins at every level, which flattens it back into
 a grid. Vary the inset, and let the outermost frame carry a label and nothing else.
 
+### Precedence grid
+
+**Says:** several layers are stacked, and for each key the highest layer holding it wins.
+
+**Build:** rows are the layers in precedence order, columns are the keys, and a cell exists only
+where that layer holds that key, so the answer is read straight down a column. Lanes run inside
+their own column through empty slots only, and an empty column is itself a statement.
+
+**Fails when:** every slot is filled. A full grid is a table, and the precedence it was drawn to
+show disappears into it.
+
 ### Instrument panel
 
 **Says:** a quantity, a budget, a countdown or a rate.
@@ -187,7 +204,7 @@ some step. One of the two is the subject: the other is a caption for it.
 **Says:** this is a story about API objects, and no Pod appears in it.
 
 **Build:** boxes for the objects, relationship lines for the references between them, and the state
-of each object in its own sublabel. 25 cards in the catalog carry no Pod at all, so a Pod is not the
+of each object in its own sublabel. 27 cards in the catalog carry no Pod at all, so a Pod is not the
 price of admission: adding one to a card whose subject is a PV and a PVC puts an actor on stage who
 never speaks.
 

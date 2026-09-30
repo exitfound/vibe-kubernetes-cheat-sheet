@@ -45,7 +45,7 @@ const IDLE_ROWS = { try0: NOT_TRIED, try1: NOT_TRIED, try2: NOT_TRIED, try3: NOT
 const CANDIDATE = (name, i) => (i < SUFFIXES.length ? `${name}.${SUFFIXES[i]}` : name);
 
 export const SCENE = {
-  'aria-label': 'Search domains and ndots: a Pod resolv.conf lists search domains and ndots:5, so a name with fewer than 5 dots is tried against each search domain before being tried as written. A same-namespace name answers on the first candidate, a cross-namespace name on the second, an external name only after three NXDOMAIN misses, each candidate costing an A and an AAAA query, while a name ending in a dot skips the search list',
+  'aria-label': 'Search domains and ndots: under the default ClusterFirst policy a Pod resolv.conf lists search domains and ndots:5, so a name with fewer than 5 dots is tried against each search domain before being tried as written. A same-namespace name answers on the first candidate, a cross-namespace name on the second, an external name only after three NXDOMAIN misses, each candidate costing an A and an AAAA query, while a name ending in a dot skips the search list',
   parts: [
     P.defs(),
     P.box({ key: 'dns', x: DNS_X, y: FLOW_Y - DNS_H / 2, w: DNS_W, h: DNS_H, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10' }),
@@ -144,8 +144,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'resolvconf',
-    duration: 2400,
-    narration: 'With the default ClusterFirst policy the Kubelet writes this resolv.conf: the kube-dns Service as nameserver, the search domains of the namespace, and ndots:5. A name with fewer than 5 dots counts as relative, so the resolver tries it with every search domain first and as written last. Search domains of the Node are appended to the list as well.',
+    duration: 3800,
+    narration: 'With the default ClusterFirst policy the Kubelet configures this resolv.conf: the kube-dns Service as nameserver, search domains built from the namespace and the cluster domain, and ndots:5. A name with fewer than 5 dots counts as relative, so the resolver tries it with every search domain first and as written last. Any search domains of the Node are appended after them.',
     chips: { ...IDLE_ROWS, namesChip: '0', queriesChip: '0', ...RESOLV },
     lit: ['rcNS', 'rcNdots', ...TRY_KEYS],
     // The Pod is reading its own resolv.conf and no cue names the resolver box, so the static path
@@ -178,7 +178,7 @@ export const STEPS_SPEC = [
     // Four round trips back to back, 2728 each after the first, and the last one still has to finish
     // its arrival pulse: the motion runs to 12152. Never below it, or auto-advance clips the walk.
     duration: 12300,
-    narration: 'The name api.example.com has two dots, so it is relative too, and no cluster suffix can match it. Three round trips end in NXDOMAIN before the name as written is asked and answered. Four names and eight queries for a single external lookup, paid again on every call, since the resolver inside the Pod keeps no cache. This is the real cost of ndots:5.',
+    narration: 'The name api.example.com has two dots, so it is relative too, and no cluster suffix matches it. Three round trips end in NXDOMAIN before the name as written is asked and answered. Four names and eight queries for a single external lookup, paid again on every call, since the resolver inside the Pod keeps no cache. This is the real cost of ndots:5.',
     ...endState(EXTERNAL, EXTERNAL_TRIES),
     reducedLit: ['podBox'],
     rewind: REWIND,

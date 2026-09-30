@@ -1,5 +1,5 @@
-import { P, F, defineCard, OPACITY } from './storage-kit.js';
-// Design notes for this card: ./CARDS.md#storage-pvc-binding
+import { P, F, defineCard, OPACITY, makeRidingLabel, chipStrip } from './storage-kit.js';
+// Design notes for this card: ./CARDS/storage-pvc-binding.md
 
 
 // The identity column Pod -> PVC -> PV shares this one line, because binding is what fuses the three
@@ -7,22 +7,27 @@ import { P, F, defineCard, OPACITY } from './storage-kit.js';
 // second line beside it turns the centre into a crowded pair.
 const CX = 600;                                     // canvas + identity-spine center
 
-const POD_W = 240, POD_H = 104, POD_X = CX - POD_W / 2, POD_Y = 56;
+// Actor blocks take the catalog size (NET.L-01): 232 by 80, and a Pod 232 by 104 around a 192 by 44
+// app box.
+const POD_W = 232, POD_H = 104, POD_X = CX - POD_W / 2, POD_Y = 56;
+const APP_W = 192, APP_H = 44, APP_DY = 26;         // 26 under the Pod label, as network-gateway-api
 const POD_BOTTOM = POD_Y + POD_H;                   // 160
 
-const PVC_W = 240, PVC_H = 68, PVC_X = CX - PVC_W / 2, PVC_Y = 236;
-const PVC_RIGHT = PVC_X + PVC_W, PVC_BOTTOM = PVC_Y + PVC_H; // 720 / 304
+const PVC_W = 232, PVC_H = 80, PVC_X = CX - PVC_W / 2, PVC_Y = 230;
+const PVC_RIGHT = PVC_X + PVC_W, PVC_BOTTOM = PVC_Y + PVC_H; // 716 / 310
 const PVC_MID = PVC_Y + PVC_H / 2;                  // 270
 
-// Standard controller box, same footprint as kube-proxy in the networking cards (220 x 72). Its
-// vertical center sits on PVC_MID so the watch and bind hops stay straight horizontals.
-const CTRL_W = 220, CTRL_H = 72, CTRL_X = 850, CTRL_Y = PVC_MID - CTRL_H / 2;
-const CTRL_LEFT = CTRL_X, CTRL_RIGHT = CTRL_X + CTRL_W;  // 850 / 1070
-const CTRL_CX = CTRL_X + CTRL_W / 2, CTRL_MID = CTRL_Y + CTRL_H / 2;                    // 960 / 270
+// The controller is an actor block like the claim (232 x 80). Its vertical center sits on PVC_MID so
+// the watch and bind hops stay straight horizontals.
+const CTRL_W = 232, CTRL_H = 80, CTRL_X = 850, CTRL_Y = PVC_MID - CTRL_H / 2;
+const CTRL_LEFT = CTRL_X, CTRL_RIGHT = CTRL_X + CTRL_W;  // 850 / 1082
+const CTRL_CX = CTRL_X + CTRL_W / 2, CTRL_MID = CTRL_Y + CTRL_H / 2;                    // 966 / 270
 
 // The second claim (exclusive step) sits above the controller, denied by a short straight hop up.
-const PVCB_W = 200, PVCB_H = 68, PVCB_X = CTRL_CX - PVCB_W / 2, PVCB_Y = 100;
-const PVCB_CX = PVCB_X + PVCB_W / 2, PVCB_BOTTOM = PVCB_Y + PVCB_H; // 990 / 168
+// The deny lane keeps 66 of run, so its riding tag at mid flight stays under the claim it denies.
+const DENY_LEN = 66;
+const PVCB_W = 232, PVCB_H = 80, PVCB_X = CTRL_CX - PVCB_W / 2, PVCB_Y = CTRL_Y - DENY_LEN - PVCB_H;   // 84
+const PVCB_CX = PVCB_X + PVCB_W / 2, PVCB_BOTTOM = PVCB_Y + PVCB_H; // 966 / 164
 
 // The disk shelf: three PVs spread symmetrically around the spine. The controller scans them from
 // BELOW, so their tops carry only the mount lane and their bottoms receive the probe.
@@ -37,6 +42,7 @@ const LANE = 12;        // half-gap between the two horizontal PVC<->controller 
 const SPEC_Y = PV_Y + 62;   // inside the cylinder, a line under its name
 const VERDICT_Y = 544;  // per-disk verdict, below the scan bus
 const CHIPS_Y = 572;
+const CHIP = chipStrip();  // four equal chips, the category 232 width and 16 gap, centred on CX
 
 
 const W_PVC_TO_CTRL = [[PVC_RIGHT, PVC_MID - LANE], [CTRL_LEFT, PVC_MID - LANE]];   // watch, straight
@@ -49,8 +55,26 @@ const W_MOUNT_LOW   = [[MOUNT_X, PV_TOP], [MOUNT_X, PVC_BOTTOM]];   // PV -> PVC
 const W_MOUNT_HIGH  = [[MOUNT_X, PVC_Y], [MOUNT_X, POD_BOTTOM]];    // PVC -> Pod, upward
 
 // The watch lane runs between the claim and the controller at their own mid height, so at the default
-// -14 the tag is cut by both box edges for 800 ms. -28 clears their tops on all four viewports.
-const WATCH_TAG_DY = -28;
+// -14 the tag is cut by both box edges for 800 ms. Lifting the baseline 6 past the box top clears both.
+const WATCH_TAG_DY = -(PVC_H / 2 - LANE) - 6;      // -34
+// The bind write runs one lane LOWER, 12 under the mid height, so the same fix on the same side would
+// need -58 and cross the watch lane. It goes under the box floors instead: the lane's 28 above them
+// plus 13, which puts the tag 4 under both floors on the far side of its own lane from the watch tag.
+const WRITE_TAG_DY = (PVC_H / 2 - LANE) + 13;      // 41
+// The claimRef write leaves the controller right face and drops past its corner, so a tag above the
+// ball is born over the controller: it fades in once clear of it, and fades out before it rises into
+// the cylinder floor and the spec line.
+const REF_TAG = makeRidingLabel({ role: 'storage', emergeMode: true, hold: -520 });
+const REF_EMERGE = 420;
+// The mount ascent is 70 units from the claim top to the Pod floor, and the deny hop is 66 into the
+// second claim floor. Each tag rides a 1500 leg, the catalog pace for a tagged ball, and TRAILS its
+// ball under it and beside the lane, so it lands in the gap and lives exactly as long as its ball
+// (M-30a). Trailing, it would start inside the box the ball leaves, so it emerges once clear of it
+// (registered in `PACING`, `render/motion.test.mjs`, see ./CARDS/storage-pvc-binding.md).
+const LEG_DUR = 1500;
+const TRAILING = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true });
+const MOUNT_TAG = { dy: 20, dx: -24, dur: LEG_DUR, emerge: 600, fn: TRAILING };
+const DENY_TAG = { dy: 14, dx: -92, dur: LEG_DUR, emerge: 540, fn: TRAILING };
 
 // A disk is a cylinder plus its spec line, grouped so dimming a rejected volume fades the spec WITH
 // it. Only the winner keys its cylinder: .highlight must sit on .scheme-cylinder, never the wrapper.
@@ -65,23 +89,23 @@ const disk = ({ key, cylKey, cx, w, label, spec }) => P.group({
 // Family z-order: blocks and disks, then the wires and their labels ABOVE them so a connector that
 // crosses a block stays visible, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'PersistentVolumeClaim to PersistentVolume binding: a claim states the capacity, access mode and class it needs, the binding controller scans the available volumes and rejects the ones that do not fit, pairs the claim with the one that does by writing the link both ways, and only then can Kubelet mount the volume into the Pod',
+  'aria-label': 'PersistentVolumeClaim to PersistentVolume binding: a claim states the capacity, access mode and class it needs, the binding controller scans the available volumes and rejects the ones that do not fit, binds the claim to the one that does by writing the link on the volume first and then on the claim, only then can Kubelet mount the volume into the Pod, and a second claim asking for the same thing stays Pending',
   parts: [
     P.defs(),
     P.box({ key: 'ctrl', x: CTRL_X, y: CTRL_Y, w: CTRL_W, h: CTRL_H, label: 'PV binding controller', sublabel: 'kube-controller-manager' }),
-    P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'wants 5Gi, RWO, local-ssd' }),
-    P.box({ key: 'pvcB', x: PVCB_X, y: PVCB_Y, w: PVCB_W, h: PVCB_H, label: 'PVC data-claim-2', sublabel: 'wants 5Gi, RWO, local-ssd', opacity: 0 }),
+    P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'wants 5Gi, RWO, fast' }),
+    P.box({ key: 'pvcB', x: PVCB_X, y: PVCB_Y, w: PVCB_W, h: PVCB_H, label: 'PVC data-claim-2', sublabel: 'wants 5Gi, RWO, fast', opacity: 0 }),
     // The group IS the pulse target: pulsing a bare shell would fire at half strength, since
     // querySelectorAll matches descendants only and the inner box is a sibling of the shell.
     P.pod({
       key: 'appPod', x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'volumes: data-claim', containers: 0,
-      inner: { dx: 20, dy: (POD_H - 52) / 2, w: POD_W - 40, h: 52, label: 'app', sublabel: 'writes to /data' }, innerKey: 'appBox',
+      inner: { dx: (POD_W - APP_W) / 2, dy: APP_DY, w: APP_W, h: APP_H, label: 'app', sublabel: 'writes to /data' }, innerKey: 'appBox',
     }),
     // Each disk states all THREE things the claim is matched on, so the verdict can be checked
     // rather than taken on trust. Access mode is identical on all three on purpose.
-    disk({ key: 'pvSmall', cx: SMALL_CX, w: 200, label: 'PV a01', spec: '2Gi, RWO, local-ssd' }),
-    disk({ key: 'pvMatch', cylKey: 'pvMatchCyl', cx: MATCH_CX, w: 230, label: 'PV x73a', spec: '5Gi, RWO, local-ssd' }),
-    disk({ key: 'pvSlow', cx: SLOW_CX, w: 200, label: 'PV b22', spec: '5Gi, RWO, local-hdd' }),
+    disk({ key: 'pvSmall', cx: SMALL_CX, w: 200, label: 'PV a01', spec: '2Gi, RWO, fast' }),
+    disk({ key: 'pvMatch', cylKey: 'pvMatchCyl', cx: MATCH_CX, w: 230, label: 'PV x73a', spec: '5Gi, RWO, fast' }),
+    disk({ key: 'pvSlow', cx: SLOW_CX, w: 200, label: 'PV b22', spec: '5Gi, RWO, slow' }),
     P.lane({ points: W_PVC_TO_CTRL, dashed: true, dim: true }),
     P.lane({ points: W_CTRL_TO_PVC, dashed: true, dim: true }),
     // The two probes into the rejected disks are keyed: a lane dies with the disk it ends on, or the
@@ -97,12 +121,12 @@ export const SCENE = {
     P.wire({ key: 'small', x: SMALL_CX, y: VERDICT_Y }),
     P.wire({ key: 'match', x: MATCH_CX, y: VERDICT_Y }),
     P.wire({ key: 'slow', x: SLOW_CX, y: VERDICT_Y }),
-    P.chip({ key: 'pvcChip', x: 105, y: CHIPS_Y, w: 200, h: 34, name: 'PVC', value: 'Pending' }),
+    P.chip({ key: 'pvcChip', x: CHIP.x(0), y: CHIPS_Y, w: CHIP.w, h: 34, name: 'PVC', value: 'Pending' }),
     // Named for the ONE volume it tracks. A bare 'PV' would be a lie from the bind step on, since
     // PV a01 and PV b22 stay Available after PV x73a goes Bound.
-    P.chip({ key: 'pvChip', x: 325, y: CHIPS_Y, w: 200, h: 34, name: 'PV x73a', value: 'Available' }),
-    P.chip({ key: 'bindChip', x: 545, y: CHIPS_Y, w: 330, h: 34, name: 'binding', value: 'none' }),
-    P.chip({ key: 'mountChip', x: 895, y: CHIPS_Y, w: 200, h: 34, name: 'mount', value: 'none' }),
+    P.chip({ key: 'pvChip', x: CHIP.x(1), y: CHIPS_Y, w: CHIP.w, h: 34, name: 'PV x73a', value: 'Available' }),
+    P.chip({ key: 'bindChip', x: CHIP.x(2), y: CHIPS_Y, w: CHIP.w, h: 34, name: 'binding', value: 'none' }),
+    P.chip({ key: 'mountChip', x: CHIP.x(3), y: CHIPS_Y, w: CHIP.w, h: 34, name: 'mount', value: 'none' }),
     P.packets(),
   ],
   // appBox is named here on purpose: a highlight set during a reduced replay leaks forward, because
@@ -115,7 +139,7 @@ export const SCENE = {
 };
 
 const BOUND = 'data-claim <-> PV x73a';
-const MATCH_OK = '5Gi, RWO, local-ssd OK';
+const MATCH_OK = '5Gi, RWO, fast OK';
 const chips = (pvc, pv, bind, mount) => ({ pvcChip: pvc, pvChip: pv, bindChip: bind, mountChip: mount });
 
 // STO.S-01 as fields: the two late-appearing elements and the two rejected disks WITH THEIR PROBES
@@ -129,7 +153,7 @@ const SHELF_DIM = {
   pvSmall: OPACITY.notready, wScanSmall: OPACITY.notready,
   pvSlow: OPACITY.notready, wScanSlow: OPACITY.notready,
 };
-const VERDICTS = { small: 'too small', slow: 'wrong class' };
+const VERDICTS = { small: 'too small', match: MATCH_OK, slow: 'wrong class' };
 // The rejection fade: to notready, forwards, fired when the probe that rejected the disk lands.
 const dimAt = (target, at) => F.fade({ target, to: OPACITY.notready, dur: 400, fill: 'forwards', easing: 'ease-out', at });
 
@@ -142,8 +166,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'claim',
-    duration: 2000,
-    narration: 'A PersistentVolumeClaim is a request, not storage. It states only what the workload needs: at least 5Gi, ReadWriteOnce access, and the local-ssd StorageClass. The Scheduler will not place the Pod while the claim it references is still unbound.',
+    duration: 2400,
+    narration: 'A PersistentVolumeClaim is a request, not storage. It states only what the workload needs: at least 5Gi, ReadWriteOnce access, and the fast StorageClass. Under the default Immediate binding mode, the Scheduler will not place the Pod while the claim it references is still unbound.',
     chipsCued: chips('Pending', 'Available', 'none', 'none'),
     opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_UP },
     // Deliberately motionless. The claim is a statement of need, nothing acts: the Pod is the
@@ -153,23 +177,23 @@ export const STEPS_SPEC = [
   {
     id: 'watch',
     duration: 2100,
-    narration: 'The binding controller watches every claim in the cluster. It picks this one up because it is Pending, and reads the three things it has to satisfy: capacity, access mode and StorageClass.',
+    narration: 'The binding controller watches every claim in the cluster. It picks this one up because it is Pending, and reads the three things this claim asks for: capacity, access mode and StorageClass.',
     chipsCued: chips('Pending', 'Available', 'none', 'none'),
     opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_UP },
     lit: ['pvc'],
     // Infra to infra: no pod is involved, so there is no pulse to lead with. The claim rides along.
     flow: [
       F.route({ points: W_PVC_TO_CTRL, name: 'watch' }),
-      F.tag({ text: '5Gi, RWO, local-ssd', points: W_PVC_TO_CTRL, dy: WATCH_TAG_DY }),
+      F.tag({ text: '5Gi, RWO, fast', points: W_PVC_TO_CTRL, dy: WATCH_TAG_DY }),
       F.light({ targets: ['ctrl'], at: 'watch' }),
     ],
   },
   {
     id: 'match',
     duration: 3400,
-    narration: 'The controller checks every Available volume in one sweep. PV a01 is only 2Gi, which is under what the claim asks for, and PV b22 is the local-hdd class rather than local-ssd. Only PV x73a satisfies all three conditions, so it is the candidate.',
+    narration: 'The controller checks every Available volume in one sweep. PV a01 is only 2Gi, which is under what the claim asks for, and PV b22 belongs to the slow class rather than fast. Only PV x73a satisfies all three conditions, so it is the candidate.',
     chipsCued: chips('Pending', 'Available', 'candidate PV x73a', 'none'),
-    wires: { small: VERDICTS.small, match: MATCH_OK, slow: VERDICTS.slow },
+    wires: VERDICTS,
     opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_DIM },
     lit: ['ctrl'],
     // The candidate is a VERDICT of the sweep, so the animated path starts from what the watch step
@@ -195,8 +219,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'bind',
-    duration: 2800,
-    narration: 'Binding is written on both objects. The claim gets a volumeName pointing at PV x73a, and the volume gets a claimRef pointing back at data-claim. Both turn Bound, and because the volume now names its claim, no other claim can ever take it.',
+    duration: 3600,
+    narration: 'Binding is written volume first. PV x73a gets a claimRef pointing at data-claim and turns Bound, so no other claim can take it. Only then does the claim get a volumeName pointing back at PV x73a and turn Bound as well, and each object now names the other.',
     chipsCued: chips('Bound', 'Bound', BOUND, 'none'),
     wires: VERDICTS,
     opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_DIM },
@@ -204,20 +228,21 @@ export const STEPS_SPEC = [
     // Each side turns Bound when ITS OWN write lands, and the pair is only a pair once the second
     // one has, so all three hold what the match step left until the ball that earns them arrives.
     rewind: { chips: { pvcChip: 'Pending', pvChip: 'Available', bindChip: 'candidate PV x73a' } },
-    // Two writes leave the controller at once: one down to the claim, one down to the volume.
+    // The volume is saved first (`bind` in pv_controller.go), so the claim write waits for that one
+    // to land: the claimRef is what makes the volume exclusive before the claim ever names it.
     flow: [
-      F.route({ points: W_CTRL_TO_PVC, name: 'toClaim', lights: ['pvc'] }),
-      F.tag({ text: 'volumeName: x73a', points: W_CTRL_TO_PVC }),
       F.route({ points: W_SCAN_MATCH, name: 'toVolume', lights: ['pvMatchCyl'] }),
-      F.tag({ text: 'claimRef: data-claim', points: W_SCAN_MATCH }),
-      F.set({ at: 'toClaim', chipsCued: { pvcChip: 'Bound' } }),
-      F.set({ at: 'toVolume', chipsCued: { pvChip: 'Bound', bindChip: BOUND } }),
+      F.tag({ text: 'claimRef: data-claim', points: W_SCAN_MATCH, fn: REF_TAG, emerge: REF_EMERGE }),
+      F.route({ points: W_CTRL_TO_PVC, after: 'toVolume', name: 'toClaim', lights: ['pvc'] }),
+      F.tag({ text: 'volumeName: x73a', points: W_CTRL_TO_PVC, after: 'toVolume', dy: WRITE_TAG_DY }),
+      F.set({ at: 'toVolume', chipsCued: { pvChip: 'Bound' } }),
+      F.set({ at: 'toClaim', chipsCued: { pvcChip: 'Bound', bindChip: BOUND } }),
     ],
   },
   {
     id: 'mount',
     duration: 3400,
-    narration: 'Only now can the volume be used. Kubelet resolves the claim to the volume it is bound to, mounts it at /data inside the container, and the Pod finally starts. The claim is the handle the Pod holds, and the volume behind it is what actually stores the bytes.',
+    narration: 'Only now can the Pod run. The Scheduler places it on a Node, Kubelet there resolves the claim to the volume it is bound to and mounts it for the Pod, and the container starts with it at /data. The claim is the handle the Pod holds, and the volume behind it is what actually stores the bytes.',
     chipsCued: chips('Bound', 'Bound', BOUND, 'mounted at /data'),
     wires: { ...VERDICTS, mount: 'kubelet mount' },
     // The Pod is running by the end of this step, so full opacity is the static end-state.
@@ -229,8 +254,8 @@ export const STEPS_SPEC = [
     // on arrival, and the ball arrives AT the Pod, so the Pod pulses then rather than before.
     flow: [
       F.route({ points: W_MOUNT_LOW, name: 'hop1', lights: ['pvc'] }),
-      F.route({ points: W_MOUNT_HIGH, after: 'hop1', name: 'hop2' }),
-      F.tag({ text: '/data', points: W_MOUNT_HIGH, after: 'hop1' }),
+      F.route({ points: W_MOUNT_HIGH, after: 'hop1', dur: LEG_DUR, name: 'hop2' }),
+      F.tag({ text: '/data', points: W_MOUNT_HIGH, after: 'hop1', ...MOUNT_TAG }),
       F.fade({ target: 'appPod', from: OPACITY.pending, to: 1, dur: 500, fill: 'forwards', easing: 'ease-out', at: 'hop2' }),
       F.pulse({ pod: 'appPod', at: 'hop2' }),
       F.light({ targets: ['appBox'], at: 'hop2' }),
@@ -239,15 +264,15 @@ export const STEPS_SPEC = [
   {
     id: 'exclusive',
     duration: 2600,
-    narration: 'Binding is one to one and it is permanent. A second claim asking for exactly the same thing finds PV x73a already carrying a claimRef, so that volume is no longer Available to anyone. These volumes were pre-created by an administrator and the class has no provisioner behind it, so nothing builds a new one. The second claim just stays Pending.',
+    narration: 'Binding is one to one, and once made it is exclusive. A second claim asking for exactly the same thing cannot have PV x73a, which already carries a claimRef. These volumes were pre-created by an administrator and the class has no dynamic provisioner, so nothing builds a new one. The controller records a ProvisioningFailed event and the claim stays Pending.',
     chipsCued: chips('Bound', 'Bound', BOUND, 'mounted at /data'),
     wires: VERDICTS,
     sublabels: { pvcB: 'Pending, no volume' },
     opacity: { appPod: 1, ...CLAIM2_ON, ...SHELF_DIM },
     lit: ['ctrl', 'pvMatchCyl'],
     flow: [
-      F.route({ points: W_CTRL_TO_PVCB, name: 'deny' }),
-      F.tag({ text: 'no volume available', points: W_CTRL_TO_PVCB }),
+      F.route({ points: W_CTRL_TO_PVCB, dur: LEG_DUR, name: 'deny' }),
+      F.tag({ text: 'event: ProvisioningFailed', points: W_CTRL_TO_PVCB, ...DENY_TAG }),
       F.light({ targets: ['pvcB'], at: 'deny' }),
     ],
   },

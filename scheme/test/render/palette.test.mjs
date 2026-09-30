@@ -413,7 +413,64 @@ function describeSpread(spread) {
 // statefulset-update-strategy 20) and the redesigns landing with them, cronjob, daemonset and
 // probes, give 111 of it back. Measured off the walk: 2512 + 41 = 2553, which stands cluster 555,
 // workloads 609, network 845, storage 544.
-const EXPECTED_PAINTED = 2553;
+// 2555: +2 for network-dns-pod-policy, whose spec column grows from three chips to five with
+// dnsConfig.searches and dnsConfig.options. Measured off the walk: 2553 + 2 = 2555, network 847.
+// 2552: -3 for storage-csi-attach-mount, whose second Pod goes to storage-mount-path-chain: Pod B's
+// shell, its app box and its publish lane. Measured off the walk: 2555 - 3 = 2552, storage 541.
+// 2553: +1 for storage-projected-volume, redrawn from four source boxes, four file rows and an
+// enclosure into three file rows, two actors, two token bars and eight lanes plus the time axis.
+// Measured off the card's own walk, 20 painted before and 21 after: 2552 + 1 = 2553, storage 542.
+// 2659: +106 NET for the storage volume-foundations growth, all of it storage (cluster 555,
+// workloads 609 and network 847 unchanged). Five new modules carry 93 rows (volume-data-homes 19,
+// csi-ephemeral-volume 22, image-volume 15, recursive-readonly 18, subpath 19), the deleted
+// storage-ephemeral-vs-persistent gives back 14, and the redesigns net +27 (container-filesystem
+// 12 to 22, emptydir 9 to 20, hostpath 9 to 17, volume-model 11 to 12, configmap-secret-mount
+// 20 to 19, ephemeral-storage-eviction 15 to 13, the rest unchanged). Per card, read off a walk of
+// the committed tree against a walk of the working tree: 2553 + 93 - 14 + 27 = 2659, storage 648.
+// 2657: -2 for storage-emptydir, whose three mount lanes per Pod become one down/up pair on the
+// Pod floor midpoint (the sidecar read and the app return are the same dir-to-Pod lane once a lane
+// ends on the Pod rather than a container): emptydir 20 to 18, storage 646.
+// 2658: +1 for storage-volume-data-homes, whose ledger caption gains a right-angle relation into
+// the writable layer, one path: 19 to 20, storage 647.
+// 2683: +25 for storage-volume-model, redrawn from one row with a chip strip into a container row
+// over one disk, two file boxes, a spec ladder and a timeline of 17 bars on 5 axes: 12 to 37, storage 672.
+// 2687: +4 for storage-hostpath, redrawn from one Node over four Pods into two Nodes carrying the
+// runtime, two Kubelets, two Pods and five path cells: 17 to 21, storage 676.
+// 2686: -1 for storage-subpath, whose volume moves inside the Pod without a frame of its own, so no
+// read crosses a frame border: storage 675.
+// 2689: +3 for the Bound links, a bare role-less <line> turned into a dashed P.relation, which
+// carries a data-role: storage-dynamic-provisioning +1, storage-reclaim-policy +2, storage 678.
+// 2688: -1 for storage-volume-mode, redrawn from two columns over one band into two rows: eight
+// lanes become six, each disk lane stopping on the Node frame, and the one band becomes two
+// stations, storage 677.
+// 2689: +1 for storage-topology-aware-provisioning, whose node-1 now holds the `Pods already here`
+// box its narration says leaves no room, storage 678.
+// 2688: -1 for storage-csi-capacity-tracking, redrawn with the capacity objects as gauge rows in an
+// API server frame: the two capacity boxes give way to the CSI controller and a second Pod, and
+// nine lanes become six plus the claim relation, 20 to 19, storage 677.
+// 2689: +1 for storage-csi-capacity-tracking, a dashed relation from Pod app-0 to the Node-2 pool
+// that holds its volume, 19 to 20, storage 678.
+// 2690: +1 for storage-volume-expansion, whose gate lookup now runs claim to class on its own
+// reversed lane `lToClass` beside kubectl's `lToPvc`, storage 679.
+// 2698: +8 for storage-reclaim-policy, redrawn around a StorageClass and a new claim: +2 boxes (the
+// class, the new claim and its PV, less the refused claim), +1 disk, +1 Bound relation, +2 lanes
+// (an up and a down lane per column plus the class lane, less the bind lane), +2 chips, storage 687.
+// 2702: +4 for storage-pv-lifecycle-phases, redrawn around one writer: 8 boxes (the phases, the
+// controller band, the claim, the administrator, the provisioner) against 7, 4 relations against 0,
+// 6 lanes against 7, the same 4 chips, storage 691.
+// 2735: +33 for two new volumes-claims cards, +16 for storage-default-storageclass and +17 for
+// storage-pv-reservation, storage 724.
+// 2736: +1 for storage-mount-path-chain, redrawn from a mount stack into three mount tables: 2 Pod
+// shells, 10 row and heading boxes, 4 chips and 5 lines (3 lanes, 2 peer relations) against 2 Pod
+// shells, 5 boxes, 4 chips, 1 cylinder and 8 lanes. Its walk paints 21 against 20, storage 725.
+// 2737: +1 for storage-csi-architecture, which draws the Kubelet to CSI node driver ask as one new
+// lane over the node frame, storage 726.
+// 2757: +20 for the new storage-downward-api-volume, whose walk paints 20 rows, storage 746.
+// 2781: +24 for the new storage-csidriver, the only card the run touched, storage 770.
+// 2799: storage-volume-snapshot redesigned (+18), 22 to 40 counted off the walk: a Pod as shell
+// plus inner box, two API objects, three row headers, eighteen block cells, six pointer relations,
+// five lanes and four chips, where it had five boxes, three disks, one relation, nine lanes, four chips.
+const EXPECTED_PAINTED = 2799;
 // 29: no card draws a `workloads|scheme-arrow|workloads|` combination, because every lane in that
 // category carries `role: 'cluster'`. A role-less lane does not paint the category blue: there is
 // no `.scheme-arrow-workloads` rule in diagrams.css, so it falls to the generic dim token at
@@ -442,6 +499,13 @@ const EXPECTED_PAINTED = 2553;
 // ordinary dashed dim lane and its two new end ticks carry that same stroke minus the dash. They
 // land in the `scheme-arrow-dim` row that was already here, which is the whole reason 28 holds
 // while EXPECTED_PAINTED above went up by 2.
+// 27: -1, `storage|scheme-box|storage|highlight` leaves with the storage-pv-lifecycle-phases
+// redesign, whose poster step lit Available and was the only storage poster lighting a box. Its idle
+// step now lights nothing, as S-09 asks, so the row coming back means a poster drawing a cue.
+// 28: +1, `storage|scheme-chip|storage|highlight` arrives with storage-default-storageclass, and it
+// is a state and not a cue. Its class catalog is a P.chain whose lit row IS the is-default-class
+// annotation (a standing caption says so), and standard is default before step 1 begins, so the
+// idle frame lights that row. Unlighting it would draw a cluster with no default at all.
 const EXPECTED_COMBINATIONS = 28;
 
 const catalogued = await cards();

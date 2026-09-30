@@ -138,32 +138,34 @@ quiet rather than loud, which is the worst way for a reader to find out.
 ### storage/volume-foundations
 
 ```
-9   /concepts/storage
-3   /concepts/configuration
-2   /concepts/security
-1   /concepts/containers, /concepts/scheduling-eviction
+19  /concepts/storage
+3   /concepts/configuration, /concepts/security
+2   /tasks/configure-pod-container
+1   /concepts/architecture, /concepts/containers, /concepts/scheduling-eviction,
+    /reference/kubectl, docs.kernel.org/filesystems
 ```
 
 ### storage/volumes-claims
 
 ```
-15  /concepts/storage
+19  /concepts/storage
 1   /concepts/overview
 ```
 
 ### storage/csi-mount-path
 
 ```
-10  /concepts/storage
+11  /concepts/storage
 2   github.com/container-storage-interface, /reference/kubernetes-api,
-    /tasks/configure-pod-container
-1   /concepts/workloads, /concepts/cluster-administration, kubernetes-csi.github.io
+    /tasks/configure-pod-container, kubernetes-csi.github.io
+1   /concepts/workloads, /concepts/cluster-administration,
+    secrets-store-csi-driver.sigs.k8s.io
 ```
 
 ### storage/stateful-data
 
 ```
-10  /concepts/storage
+6   /concepts/storage
 3   /concepts/workloads
 2   kubernetes-csi.github.io
 ```
@@ -181,7 +183,7 @@ them against the cards of this section. Three verdicts and no others:
 `PARTIAL` the topic is cited or mentioned inside a card whose subject is something else
 `ABSENT` nothing here names, cites or mentions it
 
-**A citation is not coverage** and that is the failure this whole exercise exists to catch: fifteen
+**A citation is not coverage** and that is the failure this whole exercise exists to catch: nineteen
 of `volumes-claims`'s citations land in `/concepts/storage`, which says the section reads the tree,
 not that it covers it. The tool enforces the distinction by construction, so a page a card merely
 cites can reach `PARTIAL` and can never reach `COVERED`. Where it marks `PARTIAL` and prints

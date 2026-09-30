@@ -114,6 +114,9 @@ const RULED = new Map([
     'CORRECT. A failed readiness probe signals nobody the card draws, so there is no beat for web-2 to answer. The fade is the cause the lookup then shows as a smaller answer.'],
   ['network-headless-service new-ip w0',
     'CORRECT. The Pod is deleted, so nothing is left to blink, and a pulse would claim the old Pod answered something. The reveal that follows is the recreated web-0.'],
+  ['storage-csi-attach-mount unwind podA',
+    'CORRECT. The Pod is deleted, so nothing is left to blink, and the teardown that follows is the ' +
+    'node plugin unpublishing its bind mount, which the Pod no longer answers. The beat is the fade itself.'],
   ['cluster-node-restart reboot podWeb',
     'CORRECT. A reboot signals nobody, so there is no beat for a Pod to answer. A blink would claim ' +
     'an acknowledgement that never happened, and the Pod object is untouched in the API.'],
@@ -126,6 +129,9 @@ const RULED = new Map([
     'could answer it. The card draws no control-plane block for the same reason.'],
   ['cluster-node-restart standalone podDbg',
     'CORRECT. Same eviction, one Pod later, and nothing recreates a standalone Pod afterwards.'],
+  ['storage-ephemeral-storage-eviction replace podA',
+    'CORRECT. A second fade on a Pod that already pulsed on the previous step, where the evict ' +
+    'ball reached it, so the beat is spent. web-a leaves the slot for web-b, which pulses as it lands.'],
   ['storage-volume-detach-on-node-loss forcedetach oldPod',
     'CORRECT, and measured permanent. The Pod is already at 0.25 and blinked on the previous step, ' +
     'whose comment is that a pulse and a fade must not read as one event. A blink at 0.25 needs ' +

@@ -137,7 +137,7 @@ MOTION   Nothing on this card stands before the beat that earns it. On the quota
          Measured spans: 1260, 0, 0, 2560 and 1760 against durations of 3200, 2600, 2600, 5600,
          4200. The ball is SLOW, and the number is the floor rather than this card. 56 units in
          700ms is 0.080 units per ms against the PKT_SPEED canon of 0.45, and `cluster-static-pods`
-         and `storage-configmap-secret-mount` run the identical 56 at the identical 0.080.
+         runs the identical 56 at the identical 0.080.
          `cluster-node-drain` and `cluster-graceful-node-shutdown` are NOT on that list: both
          right-align their far block on CONTENT_R and their top hops read 192 at 0.274.
          `cluster-leader-election` is not one either, it runs 130 at 0.186. Most of the catalogue's

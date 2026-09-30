@@ -241,15 +241,12 @@ const recordMd = existsSync(perCard)
 if (!recordMd.includes(`## ${id}\n`)) say('RECORD', `${recordRel} has no "## ${id}" section`);
 else {
   const section = recordMd.split(`## ${id}\n`)[1].split('\n## ')[0];
-  // Two record SHAPES. `cluster/` and `workloads/` are one `### layout` block of labelled notes, so
-  // any second heading there is itself the finding. `network/` and `storage/` still carry poster
-  // notes and per-line anchors, and there an anchor has to resolve against the source verbatim.
-  const oneBlock = category === 'cluster' || category === 'workloads';
+  // One record SHAPE in all four categories: a single `### layout` block of labelled notes (`S-51`),
+  // so any second heading, a per-line anchor or a poster note included, is itself the finding.
   for (const a of section.matchAll(/^### before `(.+)`$/gm)) {
-    if (oneBlock) say('RECORD', `${recordRel} carries an anchor, and a ${category} record is one "### layout" block: ${a[1].slice(0, 70)}`);
-    else if (!src.includes(a[1])) say('ANCHOR', `${recordRel} anchor no longer occurs in the card: ${a[1].slice(0, 70)}`);
+    say('RECORD', `${recordRel} carries an anchor, and a ${category} record is one "### layout" block: ${a[1].slice(0, 70)}`);
   }
-  if (oneBlock && section.includes('### poster')) say('RECORD', `${recordRel} carries a "### poster" note, which a ${category} record does not (R-12)`);
+  if (section.includes('### poster')) say('RECORD', `${recordRel} carries a "### poster" note, which a ${category} record does not (R-12)`);
   for (const label of ['WHAT']) if (!section.includes(label)) say('RECORD', `the ${id} record has no ${label} block`);
 }
 console.log(out.length ? out.join('\n') : 'nothing found by the static sweep.');

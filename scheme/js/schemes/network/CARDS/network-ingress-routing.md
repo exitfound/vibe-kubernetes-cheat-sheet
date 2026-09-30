@@ -34,7 +34,8 @@ MOTION   On a match step the controller pulses as the sender, the Service lights
          its own beat (FORM-E). Each branch is 310 units, which the 700ms floor runs at 0.44 u/ms,
          so the tagged ball rides BRANCH_DUR 1500 (PACING in `render/motion.test.mjs`). The Pod IP
          tag shows from departure, TAG_DX 54 right of the ball so it clears the controller frame,
-         and TAG_HOLD -750 retires it before its text reaches the Pod frame on the last run. It
+         and lives exactly as long as its ball (M-30a, `inMs: 200, outMs: 200, hold: 0`), reaching
+         the Pod frame with it on the last run, which is accepted. It
          rides on the side away from the lane it turns into, below on web and above on api: placed
          above the ball on the web branch, the fading text lies along the web lane at 1600x1000.
 CONTENT  The claims are read against the three cited pages, the two Kubernetes ones on the 1.35

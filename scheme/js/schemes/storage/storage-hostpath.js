@@ -1,172 +1,263 @@
-import { P, F, defineCard, setCylinderLabel, BEAT, FADE, OPACITY } from './storage-kit.js';
-// Design notes for this card: ./CARDS.md#storage-hostpath
+import { P, F, defineCard, BEAT, OPACITY, FADE, chipStrip, makeRidingLabel } from './storage-kit.js';
+// Design notes for this card: ./CARDS/storage-hostpath.md
 
 
-// Geometry is storage-emptydir's VERBATIM, so the two node-local cards align tier for tier and the
-// only differences a reader sees are the two deliberate ones: no ownership spine, and the directory
-// surviving the Pod.
-const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;   // 180..1020, center 600, bottom 550
+// Catalog sizes: actor blocks 232 by 80, Pods 232 by 104 with a 192 by 44 app box.
+const BLK_W = 232, BLK_H = 80, POD_W = 232, POD_H = 104;
 
-const POD_X = 300, POD_Y = 186, POD_W = 600, POD_H = 170;       // 300..900, center 600
+// Two chip rows centred on the whole scheme (600): the premise `type` alone on top, right of the
+// panel, and the three outcomes it decides under it, which reach left of x 397 and so sit below the
+// deepest panel, 180.12 at 1100x800 (the record's PANEL line).
+const CX = 600, CHIP_H = 34, CHIP_GAP = 12;
+const CHIP_ROW_Y = 192;                                                // 192..226, 12 under the panel
+const CHIP_TOP_Y = CHIP_ROW_Y - CHIP_GAP - CHIP_H;                     // 146..180
+const CH = chipStrip({ cx: CX, w: 168, count: 3 });                    // 332..868
+const TYPE_W = 232;                                                    // 484..716
 
-const C_Y = 232, C_W = 190, C_H = 84;                           // container row (volume-model grid)
-const C_BOTTOM = C_Y + C_H;                                     // 316
-const APP_X = 330,  APP_CX = APP_X + C_W / 2;                   // 330..520, center 425
-const SIDE_X = 680, SIDE_CX = SIDE_X + C_W / 2;                 // 680..870, center 775
+// Two Nodes of unequal width under the chips: Node-1 carries the whole mount path (the runtime, the
+// Kubelet, the Pod and four cells of its own filesystem), Node-2 only what the replacement meets.
+const ROW_GAP = 32;
+const NODE_Y = CHIP_ROW_Y + CHIP_H + 16;                               // 242
+const NODE_H = 32 + POD_H + 2 * (ROW_GAP + BLK_H) + 24;                 // 372, to 614
+const N1_X = 40, N1_W = 704, N2_X = 784, N2_W = 1160 - 784;            // 40..744 / 784..1160
+const N2_CX = N2_X + N2_W / 2;                                         // 972
 
-// The host directory is drawn with the family cylinder (260x104 centered on 600), the same block as
-// the emptyDir disk, so the two node-local cards read as one family.
-const HP_X = 470, HP_Y = 408, HP_W = 260, HP_H = 104;          // 470..730, center 600, bottom 512
-const HP_MY = HP_Y + HP_H / 2;                                  // 460, where the lanes meet the sides
+const POD_Y = NODE_Y + 32, POD_BOTTOM = POD_Y + POD_H;                 // 274..378
+const CRI_Y = POD_Y + (POD_H - BLK_H) / 2;                             // 286, centred on the Pod
+const MID_Y = CRI_Y + BLK_H + ROW_GAP;                                 // 398
+const LEFT_X = N1_X + 32;                                              // 72
+const POD_1_X = N1_X + N1_W - 32 - POD_W;                              // 480..712
+const POD_1_CX = POD_1_X + POD_W / 2;                                  // 596
+const POD_2_X = N2_CX - POD_W / 2;                                     // 856..1088
 
-const DISK_LBL_Y = 530;
-const CHIPS_Y = 566;
+// The Node filesystem as a row of path cells. The directory a Pod mounts is a catalog block
+// under that Pod's centre on both Nodes. The three system paths on Node-1 share what is left
+// of the frame on one 16 gap (the SIZES line).
+const CELL_H = BLK_H, CELL_Y = MID_Y + BLK_H + ROW_GAP;                // 510..590
+const SYS_GAP = 16;
+const SYS_W = (POD_1_X - LEFT_X - 3 * SYS_GAP) / 3;                    // 120
+const SYS_X = (i) => LEFT_X + i * (SYS_W + SYS_GAP);                   // 72 / 208 / 344
 
-// One L-shaped polyline per direction, shared by its static pathArrow and its ball, written in its
-// one traffic direction so the arrowhead lands at the receiving end.
-const LANE_WRITE = [[APP_CX, C_BOTTOM], [APP_CX, HP_MY], [HP_X, HP_MY]];              // app -> host dir
-const LANE_READ  = [[HP_X + HP_W, HP_MY], [SIDE_CX, HP_MY], [SIDE_CX, C_BOTTOM]];     // host dir -> agent
+// Lanes, each in its one traffic direction. The check and the mount are an L-12 pair on the
+// /data/app top face, 24 either side of its midpoint, so the check turns down with one corner.
+const PAIR_D = 24;
+const CRI = [[LEFT_X + BLK_W / 2, MID_Y], [LEFT_X + BLK_W / 2, CRI_Y + BLK_H]];
+const BIND = [[LEFT_X + BLK_W, CRI_Y + BLK_H / 2], [POD_1_X, CRI_Y + BLK_H / 2]];
+const CHECK_1 = [[LEFT_X + BLK_W, MID_Y + BLK_H / 2], [POD_1_CX - PAIR_D, MID_Y + BLK_H / 2], [POD_1_CX - PAIR_D, CELL_Y]];
+const MOUNT = [[POD_1_CX + PAIR_D, POD_BOTTOM], [POD_1_CX + PAIR_D, CELL_Y]];
+const CHECK_2 = [[N2_CX, MID_Y + BLK_H], [N2_CX, CELL_Y]];
 
-// A container is a box inside a bare g so it can be highlighted on its own. It lights as a RECEIVER
-// and is cleared by the reset, and is NEVER pulsed (STO.C-02): the Pod carries the pulse.
-const container = (key, x, label, sublabel) => P.group({
-  key: `${key}C`,
-  parts: [P.box({ key: `${key}Box`, x, y: C_Y, w: C_W, h: C_H, label, sublabel })],
+// The two writes ride LEG_DUR: on routeDur the 132 unit leg sits on the 700ms floor and its tag
+// retires unread. Every tag lives exactly as long as its ball (M-30a), emerging clear of its sender.
+const LEG_DUR = 1200;
+const tagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true });
+const CHECK_TAG = { dx: 0, dy: -16, emerge: 150, fn: tagFn };
+const CRI_TAG = { dx: 176, dy: 0, emerge: 0, fn: tagFn };
+const BIND_TAG = { dx: 0, dy: -16, emerge: 250, fn: tagFn };
+const WRITE_TAG = { dur: LEG_DUR, dx: 48, dy: 0, emerge: 300, fn: tagFn };
+
+const blk = (key, x, y, label, sublabel) => P.box({ key, x, y, w: BLK_W, h: BLK_H, label, sublabel });
+const cell = (key, x, w, label, sublabel) => P.box({ key, x, y: CELL_Y, w, h: CELL_H, label, sublabel });
+const pod = (key, x, label, sublabel) => P.pod({
+  key, shellKey: `${key}Shell`, innerKey: `${key}Box`, x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel,
+  inner: { dx: 20, dy: 34, w: POD_W - 40, h: 44, label: 'app', sublabel: 'mountPath /cache' },
 });
+const chip = (key, i, name, value) => P.chip({ key, x: CH.x(i), y: CHIP_ROW_Y, w: CH.w, h: CHIP_H, name, value });
 
-// The list order IS the append order, which is the z-order: the node, then the Pod and the host
-// directory, then the two lanes and the shelf caption above them, then the chips, then the packets.
+// Z-order (bottom -> top): the two frames, the blocks, the path cells, the lanes, the chips, then
+// the packet layer.
 export const SCENE = {
-  'aria-label': 'hostPath volume: Pod log-agent mounts the Node directory /var/log straight into its containers, so the app writes and the agent reads real host state that stays on the Node once the Pod is gone. Type Directory requires that path to exist while DirectoryOrCreate makes it, and the directory belongs to the Node, so a Pod rescheduled elsewhere finds a different directory of that name: hostPath looks like persistence and is not. Pointed at a sensitive path it hands over the Node.',
+  'aria-label': 'hostPath across two Nodes: Pod app asks for hostPath /data/app with type Directory, mounted at /cache, and lands on Node-1. The Kubelet checks that /data/app exists on Node-1, then asks containerd to create the container, which starts with the directory bind-mounted at /cache. The app writes cache.db, which lands straight on the Node-1 disk, and grows it to 8Gi while the ephemeral-storage limit of 1Gi counts none of it. Deleting the Pod leaves cache.db on Node-1. The replacement Pod app-2 lands on Node-2, where /data/app does not exist, so the check fails with FailedMount and the Pod stays in ContainerCreating. The volume spec itself limits no path: /var/lib/kubelet holds the Secret volumes of the Pods on Node-1 and the containerd socket hands out root on it, so the Baseline and Restricted Pod Security Standards forbid hostPath.',
   parts: [
     P.defs(),
-    P.node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
-    P.group({
-      key: 'pod',
-      parts: [
-        // No `inner`: the two containers are peers below, so the Pod part is the shell alone and
-        // the wrap it comes in IS shellWrap. The pulse takes `pod`, so they blink with it.
-        P.pod({ key: 'shellWrap', x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod log-agent', sublabel: 'volumes: varlog (hostPath)', containers: 0 }),
-        container('app', APP_X, 'app', 'writes /var/log'),
-        container('side', SIDE_X, 'Agent', 'reads /var/log'),
-      ],
-    }),
-    // The backing cylinder is the node's OWN directory, not a Pod-scoped disk. It carries the host
-    // path as its label and is drawn inside the Node boundary. No spine ties it to the Pod.
-    P.cylinder({ key: 'hp', x: HP_X, y: HP_Y, w: HP_W, h: HP_H, label: '/var/log', labelY: HP_H / 2 + 12 }),
-    // One directed lane per container, each with its own arrowhead: the app writes into the cylinder
-    // side, the agent reads out of the far side. No ownership spine (the directory is not the Pod's).
-    P.lane({ key: 'wWrite', points: LANE_WRITE, dashed: true, dim: true }),
-    P.lane({ key: 'wRead', points: LANE_READ, dashed: true, dim: true }),
-    P.tag({ key: 'diskLbl', x: 600, y: DISK_LBL_Y, text: 'the node filesystem' }),
-    // The chip strip spans exactly the node width (180..1020): 3x270 + 2x15 = 840.
-    P.chip({ key: 'hostChip', x: 180, y: CHIPS_Y, w: 270, h: 34, name: 'hostPath', value: 'mounts /var/log' }),
-    P.chip({ key: 'livesChip', x: 465, y: CHIPS_Y, w: 270, h: 34, name: 'data lives', value: 'on the node' }),
-    P.chip({ key: 'expChip', x: 750, y: CHIPS_Y, w: 270, h: 34, name: 'exposure', value: 'one directory' }),
+    P.node({ x: N1_X, y: NODE_Y, w: N1_W, h: NODE_H, label: 'Node-1' }),
+    P.node({ x: N2_X, y: NODE_Y, w: N2_W, h: NODE_H, label: 'Node-2' }),
+    blk('criBox', LEFT_X, CRI_Y, 'containerd', 'container runtime'),
+    blk('kubeletBox', LEFT_X, MID_Y, 'Kubelet', 'hostPath type check'),
+    pod('app', POD_1_X, 'Pod app', ''),
+    pod('app2', POD_2_X, 'Pod app-2', 'replacement'),
+    blk('kubelet2Box', POD_2_X, MID_Y, 'Kubelet', 'hostPath type check'),
+    cell('logCell', SYS_X(0), SYS_W, '/var/log', 'Node logs'),
+    cell('kubeCell', SYS_X(1), SYS_W, '/var/lib/kubelet', 'Pod volumes'),
+    cell('sockCell', SYS_X(2), SYS_W, 'containerd.sock', 'runtime API'),
+    cell('dataCell', POD_1_X, POD_W, '/data/app', 'directory'),
+    cell('data2Cell', POD_2_X, POD_W, '/data/app', 'does not exist'),
+    P.lane({ key: 'lCri', points: CRI, dashed: true, dim: true }),
+    P.lane({ key: 'lBind', points: BIND, dashed: true, dim: true }),
+    P.lane({ key: 'lCheck', points: CHECK_1, dashed: true, dim: true }),
+    P.lane({ key: 'lMount', points: MOUNT, dashed: true, dim: true }),
+    P.lane({ key: 'lCheck2', points: CHECK_2, dashed: true, dim: true }),
+    P.chip({ key: 'typeChip', x: CX - TYPE_W / 2, y: CHIP_TOP_Y, w: TYPE_W, h: CHIP_H, name: 'type', value: 'Directory' }),
+    chip('n1Chip', 0, 'Node-1', 'unchecked'),
+    chip('ephChip', 1, 'counted', '0 of 1Gi'),
+    chip('n2Chip', 2, 'Node-2', 'no Pod'),
     P.packets(),
   ],
   reset: {
-    keys: ['appBox', 'sideBox', 'hp', 'hostChip', 'livesChip', 'expChip'],
-    pods: ['shellWrap', 'appC', 'sideC'],
+    keys: ['criBox', 'kubeletBox', 'appShell', 'appBox', 'app2Shell', 'app2Box', 'kubelet2Box',
+      'logCell', 'kubeCell', 'sockCell', 'dataCell', 'data2Cell',
+      'typeChip', 'n1Chip', 'ephChip', 'n2Chip'],
+    pods: ['app', 'app2'],
   },
 };
 
-// The two faces of the host directory: the cylinder label and the shelf caption under it. NO field
-// writes either one (`labels:` queries .scheme-box-label), so both are stated on every step.
-const faces = (s, cyl, shelf) => { setCylinderLabel(s.refs.hp, cyl); s.refs.diskLbl.textContent = shelf; };
+// STO.S-01 and A-16 as one factory. A lane is live only while both of its ends are: the bind and
+// the mount die with Pod app, the Node-2 check lives with Pod app-2. The missing Node-2 directory
+// is drawn at the notready weight throughout, since there is nothing there to be at full.
+const stage = ({ app = 1, mount = 0, app2 = 0 } = {}) => ({
+  app, app2, lCri: 1, lCheck: 1, lBind: app === 1 ? 1 : 0, lMount: app === 1 ? mount : 0,
+  lCheck2: app2 === 1 ? 1 : 0, data2Cell: OPACITY.notready,
+});
 
-// STO.S-01 as a field: the reschedule step ghosts the Pod and its mount lanes, so every other step
-// states the stack at full. `diskLbl` is absent: the Pod ghosts alone and the directory stays.
-const STACK_UP = { pod: 1, appC: 1, sideC: 1, hp: 1, wWrite: 1, wRead: 1 };
-const GONE = ['pod', 'wWrite', 'wRead'];
+// Every step states every face a step rewrites: the /data/app sublabel, the two cells the last
+// step relabels, and the Pod app-2 status.
+const faces = (data, { reach = false, app2 = 'replacement' } = {}) => ({
+  sublabels: {
+    dataCell: data, kubeCell: reach ? 'Pod Secrets' : 'Pod volumes',
+    sockCell: reach ? 'root on Node' : 'runtime API',
+  },
+  podSublabels: { app2 },
+});
+const TYPE = { typeChip: 'Directory' };
+// A Pod that sends or receives lights as ONE unit, shell and app box, and holds it steady. It does
+// not also pulse: a blink starts from the unlit base, so on a lit Pod it reads as a dip.
+const POD_APP = ['appShell', 'appBox'];
+const fadeIn = (target, delay, extra = {}) =>
+  F.fade({ target, from: 0, to: 1, dur: FADE.in, delay, easing: 'ease-out', ...extra });
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chipsCued: { hostChip: 'mounts /var/log', livesChip: 'on the node', expChip: 'one directory' },
-    opacity: STACK_UP,
-    enter(s) { faces(s, '/var/log', 'the node filesystem'); },
+    chipsCued: { ...TYPE, n1Chip: 'unchecked', ephChip: '0 of 1Gi', n2Chip: 'no Pod' },
+    opacity: stage(),
+    ...faces('directory'),
   },
   {
-    id: 'mount',
-    duration: 2600,
-    narration: 'The Pod names a hostPath with a path and a type. Kubelet checks the Node first: type Directory requires /var/log to already exist, while DirectoryOrCreate makes it, owned by Kubelet. It then bind-mounts that host directory into the container.',
-    chipsCued: { hostChip: 'bind-mounted in', livesChip: 'on the node', expChip: 'one directory' },
-    opacity: STACK_UP,
-    // Kubelet bind-mounts the existing host directory INTO the containers, so the cylinder and both
-    // container boxes light for the whole step and the Pod pulses in the same beat.
-    lit: ['hp', 'appBox', 'sideBox'],
-    enter(s) { faces(s, '/var/log', 'the node filesystem'); },
-    flow: [F.pulse({ pod: 'pod' })],
-  },
-  {
-    id: 'access',
-    duration: 3800,
-    narration: 'Inside the container /var/log is the real log directory of the Node. The app writes an entry and the agent reads it straight back, and every byte lands in the Node filesystem where it stays after the Pod is gone. This is live host state, not private scratch.',
-    chipsCued: { hostChip: 'reads host files', livesChip: 'on the node', expChip: 'one directory' },
-    opacity: STACK_UP,
-    // The app container is the writer and is lit at entry. The host directory and the agent box
-    // are receivers, so each lights as its own ball lands, and the pulse fires on the same beat.
-    lit: ['appBox'],
-    enter(s) { faces(s, '/var/log', 'the node filesystem'); },
-    // The write descends into the cylinder side, the read returns out of the far side and up into
-    // the Pod, which pulses again. The cylinder cue is its own entry so it emits after the tag.
+    id: 'check',
+    duration: 3200,
+    narration: 'Pod app asks for hostPath /data/app, type Directory, mounted at /cache, and lands on Node-1. Before any container starts, the Kubelet checks the path on Node-1: Directory means it must already exist there, and it does.',
+    chips: { n1Chip: 'dir exists' },
+    chipsCued: { ...TYPE, ephChip: '0 of 1Gi', n2Chip: 'no Pod' },
+    opacity: stage(),
+    lit: ['kubeletBox'],
+    rewind: { chips: { n1Chip: 'unchecked' } },
+    ...faces('directory'),
+    // The Pod blinks as the one being set up, then the Kubelet, lit from entry, sends the check.
     flow: [
-      F.pulse({ pod: 'pod' }),
-      F.route({ points: LANE_WRITE, delay: BEAT.afterPulse, name: 'write' }),
-      F.tag({ text: 'write entry', points: LANE_WRITE, delay: BEAT.afterPulse }),
-      F.light({ targets: ['hp'], at: 'write' }),
-      F.route({ points: LANE_READ, after: 'write', name: 'read', lights: ['sideBox'] }),
-      F.tag({ text: 'read entry', points: LANE_READ, after: 'write' }),
-      F.pulse({ pod: 'pod', at: 'read' }),
+      F.pulse({ pod: 'app' }),
+      F.route({ points: CHECK_1, delay: BEAT.afterPulse, name: 'c', lights: ['dataCell'] }),
+      F.tag({ text: 'type check', points: CHECK_1, delay: BEAT.afterPulse, ...CHECK_TAG }),
+      F.set({ at: 'c', chips: { n1Chip: 'dir exists' }, lights: ['n1Chip'] }),
     ],
   },
   {
-    id: 'reschedule',
+    id: 'bind',
+    duration: 4600,
+    narration: 'The Kubelet asks containerd to create the app container with that mount, and the container starts with /data/app of Node-1 bind-mounted at /cache. It is one directory under two names: nothing is copied into the Pod.',
+    chips: { n1Chip: 'at /cache' },
+    chipsCued: { ...TYPE, ephChip: '0 of 1Gi', n2Chip: 'no Pod' },
+    opacity: stage({ mount: 1 }),
+    lit: ['kubeletBox'],
+    rewind: { chips: { n1Chip: 'dir exists' }, opacity: { lMount: 0 } },
+    ...faces('directory'),
+    // Two hops: the request up to the runtime, then the runtime starts the container with the
+    // mount, and the mount lane appears as the Pod blinks on arrival.
+    flow: [
+      F.route({ points: CRI, delay: BEAT.lead, name: 'r', lights: ['criBox'] }),
+      F.tag({ text: 'CreateContainer', points: CRI, delay: BEAT.lead, ...CRI_TAG }),
+      F.route({ points: BIND, after: 'r', name: 'b' }),
+      F.tag({ text: 'mount /cache', points: BIND, after: 'r', ...BIND_TAG }),
+      F.light({ targets: POD_APP, at: 'b' }),
+      fadeIn('lMount', 0, { at: 'b', lights: ['dataCell'] }),
+      F.set({ at: 'b', chips: { n1Chip: 'at /cache' }, lights: ['n1Chip'] }),
+    ],
+  },
+  {
+    id: 'write',
+    duration: 3200,
+    narration: 'The app writes cache.db to /cache. No copy sits in between, so the file lands straight in /data/app on the Node-1 disk, where the Node sees it at once.',
+    chips: { n1Chip: 'cache.db' },
+    chipsCued: { ...TYPE, ephChip: '0 of 1Gi', n2Chip: 'no Pod' },
+    opacity: stage({ mount: 1 }),
+    rewind: { chips: { n1Chip: 'at /cache' }, sublabels: { dataCell: 'directory' } },
+    lit: POD_APP,
+    ...faces('cache.db'),
+    flow: [
+      F.route({ points: MOUNT, delay: BEAT.lead, dur: LEG_DUR, name: 'w', lights: ['dataCell'] }),
+      F.tag({ text: 'cache.db', points: MOUNT, delay: BEAT.lead, ...WRITE_TAG }),
+      F.set({ at: 'w', chips: { n1Chip: 'cache.db' }, sublabels: { dataCell: 'cache.db' }, lights: ['n1Chip'] }),
+    ],
+  },
+  {
+    id: 'uncounted',
+    duration: 3400,
+    narration: 'The Pod has an ephemeral-storage limit of 1Gi, yet cache.db grows to 8Gi and nothing stops it: hostPath usage is not counted as ephemeral storage. Only the Node-1 disk fills, which can put the whole Node under disk pressure.',
+    chips: { n1Chip: 'cache.db 8Gi' },
+    chipsCued: { ...TYPE, ephChip: '0 of 1Gi', n2Chip: 'no Pod' },
+    opacity: stage({ mount: 1 }),
+    rewind: { chips: { n1Chip: 'cache.db' }, sublabels: { dataCell: 'cache.db' } },
+    lit: POD_APP,
+    ...faces('cache.db 8Gi'),
+    // The same write lane, a bigger payload. The counter lights with its value unchanged.
+    flow: [
+      F.route({ points: MOUNT, delay: BEAT.lead, dur: LEG_DUR, name: 'w', lights: ['dataCell'] }),
+      F.tag({ text: '+8Gi', points: MOUNT, delay: BEAT.lead, ...WRITE_TAG }),
+      F.set({ at: 'w', chips: { n1Chip: 'cache.db 8Gi' }, sublabels: { dataCell: 'cache.db 8Gi' }, lights: ['n1Chip', 'ephChip'] }),
+    ],
+  },
+  {
+    id: 'delete',
     duration: 2800,
-    narration: 'The directory belongs to the Node, not the Pod, so deleting the Pod leaves /var/log untouched on Node-1, and here the Pod dims out while the directory stays lit. Schedule a replacement onto another Node and the /var/log it finds there is a different directory that belongs to that Node. The data did not travel. A hostPath volume looks like persistence and is not.',
-    chipsCued: { hostChip: 'stays behind', livesChip: 'on the old node', expChip: 'one directory' },
-    // The exact inversion of emptyDir dies: only the Pod and its mount lanes ghost. The host
-    // directory stays at full opacity and lit, because it belongs to the node and outlives the Pod.
-    opacity: { ...STACK_UP, ...Object.fromEntries(GONE.map(k => [k, OPACITY.terminated])) },
-    lit: ['hp'],
-    enter(s) { faces(s, '/var/log', 'stays on Node-1'); },
-    // `fill` is stated because F.fade defaults to both, and these fades take the WAAPI default of
-    // none instead. The static opacity above is what holds the ghost, not the fill.
-    flow: GONE.map(target => F.fade({ target, to: OPACITY.terminated, dur: FADE.out, fill: 'none' })),
-  },
-  {
-    id: 'security',
-    duration: 3000,
-    narration: 'Point a hostPath at a sensitive path and the risk is plain. Mounting the host root or the container runtime socket gives the Pod control of the Node itself, a container escape. This is why the Baseline and Restricted Pod Security Standards forbid hostPath outright.',
-    chipsCued: { hostChip: 'mounts / (root)', livesChip: 'on the node', expChip: 'the whole node' },
-    opacity: STACK_UP,
-    lit: ['appBox'],
-    // The cylinder now stands for the host root, and the reach into it is what the ball carries.
-    enter(s) { faces(s, 'host /', 'hands over the node'); },
-    // The Pod reaches down into the host root: a pod-to-infra hop, so the shell pulses first and
-    // the ball leaves at afterPulse.
+    narration: 'Pod app is deleted. The Kubelet has containerd stop the container, and its bind mount goes with it, but hostPath teardown deletes nothing, so /data/app and cache.db stay on Node-1 after the Pod is gone.',
+    chips: { n1Chip: 'cache.db kept', ephChip: 'Pod gone' },
+    chipsCued: { ...TYPE, n2Chip: 'no Pod' },
+    opacity: stage({ app: OPACITY.terminated }),
+    lit: ['kubeletBox', 'dataCell'],
+    rewind: { chips: { n1Chip: 'cache.db 8Gi', ephChip: '0 of 1Gi' } },
+    ...faces('cache.db 8Gi'),
+    // The Pod blinks at full first (M-08), the Kubelet asks the runtime to remove its container, and
+    // the Pod goes with its bind and mount as that request lands.
     flow: [
-      F.pulse({ pod: 'pod' }),
-      F.route({ points: LANE_WRITE, delay: BEAT.afterPulse, lights: ['hp'] }),
-      F.tag({ text: 'full node access', points: LANE_WRITE, delay: BEAT.afterPulse }),
+      F.pulse({ pod: 'app' }),
+      F.route({ points: CRI, delay: BEAT.afterPulse, name: 'rm', lights: ['criBox'] }),
+      F.tag({ text: 'StopContainer', points: CRI, delay: BEAT.afterPulse, ...CRI_TAG }),
+      F.fade({ target: 'app', from: 1, to: OPACITY.terminated, dur: FADE.out, at: 'rm' }),
+      ...['lBind', 'lMount'].map(target => F.fade({ target, from: 1, to: 0, dur: FADE.out, at: 'rm' })),
+      F.set({ at: 'rm', chips: { n1Chip: 'cache.db kept', ephChip: 'Pod gone' }, lights: ['n1Chip', 'ephChip'] }),
     ],
   },
   {
-    id: 'bridge',
-    duration: 3000,
-    narration: 'Used narrowly, hostPath is right: a Node agent in a DaemonSet reading /var/log or /proc genuinely needs the host. For an ordinary Pod that wants node-local storage to survive a reschedule, the portable answer is a local PersistentVolume, whose node affinity keeps the Pod pinned to its data. That is where the rest of this category begins.',
-    chipsCued: { hostChip: 'for node agents', livesChip: 'on the node', expChip: 'one directory' },
-    opacity: STACK_UP,
-    lit: ['hp'],
-    enter(s) { faces(s, '/var/log', 'the node filesystem'); },
-    // The agent reads the node logs: an infra-to-pod hop, so the ball leaves first and the shell
-    // pulses when it arrives.
+    id: 'elsewhere',
+    duration: 4400,
+    narration: 'Its replacement, Pod app-2, lands on Node-2: hostPath ties no Pod to a Node. There is no /data/app on Node-2, so the Kubelet check fails with FailedMount and app-2 stays in ContainerCreating. DirectoryOrCreate would start it empty.',
+    chips: { n2Chip: 'FailedMount' },
+    chipsCued: { ...TYPE, n1Chip: 'cache.db kept', ephChip: 'Pod gone' },
+    opacity: stage({ app: OPACITY.terminated, app2: 1 }),
+    lit: ['kubelet2Box'],
+    rewind: { chips: { n2Chip: 'no Pod' }, podSublabels: { app2: 'replacement' } },
+    ...faces('cache.db 8Gi', { app2: 'ContainerCreating' }),
+    // The Pod arrives with its check lane, the Kubelet there checks, and the failure lands on it.
     flow: [
-      F.route({ points: LANE_READ, name: 'read', lights: ['sideBox'] }),
-      F.tag({ text: 'reads node logs', points: LANE_READ }),
-      F.pulse({ pod: 'pod', at: 'read' }),
+      fadeIn('app2', 0, { name: 'in' }),
+      fadeIn('lCheck2', 0),
+      F.route({ points: CHECK_2, at: 'in', plus: BEAT.afterHop, name: 'c', lights: ['data2Cell'] }),
+      F.light({ targets: ['app2Shell', 'app2Box'], at: 'c' }),
+      F.set({
+        at: 'c', chips: { n2Chip: 'FailedMount' }, podSublabels: { app2: 'ContainerCreating' }, lights: ['n2Chip'],
+      }),
+    ],
+  },
+  {
+    id: 'reach',
+    duration: 2400,
+    narration: 'The hostPath spec limits no path. On Node-1, /var/lib/kubelet holds the Secret volumes of its Pods and containerd.sock hands out root. So Baseline and Restricted Pod Security Standards forbid hostPath: it is for Node agents such as log readers.',
+    chipsCued: { ...TYPE, n1Chip: 'cache.db kept', ephChip: 'Pod gone', n2Chip: 'FailedMount' },
+    opacity: stage({ app: OPACITY.terminated, app2: 1 }),
+    ...faces('cache.db 8Gi', { reach: true, app2: 'ContainerCreating' }),
+    // No packet: the three other paths of the same filesystem light together.
+    flow: [
+      F.light({ targets: ['logCell', 'kubeCell', 'sockCell'], delay: 300 }),
     ],
   },
 ];

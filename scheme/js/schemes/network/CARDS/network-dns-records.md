@@ -23,54 +23,67 @@ SIZES    The first name segment is CD_W wide on CD_LEFT, so the segment that car
 LANES    Each record row is reached by its OWN dashed wire, and the four share a trunk out of the
          CoreDNS right edge before diverging at the bus (FAN_X 680). The answer ball rides ANS[i],
          the same array that drew wire i, so it tracks a visible line the whole way.
-         The query lane carries a STANDING caption, `to 10.96.0.10:53`, and not a per-step wire: the
-         nameserver address is true on every step, so a `P.tag` states it once where `wires` would
-         make six steps repeat it. It is centred between the two blocks it spans, inking 305.9..404.1
-         at 1100x800 for 15.9 units of clearance on each side, and its baseline sits 12 above the
-         out lane.
-         Only the OUT leg carries it, which is a decision rather than half a job: the caption says
-         where the QUESTION goes, and the answer comes home to an address the client block already
-         prints as its own sublabel, so a second caption would repeat a label rather than add one.
+         The nameserver address RIDES the query ball as a tag, `to 10.96.0.10:53` (`NET.T-01`),
+         on all four record steps, and never as a standing caption on the lane. The tag inks 98.2
+         wide at 1100x800 against a 130 unit gap, so in the face band beside the ball it would print
+         over the Pod frame at departure or over CoreDNS at arrival. It rides OVER both block tops
+         instead, just above and right of the ball, `dx` 53 and `dy` -40, baseline 348, its left
+         edge 2.6 to 4.8 units past the ball centre. Measured over the whole ride as an em box, it
+         keeps 2.6 to 4.8 units off the Client Pod right edge, 0.9 to 1.5 off the CoreDNS top
+         (about 4 to the ink, the string carrying no descender), and 9.0 under the panel at
+         1100x800 on `pod-record`, the only step and viewport where the two share an x range.
+         Neither offset can shrink further: the Pod edge bounds `dx` at departure and the CoreDNS
+         top bounds `dy` at arrival, and above the Pod top the panel is in the way.
+         Only the OUT leg carries it, which is a decision rather than half a job: the tag says where
+         the QUESTION goes, and the answer comes home to an address the client block already prints
+         as its own sublabel, so a second tag would repeat a label rather than add one.
 MOTION   The four record steps obey `P-03`: the answer count WAITS for the answer, on the very beat
          the ladder row was already waiting on. Each states its count in `chips`, `rewind` winds it
          back to the count the step before left, and the single `F.set` inside `lookup` writes the
-         row and the count together on the `ans` arrival, 2438ms for the A row and 2300ms for the
+         row and the count together on the `ans` arrival, 2938ms for the A row and 2800ms for the
          other three, the difference being that row 0 is the longest climb off the bus. Measured in
-         real time, 2200ms still reads the old count on all four steps and 2700ms reads the new one.
+         real time, 2750ms still reads the old count on all four steps and 3150ms reads the new one.
+         The tagged query leg rides LEG_DUR 1200 from 800 to 2000, not the 700 floor its 130 units
+         would clamp to, with the tag fading in from 650 so it is on as the ball leaves and retiring
+         over 170ms from the arrival.
          `was` for srv-record is the same 1 record the a-record step left, so that step rewinds to
          the value it already shows. It is stated anyway, because `P-01` wants every step to say
          every value and a helper that skipped one would make the silent step look like the odd one
          out.
-         The step budget is bought per NARRATION and is not flat: `fqdn` holds 3400 and `pod-record`
-         5300 against 4400 on the other three, which puts every step between 10.59 and 16.54 ms per
-         character, none of them in the hurried end of the ranking `timing.mjs` prints. `fqdn` pays
-         for its pace in stillness, 2500 of its 3400 with only the client pulse in it, which is what
-         a step whose whole content is four segments being read costs. A flat 4400 puts `fqdn` at
-         7.79 and `pod-record` at 8.80, both inside the most hurried tenth of the catalog.
+         The step budget is not flat. `a-record`, `srv-record` and `headless-record` hold 4900, which
+         the tagged query leg forces (span 4638 on the first, 4500 on the other two, `M-19`), so all
+         three read slow in the ranking `timing.mjs` prints (15.56 to 18.42 ms per character) on the
+         price of the leg rather than of their prose. `pod-record` holds 5000, bought by its 503
+         character narration at 9.94, and stands still for 500 after its reply pulse. `fqdn` holds 3400 at 9.47 and pays for its pace in
+         stillness, 2500 of its 3400 with only the client pulse in it, which is what a step whose
+         whole content is four segments being read costs. None of the five is in the hurried end.
 CONTENT  The FQDN band is the LIVE QUERY NAME and it MUTATES per step, because the whole point is that
          a different record kind is a different name. SRV prefixes _port._proto, a Pod record swaps
          the service label for the dashed Pod address AND the subdomain from svc to pod, and headless
          asks the exact same name as A, which is the lesson. The third segment is `subdomain` and
          never `kind`, for the reason the constant block gives. Segments light statically and never
          flash.
-         Neither readout repeats the band. QUESTION is the exact qname plus type on the wire,
+         Neither readout repeats the band. QUESTION is the exact qname plus type on the wire on the
+         four record steps, and on `fqdn`, where nothing is on the wire yet, the expansion itself.
          ANSWERS is how many records come back, which is the whole difference between a normal and
          a headless Service (1 against one per ready Pod). The ladder carries that difference too,
          by spelling three addresses out on its headless row, but only as a shape: the chip is
          where it is a NUMBER, stated on every step and comparable across them.
          The SRV row spells its TARGET beside its port, `-> :80 web.default.svc`, because a normal
          Service SRV answer carries the port number and the domain name and the narration names
-         both. It inks 257.7 at 1100x800 inside a 410 wide row.
+         both. It inks 257.7 at 1100x800 inside a 410 wide row. The Pod row spells its answer the
+         same way, `-> 10.244.2.7`, the address read straight back off the name, which is all a
+         `pods insecure` answer is. It inks 263.8 at 1100x800.
          The a-record step reads the answered address against the address the question went to, and
-         the lane caption is what makes that contrast visible rather than a claim in prose: 10.96.0.10
-         on the lane, 10.96.0.20 in the row the ball climbs to.
+         the query tag is what makes that contrast visible rather than a claim in prose: 10.96.0.10
+         riding the question, 10.96.0.20 in the row the answer ball climbs to.
          The pod-record step frames its name as a form that PREDATES the DNS spec, because the
          reference introduces it as what `Kube-DNS versions, prior to the implementation of the DNS
          specification, had` and the CoreDNS plugin keeps the mode behind it for `backward
          compatibility with kube-dns`. Without that clause a reader takes `pod.cluster.local` for a
          first-class modern name, which is the one impression the step exists to deny. It is paid for
          inside the same sentence: `it answers from the name` is the short form of that fact, so the
-         narration lands at 505 characters and the panel bottom holds at 329.20.
+         narration lands at 503 characters and the panel bottom holds at 329.20.
          The ladder TRUNCATES the cluster domain on every row, which is the card shorthand and not an
          answer name: the band states the full name segment by segment and the question chip always
          carries the exact qname, so spelling `cluster.local` a fourth time buys a reader nothing and
@@ -78,7 +91,25 @@ CONTENT  The FQDN band is the LIVE QUERY NAME and it MUTATES per step, because t
          The nameserver is 10.96.0.10 on port 53, where the kubeadm Service CIDR puts kube-dns and
          where `network-dns-coredns` already draws it in resolv.conf.
          `desc` says a Pod is REACHABLE at its record name rather than that it answers at one,
-         because the Pod answers no DNS query and CoreDNS does.
+         because the Pod answers no DNS query and CoreDNS does. It says so only `With pods enabled in
+         CoreDNS`: the bare `A Pod is reachable at` is rejected because the plugin default is
+         `disabled: Default. Do not process pod requests, always returning NXDOMAIN`. The clause is
+         paid for inside the band by folding the svc marker into the segment list and opening the
+         third sentence on `It`, never by cutting the condition.
+         The fqdn step opens on `Under the default ClusterFirst policy`, the wording
+         `network-dns-ndots` and `network-headless-service` already use: the bare `A Pod resolv.conf
+         carries search domains and ndots:5` is rejected because a hostNetwork Pod under ClusterFirst
+         `will fallback to the behavior of the Default policy`, which carries neither.
+         The pod-record step offers a StatefulSet Pod hostname as `A stable way` and never `The
+         stable way`: any Pod with `spec.hostname` and `spec.subdomain` matching a headless Service
+         gets the same kind of name, StatefulSet is only the common source of it.
+         `kubeadm sets to insecure by default` reads against the kubeadm CoreDNS manifest
+         (`cmd/kubeadm/app/phases/addons/dns/manifests.go`, `pods insecure` in its kubernetes block),
+         the docs being silent on kubeadm, while the CoreDNS plugin default stays `disabled`.
+         `one A record per ready Pod` rests on `the Pod needs to be ready in order to have a record
+         unless publishNotReadyAddresses=True is set on the Service`, and `the client chooses an
+         endpoint itself` on `Clients are expected to consume the set or else use standard
+         round-robin selection from the set`.
          Every claim here reads against k8s 1.35 and the three cited pages: the record forms and the
          readiness condition from DNS for Services and Pods, the three `pods` modes from the CoreDNS
          kubernetes plugin, and the `pods insecure` line of the default Corefile from Customizing DNS

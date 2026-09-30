@@ -160,16 +160,13 @@ export const STEPS_SPEC = [
     wires: { veth: 'veth pair' },
     // The ball leaves the host stack, so the host lights before it goes (M-18a). It lands on the
     // shell rather than on a layer, so what answers is the whole namespace pulsing, and the two
-    // layers the cable brought turn over after that pulse: the outer block first, the events inside
-    // it second. No `lights` on the two slabs, because a highlight inside a pod that pulses cannot
-    // paint (the OPEN note in the record). The reduced path runs no flow, so it takes them as
-    // `reducedLit` and shows the pair the step is about.
+    // layers the cable brought turn over and light after that pulse: the outer block first, the
+    // events inside it second. The reduced guard derives the pair from `lights`.
     lit: ['host'],
-    reducedLit: ['slabIface', 'slabRoutes'],
     flow: [
       F.segment({ from: VETH[0], to: VETH[1], name: 'hop', delay: BEAT.lead }),
       F.pulse({ pod: 'podGroup', at: 'hop' }),
-      F.set({ at: 'hop', plus: BEAT.afterPulse, sublabels: { slabRoutes: 'default via eth0', slabIface: 'lo + eth0' } }),
+      F.set({ at: 'hop', plus: BEAT.afterPulse, lights: ['slabIface', 'slabRoutes'], sublabels: { slabRoutes: 'default via eth0', slabIface: 'lo + eth0' } }),
     ],
   },
   {

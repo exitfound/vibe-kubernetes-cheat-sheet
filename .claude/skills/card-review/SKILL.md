@@ -311,10 +311,9 @@ The gate already reads every drawn string for apostrophes, semicolons and dashes
 - `cards.js`: title, category, subcategory, desc, `k8sVersion`, `sources` all present. Their TRUTH
   is `card-facts`, their presence and shape are here.
 - Counts in `scheme/CLAUDE.md` against `data.js`, and the root `README.md` counts, which nothing
-  links to and nothing checks.
-- Record anchors still occur in the card verbatim, in `network/` and `storage/`
-  (`unit/docs.test.mjs` group A checks this). `cluster/` and `workloads/` carry none: a record there
-  is one `### layout` block (`S-51`), and `unit/docs.test.mjs` G1 fails on an anchor or a poster note
+  links to and only `unit/docs-census.test.mjs` reads.
+- No record carries an anchor or a poster note, in any of the four categories: a record is one
+  `### layout` block (`S-51`), and `unit/docs.test.mjs` G1 fails on an anchor or a poster note
   appearing in one, with G2 holding the label order (`S-52`) and G3 the vocabulary itself
   (`S-53`). All three are in
   `npm test`, so this is a detection to report and not a finding to hunt.

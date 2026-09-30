@@ -354,8 +354,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // PROVISIONAL, awaiting the card-poster R-01 sign-off. Two axis meters of unequal reading over the
-  // replica row they decide, so D-06 has a real thumbnail rather than the fallback shape.
+  // Signed off by the author 2026-09-18 as final and acceptable, closeness to the diagram included.
+  // Two axis meters of unequal reading over the replica row they decide.
   'network-dns-autoscaling': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="24"  y="34" width="120" height="26" rx="5" fill="rgba(255,255,255,0.04)"/>

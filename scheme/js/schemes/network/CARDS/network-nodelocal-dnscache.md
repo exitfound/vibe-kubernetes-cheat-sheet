@@ -106,7 +106,13 @@ CONTENT  Checked against k8s 1.35, the NodeLocal DNSCache task page and `nodeloc
          so `conntrack` never reads `no entry` on a step whose ball crosses the dataplane to Node-2.
          `five second DNS stalls` is the symptom of the conntrack races the task page links to, and the
          `before` narration names the races as the cause and the stalls as what a reader sees.
-BUDGET   Eight lines at 1100x800. `before` at 342 characters and `agent` at 337 both read 229.82, and
+         `each lookup from a ClusterFirst Pod is a UDP query` on `before` and in the `desc`, and not
+         `each lookup is a UDP query`: the task page scopes the mechanism with `In ClusterFirst DNS mode`,
+         and a Pod on `Default`, or on the host network left at ClusterFirst, reads the Node resolv.conf
+         and never reaches the kube-dns ClusterIP. The drawn `nameserver 10.96.0.10` shows the case but
+         does not state it, and the sibling DNS cards carry the same qualifier. On `before` it is paid
+         for by `a conntrack entry that must time out` in place of `that has to time out`.
+BUDGET   Eight lines at 1100x800. `before` at 361 characters and `agent` at 337 both read 229.82, and
          at 355 characters `agent` reads 254.66, a ninth line that puts the panel over the Node-1
          frame.
          A longer narration on either step costs NODE_Y, and NODE_Y has no room: the chip strip already
@@ -122,9 +128,10 @@ NOT A DEFECT
          The resolver pair TO_EXT/FROM_EXT is drawn on `before`, `agent`, `miss` and `hit`, where nothing
          rides it: it is the second destination the agent can pick (`NET.A-03`), and on `before` the
          local pair beside it says `not installed`.
-         `report/arrival.test.mjs` prints twelve CUE LANDS LATER rows on `agent`, `miss` and `hit`.
-         Each chip is wound back in `rewind` and turns over, cued, on the arrival where its fact
-         happens: the rewrite and the conntrack reading when the query reaches the dataplane, the
-         cache and upstream reading when it reaches the agent (`P-03`). Turning them at entry instead
-         states a cache hit before the query has left the Pod.
+         `report/arrival.test.mjs` prints twelve R2-ENTRY rows on `miss`, `hit` and `external`, all
+         CARRIED in `test/fixtures/carried.mjs`. Each chip is wound back in `rewind` and turns over,
+         cued, on the arrival where its fact happens on the step BEFORE: the rewrite and the conntrack
+         reading when the query reaches the dataplane, the cache and upstream reading when it reaches
+         the agent (`P-03`). Turning them at entry instead states a cache hit before the query has
+         left the Pod. R2-STEP reports none.
 ```

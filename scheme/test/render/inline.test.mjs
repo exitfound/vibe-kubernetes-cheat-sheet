@@ -104,22 +104,46 @@ const ALL_TEXT_CLASSES = [...TITLE_CLASSES, NODE_CLASS, ...LOWER_CLASSES].sort()
 // System A (T-09): a block label is a heading and takes a capital, everything else on the canvas
 // is body text and stays lowercase.
 const KNOWN_CASING = [
-  // Four DNS and mount names drawn as block labels. Lowercase is the literal being named
-  // (a DNS subdomain, a projected volume key), so capitalising it would print something that
-  // does not exist.
+  // DNS names and projected file names drawn as block labels. Lowercase is the literal being
+  // named (a DNS subdomain, a file in a projected volume), so capitalising it would print
+  // something that does not exist.
   'network-dns-coredns         scheme-box-label   UP    "forward"',
   'network-dns-records         scheme-box-label   UP    "default"',
   'network-dns-records         scheme-box-label   UP    "svc"',
-  'storage-projected-volume    scheme-box-label   UP    "labels"',
-  'storage-projected-volume    scheme-box-label   UP    "password"',
   'storage-projected-volume    scheme-box-label   UP    "token"',
-  // Two body strings opening with a capital. Both open with an API word used as a heading inside
+  // One body string opening with a capital. It opens with an API word used as a heading inside
   // a value, which is the case System A has no way to spell.
   'network-dns-records         scheme-chip-text   DOWN  "Headless A: -> .2.7 .3.4 .1.9"',
-  'storage-configmap-secret-mount scheme-label    DOWN  "Volume /etc/config"',
   // A dnsPolicy value in a chip. `Default` is the API enum as the Pod spec spells it, so lowering
   // it would print a policy that does not exist, the same reason as the DNS names above.
   'network-dns-pod-policy      scheme-chip-text   DOWN  "Default"',
+  // Enum values in a chip, as the API spells them: hostPath `type` (Directory), a
+  // volumeMount `recursiveReadOnly` with its status, and a CSIDriver `fsGroupPolicy` (File).
+  // Same reason as Default above.
+  'storage-csidriver           scheme-chip-text   DOWN  "File"',
+  'storage-hostpath            scheme-chip-text   DOWN  "Directory"',
+  'storage-recursive-readonly  scheme-chip-text   DOWN  "Disabled"',
+  'storage-recursive-readonly  scheme-chip-text   DOWN  "Enabled"',
+  // Container names drawn as the label of a container box: the `name` field of the container,
+  // as `app` and `web` already are through the names list. Capitalising one prints a container
+  // the Pod spec does not have.
+  'storage-subpath             scheme-box-label   UP    "proxy"',
+  'storage-volume-model        scheme-box-label   UP    "seed"',
+  // An image reference drawn as a block label: `llm:v1` is the literal a Pod spec names.
+  'storage-image-volume        scheme-box-label   UP    "llm:v1"',
+  // The four rows of the overlay mount, named by their overlayfs roles: the `lowerdir` and
+  // `upperdir` mount options and the `merged` view. The narration uses the same lowercase names,
+  // and capitalising one row would break the set the grid reads as.
+  'storage-container-filesystem scheme-box-label  UP    "lowerdir: app layer"',
+  'storage-container-filesystem scheme-box-label  UP    "lowerdir: base layer"',
+  'storage-container-filesystem scheme-box-label  UP    "merged"',
+  'storage-container-filesystem scheme-box-label  UP    "upperdir"',
+  // Pod labels drawn as rows of the Pod object, `key: value` as metadata.labels holds them, and
+  // level with the `key="value"` lines of the file they become. Capitalising one prints a label
+  // key the Pod does not carry and breaks the row-for-row match with the file.
+  'storage-downward-api-volume scheme-box-label   UP    "rack: r22"',
+  'storage-downward-api-volume scheme-box-label   UP    "zone: east"',
+  'storage-downward-api-volume scheme-box-label   UP    "zone: west"',
 ].sort();
 
 // T-13: one object, one label, compared only inside the same position class.
@@ -130,7 +154,6 @@ const KNOWN_DRIFT = [
   // The count is not what this list freezes, the PAIR is: a new pair is a defect, a higher
   // count is not.
   'pod: "Pod" x27 vs "pod" x1',
-  'podc: "Pod C" x3 vs "pod-c" x1',
 ].sort();
 
 // T-03 bans the semicolon in narration prose, and an aria-label is the diagram read aloud, so the

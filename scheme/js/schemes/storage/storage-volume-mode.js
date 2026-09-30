@@ -1,220 +1,198 @@
-import { P, F, defineCard, BEAT, laneY, makeRidingLabel } from './storage-kit.js';
-// Design notes for this card: ./CARDS.md#storage-volume-mode
+import { P, F, defineCard, BEAT, FADE } from './storage-kit.js';
+// Design notes for this card: ./CARDS/storage-volume-mode.md
 
 
-// The panel wall, ~2 units of slack, and the left edge of the node. NODE_W is then the only lever on
-// CONTENT_CX and is solved so it lands on 600. Every tier hangs off that centre, so widening the node
-// slides the chip strip off the canvas centre while each tier still looks internally symmetric.
-const LEFT_X = 400;
+// Two rows, one per claim, each running left to right from its disk into Node-1 and on to its Pod.
+// The Filesystem row passes two stations and the Block row passes none: the gap is the subject.
+const ROW_FS = 364, ROW_BLK = 514;                       // row centres, 150 apart
 
-const NODE_Y = 55, NODE_H = 186;
-const NODE_PAD = 16;
-const POD_Y = 82, POD_W = 164, POD_H = 126;
-const POD_BOTTOM = POD_Y + POD_H;                        // 208
-const POD_GAP = 40;
+// A disk left of the panel wall has to sit under the panel bottom (L-03): its top is ROW_FS - 48.
+const DISK_W = 150, DISK_H = 96;
+const DISK_X = 40;                                       // mirrors the frame right edge 1160 about 600
+const DISK_R = DISK_X + DISK_W;                          // 190
+const DISK_CX = DISK_X + DISK_W / 2;                     // 115
 
-const NODE_X = LEFT_X;
-const NODE_W = NODE_PAD * 2 + POD_W * 2 + POD_GAP;       // 400
-const CONTENT_CX = NODE_X + NODE_W / 2;                  // 600: canvas center, and every tier uses it
+// The frame starts left of the panel wall, which is legal because its top sits under the panel.
+// Every lane from a disk stops on its left face, and the Node carries the story on from there.
+const NODE_X = 300, NODE_R = 1160, NODE_PAD = 24, NODE_HEAD = 27;
+const ST_W = 160, ST_H = 80, ST_GAP = 70;                // 160, not 232: see SIZES in the record
+const POD_W = 232, POD_H = 104;                          // NET.L-01, 192 by 44 app box
+const APP_W = 192, APP_H = 44, APP_DY = 26;
+const POD_X = NODE_R - NODE_PAD - POD_W;                 // 904
+const MNT_X = POD_X - ST_GAP - ST_W;                     // 674
+const FMT_X = MNT_X - ST_GAP - ST_W;                     // 444
+const NODE_W = NODE_R - NODE_X;                          // 860
+const NODE_Y = ROW_FS - POD_H / 2 - NODE_HEAD;           // 285
+// Foot = header, so the two rows sit +-75 about the left face midpoint 439, a mirrored pair (L-12).
+const NODE_H = ROW_BLK + POD_H / 2 + NODE_HEAD - NODE_Y; // 308, bottom 593
 
-const P1_X = NODE_X + NODE_PAD;                          // 416, the Filesystem column
-const P2_X = P1_X + POD_W + POD_GAP;                     // 620, the Block column
-const FS_CX = P1_X + POD_W / 2;                          // 498
-const BLK_CX = P2_X + POD_W / 2;                         // 702, and (498 + 702) / 2 == CONTENT_CX
+// The four chips run along the top of the frame, one row exactly as wide as it, 16 above it.
+const CHIP_H = 34, CHIP_GAP = 16, CHIP_COUNT = 4;
+const CHIP_W = (NODE_W - CHIP_GAP * (CHIP_COUNT - 1)) / CHIP_COUNT;              // 203
+const CHIPS_Y = NODE_Y - 16 - CHIP_H;                                            // 235
+const chipX = (i) => NODE_X + i * (CHIP_W + CHIP_GAP);
 
-const BAND_X = LEFT_X, BAND_Y = 305, BAND_W = NODE_W, BAND_H = 70;
-const BAND_TOP = BAND_Y, BAND_BOTTOM = BAND_Y + BAND_H;  // 305 / 375
-const BAND_LBL_Y = 408;
+// Captions ride 14 over a lane, and the mode captions hang 22 under each disk.
+const CAP_DY = 14, MODE_DY = 22;
+const GAP_CX = (DISK_R + NODE_X) / 2;                    // 245, the corridor between disk and frame
+const SKIP_CX = (FMT_X + MNT_X + ST_W) / 2;              // 639, under the two stations
 
-const PV_Y = 442, PV_H = 96, PV_W = 176;
-const PV_TOP = PV_Y;                                     // 442
-const DISK_LBL_Y = 566;
-const CHIPS_Y = 590;
+const run = (x1, x2, y) => [[x1, y], [x2, y]];
+const W_FS_IN = run(DISK_R, NODE_X, ROW_FS);             // the blank device reaches Node-1
+const W_FMT = run(NODE_X, FMT_X, ROW_FS);                // inside, on to the formatter
+const W_MNT = run(FMT_X + ST_W, MNT_X, ROW_FS);          // the new filesystem goes to be mounted
+const W_PUB = run(MNT_X + ST_W, POD_X, ROW_FS);          // bind mounted into web-0
+const W_BLK_IN = run(DISK_R, NODE_X, ROW_BLK);           // the raw device reaches Node-1
+const W_DEV = run(NODE_X, POD_X, ROW_BLK);               // Block: straight on, nothing between
 
-// One width for all four chips, sized against `node does` + `no mkfs, no mount` at 179.
-const CHIP_W = 232;
-const CHIP_GAP = 16;
-const CHIP_COUNT = 4;                  // volumeMode / node does / container / fsGroup
-const CHIPS_W = CHIP_W * CHIP_COUNT + CHIP_GAP * (CHIP_COUNT - 1);   // 976
-const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) =>
-  CONTENT_CX - CHIPS_W / 2 + i * (CHIP_W + CHIP_GAP));
-
-// Each column's two lanes are a mirrored pair about the column centre: `out` carries the descending
-// run, `back` the ascending one, so a mount rising never re-uses the arrow the request came down on.
-const LANE = 12;
-const FS = laneY(FS_CX, LANE);                           // 486 / 510
-const BLK = laneY(BLK_CX, LANE);                         // 690 / 714
-const run = (x, y1, y2) => [[x, y1], [x, y2]];
-
-// The stage tag parks on the disk top and the return tag leaves from it 100ms later, 24 apart on x
-// with 57 and 69 of ink: -46 puts the pair 6 units apart at the widest viewport. See ./CARDS.md.
-const STAGE_TAG_DX = -46;
-
-// Every Pod lane ends on a Pod face, 14 from the sublabel the family offset parks on. This tag fades
-// in only once its ball is clear of that face: 200 hides the whole crossing on all four viewports.
-const emergeTag = makeRidingLabel({ role: 'storage', emergeMode: true });
-const TAG_EMERGE = 200;
-// A tag LANDING on the Pod floor rides below the ball instead: at -14 it parks 4 units of ink inside
-// `volumeMode: ...`, and at 12 the ball prints on the line. 22 is the offset volumeattachment uses.
-const MOUNT_TAG_DY = 22;
-
-const W_FS_ASK   = run(FS.out,  POD_BOTTOM,  BAND_TOP);  // Pod states what it wants
-const W_FS_PUB   = run(FS.back, BAND_TOP,    POD_BOTTOM);// node service hands it back
-const W_FS_STAGE = run(FS.out,  BAND_BOTTOM, PV_TOP);    // stage: mkfs then mount
-const W_FS_DEV   = run(FS.back, PV_TOP,      BAND_BOTTOM);// the disk answers
-const W_BLK_ASK   = run(BLK.out,  POD_BOTTOM,  BAND_TOP);
-const W_BLK_PUB   = run(BLK.back, BAND_TOP,    POD_BOTTOM);
-const W_BLK_STAGE = run(BLK.out,  BAND_BOTTOM, PV_TOP);  // drawn, never travelled: Block has no staging
-const W_BLK_DEV   = run(BLK.back, PV_TOP,      BAND_BOTTOM);
-
-// The two Pods differ only in x, name and what they consume the volume under.
-const podBlock = ({ key, innerKey, x, label, sublabel, ctr, ctrSub }) => P.pod({
-  key, innerKey, x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0,
-  inner: { dx: 14, dy: 44, w: POD_W - 28, h: 52, label: ctr, sublabel: ctrSub },
+const disk = (key, cy, label) => P.cylinder({
+  key, x: DISK_X, y: cy - DISK_H / 2, w: DISK_W, h: DISK_H, label, labelY: DISK_H / 2 + 10,
 });
+const station = (key, x, label, sublabel) => P.box({
+  key, x, y: ROW_FS - ST_H / 2, w: ST_W, h: ST_H, label, sublabel,
+});
+const pod = ({ key, innerKey, cy, label, sublabel, ctr, ctrSub }) => P.pod({
+  key, innerKey, x: POD_X, y: cy - POD_H / 2, w: POD_W, h: POD_H, label, sublabel, containers: 0,
+  inner: { dx: (POD_W - APP_W) / 2, dy: APP_DY, w: APP_W, h: APP_H, label: ctr, sublabel: ctrSub },
+});
+const chip = (i, key, name, value) => P.chip({ key, x: chipX(i), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name, value });
 
-// Z-order is the list order: the node frame, then the band and the two disks, then the Pods above
-// their own frame, then the lanes and their captions, then the chip strip, then the packet layer.
+// Z-order is the list order: the frame, the disks, the two stations, the Pods, the lanes and their
+// captions, the chip row, then the packet layer.
 export const SCENE = {
-  'aria-label': 'volumeMode decides what a Pod is handed. Under Filesystem, the default, the CSI node service formats the device with mkfs if it has no filesystem yet, mounts it, and the container finds an ordinary directory at the mountPath given under volumeMounts, where file permissions and the fsGroup ownership walk apply. Under Block nothing is formatted and nothing is mounted: the raw device is published into the container at the devicePath given under volumeDevices, and every filesystem level feature stops applying. The field is immutable and must match on the PersistentVolume and the claim.',
+  'aria-label': 'volumeMode decides what a Pod is handed. Two claims ask for the same size from the same StorageClass and differ only in volumeMode. Under Filesystem, the default, the CSI node service formats the blank device with mkfs, mounts it at a staging path on the Node and bind mounts it into the Pod, so the container finds a directory at the mountPath given under volumeMounts, where files, permissions, subPath and fsGroup have something to act on. Under Block neither step happens, and the device itself is published into the container at the devicePath given under volumeDevices, with no filesystem on it. The field cannot change once the claim exists and must match on the PersistentVolume and the claim.',
   parts: [
     P.defs(),
-    P.node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
-    P.box({
-      key: 'band', x: BAND_X, y: BAND_Y, w: BAND_W, h: BAND_H,
-      label: 'Kubelet and CSI Node Service', sublabel: 'stages the volume, then publishes it',
+    P.node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1: CSI node service' }),
+    disk('pvFs', ROW_FS, 'PV web 20Gi'),
+    disk('pvBlk', ROW_BLK, 'PV db 20Gi'),
+    station('fmt', FMT_X, 'Format', 'mkfs, only if blank'),
+    station('mnt', MNT_X, 'Mount', 'at a staging path'),
+    pod({
+      key: 'podFs', innerKey: 'ctrFs', cy: ROW_FS,
+      label: 'Pod web-0', sublabel: 'mountPath /data', ctr: 'app', ctrSub: 'volumeMounts',
     }),
-    // Two identical disks, with the size in the label so the reader can see they match. labelY
-    // re-centres on the visible front face: the raw bbox includes the cap ellipse and reads high.
-    P.cylinder({ key: 'pvFs', x: FS_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV web 20Gi', labelY: PV_H / 2 + 10 }),
-    P.cylinder({ key: 'pvBlk', x: BLK_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV db 20Gi', labelY: PV_H / 2 + 10 }),
-    podBlock({
-      key: 'podFs', innerKey: 'ctrFs', x: P1_X,
-      label: 'Pod web-0', sublabel: 'volumeMode: Filesystem', ctr: 'app', ctrSub: 'volumeMounts',
+    pod({
+      key: 'podBlk', innerKey: 'ctrBlk', cy: ROW_BLK,
+      label: 'Pod db-0', sublabel: 'devicePath /dev/xvda', ctr: 'DB', ctrSub: 'volumeDevices',
     }),
-    podBlock({
-      key: 'podBlk', innerKey: 'ctrBlk', x: P2_X,
-      label: 'Pod db-0', sublabel: 'volumeMode: Block', ctr: 'DB', ctrSub: 'volumeDevices',
-    }),
-    ...[W_FS_ASK, W_FS_PUB, W_FS_STAGE, W_FS_DEV, W_BLK_ASK, W_BLK_PUB, W_BLK_STAGE, W_BLK_DEV]
-      .map(points => P.lane({ points, dashed: true, dim: true })),
-    P.wire({ key: 'fs', x: FS_CX, y: DISK_LBL_Y }),
-    P.wire({ key: 'blk', x: BLK_CX, y: DISK_LBL_Y }),
-    P.wire({ key: 'band', x: CONTENT_CX, y: BAND_LBL_Y }),
-    P.chip({ key: 'modeChip', x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'volumeMode', value: 'Filesystem' }),
-    P.chip({ key: 'nodeChip', x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'node does', value: 'nothing yet' }),
-    P.chip({ key: 'ctrChip', x: CHIP_X[2], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'container', value: 'nothing yet' }),
-    P.chip({ key: 'fsgChip', x: CHIP_X[3], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'fsGroup', value: 'applied' }),
+    ...[W_FS_IN, W_FMT, W_MNT, W_PUB, W_BLK_IN, W_DEV].map(points => P.lane({ points, dashed: true, dim: true })),
+    // The one field the card is about never changes, so it is drawn from the poster frame on.
+    P.tag({ x: DISK_CX, y: ROW_FS + DISK_H / 2 + MODE_DY, text: 'volumeMode: Filesystem' }),
+    P.tag({ x: DISK_CX, y: ROW_BLK + DISK_H / 2 + MODE_DY, text: 'volumeMode: Block' }),
+    P.wire({ key: 'fsLane', x: GAP_CX, y: ROW_FS - CAP_DY }),
+    P.wire({ key: 'blkLane', x: GAP_CX, y: ROW_BLK - CAP_DY }),
+    // Not a wire: it has to appear the moment the Block ball enters Node-1, and a wire takes no opacity.
+    P.tag({ key: 'skipTag', x: SKIP_CX, y: ROW_BLK - CAP_DY, text: 'no mkfs, no mount', opacity: 0 }),
+    chip(0, 'mkfsChip', 'mkfs ran on', 'not yet'),
+    chip(1, 'webChip', 'web-0 sees', 'nothing yet'),
+    chip(2, 'dbChip', 'db-0 sees', 'nothing yet'),
+    chip(3, 'fsgChip', 'fsGroup, subPath', 'no files'),
     P.packets(),
   ],
   reset: {
-    keys: ['band', 'pvFs', 'pvBlk', 'ctrFs', 'ctrBlk', 'modeChip', 'nodeChip', 'ctrChip', 'fsgChip'],
+    keys: ['pvFs', 'pvBlk', 'fmt', 'mnt', 'ctrFs', 'ctrBlk', 'mkfsChip', 'webChip', 'dbChip', 'fsgChip'],
     pods: ['podFs', 'podBlk'],
   },
 };
 
-// Every step writes EVERY chip: a chip left unset keeps the previous value, which is how a card comes
-// to display 'mkfs then mount' on the step explaining that Block never formats. All four are cued.
-const chips = (mode, nodeDoes, container, fsgroup) => ({
-  modeChip: mode, nodeChip: nodeDoes, ctrChip: container, fsgChip: fsgroup,
-});
+// Every step writes every chip (P-01). A chip a ball earns starts from its old value on the played
+// path and turns over on that ball's arrival (P-03).
+const chips = (mkfs, web, db, fsg) => ({ mkfsChip: mkfs, webChip: web, dbChip: db, fsgChip: fsg });
+// The skip caption is pinned on every step (STO.S-01): hidden until the Block ball enters Node-1.
+const SKIP_OFF = { skipTag: 0 }, SKIP_ON = { skipTag: 1 };
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chipsCued: chips('Filesystem', 'nothing yet', 'nothing yet', 'applied'),
+    chipsCued: chips('not yet', 'nothing yet', 'nothing yet', 'no files'),
+    opacity: SKIP_OFF,
   },
   {
-    id: 'fs-claim',
-    duration: 2900,
-    narration: 'Pod web-0 takes the default. A volumeMode of Filesystem is what you get whenever the field is absent, and it is what almost every workload wants. The Pod consumes the volume under volumeMounts, naming a mountPath, and what it expects to find at that path is a directory.',
-    chipsCued: chips('Filesystem', 'nothing yet', 'nothing yet', 'applied'),
-    wires: { fs: 'no filesystem yet' },
-    // The Pod is the actor, so it blinks first and the request then drops to the node service, which
-    // lights on arrival. The cue is its OWN entry, sitting after the tag, because that order shows.
+    id: 'claims',
+    duration: 2600,
+    narration: 'Two claims ask for the same 20Gi from the same StorageClass, and each binds its own blank disk. Only one field differs: volumeMode is Filesystem for web-0, which is also what an absent field means, and Block for db-0.',
+    chipsCued: chips('not yet', 'nothing yet', 'nothing yet', 'no files'),
+    opacity: SKIP_OFF,
+    // Nothing travels yet: the two disks are the whole statement, so they light and hold.
+    lit: ['pvFs', 'pvBlk'],
+  },
+  {
+    id: 'format',
+    duration: 3000,
+    narration: 'Pod web-0 is scheduled to Node-1, and the CSI node service stages its volume first. The device has no filesystem yet, so mkfs runs here and creates one, of the fsType set on the volume, often ext4. A disk that already holds a filesystem is left as it is.',
+    chipsCued: chips('web-0 disk', 'nothing yet', 'nothing yet', 'no files'),
+    wires: { fsLane: 'blank device' },
+    opacity: SKIP_OFF,
+    rewind: { chips: { mkfsChip: 'not yet' } },
+    // The disk sends, so it is lit from entry (M-18a). The ball stops on the Node, then carries on
+    // inside it to the formatter, which lights on arrival.
+    lit: ['pvFs'],
     flow: [
-      F.pulse({ pod: 'podFs' }),
-      F.route({ points: W_FS_ASK, delay: BEAT.afterPulse, name: 'ask' }),
-      F.tag({ text: 'wants a path', points: W_FS_ASK, delay: BEAT.afterPulse, fn: emergeTag, emerge: TAG_EMERGE }),
-      F.light({ targets: ['band'], at: 'ask' }),
+      F.route({ points: W_FS_IN, delay: BEAT.lead, name: 'in' }),
+      F.route({ points: W_FMT, after: 'in', name: 'fmt' }),
+      F.light({ targets: ['fmt'], at: 'fmt' }),
+      F.set({ at: 'fmt', chipsCued: { mkfsChip: 'web-0 disk' } }),
     ],
   },
   {
-    id: 'fs-format',
-    duration: 2900,
-    narration: 'Before anything can be mounted the CSI node service stages the volume. If the device carries no filesystem yet, this is where mkfs runs and creates one, ext4 unless the StorageClass asks for something else. It happens once, on first use, and a disk that already holds data is left alone.',
-    chipsCued: chips('Filesystem', 'mkfs then mount', 'nothing yet', 'applied'),
-    wires: { fs: 'ext4 created', band: 'stage: mkfs then mount' },
-    lit: ['band'],
-    // No Pod acts, so nothing pulses: the ball leaves after BEAT.lead so the lit band registers first,
-    // and the disk lights on arrival. It hands the device back, or the fs branch mounts one it never got.
+    id: 'mount',
+    duration: 2600,
+    narration: 'Still staging, the CSI node service mounts the new filesystem at a staging path on Node-1, once for the whole Node. Every Pod there that uses this volume is served from that one mount.',
+    chipsCued: chips('web-0 disk', 'nothing yet', 'nothing yet', 'no files'),
+    wires: { fsLane: 'ext4 on disk' },
+    opacity: SKIP_OFF,
+    lit: ['fmt'],
     flow: [
-      F.route({ points: W_FS_STAGE, delay: BEAT.lead, name: 'staged' }),
-      F.tag({ text: 'mkfs ext4', points: W_FS_STAGE, delay: BEAT.lead, dx: STAGE_TAG_DX }),
-      F.light({ targets: ['pvFs'], at: 'staged' }),
-      F.route({ points: W_FS_DEV, after: 'staged', name: 'handed' }),
-      F.tag({ text: 'ext4 device', points: W_FS_DEV, after: 'staged' }),
-      F.light({ targets: ['band'], at: 'handed' }),
+      F.route({ points: W_MNT, delay: BEAT.lead, name: 'mnt' }),
+      F.light({ targets: ['mnt'], at: 'mnt' }),
     ],
   },
   {
-    id: 'fs-mount',
-    duration: 3400,
-    narration: 'Now the staged filesystem is mounted into the container at /data, and inside the container that is an ordinary directory. Files, directory permissions and the fsGroup ownership walk all apply here, because there is a filesystem for Kubernetes to apply them to.',
-    chipsCued: chips('Filesystem', 'mounted on node', 'directory /data', 'applied'),
-    wires: { fs: 'ext4', band: 'mount into the Pod' },
-    lit: ['band', 'pvFs'],
-    // Infra reaching a Pod, so DOWN-ARROW ordering: the ball flies first and the Pod pulses on its
-    // arrival. Nothing lights, so the reduced path shows no cue here.
+    id: 'publish-dir',
+    duration: 3000,
+    narration: 'Then it publishes the volume into Pod web-0 with a bind mount, and the container finds an ordinary directory at the mountPath from its volumeMounts, /data. Files, permissions, subPath and the fsGroup ownership change all have something to act on here, because there is a filesystem.',
+    chipsCued: chips('web-0 disk', 'directory /data', 'nothing yet', 'on web-0'),
+    wires: { fsLane: 'ext4 on disk' },
+    opacity: SKIP_OFF,
+    rewind: { chips: { webChip: 'nothing yet', fsgChip: 'no files' } },
+    // Infra reaching a Pod, so DOWN-ARROW ordering: the ball flies first, the Pod pulses on arrival.
+    lit: ['mnt'],
     flow: [
-      F.route({ points: W_FS_PUB, delay: BEAT.lead, name: 'mounted' }),
-      F.tag({ text: 'mount at /data', points: W_FS_PUB, delay: BEAT.lead, fn: emergeTag, emerge: TAG_EMERGE, dy: MOUNT_TAG_DY }),
-      F.pulse({ pod: 'podFs', at: 'mounted' }),
+      F.route({ points: W_PUB, delay: BEAT.lead, name: 'pub' }),
+      F.pulse({ pod: 'podFs', at: 'pub' }),
+      F.set({ at: 'pub', chipsCued: { webChip: 'directory /data', fsgChip: 'on web-0' } }),
     ],
   },
   {
-    id: 'block-claim',
-    duration: 2900,
-    narration: 'Pod db-0 asks for an identical disk with volumeMode set to Block. Nothing about the storage request changed: same size, same class, same backend. What changed is that the Pod consumes it under volumeDevices with a devicePath, instead of volumeMounts with a mountPath.',
-    chipsCued: chips('Block', 'nothing yet', 'nothing yet', 'not applied'),
-    wires: { blk: 'raw, unformatted' },
-    flow: [
-      F.pulse({ pod: 'podBlk' }),
-      F.route({ points: W_BLK_ASK, delay: BEAT.afterPulse, name: 'ask' }),
-      F.tag({ text: 'wants the device', points: W_BLK_ASK, delay: BEAT.afterPulse, fn: emergeTag, emerge: TAG_EMERGE }),
-      F.light({ targets: ['band'], at: 'ask' }),
-    ],
-  },
-  {
-    id: 'block-publish',
-    duration: 4200,
-    narration: 'No mkfs and no mount. The node service publishes the device itself into the container, so the disk arrives exactly as the backend handed it over, unformatted and untouched. The container finds a raw block device at /dev/xvda, and everything above the first byte is now its own business.',
-    chipsCued: chips('Block', 'no mkfs, no mount', 'device /dev/xvda', 'not applied'),
-    wires: { blk: 'raw, unformatted', band: 'publish the device' },
-    // The band receives the device before it publishes it, and the cue below already lights it on
-    // that arrival. Lighting it from entry too made the arrival invisible.
+    id: 'publish-device',
+    duration: 4400,
+    narration: 'Pod db-0 lands on the same Node and meets the same CSI node service, but Block skips both of those steps: no mkfs and no mount. The device itself is published into the container at the devicePath from volumeDevices, /dev/xvda, exactly as the backend delivered it.',
+    chipsCued: chips('web-0 disk', 'directory /data', 'device /dev/xvda', 'on web-0'),
+    wires: { fsLane: 'ext4 on disk', blkLane: 'raw device' },
+    opacity: SKIP_ON,
+    rewind: { chips: { dbChip: 'nothing yet' } },
+    // The ball enters Node-1 and the skip caption comes up on that arrival. Then one long hop under
+    // the two stations it never enters: routeDur puts the 604 unit lane at about 1340ms.
     lit: ['pvBlk'],
-    // Two chained hops: the untouched device rises from the disk to the node service, which passes
-    // it straight on into the container without doing anything to it.
     flow: [
-      F.route({ points: W_BLK_DEV, delay: BEAT.lead, name: 'up' }),
-      F.tag({ text: 'device as is', points: W_BLK_DEV, delay: BEAT.lead }),
-      F.light({ targets: ['band'], at: 'up' }),
-      F.route({ points: W_BLK_PUB, after: 'up', name: 'published' }),
-      F.tag({ text: 'at /dev/xvda', points: W_BLK_PUB, after: 'up', fn: emergeTag, emerge: TAG_EMERGE, dy: MOUNT_TAG_DY }),
-      F.pulse({ pod: 'podBlk', at: 'published' }),
+      F.route({ points: W_BLK_IN, delay: BEAT.lead, name: 'in' }),
+      F.fade({ target: 'skipTag', from: 0, to: 1, dur: FADE.in, at: 'in', fill: 'both', easing: 'ease-out' }),
+      F.route({ points: W_DEV, after: 'in', name: 'dev' }),
+      F.pulse({ pod: 'podBlk', at: 'dev' }),
+      F.set({ at: 'dev', chipsCued: { dbChip: 'device /dev/xvda' } }),
     ],
   },
   {
     id: 'trade',
-    duration: 3800,
-    narration: 'That is the trade. A database that manages its own layout gets the device with no filesystem in the way, and in exchange every filesystem level feature stops working: fsGroup has no ownership to walk, subPath has no paths to choose from, and file permissions have no files. The volumeMode field is also immutable once the claim exists, and a claim asking for Block will never bind to a volume offering Filesystem, so this is a decision you make when you create the claim.',
-    chipsCued: chips('Block', 'no mkfs, no mount', 'device /dev/xvda', 'not applied'),
-    wires: { fs: 'ext4', blk: 'raw, unformatted', band: 'set once, must match' },
-    // The summary compares the two columns, so BOTH disks light: static highlight only and
-    // deliberately no motion, because it is a closing step the reader is meant to sit and read.
-    lit: ['pvFs', 'pvBlk'],
+    duration: 3000,
+    narration: 'That is the trade. Pod db-0 gets the bare device and manages its own layout, while fsGroup and subPath have nothing to act on and there are no files inside it to set permissions on. The volumeMode field is fixed once the claim exists and must match the volume, so it is chosen up front.',
+    chipsCued: chips('web-0 disk', 'directory /data', 'device /dev/xvda', 'on web-0'),
+    wires: { fsLane: 'ext4 on disk', blkLane: 'raw device' },
+    opacity: SKIP_ON,
+    // A closing step to sit on: the two layers Block goes without light and hold, with no motion.
+    lit: ['fmt', 'mnt'],
   },
 ];
 

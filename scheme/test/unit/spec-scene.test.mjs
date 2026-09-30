@@ -73,6 +73,15 @@ const TOL = 6;              // slack on a face midpoint
 const EDGE_TOL = 2;         // how close a point must be to a face to count as sitting ON it
 const TWIN_TOL = 2;         // how exactly two mirrored offsets must cancel to read as a pair (L-12)
 const FACE_FRAC = 0.18;     // an offset up to 18% of the face it sits on is not a stray coordinate
+
+// L-11: on a Node FRAME face an endpoint may sit level with the centre of a block the frame holds,
+// the block the lane is addressed to, so the arrowhead stops on the frame instead of piercing it.
+function aimedAtHeld(p, f, axis, blocks) {
+  return blocks.some(b =>
+    b.x >= f.x - EDGE_TOL && b.x + b.w <= f.x + f.w + EDGE_TOL &&
+    b.y >= f.y - EDGE_TOL && b.y + b.h <= f.y + f.h + EDGE_TOL &&
+    Math.abs((axis === 'v' ? p[1] - (b.y + b.h / 2) : p[0] - (b.x + b.w / 2))) <= TOL);
+}
 const THROUGH_INSET = 3;    // the rect THROUGH tests is shrunk by this on each side
 
 const listing = (items, cap = 8) =>
@@ -345,10 +354,14 @@ describe('scene geometry, read from SCENE.parts', () => {
   // by opening the frames, not by reading the code: the entry states which step shows what.
   // An entry that stops firing FAILS, so a geometry change cannot leave a stale exemption behind.
   const THROUGH_EXEMPT = {
-    'storage-topology-aware-provisioning [11]lane#wProvA x Disk zone-b':
+    'storage-topology-aware-provisioning [12]lane#wProvA x Disk zone-b':
       'The Immediate and WaitForFirstConsumer branches never share a frame. On imm-provision, '
       + 'wProvA runs to Disk zone-a and diskB is at opacity 0; on wffc-provision, diskB is drawn '
       + 'and wProvA is at opacity 0, with wProvB serving it. Frames checked at both steps.',
+    'storage-container-filesystem [15]lane#lRead x /etc/app.conf':
+      'The read lane and the upperdir copy of app.conf never share a frame. On copyup lRead fades '
+      + 'out before uConf fades in, on remove uConf is gone before lRead returns, and every step '
+      + 'pins exactly one of the two at 0. Frames checked at copyup and remove.',
     // The second shape this table covers: a lane drawn THROUGH a block on purpose, where the block
     // is sized around it. Satisfying the rule means routing the walk around the listing it walks,
     // which is the "the rule can only be met by making the picture worse" case (L-16).
@@ -397,7 +410,7 @@ describe('scene geometry, read from SCENE.parts', () => {
   // Pooled per card, because the halves of a pair may be declared far apart in the list.
   test('L-11 OFFEDGE: a lane endpoint sits on a face midpoint, unless L-12 pairs it', (t) => {
     const findings = [];
-    let hits = 0, faces = 0, atMid = 0, byFrac = 0, byTwin = 0;
+    let hits = 0, faces = 0, atMid = 0, byFrac = 0, byTwin = 0, byAim = 0;
     for (const s of scenes) {
       const g = geom.get(s.id);
       // Chips are not faces here: render/geometry.test.mjs holds that a lane ending on a chip is
@@ -417,7 +430,7 @@ describe('scene geometry, read from SCENE.parts', () => {
             const push = (face, off, axis) => {
               const k = `${gk}:${face}`;
               if (!faceHits.has(k)) faceHits.set(k, []);
-              faceHits.get(k).push({ off, p, r, axis, path: L.path });
+              faceHits.get(k).push({ off, p, r, axis, path: L.path, frame: g.frames.includes(r) });
             };
             if (onV) push(Math.abs(p[0] - r.x) < EDGE_TOL ? 'left' : 'right', p[1] - my, 'v');
             if (onH) push(Math.abs(p[1] - r.y) < EDGE_TOL ? 'top' : 'bottom', p[0] - mx, 'h');
@@ -434,6 +447,7 @@ describe('scene geometry, read from SCENE.parts', () => {
           const face = h.axis === 'v' ? h.r.h : h.r.w;
           if (off / face <= FACE_FRAC) { byFrac++; continue; }
           if (list.some(o => o !== h && Math.abs(o.off + h.off) <= TWIN_TOL)) { byTwin++; continue; }
+          if (h.frame && aimedAtHeld(h.p, h.r, h.axis, g.blocks)) { byAim++; continue; }
           const key = `${h.p} ${h.r.label} ${h.axis}`;
           if (seen.has(key)) continue;
           seen.add(key);
@@ -449,7 +463,8 @@ describe('scene geometry, read from SCENE.parts', () => {
     assert.ok(hits > 0, 'not one lane endpoint landed on any block face, so OFFEDGE ruled on nothing');
     assert.equal(findings.length, 0, `${findings.length} endpoint(s) off a face midpoint:\n  ${listing(findings)}`);
     t.diagnostic(`${hits} endpoint-on-face hits over ${faces} faces: ${atMid} on the midpoint, ` +
-      `${byFrac} within ${FACE_FRAC * 100}% of the face, ${byTwin} exempt as an L-12 mirrored pair`);
+      `${byFrac} within ${FACE_FRAC * 100}% of the face, ${byTwin} exempt as an L-12 mirrored pair, ` +
+      `${byAim} on a frame face level with a block it holds`);
   });
 });
 

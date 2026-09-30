@@ -1,68 +1,63 @@
-import { P, F, defineCard } from './storage-kit.js';
-import { line } from '../../lib/svg.js';
-// Design notes for this card: ./CARDS.md#storage-dynamic-provisioning
+import { P, F, defineCard, chipStrip } from './storage-kit.js';
+// Design notes for this card: ./CARDS/storage-dynamic-provisioning.md
 
 
-// The panel wall, measured at 380 worst case over 1920 down to 1100. The two columns therefore centre
-// on 630 and stay there: sliding the drawing left to reach 600 drags the claim under the panel, which
+// The panel wall, measured at 396.55 worst case at 1100x800 (L-02). The two columns therefore centre
+// on 640 and stay there: sliding the drawing left to reach 600 drags the claim under the panel, which
 // is what LEFT_X exists to prevent. CANVAS_CX is separate on purpose, because the chip strip alone
 // has the full width.
 const LEFT_X = 400;                                   // leftmost the TOP ROW may go, all viewports
 const CANVAS_CX = 600;                                // where the chip strip sits, always
 
-const COL_L_W = 200;                                  // identity column: the claim and its volume
-const COL_R_W = 220;                                  // machinery column: class, provisioner, backend
+// Every block is 80 tall (NET.L-01), and 220 wide rather than 232: from a left edge of 400 two
+// columns and the 40 elbow channel may span 480 at most to keep the centre within 640 (L-13).
 const COL_GAP = 40;                                   // the elbow channel lives in here
-const COL_R_X = LEFT_X + COL_L_W + COL_GAP;           // 640
+const MAX_CX = 600 + 40;                              // the furthest right the drawing may centre
+const BOX_W = MAX_CX - LEFT_X - COL_GAP / 2, BOX_H = 80;   // 220
+const COL_L_W = BOX_W;                                // identity column: the claim and its volume
+const COL_R_W = BOX_W;                                // machinery column: class, provisioner, backend
+const COL_R_X = LEFT_X + COL_L_W + COL_GAP;           // 660
 // The claim tier sits inside the narration panel's y band, so the left edge is pinned at 400 and the
-// composition is centred by pulling the machinery column in, not by sliding the whole card left.
+// composition is centred by holding the columns in, not by sliding the whole card left.
 
-const PVC_X = LEFT_X, PVC_Y = 70, PVC_W = COL_L_W, PVC_H = 80;
-const PVC_RIGHT = PVC_X + PVC_W, PVC_BOTTOM = PVC_Y + PVC_H;   // 600 / 150
+const PVC_X = LEFT_X, PVC_Y = 70, PVC_W = COL_L_W, PVC_H = BOX_H;
+const PVC_RIGHT = PVC_X + PVC_W, PVC_BOTTOM = PVC_Y + PVC_H;   // 620 / 150
 
-const SC_X = COL_R_X, SC_Y = 70, SC_W = COL_R_W, SC_H = 80;
-const SC_LEFT = SC_X, SC_BOTTOM = SC_Y + SC_H;                 // 640 / 150
-const SC_CX = SC_X + SC_W / 2;                                 // 750
+const SC_X = COL_R_X, SC_Y = 70, SC_W = COL_R_W, SC_H = BOX_H;
+const SC_LEFT = SC_X, SC_BOTTOM = SC_Y + SC_H;                 // 660 / 150
+const SC_CX = SC_X + SC_W / 2;                                 // 770
 const ROW_MY = SC_Y + SC_H / 2;                                // 110, shared by the claim and the class
 
-const PROV_X = COL_R_X, PROV_Y = 250, PROV_W = COL_R_W, PROV_H = 90;
-const PROV_LEFT = PROV_X, PROV_TOP = PROV_Y, PROV_BOTTOM = PROV_Y + PROV_H; // 640 / 250 / 340
-const PROV_MY = PROV_Y + PROV_H / 2;                                        // 295
+const PROV_X = COL_R_X, PROV_Y = 250, PROV_W = COL_R_W, PROV_H = BOX_H;
+const PROV_LEFT = PROV_X, PROV_TOP = PROV_Y, PROV_BOTTOM = PROV_Y + PROV_H; // 660 / 250 / 330
+const PROV_MY = PROV_Y + PROV_H / 2;                                        // 290
 
-const CLOUD_X = COL_R_X, CLOUD_Y = 440, CLOUD_W = COL_R_W, CLOUD_H = 90;
+const CLOUD_X = COL_R_X, CLOUD_Y = 440, CLOUD_W = COL_R_W, CLOUD_H = BOX_H;
 const CLOUD_TOP = CLOUD_Y;                                     // 440
 
 // The cylinder sits exactly under the claim, same width and same x, so the identity column reads as
 // one stack rather than two blocks that happen to be near each other.
 const PV_X = LEFT_X, PV_Y = 430, PV_W = COL_L_W, PV_H = 110;
 const PV_TOP = PV_Y;                                           // 430
-const PV_CX = PV_X + PV_W / 2;                                 // 500
+const PV_CX = PV_X + PV_W / 2;                                 // 510
 
-const SPINE_X = PV_CX;  // 500
+const SPINE_X = PV_CX;  // 510
 const LANE_DY = 15;     // half-gap between the CreateVolume lane and the handle-return lane
-const DOWN_X = SC_CX + LANE_DY;  // 765: provisioner -> backend
-const UP_X = SC_CX - LANE_DY;    // 735: backend -> provisioner
+const DOWN_X = SC_CX + LANE_DY;  // 785: provisioner -> backend
+const UP_X = SC_CX - LANE_DY;    // 755: backend -> provisioner
 const CHIPS_Y = 585;
 
-// The four widths are a rhythm across the strip rather than a fit to their own values (see the
-// record), while the x positions are DERIVED so the strip is centered on CANVAS_CX.
-const CHIP_W = [210, 250, 240, 230];
-const CHIP_GAP = 20;
-const CHIPS_W = CHIP_W.reduce((a, b) => a + b, 0) + CHIP_GAP * (CHIP_W.length - 1);   // 990
-const CHIPS_X0 = CHIP_W.reduce((acc, w, i) => {
-  acc.push(i === 0 ? CANVAS_CX - CHIPS_W / 2 : acc[i - 1] + CHIP_W[i - 1] + CHIP_GAP);
-  return acc;
-}, []);                                                                               // 105 / 335 / 605 / 865
+const CHIP = chipStrip({ cx: CANVAS_CX });   // four equal chips, the category 232 width and 16 gap
 
-const ELBOW_X = PVC_RIGHT + COL_GAP / 2;   // 620
+const ELBOW_X = PVC_RIGHT + COL_GAP / 2;   // 640
 
 // Only the RETURN tag steps out now: the call tag is 18 units of ink once the wire beside it carries
 // the verb, so it rides its own lane and still clears the handle it parks beside by 16.
 const RETURN_TAG_DX = -30;
 // At the default -14 the class box bottom edge runs through the params tag: -6 keeps it inside.
 const PARAMS_TAG_DY = -6;
-// The write tag clears the provisioner left edge by 2.
-const PV_TAG_DX = -2;
+// The write tag clears the provisioner left edge by 1.6 or more on its vertical run.
+const PV_TAG_DX = -17;
 
 // Two lanes share each of these two faces, so they sit as a mirrored pair either side of the face
 // midpoint: alone and off-centre, a single endpoint reads as a slip rather than as a pair.
@@ -77,11 +72,6 @@ const W_CLOUD_TO_PROV = [[UP_X, CLOUD_TOP], [UP_X, PROV_BOTTOM]];
 const W_PROV_TO_PV  = [[PROV_LEFT, PROV_MY + PROV_LANE], [ELBOW_X, PROV_MY + PROV_LANE], [ELBOW_X, 396], [PV_CX, 396], [PV_CX, PV_TOP]];
 const W_BOUND       = [[SPINE_X, PVC_BOTTOM], [SPINE_X, PV_TOP]];
 
-// The Bound link is the ONE element no part kind emits: a bare <line> with no arrowhead and no
-// data-role, where P.arrow emits a marked <path> and P.relation adds the relation class too.
-const [[bndX1, bndY1], [bndX2, bndY2]] = W_BOUND;
-const boundLine = () => line({ class: 'scheme-arrow scheme-arrow-storage', x1: bndX1, y1: bndY1, x2: bndX2, y2: bndY2, fill: 'none' });
-
 // The list order IS the append order, which is the z-order: blocks, then wires and their labels above
 // them, then the chip strip, then the packet layer so every ball rides above everything.
 export const SCENE = {
@@ -93,21 +83,24 @@ export const SCENE = {
     P.box({ key: 'prov', x: PROV_X, y: PROV_Y, w: PROV_W, h: PROV_H, label: 'External-provisioner', sublabel: 'CSI controller sidecar' }),
     P.box({ key: 'cloud', x: CLOUD_X, y: CLOUD_Y, w: CLOUD_W, h: CLOUD_H, label: 'Storage backend', sublabel: 'reached via the CSI driver' }),
     // The volume does not exist until CreateVolume returns, so it starts invisible.
-    P.cylinder({ key: 'pv', x: PV_X, y: PV_Y, w: PV_W, h: PV_H, label: 'PV a7f2', opacity: 0 }),
+    P.cylinder({ key: 'pv', x: PV_X, y: PV_Y, w: PV_W, h: PV_H, label: 'PV pvc-a7f2', opacity: 0 }),
     P.relation({ points: W_SC_REF, dash: '5 5' }),
-    P.raw({ key: 'boundLink', make: boundLine, opacity: 0 }),
+    // The Bound link is a relation, dashed like the class reference: nothing travels it.
+    P.relation({ key: 'boundLink', points: W_BOUND, dash: '5 5', opacity: 0 }),
     P.lane({ points: W_PVC_TO_PROV, dashed: true, dim: true }),
     P.lane({ points: W_SC_TO_PROV, dashed: true, dim: true }),
     P.lane({ points: W_PROV_TO_CLOUD, dashed: true, dim: true }),
     P.lane({ points: W_CLOUD_TO_PROV, dashed: true, dim: true }),
     P.lane({ key: 'wProvToPv', points: W_PROV_TO_PV, dashed: true, dim: true, opacity: 0 }),
-    P.wire({ key: 'bound', x: SPINE_X + 22, y: 296, anchor: 'start' }),
+    // 16 right of the spine and BELOW the provisioner floor: it inks up to 137.8 at 1600x1000, past the
+    // provisioner face at 660 had it stood level with that box.
+    P.wire({ key: 'bound', x: SPINE_X + 16, y: 380, anchor: 'start' }),
     P.wire({ key: 'call', x: DOWN_X + 22, y: 396, anchor: 'start' }),
     P.wire({ key: 'pv', x: PV_X + PV_W / 2, y: 566 }),
-    P.chip({ key: 'pvcChip', x: CHIPS_X0[0], y: CHIPS_Y, w: CHIP_W[0], h: 34, name: 'PVC', value: 'Pending' }),
-    P.chip({ key: 'scChip', x: CHIPS_X0[1], y: CHIPS_Y, w: CHIP_W[1], h: 34, name: 'class', value: 'gp3' }),
-    P.chip({ key: 'diskChip', x: CHIPS_X0[2], y: CHIPS_Y, w: CHIP_W[2], h: 34, name: 'disk', value: 'none' }),
-    P.chip({ key: 'pvChip', x: CHIPS_X0[3], y: CHIPS_Y, w: CHIP_W[3], h: 34, name: 'PV', value: 'none' }),
+    P.chip({ key: 'pvcChip', x: CHIP.x(0), y: CHIPS_Y, w: CHIP.w, h: 34, name: 'PVC', value: 'Pending' }),
+    P.chip({ key: 'scChip', x: CHIP.x(1), y: CHIPS_Y, w: CHIP.w, h: 34, name: 'class', value: 'gp3' }),
+    P.chip({ key: 'diskChip', x: CHIP.x(2), y: CHIPS_Y, w: CHIP.w, h: 34, name: 'disk', value: 'none' }),
+    P.chip({ key: 'pvChip', x: CHIP.x(3), y: CHIPS_Y, w: CHIP.w, h: 34, name: 'PV', value: 'none' }),
     P.packets(),
   ],
   reset: { keys: ['pvc', 'sc', 'prov', 'cloud', 'pv', 'pvcChip', 'scChip', 'diskChip', 'pvChip'] },
@@ -140,17 +133,17 @@ export const STEPS_SPEC = [
   {
     id: 'provision',
     duration: 2600,
-    narration: 'The StorageClass is the piece of configuration that names a provisioner and the parameters to build with. The external-provisioner sidecar watches for Pending claims that point at a class it owns, picks this one up, and reads both the size the claim asks for and the settings the class carries.',
+    narration: 'The StorageClass is the piece of configuration that names a provisioner and the parameters to build with. The external-provisioner sidecar watches for Pending claims whose class names it, picks this one up, and reads both the size the claim asks for and the settings the class carries.',
     chipsCued: chips('Pending', 'gp3', 'none', 'none'),
     opacity: STACK_OFF,
     lit: ['pvc', 'sc'],
-    // Both routes clear on the same beat: 197 and 100 units both land under routeDur's 700ms floor,
+    // Both routes clear on the same beat: 192 and 100 units both land under routeDur's 700ms floor,
     // so the later of the two arrivals is exactly the claim's own, which is what the light keys off.
     flow: [
       F.route({ points: W_PVC_TO_PROV, name: 'claim' }),
       F.tag({ text: '5Gi, class gp3', points: W_PVC_TO_PROV }),
       F.route({ points: W_SC_TO_PROV, name: 'params' }),
-      F.tag({ text: 'ebs.csi.aws.com', points: W_SC_TO_PROV, dy: PARAMS_TAG_DY }),
+      F.tag({ text: 'type: gp3', points: W_SC_TO_PROV, dy: PARAMS_TAG_DY }),
       F.light({ targets: ['prov'], at: 'claim' }),
     ],
   },
@@ -182,27 +175,27 @@ export const STEPS_SPEC = [
     id: 'createpv',
     duration: 3000,
     narration: 'A disk on its own is invisible to Kubernetes. The provisioner writes a PersistentVolume object carrying the identifier it just got back, and that object is the cluster representation of the disk. Only now does the volume exist as something a claim can be paired with.',
-    chipsCued: chips('Pending', 'gp3', DISK_ID, 'a7f2 created'),
+    chipsCued: chips('Pending', 'gp3', DISK_ID, 'pvc-a7f2 created'),
     wires: { pv: PV_BACKED },
     // The volume exists by the end of this step, so its visibility is the static end-state. F.reveal
     // writes its own `from`, so the animated path needs no rewind to start it hidden.
     opacity: { pv: 1, wProvToPv: 1, boundLink: 0 },
-    lit: ['prov', 'cloud'],
+    lit: ['prov'],
     // The object and its caption are what the WRITE produces, so both hold what the createvolume
     // step left and land with the ball, on the same beat as the volume itself.
     rewind: { chips: { pvChip: 'none' }, wires: { pv: '' } },
     flow: [
       F.route({ points: W_PROV_TO_PV, name: 'write' }),
-      F.tag({ text: 'PV a7f2', points: W_PROV_TO_PV, dx: PV_TAG_DX }),
+      F.tag({ text: 'PV pvc-a7f2', points: W_PROV_TO_PV, dx: PV_TAG_DX }),
       F.reveal({ target: 'pv', at: 'write' }),
       F.light({ targets: ['pv'], at: 'write' }),
-      F.set({ at: 'write', chipsCued: { pvChip: 'a7f2 created' }, wires: { pv: PV_BACKED } }),
+      F.set({ at: 'write', chipsCued: { pvChip: 'pvc-a7f2 created' }, wires: { pv: PV_BACKED } }),
     ],
   },
   {
     id: 'bind',
     duration: 2600,
-    narration: 'The new volume was built for this one claim, so the provisioner already stamped it with a claimRef pointing back at the claim. There is nothing to search for and no shelf to pick from, so the pair goes straight to Bound. The volume was made to order.',
+    narration: 'The new volume was built for this one claim, so the provisioner already stamped it with a claimRef pointing back at the claim. The binding controller has nothing to search for: it writes volumeName on the claim, and the pair goes straight to Bound. The volume was made to order.',
     chipsCued: chips('Bound', 'gp3', DISK_ID, 'Bound'),
     wires: { bound: 'claimRef: data-claim', pv: PV_BACKED },
     // The write arrow is retired here: it shares the identity column center with the spine, so the

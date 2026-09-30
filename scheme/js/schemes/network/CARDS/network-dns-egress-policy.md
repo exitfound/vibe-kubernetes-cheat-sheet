@@ -29,8 +29,8 @@ PANEL    `OVERLAY_IDS=network-dns-egress-policy node --test report/overlay.test.
          pair of 232 blocks about the Pod centre reaches x=352 at the 32 gap it takes, and 368 even
          at a zero gap, so it cannot stand right of 396.55 at any gap and has to clear the panel
          VERTICALLY instead: the band opens at 252, 7.46 under the deepest reading, which is the
-         FLOOR for this card. The band cannot rise, because the panel reads 246.43 deep on six of
-         the seven steps and 222.21 on `fix` alone, so no step buys room. Everything else hangs off
+         FLOOR for this card. The band cannot rise, because the panel reads 244.54 deep on six of
+         the seven steps and 219.69 on `fix` alone, so no step buys room. Everything else hangs off
          it: FLOW_Y 486, the wall top at RING_Y 374, 129.46 clear of the deepest reading, and the
          wall bottom at 598 with 42 to the 640 floor. The price is the empty band above y=252 right
          of x=400: it is the panel column plus the mirror, and reclaiming it costs one of the two.
@@ -42,12 +42,16 @@ SIZES    Every block is 232 by 80 and both Pods 232 by 104 with a 192 by 44 inne
          width of the wall. A door carries no string: the road runs through the middle of it, and
          what names it is a caption outside the ring, in the 112 unit CORRIDOR between the wall and
          the block that door faces, centred on 328 on the left and 872 on the right. The corridor is
-         what forces TWO lines per caption: `no rule for port 53` on one line runs 67.5 units past
-         it and ends up under the wall, where it reads as a label of the boundary. Split, the widest
-         line measures 67.5 at 1100x800 and leaves 22.3 either side. The lines sit at 546 and 568,
-         20 under the block bottoms and 32 under the door, clear of both lanes. `behind Service
-         kube-dns 10.96.0.10` shares the first of those lines directly under the CoreDNS block,
-         51.7..260.3, and never reaches the caption at 294.3.
+         what forces TWO lines per caption: `port 53, UDP and TCP` on one line runs 122.7 at
+         1100x800 (20 characters of a face that inks 6.14 a character there), 10.7 wider than the
+         corridor, so its end stands under the wall, where it reads as a label of the boundary.
+         Split, the widest line measures 67.5 at 1100x800 and leaves 22.3 either side. The lines
+         sit at 546 and 568, 20 under the block bottoms and 32 under the door, clear of both lanes.
+         `behind Service kube-dns 10.96.0.10` shares the first of those lines directly under the
+         CoreDNS block, 51.7..260.3, and never reaches the caption at 294.3.
+         `egress boundary of Pod web` is centred on the ring at x=600, baseline 582: 510.4..689.6 at
+         1600x1000, its widest reading, so 126.4 inside either side wall, 32.5 under the Pod frame
+         and 12.3 above the bottom wall at every viewport.
 LANES    RING_PAD 100 is measured against MOTION rather than ink, and it is the `network-policy`
          run-up: a refused ball flush against the face it left travels 22 units and reads as a ball
          that never fired, where 100 units is floor-bound by `M-13` to PKT_DUR_MIN 700ms. The DNS
@@ -81,8 +85,14 @@ CONTENT  Every claim is read against k8s 1.35 and the four pages the catalog ent
          `open` says Pod web is `non-isolated for egress`, which is the page's own term, rather than
          that every connection it opens is allowed: the page also rules that a connection needs the
          egress policy of the sender AND the ingress policy of the receiver, so the wider absolute
-         is false about a destination this card does not draw. The egress absolute that IS carried,
-         that only the egress lists allow anything, is the page's own sentence and is left unhedged,
+         is false about a destination this card does not draw. Its gloss is `no egress rule limits
+         it`, the page reading `no restrictions apply in the stated direction`, and `nothing
+         restricts what it opens` is rejected because it is that wider absolute again. The same
+         holds on `by-ip`: `The address still works and the name does not` names the one address
+         the rule allows, and `Addresses still work` is rejected because every address the rules
+         do not select dies at the same boundary. The aria-label says the one Pod the rules SELECT
+         still connects, because the rule names `app=db` and no address. The egress absolute that
+         IS carried, that only the egress lists allow anything, is the page's own sentence and is left unhedged,
          exactly as `network-policy` carries it. `truncated` says an over-long answer comes back
          `with the truncation flag set` and that `a resolver that retries over TCP` asks again: RFC
          7766 section 5 rules that a server truncates a response over the 512 byte limit and sets
@@ -91,17 +101,24 @@ CONTENT  Every claim is read against k8s 1.35 and the four pages the catalog ent
          headless Service because a headless A record `resolves to the set of IPs of all of the Pods
          selected by the Service`, which is what lets one name answer with a Pod address. The Pod
          resolver address is the kube-dns Service, whose own ports are 53/UDP and 53/TCP, and whose
-         Pods carry `k8s-app=kube-dns`, all three read off the DNS debugging page.
+         Pods carry `k8s-app=kube-dns`, all three read off the DNS debugging page. A rule port is
+         spelled `53/UDP` and `53/TCP` in the `fix` narration, the aria-label and the allow-dns
+         sublabel alike, the form that page prints for the Service ports and the form the database
+         caption `5432/TCP` takes. `UDP 53` and `TCP 53` stay on the balls only, where they read as
+         the header of one packet rather than as a rule. The desc says `name resolution fails`
+         rather than `every name fails`: a name the Pod reads from its own hosts file resolves
+         with no query at all, so only the lookup is what the policy stops.
 NAMING   The query is addressed to the kube-dns Service and the rule selects the Pods behind it, so
          the ball carries `UDP 53, db.shop` and no address at all. `by-ip` carries the address it
          really uses, the Pod address 10.244.2.7, which is why db-0 stands behind a headless Service:
          a name that answers with a Pod address is what makes the two steps agree.
 SCOPE    The DNS consequence and the DNS rule. The mechanism itself, ingress against egress, the two
          boundaries a connection clears and the plugin that raises them, is `network-policy` and is
-         redrawn nowhere here. Which plugin implements it appears in the desc and on no step. What a
-         short name costs before any of this is `network-dns-ndots`, who answers the query is
-         `network-dns-coredns`, the shapes the answer takes are `network-dns-records`, and a cache
-         answering on the Node before the query leaves is `network-nodelocal-dnscache`.
+         redrawn nowhere here. Which plugin implements it is named in the `network-policy` desc and
+         nowhere on this card. What a short name costs before any of this is `network-dns-ndots`,
+         who answers the query is `network-dns-coredns`, the shapes the answer takes are
+         `network-dns-records`, and a cache answering on the Node before the query leaves is
+         `network-nodelocal-dnscache`.
 WHY NOT  Drawing the wall dim on `open` instead of leaving it out, which is what `C-14` asks for a
          block that does not exist yet. A boundary is not a block with a hole where it stands: a Pod
          that no policy selects has no boundary at all, and a ghost wall around it says the opposite

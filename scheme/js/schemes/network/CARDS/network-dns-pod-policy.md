@@ -3,20 +3,25 @@
 ### layout
 
 ```
-WHAT     How the Kubelet builds the resolv.conf of a Pod: dnsPolicy picks between its own cluster
-         settings, the resolver file its resolvConf setting names, and nothing at all, and dnsConfig
-         merges on top of whichever base the policy produced.
+WHAT     How the Kubelet configures the resolv.conf of a Pod: dnsPolicy picks between its own
+         cluster settings, the resolver file its resolvConf setting names, and nothing at all, and
+         dnsConfig merges on top of whichever base the policy produced.
 LAYOUT   Two files compared inside ONE Node frame. The API server stands over the frame right of the
-         panel wall, centred on the Kubelet, with the three spec fields of the arriving Pod in a
-         column beside it. Inside the frame one row carries the resolvConf file, the Kubelet and
-         the Pod on centre line 340, and under that row the two files are drawn line for line:
+         panel wall, centred on the Kubelet, with the five spec fields of the arriving Pod in a
+         column beside it: dnsPolicy, hostNetwork and the three dnsConfig lists, so every value the
+         Pod file carries on `none` and `merge` has a drawn source. The column runs 40 apart from y
+         44 to 236, past the API box bottom and 24 above the frame top, right of x 740 and so clear
+         of the panel, which ends at x 396.55 at its widest. Inside the frame one row carries the
+         resolvConf file, the Kubelet and the Pod on centre line 340, and under that row the two
+         files are drawn line for line:
          nameserver, search, options under the file box, and the same three lines, wide, under the
          Kubelet and the Pod. The frame is the argument: Default and the hostNetwork fallback mean
          take the file of THIS Node, ClusterFirst means take the cluster settings, and a step that
          copies the Node file makes the right column read the same as the left one.
 PANEL    `OVERLAY_IDS=network-dns-pod-policy node --test report/overlay.test.mjs` from
-         `scheme/test/`: bottom 142.56 at 1600x1000 and 171.42 at 1280x860 on every step,
-         194.85..219.69 at 1100x800, deepest on `clusterfirst`. The
+         `scheme/test/`: bottom 142.56..160.00 at 1600x1000 and 171.42..192.67 at 1280x860, the
+         deeper reading on `merge`, whose narration wraps one line more there, and 194.85..219.69
+         at 1100x800, deepest on `clusterfirst`. The
          panel height is quantized by its line count, which is why the reading equals the one on
          `network-dns-coredns`, whose deepest step wraps to the same number of lines. The frame
          top at 260 is what that reading pins: the `Node` label inks from y 267 at 1100x800, 47.3
@@ -25,10 +30,14 @@ SIZES    Actors 232 by 80, the Pod 232 by 104 with a 192 by 44 app box (NET.L-01
          the Pod both stand 20 inside the frame, at x 60 and to x 1140, so the chip strip spans
          60..1140 and centres on 600 (L-13). The Node file chips take the file box width, 232. The
          Pod file chips are 656, the Kubelet left edge to the Pod right edge, because the
-         ClusterFirst search line `default.svc.cluster.local svc.cluster.local cluster.local
-         corp.internal` inks 489.3 at 1600x1000 and leaves 101.4 to the `search` name. The spec
-         chips are 400: `dnsConfig.nameservers` against `192.0.2.1 192.0.2.2 192.0.2.3` leaves 24.6
-         at 1600x1000, the tightest chip on the card.
+         merged search line on `merge`, `default.svc.cluster.local svc.cluster.local cluster.local
+         corp.internal lab.test`, starts at x 576.7 at 1600x1000 and leaves 39.4 to the `search`
+         name, the tightest chip on the card. `lab.example` in its place left 18.7, which is why
+         the dnsConfig search domain is `lab.test`. The spec chips are 400:
+         `dnsConfig.nameservers` against `192.0.2.1 192.0.2.2 192.0.2.3` leaves 31.5 at 1600x1000,
+         `dnsConfig.searches` against `svc.cluster.local lab.test` more. Gaps measured settled,
+         after the real-time play, as value left edge minus name right edge through
+         getScreenCTM().inverse().
 LANES    Three two-point lanes, every one ridden, the two inside the frame 192 long. `watch` drops
          from the API server bottom face to the frame top face on x 600 and stops there (NET.A-02).
          `HOST` joins the file box right face to the Kubelet left face and carries a ball only on
@@ -76,25 +85,32 @@ CONTENT  Read against Kubernetes 1.35: `pkg/kubelet/network/dns/dns.go` and `dns
          options by name with the dnsConfig value winning, and only after that merge are
          nameservers cut to the first 3 (a DNSConfigForming warning event) and searches to 32.
          dnsConfig itself is rejected above 3 nameservers, so the merge step reaches the cut with a
-         spec that validates. CRI carries the result as `DNSConfig` (servers, searches, options) in
-         the sandbox config, which is the `CRI DNSConfig` lane label.
+         spec that validates. `none` and `merge` carry ONE dnsConfig search and option list,
+         `svc.cluster.local lab.test` and `ndots:2 edns0`. On `none` the Pod file takes both as
+         given. On `merge` svc.cluster.local already sits in the ClusterFirst list, so
+         `omitDuplicates` keeps only lab.test, appended last, and `mergeDNSOptions` replaces
+         ndots:5 with ndots:2 by name and appends edns0, which is the narration `only lab.test is
+         new` and `ndots:2 replaces ndots:5 by name while edns0 is added`. CRI carries the result
+         as `DNSConfig` (servers, searches, options) in the sandbox config, which is the
+         `CRI DNSConfig` lane label.
          Values: 10.96.0.10 is the kube-dns address its siblings use, 10.0.0.2 the Node resolver
          `network-nodelocal-dnscache` draws, `.internal` is reserved by ICANN for private use,
-         `timeout:n` and `edns0` are resolv.conf options (resolv.conf(5)), and 192.0.2.0/24 is
-         TEST-NET-1. `ns1.svc.cluster.local my.dns.search.suffix` and `ndots:2 edns0` are the page
-         example with its cluster domain written as cluster.local. Options come out of a Go map
-         in no fixed order, so `ndots:2 edns0` is the page rendering and not a guaranteed order.
+         `timeout:n` and `edns0` are resolv.conf options (resolv.conf(5)), 192.0.2.0/24 is
+         TEST-NET-1, and `.test` is reserved by RFC 2606. `ndots:2 edns0` is the options list of the
+         page example. Options come out of a Go map in no fixed order, so `ndots:2 edns0` is the
+         page rendering and not a guaranteed order.
 SCOPE    How the file this card builds is USED is `network-dns-ndots`: the search walk and its query
          count. Who answers the nameserver is `network-dns-coredns`, and a Node-local cache on the
-         clusterDNS address is `network-nodelocal-dnscache`. The search list limits past three
-         domains are not drawn.
+         clusterDNS address is `network-nodelocal-dnscache`. The search list limits, 32 domains and
+         2048 characters, are not drawn.
 DO NOT   Write the spec chips in `chips` alone. The watch ball is the Kubelet receiving the Pod, so
          a changed spec field that reads at entry is a turnover 1500 before its beat, which
          `unit/chip-beat-e.test.mjs` names as FORM-E. Each step winds them back to the previous Pod
          under `rewind` and turns them over at the watch arrival.
 NOT A DEFECT
-         `report:arrival` R2-ENTRY lists the spec chips as changed with no highlight at entry, some
-         of them as NO CUE IN STEP. Both samples are frozen at t=0, and a freeze never fires the
+         `report:arrival` R2-ENTRY lists ten spec chip turnovers with no highlight at entry, four of
+         them as NO CUE IN STEP. Both samples are frozen at t=0, and a freeze never fires the
          `F.set` at the watch arrival that cues them: `tools/settled-dump.mjs` shows every changed
-         spec chip lit on its step, `hostNetwork` on `hostnet` and on `none` included.
+         spec chip lit on its step, `hostNetwork` on `hostnet` and on `none` and the two dnsConfig
+         lists on `none` included. All ten are carried in `test/fixtures/carried.mjs`.
 ```

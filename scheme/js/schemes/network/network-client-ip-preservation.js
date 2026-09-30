@@ -52,14 +52,15 @@ const ENTRY = [[CLIENT_CX, ROW_Y], [CLIENT_CX, LANE_Y], [EDGE_X, LANE_Y]];
 const DELIVER = [[EDGE_R, LANE_Y], [POD_CX, LANE_Y], [POD_CX, ROW_Y]];
 
 // A TAGGED leg rides 1200, not the 700 its 307 units floor at: inside 700 the tag cannot fade in
-// clear of the sender, be read, AND retire before the arrival ripple (M-12, PACING).
+// clear of the sender and be read before it dissolves with the ball (M-12, PACING).
 const TAG_DUR = 1200;
-// A TAG IS VISIBLE FOR ITS WHOLE FLIGHT: the default fade-in opens 150 before the ball leaves and
-// hold -180 closes the fade-out ON its arrival, so the string never waits in the middle of the leg.
+// A TAG IS VISIBLE FOR ITS WHOLE FLIGHT and lives exactly as long as its ball (M-30a): in with it
+// before departure, out with it on arrival.
 // Each rides on the side AWAY FROM THE EDGE, because centred on a face a tag prints over the app
 // box inside it. ENTRY trails 95 to clear EDGE_X 484 on arrival, DELIVER leads 110 to clear 716.
-const labelIn = makeRidingLabel({ role: 'network', dy: 14, dx: -95, hold: -180 });
-const labelOut = makeRidingLabel({ role: 'network', dy: -14, dx: 110, hold: -180 });
+// ENTRY leaves at t=0, where a route ball does not fade in, so its tag shows at once (inMs 0).
+const labelIn = makeRidingLabel({ role: 'network', dy: 14, dx: -95, inMs: 0, outMs: 200, hold: 0 });
+const labelOut = makeRidingLabel({ role: 'network', dy: -14, dx: 110, inMs: 200, outMs: 200, hold: 0 });
 // Both legs are multi-point routePackets, which glide EASED, so each tag takes the same default
 // easing: mismatched, it drifts off its ball mid-flight and rejoins only at the ends (M-30).
 const tagIn = (p) => F.tag({ fn: labelIn, ...p });

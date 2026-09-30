@@ -164,7 +164,7 @@ the pages each index lists as its own children, and marks every one of them `COV
 `ABSENT` against the cards here. It caches what it fetched, so a second run costs nothing and
 `--refresh` is how you pay again.
 
-**A citation is not coverage.** Fifteen of `volumes-claims`'s citations land in `/concepts/storage`,
+**A citation is not coverage.** Nineteen of `volumes-claims`'s citations land in `/concepts/storage`,
 which proves the section reads that tree and proves nothing about what it covers. Coverage means a
 card has that page as its SUBJECT. The tool enforces this by construction, so a page a card merely
 cites can reach `PARTIAL` and can never reach `COVERED`, and where it prints `first source of <id>`
@@ -402,7 +402,7 @@ rubric with the shipped anchors in `reference/depth-scale.md`.
 | | L1 operator surface | L2 object contract | L3 control loop | L4 node mechanism | L5 kernel floor |
 |---|---|---|---|---|---|
 | what it opens | nothing, it maps | a field or a kind | a reaction | a call on a Node | the layer under it |
-| anchor | `cluster-architecture` | `storage-access-modes` | `workloads-replicaset` | `storage-mount-path-chain` | `network-conntrack-nat` |
+| anchor | `cluster-architecture` | `storage-access-modes` | `workloads-replicaset` | `storage-csi-attach-mount` | `network-conntrack-nat` |
 
 Levels: `junior` has applied a manifest, `middle` operates a cluster, `middle+` has debugged
 something not in the error message, `pre-senior` designs the cluster. Target the centre of mass at
@@ -420,7 +420,7 @@ fit verdicts, or answering "какие карточки лишние" with a lis
 the lane, and the first line of the report says which one it picked.
 
 **Rating a card from its title.** Titles are two to five words and were never written to carry a
-depth. `Where the Bytes Land` is L4 and reads like a poem. Rate from the `desc` and the middle
+depth. `fsGroup and Volume Ownership` is L4 and says so nowhere. Rate from the `desc` and the middle
 steps.
 
 **Proposing what a `SCOPE` block already refused.** A `SCOPE` block names the sibling it cedes a

@@ -100,7 +100,7 @@ strings, and the file list `dashTargets` names.
 
 ## The numbers this file is written against
 
-135 cards: cluster 28, workloads 32, network 44, storage 31. 860 steps. Re-measure before trusting
+143 cards: cluster 28, workloads 32, network 44, storage 39. 911 steps. Re-measure before trusting
 any figure below that carries a date-free absolute, and if you change one, change it here.
 
 ---
@@ -122,7 +122,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | L-08a | **A card that carries a two-column X grammar picks the first of `A` / `B` / `C` that fits above its OWN measured panel bottom**, and reads the columns out of its kit's `LAYOUT` rather than typing them | test:module/L-08a | `js/schemes/workloads/CLAUDE.md` `WL.L-06`, `js/schemes/cluster/cluster-kit.js` |
 | L-09 | A segment is horizontal or vertical. Nothing runs diagonally | test:geometry/DIAGONAL, test:spec-scene/DIAGONAL | `test/render/geometry.test.mjs` |
 | L-10 | No segment crosses a block it does not terminate on | test:geometry/THROUGH, test:spec-scene/THROUGH | `test/render/geometry.test.mjs` |
-| L-11 | An endpoint sits on a block FACE MIDPOINT, never a hand-typed coordinate near one | test:geometry/OFFEDGE, test:spec-scene/OFFEDGE | `test/render/geometry.test.mjs` |
+| L-11 | An endpoint sits on a block FACE MIDPOINT, never a hand-typed coordinate near one, or on a Node FRAME face level with the block inside it that the lane addresses | test:geometry/OFFEDGE, test:spec-scene/OFFEDGE | `test/render/geometry.test.mjs` |
 | L-12 | Two endpoints on ONE face at mirrored offsets (`+d` and `-d`, any `d`) are a deliberate lane pair and not a finding, pooled across all steps because a pair whose halves live in different steps is still a pair | test:geometry/OFFEDGE, test:spec-scene/OFFEDGE | `test/render/geometry.test.mjs` |
 | L-13 | The content bbox centres within 40 units of x=600, and the chip strip within 6 | report:geometry-soft/CENTRE | `test/report/geometry-soft.test.mjs` |
 | L-14 | Blocks sitting BELOW the overlay centre on x=600 too: the full width is free there | report:geometry-soft/CENTRE-LOW | `test/report/geometry-soft.test.mjs` |
@@ -172,7 +172,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | M-02 | A card never calls `pulse(` from `primitives.js` directly. Pods pulse through the kit's `pulsePod` | test:motion/PULSE-KIT | `test/render/motion.test.mjs` |
 | M-03 | **A Pod pulses with everything inside it.** The pulsed element is always the `g` holding the shell AND its inner boxes | test:motion/PULSE-WHOLE, test:motion/PULSE-TOGETHER | `lib/scheme-kit.js`, `pulsePodWithTint` |
 | M-04 | Pulse is `filter: brightness(...)`, never `transform: scale(...)`: diagram elements carry a `translate` a scale would compose-clobber | review | `lib/scheme-kit.js` |
-| M-05 | The pulse `base` must equal the Pod's RESTING stroke. Measure it under `reducedMotion`, or a forwards-filled pulse hands you back its own end state | test:palette | `lib/tokens.js`, `PULSE_POD` |
+| M-05 | The pulse names only its PEAK (`<CAT>_TINT.bright`) and starts and ends on the rect's own stroke, lit or unlit. Measure a resting stroke under `reducedMotion` | test:palette | `lib/tokens.js`, `PULSE_POD` |
 | M-06 | Pod pulse is 900ms (450 up, 450 down), bright 1.4, dim peak 0.8. One length, catalog-wide, with no per-card override | test:motion/PULSE-SHAPE | `lib/tokens.js` `PULSE_POD` |
 | M-07 | A DIM Pod needs `pulsePodDim`: the ordinary pulse plus an opacity lift to `PULSE_POD.dimPeak` and back, or the blink is invisible against the 0.55 it sits at | review | `lib/scheme-kit.js`, `pulsePodDimWithTint` |
 | M-08 | **Where a Pod both pulses and fades out in one step, the pulse comes FIRST**: pulse delay `<=` fade delay, or the two read as one event | test:opacity/ORDER, report:pod-fade/M-08 | `test/render/opacity.test.mjs`, `test/report/pod-fade.test.mjs` |
@@ -200,6 +200,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | M-28 | **`lightBoxAt` and `at` use an EMPTY keyframe list, and that is load-bearing.** Naming `opacity` composites the target for the whole delay window | test:motion/TIMER | `lib/scheme-kit.js`, `lightBoxAt`. Confirmed with CDP LayerTree, where `g.scheme-box 222x82` enters the layer list mid-flight and is gone after, and NEVER by pixel diff: headless software rendering blends both ways identically and shows nothing |
 | M-29 | Grep for `animate([{ opacity: 1 }, { opacity: 1 }]` to check M-28 has not come back | test:motion/TIMER | `lib/scheme-kit.js`, `lightBoxAt` |
 | M-30 | **A riding label's easing and any explicit `dur` must match the ball it rides.** Compare the two animations' `easing` | test:motion/RIDE | `lib/scheme-kit.js`, `makeRidingLabel` |
+| M-30a | **A riding label lives exactly as long as its ball**: in with it before departure, out WITH it on arrival (`inMs` = `outMs` = 200, `hold: 0`, never negative). A clash with the landing block moves the TAG, never its fade | review | `network-dualstack`, `storage-emptydir` |
 | M-31 | A riding label is pinned at the route START at build, or it sits at the SVG origin until `animateAlong`'s delay elapses and its fade-in plays in the top-left corner under the narration panel | test:motion/RIDE | `lib/scheme-kit.js` |
 | M-32 | `ridingLabel` binds its per-card constants ONCE at module scope through `makeRidingLabel({ role, dy, dx, easing, inMs, outMs, hold, emergeMode })`. Never write a local copy of it, of `lightBoxAt` or of `at` | review | `lib/scheme-kit.js` |
 | M-33 | Every animation goes through `ctx.register(...)`, so a step change cancels it | review | `lib/timeline.js` |
@@ -339,7 +340,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | R-09 | **A poster carries no packet dot**: a ball frozen on a wire reads as a paused animation | skill:poster-lint/R-09 | this file |
 | R-10 | No literal copy of the card diagram, no reused two-box layout, no plain "dumb circles" | review | root `CLAUDE.md` |
 | R-11 | `FALLBACK_POSTER` in `js/app.js` breaks R-08 and R-09 on purpose. Do not "fix" it into canon and do not delete it: it is the failure mode made visible | test:catalog/D-06 | `js/app.js` |
-| R-12 | A poster is drawn once against the sibling montage, so its note is a comment above that poster in the folder's `posters.js` and never a block in the record. `storage/` alone still holds a `### poster` subsection | test:docs/G1, skill:poster-lint/R-12 | `test/unit/docs.test.mjs` |
+| R-12 | A poster is drawn once against the sibling montage, so its note is a comment above that poster in the folder's `posters.js` and never a block in the record | test:docs/G1, skill:poster-lint/R-12 | `test/unit/docs.test.mjs` |
 
 ## S: module structure
 
@@ -443,10 +444,9 @@ first four, group E for `S-47` and group G for the FORM the last two state.
 | S-52 | **A record's labels come from "The record vocabulary" above, in that order, each at most once, `WHAT` first.** A note that fits none of them fits `NOTE` | test:docs/G2 | `test/unit/docs.test.mjs` |
 | S-53 | **A line in the label column carries a label and no other word.** `S-52` ranks the labels it knows, so a word outside the vocabulary is invisible to it: this is the half that sees one. Prose belongs at the column at 9 | test:docs/G3 | `test/unit/docs.test.mjs` |
 
-`S-51` and `S-52` are held on `cluster/`, `workloads/` and `network/`, and carried as a falling
-CEILING on `storage/`, which has not been through the pass that put the other three on this form.
-The target is zero on all four and the two numbers come down as that category is cleaned. `S-53`
-takes no baseline: every category already stands at zero on it.
+`S-51`, `S-52` and `S-53` are held on all four categories, each at zero: `storage/` was the last
+to come onto this form, and the ceilings `unit/docs.test.mjs` carries per category now read zero
+everywhere, so a record arriving off the form fails the gate in any folder.
 
 ---
 
@@ -530,7 +530,7 @@ wrong file.
 | `STO.S-02` | a block and its lanes as one construction |
 | `STO.S-03` | the z-order |
 | `STO.S-04` | the exemplar card |
-| `STO.S-05` | the record shape this category is still on |
+| `STO.S-05` | the per-card record and the `SIZES` line it owes |
 | `STO.D-01` | the subcategory split |
 
 ---
@@ -730,13 +730,12 @@ anything: the fallback drops the hue, and hue is not the axis either weight or r
 The spread of dash patterns is inherited rather than chosen, and normalising it is an undeclared
 visual change, not a tidy-up.
 
-Measured over 72 call sites in `js/schemes/`, every one of them a `P.relation` and none a raw
-`relationPath`: 27 pass a `dash`, of which 21 are `5 5`, 4 are `4 4` (`storage-ephemeral-storage-
-eviction` and three `workloads-*` cards) and 2 are `4 6` (both on `storage-ephemeral-vs-persistent`).
-The other 45 pass none AND STILL RENDER `5 5`, off the class, so 21 of the 27 are writing out a
-value they already have.
+Measured over 99 call sites in `js/schemes/`, every one of them a `P.relation` and none a raw
+`relationPath`: 42 pass a `dash`, of which 37 are `5 5`, 3 are `4 4` (all three on `workloads-*`
+cards) and 2 are `2 6` (both on `network-policy`). The other 57 pass none AND STILL RENDER `5 5`,
+off the class, so 37 of the 42 are writing out a value they already have.
 
-`role` is omitted at 54 of the 72 call sites, and none of those is a role-less relation: `roledPart`
+`role` is omitted at 81 of the 99 call sites, and none of those is a role-less relation: `roledPart`
 fills it from the kit binding (`S-42`). Nothing in the catalog reaches the generic fallback, so every
 relation carries its category hue and separates from a route on OPACITY alone.
 
@@ -882,6 +881,17 @@ delay and duration, still listed by `getAnimations()` and still firing `onfinish
 
 Get it wrong and the tag drifts off mid-flight, rejoining only at the endpoints and the midpoint,
 which no static screenshot shows.
+
+### M-30a
+
+The ball's own timing is `packetAlong`: a 200ms fade-in ending at departure and a 200ms fade-out
+starting at arrival. `makeRidingLabel({ inMs: 200, outMs: 200, hold: 0 })` is the same life.
+
+A negative `hold` was the old way to keep a tag off the receiving block, and it reads as the label
+giving up before the ball lands. The clearance is a GEOMETRY question: a tag beside a vertical lane
+into a wide block has to end outside that block's extent, which usually means the tag rides on the
+side of its lane facing away from the block, and a nested lane pair has no such side for its inner
+lane. Measured 2026-09-19: 35 `makeRidingLabel` calls in `js/schemes/` still pass a negative `hold`.
 
 ### M-35
 
@@ -1137,12 +1147,12 @@ section keys out of the hub, where nothing would notice it going stale.
 
 ### R-03b
 
-Measured 2026-09-11 across the catalog: the reference set (`workloads` + `cluster`) lands a mark at
-0.55 or brighter on 57 of its 60 posters, network on 23 of 40 and storage on 0 of 31, whose brightest
-mark anywhere in the category is 0.20. It is the single widest gap between the posters the project
-reads as finished and the posters it does not, and no other rule here reaches it: a poster can carry
-the right sentence, the right family and a correct composition and still be one a reader's eye slides
-off.
+Measured 2026-09-19 across the catalog with `poster-lint.mjs --calibrate`: the reference set
+(`workloads` + `cluster`) lands a mark at 0.55 or brighter on 57 of its 60 posters, network on all
+44 and storage on 15 of 35, whose median brightest mark is 0.17. It is the single widest gap
+between the posters the project reads as finished and the posters it does not, and no other rule
+here reaches it: a poster can carry the right sentence, the right family and a correct composition
+and still be one a reader's eye slides off.
 
 Brightness is not readable off one attribute. It arrives three ways that multiply: the fill itself
 (`currentColor` is full white, `rgba(255,255,255,a)` is `a`), the element's own `opacity` and
@@ -1180,9 +1190,8 @@ nothing renders it today.
 `### layout` heading and nothing else, so a `### poster` block cannot live there, and the note has
 one honest home: the comment directly above that card's entry in `js/schemes/<cat>/posters.js`,
 where the next poster author is already looking. It says what the composition is, what the hero is
-and what the poster deliberately is NOT, and it never restates the SVG under it. Three of the four
-categories are on that shape; `storage/` still carries the subsection and its G1 ceiling records
-how many sections that is.
+and what the poster deliberately is NOT, and it never restates the SVG under it. All four
+categories are on that shape, and G1 holds every record at zero `### poster` blocks.
 
 ### S-01
 
@@ -1215,9 +1224,10 @@ layer.
 
 ### S-08a
 
-The two shapes that read as exceptions are ordinary escapes rather than a second factory:
-`storage-fsgroup-ownership` wraps three children through `part.tune`, and
-`storage-container-filesystem` wraps a shell wrapper through `part.raw`.
+The one shape that reads as an exception is an ordinary escape rather than a second factory:
+`storage-fsgroup-ownership` draws its shell as a bare `podShell` through `part.raw` and sets its
+two peer inner boxes beside it in one `P.group`, because `P.pod` carries a single `inner` and a
+`P.pod` with none would wrap the shell in a second group.
 
 ### S-08c
 
@@ -1389,15 +1399,15 @@ records still carry a copy. The cluster record is the worked example.
 
 ### S-50
 
-They name 124 distinct ids between them and carry no copy of a rule text, which is what keeps a skill
+They name 126 distinct ids between them and carry no copy of a rule text, which is what keeps a skill
 short and what stops it drifting from the rulebook it drives.
 
 ### S-38
 
-`unit/docs.test.mjs` anchors each note to a line of code with ``### before `<line>` ``. **15 anchors
-today**, all four records (cluster 0, workloads 0, network 0, storage 15), and that is a count of
-what is there rather than a quota to hold. **Cluster and workloads carry none by design**: a record
-there is one `### layout` block of labelled notes and nothing else, and what an anchor used to hold
+`unit/docs.test.mjs` anchors each note to a line of code with ``### before `<line>` ``. **0 anchors
+today**, all four records (cluster 0, workloads 0, network 0, storage 0), and that is a count of
+what is there rather than a quota to hold. **No record carries one, by design**: a record
+is one `### layout` block of labelled notes and nothing else, and what an anchor used to hold
 sits under the label it belongs to. **The walk fails on a record it cannot read instead of
 running shorter** (`S-46`).
 
@@ -1416,7 +1426,7 @@ stale note cost more than keeping it, so there is none.
 section, or a `CARDS/<card-id>.md` per card with `CARDS.md` keeping the preamble and the index.
 `recordFiles` in `test/fixtures/catalog.mjs` decides which by looking for the folder, so a category
 choosing either is covered without a reader knowing its name, and a `CARDS/` that exists and reads
-empty is a failure rather than a shorter walk. Cluster, workloads and network are split, storage is not.
+empty is a failure rather than a shorter walk. All four categories are split today.
 
 **An anchor is unique only WITHIN its `## <card id>` section, never across a record.** The resolver
 looks the line up in that card alone, so a duplicate is legal where it sits: 0 anchor texts are

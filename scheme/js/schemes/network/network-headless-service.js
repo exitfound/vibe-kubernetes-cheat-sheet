@@ -50,7 +50,7 @@ const NEW_IP = '10.244.3.8';
 
 // The connection carries its destination from the client face (NET.T-01). Under the ball and 40 to
 // its left, so it clears the bus AND the two vertical legs, which ran through the text at dx 0.
-const LEG_TAG = makeRidingLabel({ role: 'network', dy: 20, dx: -40, hold: -200 });
+const LEG_TAG = makeRidingLabel({ role: 'network', dy: 20, dx: -40, inMs: 200, outMs: 200, hold: 0 });
 
 const pod = (i) => P.pod({
   key: `w${i}`, innerKey: `w${i}Box`, x: podX(i), y: POD_Y, w: BLOCK_W, h: POD_H, label: NAMES[i], sublabel: IPS[i],
@@ -194,7 +194,7 @@ export const STEPS_SPEC = [
   {
     id: 'pod-name',
     duration: 6000,
-    narration: 'Each Pod also gets a name of its own, the Pod name under the governing Service that the StatefulSet serviceName points at: web-0.nginx.default.svc.cluster.local. That lookup returns web-0 alone, which is how a client reaches one specific replica, such as a primary.',
+    narration: 'Each Pod also gets a name of its own, the Pod name under the governing Service that the StatefulSet serviceName points at: web-0.nginx.default.svc.cluster.local. That lookup returns web-0 alone, which lets a client reach one specific replica, such as a primary.',
     chips: { qChip: POD_Q, r0: IPS[0], r1: NOT_ASKED, r2: NOT_ASKED },
     sublabels: { slice: '2 of 3 ready', w2Box: 'not ready' },
     wires: WIRE,

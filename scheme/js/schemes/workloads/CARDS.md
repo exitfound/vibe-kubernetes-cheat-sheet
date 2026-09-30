@@ -11,11 +11,9 @@ one card (the catalog barrels, `js/lib/`, the kits, the CSS) is recorded in a JS
 the code it describes, not in a document. None of them ships (`S-41`).
 
 **HOW TO READ THIS RECORD.** This file is the preamble and the index. **The notes themselves are
-one file per card in `./CARDS/`**, named after the card id, which is the shape `cluster/` is in as
-well, and `network/` after it: `storage/` is the last one keeping every section in one
-`CARDS.md`.
-`unit/docs.test.mjs` reads the shape off the tree rather than off a list of category names, so both
-forms are checked by the same walk and neither is a special case.
+one file per card in `./CARDS/`**, named after the card id, which is the shape `cluster/`,
+`network/` and `storage/` are in as well. `unit/docs.test.mjs` reads the shape off the tree rather
+than off a list of category names, so no category is a special case.
 
 **One card, one file, one block.** Each `./CARDS/<card-id>.md` opens with `## <card-id>` and carries
 a single `### layout` section holding one fenced block. Inside it every note stands under a LABEL in

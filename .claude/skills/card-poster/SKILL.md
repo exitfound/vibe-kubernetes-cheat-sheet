@@ -1,6 +1,6 @@
 ---
 name: card-poster
-description: Design, redraw or adjust the poster of one scheme card, the still frame the grid shows: a 320x180 SVG fragment in posters.js, never the card's animated diagram. Opens the reference sheet first to calibrate against the posters the project reads as finished, reads the card for its one sentence, renders the current poster beside its siblings at true size and at 3x, picks a composition family AND a glyph vocabulary from the mined pattern library, gets the concept signed off in a five-slot line before drawing anything, writes the fragment, verifies it against the poster lint (the ink floor and the neighbour silhouette) and a fresh montage, and records the choice where the category still carries a poster note. Use when the user asks for a poster ("сделай постер", "перерисуй постер", "poster for this card"), equally when they say how one LOOKS is wrong ("постер не нравится", "вяло", "бледно", "тускло", "скучно", "без стиля", "the poster reads weak"), when they say a poster repeats its neighbours ("все постеры одинаковые", "как у соседней карточки"), or when a card review found the poster wrong. For everything else about a card use card-review, and for the truth of its text use card-facts. For all four skills run end to end over a SET of cards unattended, use card-cycle.
+description: Design, redraw or adjust the poster of one scheme card, the still frame the grid shows: a 320x180 SVG fragment in posters.js, never the card's animated diagram. Opens the reference sheet first to calibrate against the posters the project reads as finished, reads the card for its one sentence, renders the current poster beside its siblings at true size and at 3x, picks a composition family AND a glyph vocabulary from the mined pattern library, gets the concept signed off in a five-slot line before drawing anything, writes the fragment, verifies it against the poster lint (the ink floor and the neighbour silhouette) and a fresh montage, and records the choice in the comment above the poster in posters.js. Use when the user asks for a poster ("сделай постер", "перерисуй постер", "poster for this card"), equally when they say how one LOOKS is wrong ("постер не нравится", "вяло", "бледно", "тускло", "скучно", "без стиля", "the poster reads weak"), when they say a poster repeats its neighbours ("все постеры одинаковые", "как у соседней карточки"), or when a card review found the poster wrong. For everything else about a card use card-review, and for the truth of its text use card-facts. For all four skills run end to end over a SET of cards unattended, use card-cycle.
 ---
 
 # Card poster
@@ -10,11 +10,10 @@ The poster is the still frame the grid paints for a card, about 200px wide, held
 biggest source of rework in this project, and the reason is always the same: someone drew before
 deciding what the picture had to say.
 
-**What this skill owns:** `posters.js`, and in `network/` and `storage/` the `### poster` subsection
-of the card's record. Nothing else. `cluster/` and `workloads/` records carry no poster note: a
-poster is drawn once and is not revised with the card, so nothing there is written back, and
-`S-51` is held on those two by `unit/docs.test.mjs` G1, which fails the gate on a poster block
-written into one. Geometry of
+**What this skill owns:** `posters.js`, the poster fragments and the comment above each one, which
+is where the poster note lives (`R-12`). Nothing else. No record carries a poster note, in any of
+the four categories: a record is one `### layout` block (`S-51`), and `unit/docs.test.mjs` G1 fails
+the gate on a poster block written into one. Geometry of
 the card itself, motion, dead code and the other records are `card-review`; the truth of any text is
 `card-facts`. If the poster work turns up a defect in the card, hand it over
 rather than fixing it here.
@@ -65,9 +64,9 @@ node .claude/skills/_shared/tools/ctx.mjs <card-id>
 2. The `WHAT` line of its record (section 2), then the narration of step 1 and of the last step
    (section 3, and the header lists every step with its duration). The poster is the still that
    makes a reader want to press play, so it belongs closer to the question than to the ending.
-3. In `network/` and `storage/`, the `### poster` note inside that record: if one exists it says
-   what was tried and what was rejected, so do not rediscover it. `cluster/` and `workloads/` carry
-   none. Section 4 prints the poster fragment that is there now either way.
+3. The comment above the card's entry in `posters.js`: where it names a rejected composition, it
+   says what was tried and why it failed, so do not rediscover it. Section 4 prints the poster
+   fragment that is there now.
 
 Then write ONE sentence, in words, in the user's language. Not "the architecture of a cluster", but
 "everything talks to the API and the API alone talks to the store". If your sentence needs "and", it
@@ -92,9 +91,10 @@ note, plus the two checks that carry most of the weight:
 
 - **`R-03b`, the ink floor.** The brightest mark in the drawing, measured through every `<g>` above
   it, has to reach 0.55. This is the difference between the reference set and the rest, and it is
-  not close: the reference lands a bright mark on 57 of its 60 posters, storage on 0 of 31, and 44
-  of the 71 non-reference posters fail the line. A poster can have a correct sentence, a correct
-  family and a correct composition and still read as absent, because nothing in it is bright.
+  not close: the reference lands a bright mark on 57 of its 60 posters, storage on 15 of 35, and 20
+  of the 79 non-reference posters fail the line, every one of them in storage. A poster can have a
+  correct sentence, a correct family and a correct composition and still read as absent, because
+  nothing in it is bright.
 - **`R-05`, the neighbour silhouette.** It signs each poster by how its big blocks are arranged and
   how many there are, and says so when a neighbour in the same section signs the same. 13 pairs on
   the grid do, which is the defect a reader meets as "these all look the same".
@@ -242,9 +242,9 @@ disk", which is a sentence forty other cards could also claim:
 The second one is not missing a family, a sentence or a composition. It is missing the two things
 above, and its brightest mark is 0.08.
 
-Write it into `scheme/js/schemes/<category>/posters.js`, keyed by card id, with a short comment
-above it naming the family and the accent. The comment is one or two lines: anything longer belongs
-in the record.
+Write it into `scheme/js/schemes/<category>/posters.js`, keyed by card id, with a comment above it
+naming the family and the accent in its first line. That comment is the whole poster note (`R-12`),
+so step 7 finishes it there: nothing about a poster goes into the record.
 
 ---
 
@@ -274,20 +274,17 @@ how you catch a family used three times in a row.
 
 ## 7. Record the choice
 
-Only in `network/` and `storage/`, and only where the record already carries a `### poster`
-subsection under `## <card-id>` (`R-12`). Three or four lines, in the record's own voice:
+In the comment directly above the card's entry in `posters.js` (`R-12`), in all four categories.
+Three to five lines, and never a restatement of the SVG under it:
 
-- the sentence the poster says
-- the family and why that one
+- the family, and the sentence the poster says
+- the hero, the one accent mark
 - what was rejected, with the reason, so nobody rebuilds it to find out
 - any deliberate deviation from the house idiom, named as deliberate
 
-**In `cluster/` and `workloads/` this step is skipped and nothing is written to the record.** Those
-records are one `### layout` block of labelled notes, and a poster note is not one of the things
-they are for.
-
-Do not touch any other part of the record: the rest of that section belongs to `card-review`, and
-its `CONTENT` block belongs to `card-facts`.
+**Nothing is written to the record.** A record is one `### layout` block of labelled notes
+(`S-51`), and a poster note is not one of the things it is for: the rest of that section belongs to
+`card-review`, and its `CONTENT` block belongs to `card-facts`.
 
 ---
 
@@ -339,7 +336,7 @@ Never commit unless the user asks.
 - Reaching for an unusual shape to cure a dull poster. It produces a bag of mismatched details, which
   is worse than what it replaced. The cure is ink and furniture.
 - A cylinder used as the house glyph for anything that stores bytes. Two of them in a row read as one
-  shape, and that is most of how storage lost its variety: 22 of its 31 posters draw one. A cylinder
+  shape, and that is most of how storage lost its variety: 20 of its 35 posters still draw one. A cylinder
   is also not a ring, which `R-05` had to be taught explicitly before it could see storage's twins at
   all. Draw the CLAIM, not the noun.
 - A poster that was correct for a card that has since been rebuilt.

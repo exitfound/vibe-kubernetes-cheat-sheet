@@ -108,18 +108,19 @@ export function pulsePodWithTint(podEl, ctx, delay, { persist = false } = {}, ti
   const RAMP = PULSE_POD.ms / 2;
   for (const el of podEl.querySelectorAll('.scheme-pod-rect, .scheme-box-rect')) {
     el.style.transition = 'none';
+    // Only the peak is named. Both ramps leave their rest end IMPLICIT, so each starts and ends on
+    // whatever the rect shows, lit or unlit: a box lit on the same arrival stays lit through the
+    // blink. `persist` keeps the up-ramp's end state and writes it inline on finish.
     const up = el.animate([
-      { stroke: tint.base,   strokeOpacity: 0.65, strokeWidth: 1.2 },
       { stroke: tint.bright, strokeOpacity: 1,    strokeWidth: 2.4 },
-    ], { duration: RAMP, delay, fill: 'forwards', easing: 'ease-in-out' });
+    ], { duration: RAMP, delay, fill: persist ? 'forwards' : 'none', easing: 'ease-in-out' });
     ctx.register(up);
     if (persist) {
       up.onfinish = () => { el.style.stroke = tint.bright; el.style.strokeOpacity = '1'; el.style.strokeWidth = '2.4'; };
     } else {
       ctx.register(el.animate([
-        { stroke: tint.bright, strokeOpacity: 1,    strokeWidth: 2.4 },
-        { stroke: tint.base,   strokeOpacity: 0.65, strokeWidth: 1.2 },
-      ], { duration: RAMP, delay: delay + RAMP, fill: 'forwards', easing: 'ease-in-out' }));
+        { stroke: tint.bright, strokeOpacity: 1,    strokeWidth: 2.4, offset: 0 },
+      ], { duration: RAMP, delay: delay + RAMP, easing: 'ease-in-out' }));
     }
   }
   const BRIGHTNESS_FRAMES = [

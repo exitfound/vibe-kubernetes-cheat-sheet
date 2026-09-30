@@ -535,8 +535,8 @@ const CLAIMS = [
     want: () => [CENSUS.runDelay0, CENSUS.runTotal],
   },
   {
-    doc: 'CLAUDE.md', label: 'the category carrying the highest hook share',
-    re: /Storage carries the highest share, (\d+) of (\d+)/,
+    doc: 'CLAUDE.md', label: 'storage: the cards carrying a hook',
+    re: /Storage carries a hook on (\d+) of its (\d+) cards/,
     want: () => [cat('storage').hooked.size, cat('storage').cards],
   },
   {

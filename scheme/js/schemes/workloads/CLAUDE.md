@@ -38,7 +38,7 @@ sentence read better: re-measure, or the assertion goes red.
 | `workloads-kit.js` | the tint, the two pulse wrappers, the `WL` layout constants and the `LAYOUT` A/B/C column presets, plus the `P` / `F` / `defineCard` bindings; everything else is re-exported from `lib/scheme-kit.js` and `lib/layout.js` |
 | `workloads-*.js` | one module per card |
 | `CARDS.md` | the record's preamble and its index, and no `## ` heading of its own |
-| `CARDS/<id>.md` | the design record for ONE card, a single `### layout` block of labelled notes and no other heading, which `S-51` states and `test:docs/G1` holds. This category, `cluster/` and `network/` are the three in the split shape, and `recordFiles` in `test/fixtures/catalog.mjs` is what reads the shape off the tree, so `storage/` on the monolith is walked by the same code and is not a special case |
+| `CARDS/<id>.md` | the design record for ONE card, a single `### layout` block of labelled notes and no other heading, which `S-51` states and `test:docs/G1` holds. All four categories are in the split shape, and `recordFiles` in `test/fixtures/catalog.mjs` is what reads the shape off the tree, so no category is a special case |
 
 A card reaches `./workloads-kit.js` and no further (`S-21`): all 32 import the kit, 14 also import
 `lib/svg.js` and 6 `lib/primitives.js`. Those are element constructors no part kind builds, and they
@@ -76,10 +76,10 @@ same order.
 ## Tint
 
 ```js
-WORKLOADS_TINT = { base: 'rgb(91, 184, 255)', bright: 'rgb(142, 198, 247)' }   // sky blue
+WORKLOADS_TINT = { bright: 'rgb(142, 198, 247)' }   // sky blue
 ```
 
-`base` is the Pod's resting stroke, measured under `reducedMotion` (`M-05`).
+Only the pulse peak is named: the blink ramps from and back to the rect's own stroke (`M-05`).
 
 | ID | Rule |
 |---|---|
@@ -190,7 +190,7 @@ what `workloads-cronjob`, `workloads-effective-pod-requests`, `workloads-job-par
 
 ## The reduced path
 
-`reducedLit` is **declared on 10 cards over 34 steps here**, against 142 in network, 2 in cluster
+`reducedLit` is **declared on 10 cards over 34 steps here**, against 141 in network, 2 in cluster
 and 0 in storage: the second largest population in the catalogue, and second by a wide margin.
 The reason is the subject. 173 of the 207 steps light something through `lit:` or a `lights` list,
 so `flowLights` derives most of the static path for free, and what it cannot derive is a step

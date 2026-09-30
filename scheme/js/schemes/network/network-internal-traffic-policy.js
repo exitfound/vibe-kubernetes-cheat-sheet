@@ -53,11 +53,10 @@ const BUS1 = [[600, SVC_Y + SVC_H], [600, BUS_Y], [R1.dpCx, BUS_Y], [R1.dpCx, NO
 const BUS2 = [[600, SVC_Y + SVC_H], [600, BUS_Y], [R2.dpCx, BUS_Y], [R2.dpCx, NODE_Y]];
 
 // The tag rides a cross-node ball from departure, below it and TWIN behind it, between the two verticals
-// of each frame bottom. It is gone at the rise corner, since rising it would cross its own lane.
-const innerLabel = makeRidingLabel({ role: 'network', inMs: 150, outMs: 170, hold: -332 });   // corner at 914 of 1076
-const outerLabel = makeRidingLabel({ role: 'network', inMs: 150, outMs: 170, hold: -500 });   // corner at 1510 of 1840
-const TAG_INNER = { fn: innerLabel, dx: TWIN };    // rides left, trails right
-const TAG_OUTER = { fn: outerLabel, dx: -TWIN };   // rides right, trails left
+// of each frame bottom, and dissolves with it on arrival (M-30a): rising, it crosses its own lane.
+const crossLabel = makeRidingLabel({ role: 'network', inMs: 200, outMs: 200, hold: 0 });
+const TAG_INNER = { fn: crossLabel, dx: TWIN };    // rides left, trails right
+const TAG_OUTER = { fn: crossLabel, dx: -TWIN };   // rides right, trails left
 const tag = (p) => F.tag({ dy: 18, ...p });
 
 const CLIENT_INNER = { dx: 18, dy: 26, w: POD_W - 36, h: 44, label: 'app', sublabel: 'eth0' };

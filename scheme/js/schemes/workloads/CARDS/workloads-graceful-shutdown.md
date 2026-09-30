@@ -83,8 +83,7 @@ MOTION   Spans against durations: delete 3293/4600, deregister 2200/3400, presto
          waits BEAT.lead, both watch events leave `after` it, and a connection lands on the Pod at
          delay 0 first, because the two tracks have not started yet.
          The fork balls run 510 units at 0.45 u/ms, 1133ms, the canon speed. The write is 284,
-         floored to 700 at 0.406, which workloads-pod-qos-classes and storage-configmap-secret-mount
-         also run. LINK and SIGNAL are 44 and 42, floored to 700 at 0.06, the length
+         floored to 700 at 0.406, which workloads-pod-qos-classes also runs. LINK and SIGNAL are 44 and 42, floored to 700 at 0.06, the length
          network-ipam-pod-cidr, network-pod-ip-and-veth and storage-csi-capacity-tracking also run.
          TRAFFIC is 244, floored at 0.349, and no other card runs that length.
          Down-arrow on every signal: the ball lands, then the Pod blinks (M-16). On expiry the blink

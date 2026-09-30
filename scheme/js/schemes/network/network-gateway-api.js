@@ -115,11 +115,11 @@ const NOT_PERMITTED = 'False · RefNotPermitted';
 const HTTPS = 'HTTPS shop.io/';
 
 // Both tagged legs ride LEG_DUR 1500 rather than the 700 floor, where a tag is gone before it can be
-// read (M-12, PACING). Each tag emerges once clear of the face it leaves and retires before its text
-// reaches the face it heads for: 212 units for the answer and for the leg to Pod web.
+// read (M-12, PACING). Each tag shows from departure and dissolves with its ball on arrival (M-30a),
+// over the 212 units of the answer and of the leg to Pod web.
 const LEG_DUR = 1500;
-const podLabel = makeRidingLabel({ role: 'network', easing: 'linear', outMs: 170, hold: -530, emergeMode: true });
-const answerLabel = makeRidingLabel({ role: 'network', easing: 'linear', outMs: 170, hold: -400, emergeMode: true });
+const podLabel = makeRidingLabel({ role: 'network', easing: 'linear', inMs: 100, outMs: 100, hold: 0 });
+const answerLabel = makeRidingLabel({ role: 'network', easing: 'linear', inMs: 100, outMs: 100, hold: 0 });
 // The Service lights while the proxy is still pulsing, as the lookup that picks the endpoint.
 const LOOKUP_MS = 400;
 // A status condition turns over this long after the change that causes it, so cause reads first.
@@ -199,7 +199,7 @@ export const STEPS_SPEC = [
       F.segment({ from: REQ[0], to: REQ[1], delay: BEAT.lead, name: 'inb' }),
       F.pulse({ pod: 'proxy', at: 'inb' }),
       F.segment({ from: ANSWER[0], to: ANSWER[1], at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, lights: ['client'] }),
-      F.tag({ fn: answerLabel, text: 'HTTP 500', points: ANSWER, at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, dy: 18, emerge: 230, easing: 'linear' }),
+      F.tag({ fn: answerLabel, text: 'HTTP 500', points: ANSWER, at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, dy: 18, easing: 'linear' }),
     ],
   },
   {
@@ -232,7 +232,7 @@ export const STEPS_SPEC = [
       F.pulse({ pod: 'proxy', at: 'inb' }),
       F.light({ targets: ['svc'], at: 'inb', plus: LOOKUP_MS }),
       F.segment({ from: TO_POD[0], to: TO_POD[1], at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, name: 'toPod' }),
-      F.tag({ fn: podLabel, text: `to ${WEB_IP}`, points: TO_POD, at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, emerge: 360, easing: 'linear' }),
+      F.tag({ fn: podLabel, text: `to ${WEB_IP}`, points: TO_POD, at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, easing: 'linear' }),
       F.pulse({ pod: 'podWeb', at: 'toPod' }),
     ],
   },

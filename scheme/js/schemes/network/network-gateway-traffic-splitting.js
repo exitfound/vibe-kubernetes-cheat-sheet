@@ -175,9 +175,9 @@ const slide = (from, to, delay = 0, extra = {}) => F.anim({
 const LEG_DUR = 1125;
 // The tags stand OFF the lane pair and are readable from the moment the ball leaves, so each sits on
 // the side of the ball AWAY from the face it heads for: the request tag under its ball, clear of the
-// Client bottom, the answer tag over its ball, clear of the Gateway top. Hold -400 retires each one
-// before it reaches the face it is heading for.
-const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: -400 });
+// Client bottom, the answer tag over its ball, clear of the Gateway top. Each dissolves with its ball
+// on arrival (M-30a).
+const ridingLabel = makeRidingLabel({ role: 'network', inMs: 100, outMs: 100, hold: 0 });
 const TAG_DOWN = { fn: ridingLabel, dx: -62, dy: 14 };
 const TAG_UP = { fn: ridingLabel, dx: 50, dy: -14 };
 

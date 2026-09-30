@@ -53,11 +53,12 @@ const besideRight = (edgeX, laneX, txt) => edgeX + 8 + (txt.length * TAG_CHAR) /
 const SIDE_DY = -4;                                // clears the Node frame top at the end of the spine
 const STACK_R = STACK_X + BOX_W;                   // 716
 // The host hop has the headless lane at x 320 on its right and the frame past it, so its tag rides
-// beside the lane and LEADS the ball, fading out before it reaches the host box.
+// beside the lane and LEADS the ball, and dissolves with it on arrival (M-30a).
 const HOST_TAG_DX = 90, LEAD_DOWN = 14;
 const HL_TAG_DX = -36;                             // left of the headless lane, clears the host box at the end
-const tag = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
-const leadTag = makeRidingLabel({ role: 'network', outMs: 170, hold: -280, emergeMode: true });
+const tag = makeRidingLabel({ role: 'network', inMs: 100, outMs: 100, hold: 0 });
+const leadTag = makeRidingLabel({ role: 'network', inMs: 100, outMs: 100, hold: 0 });
+const routeTag = makeRidingLabel({ role: 'network', inMs: 200, outMs: 200, hold: 0 });   // a route ball fades 200, a segment 100
 const spineTag = (text, points, when) =>
   F.tag({ fn: tag, text, points, ...when, easing: 'linear', dx: besideRight(STACK_R, CX, text), dy: SIDE_DY });
 const dnsTag = (text, points, when) =>
@@ -239,7 +240,7 @@ export const STEPS_SPEC = [
       dnsTag('A 10.244.2.7, 10.244.2.8', HOP_ANSWER, { after: 'q' }),
       F.pulse({ pod: 'client', at: 'ans' }),
       F.route({ points: HOP_HEADLESS, at: 'ans', plus: BEAT.afterPulse, name: 'direct' }),
-      F.tag({ fn: tag, text: '10.244.2.7', points: HOP_HEADLESS, at: 'ans', plus: BEAT.afterPulse, dx: HL_TAG_DX }),
+      F.tag({ fn: routeTag, text: '10.244.2.7', points: HOP_HEADLESS, at: 'ans', plus: BEAT.afterPulse, dx: HL_TAG_DX }),
       F.pulse({ pod: 'podA', at: 'direct' }),
     ],
   },

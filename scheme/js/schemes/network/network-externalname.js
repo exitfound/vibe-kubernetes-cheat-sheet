@@ -46,11 +46,12 @@ const KP_CX = C1_X + COL_W / 2;                     // 176
 const HOP_WATCH = [[SLICE_X, SLICE_CY], [KP_CX, SLICE_CY], [KP_CX, DP_Y + BOX_H]];
 
 // Every tag is on from its ball leaving. A vertical tag leads its ball on the outer side of its lane
-// and has faded out before its ink reaches the far face (hold negative, measured per ride).
-const tag = makeRidingLabel({ role: 'network', outMs: 170, hold: 0 });
-const Q_TAG = { fn: makeRidingLabel({ role: 'network', outMs: 170, hold: -405 }), dx: -54, dy: -12 };
-const A_TAG = { fn: makeRidingLabel({ role: 'network', outMs: 170, hold: -375 }), dx: 86, dy: 16 };
-const DROP_TAG = { fn: makeRidingLabel({ role: 'network', outMs: 170, hold: -330 }), dx: -65, dy: 18 };
+// and dissolves with its ball on arrival, the segment ball's own 100ms fades (M-30a).
+const tag = makeRidingLabel({ role: 'network', inMs: 100, outMs: 100, hold: 0 });
+const routeTag = makeRidingLabel({ role: 'network', inMs: 200, outMs: 200, hold: 0 });   // the watch rides a route, fading 200
+const Q_TAG = { dx: -54, dy: -12 };
+const A_TAG = { dx: 86, dy: 16 };
+const DROP_TAG = { dx: -65, dy: 18 };
 // A tag travels the whole 192 gap with its ball, so a 115 to 151 unit tag in the face band inks over a
 // face: each rides out of it, leading over the host top, in the gap under the host, above the dataplane.
 const OUT_TAG = { dx: 64, dy: -36 };
@@ -186,7 +187,7 @@ export const STEPS_SPEC = [
     rewind: { sublabels: { dp: 'Service rules' } },
     flow: [
       F.route({ points: HOP_WATCH, delay: BEAT.lead, name: 'watch', lights: ['kproxy'] }),
-      F.tag({ fn: tag, text: 'pg-ext · 203.0.113.5', points: HOP_WATCH, delay: BEAT.lead, ...WATCH_TAG }),
+      F.tag({ fn: routeTag, text: 'pg-ext · 203.0.113.5', points: HOP_WATCH, delay: BEAT.lead, ...WATCH_TAG }),
       // The write has no ball: the dataplane lights one beat after kube-proxy receives the slice.
       F.set({ after: 'watch', sublabels: { dp: RULES } }),
       F.light({ targets: ['dp'], after: 'watch' }),

@@ -13,7 +13,7 @@ LAYOUT   Three bands. The discovery column (Service nginx, its EndpointSlice, Co
          of records, so the card draws the set as rows that fill, drop a member and change a value.
          The StatefulSet Pods run along the bottom, and the client reaches them from below over a
          shared bus.
-PANEL    Deepest at 1100x800 on `query`, `pod-name`, `new-ip` and the poster frame:
+PANEL    Deepest at 1100x800 on every step but `direct`, the poster frame included:
          `OVERLAY_IDS=network-headless-service node --test report/overlay.test.mjs` from
          `scheme/test/`. Bottom lo..hi per viewport: 125.11..142.56 at 1600x1000, 150.17..171.42 at
          1280x860, 180.12..204.97 at 1100x800. The client Pod is the only block left of x=420 and
@@ -30,10 +30,11 @@ LANES    Seven lines. Two RELATIONS on the discovery spine, x 560, carry no head
 MOTION   `answer` and `direct` start from a lit block: CoreDNS answers after `BEAT.lead`, the client
          pulses before it connects. The connection carries the address it picked as a tag riding 20
          under and 40 left of the ball: at dx 0 both vertical legs run through the text, and under
-         the ball it clears the bus, the client above the trunk and the Pod it climbs into.
+         the ball it clears the bus, the client above the trunk and the Pod it climbs into. It lives
+         exactly as long as its ball (M-30a, `inMs: 200, outMs: 200, hold: 0`).
          `not-ready` and `new-ip` open on a change to a Pod (a fade to notready, a fade out and
          back) and only then run the lookup, so the reader sees the cause before the answer shrinks
-         or changes. On `not-ready` the EndpointSlice lights as its count turns to 2 of 3, 1700ms
+         or changes. On `not-ready` the EndpointSlice lights as its count turns to 2 of 3, 1595ms
          before the query lights it again. Every chip turns on the arrival that produces it: the
          query row when the query lands, the record rows when the answer lands. The eight 152 unit
          lookup legs take HOP_MS 595 rather than the 700 floor their length clamps to, where they
@@ -56,7 +57,7 @@ CONTENT  Read against k8s 1.35: the Service page, `DNS for Services and Pods`, t
          step and its last sentence. The Service page adds `By default this field is set to false`.
          `Under the default ClusterFirst DNS policy the lookup ... still goes to CoreDNS through the
          kube-dns Service`: headless removes the VIP from the DATA path only, and the resolv.conf
-         the Kubelet writes names the DNS Service as nameserver. The qualifier stays because
+         the Kubelet configures names the DNS Service as nameserver. The qualifier stays because
          `dnsPolicy` Default or None, and NodeLocal DNSCache, send the query elsewhere. `no DNAT
          anywhere in the path` is rejected for the same reason.
          `the client chooses from the set itself and kube-proxy has no say` because the DNS page
@@ -69,19 +70,14 @@ CONTENT  Read against k8s 1.35: the Service page, `DNS for Services and Pods`, t
          and the Service is `nginx` while the StatefulSet is `web` so the two segments cannot be
          confused. The StatefulSet page: `$(podname).$(governing service domain), where the
          governing service is defined by the serviceName field on the StatefulSet`.
+         `which lets a client reach one specific replica`, and not `which is how a client reaches`:
+         the DNS page gives the same per-Pod record to any Pod whose `hostname` and `subdomain` match
+         a headless Service, so the StatefulSet name is one way to reach a replica rather than the
+         way, the reading `network-dns-records` takes with `A stable way`.
          `Once it is ready the same lookup returns 10.244.3.8: the name is stable, the address is
          not`, and not `always resolves to that exact replica`: the record exists only while the Pod
          is ready. `here with a new IP` stays hedged because no page promises a recreated Pod a new
          address or the old one: the network plugin assigns it.
-         `A cache can serve the old answer until its TTL runs out, 30 seconds in the kubeadm
-         Corefile`. `30 seconds by default in CoreDNS` is rejected: the kubernetes plugin README says
-         `ttl allows you to set a custom TTL for responses. The default is 5 seconds`, and the 30 is
-         the `ttl 30` line kubeadm writes into the Corefile. The StatefulSet page says only that the
-         CoreDNS config map `currently caches for 30 seconds`. The same Corefile disables the cache
-         plugin for the cluster domain (`disable success` and `disable denial`), so the cache that
-         holds the answer is the client side one, a node cache or the application.
-         Negative caching is not claimed: the StatefulSet page gives it only as `at least a few
-         seconds`.
          The chip names read `A web-0` as the record that points at web-0: on `answer` all three
          records carry the Service name, on `pod-name` the record carries the Pod name. They stay,
          because `fixtures/carried.mjs` keys this card by those names. The query chip shows
@@ -97,8 +93,15 @@ CONTENT  Read against k8s 1.35: the Service page, `DNS for Services and Pods`, t
          CoreDNS`: the 30 is `ttl 30` inside the `kubernetes` plugin of the kubeadm Corefile, whose
          `cache 30` block carries `disable success <cluster domain>` and `disable denial <cluster
          domain>`, so CoreDNS itself caches no cluster name there. What holds the stale answer is the
-         client. The CoreDNS kubernetes plugin README gives 5 seconds as its own default ttl, which is
-         why the number is attributed to kubeadm rather than to CoreDNS.
+         client, a node cache or the application. The CoreDNS kubernetes plugin README says `ttl
+         allows you to set a custom TTL for responses. The default is 5 seconds`, which is why the
+         number is attributed to kubeadm rather than to CoreDNS. The StatefulSet page says only that
+         the CoreDNS config map `currently caches for 30 seconds`. Negative caching is not claimed:
+         the StatefulSet page gives it only as `at least a few seconds`.
+         Also read and kept as they ship: `ClusterFirst` as the default (`"Default" is not the
+         default DNS policy`), `ready=false` in the EndpointSlice (the `ready` condition is `serving`
+         and not `terminating`, and always `true` under `publishNotReadyAddresses`), the aria-label,
+         the desc, and every chip, sublabel and wire value.
 SCOPE    clusterIP None and what it hands the client: a SET of addresses, a name per Pod, and the
          choice of backend. The Service type stack this variant sits in is `network-service-types`.
          Record shapes in general, SRV included, are `network-dns-records`. How ready endpoints are

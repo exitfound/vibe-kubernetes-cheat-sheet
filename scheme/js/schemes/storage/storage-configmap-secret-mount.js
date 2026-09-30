@@ -1,239 +1,235 @@
-import { P, F, defineCard, OPACITY, chipStrip } from './storage-kit.js';
-// Design notes for this card: ./CARDS.md#storage-configmap-secret-mount
+import { P, F, defineCard, BEAT, makeRidingLabel } from './storage-kit.js';
+// Design notes for this card: ./CARDS/storage-configmap-secret-mount.md
 
 
-// The Pod spans 330..870, centred on 600 with the volume and source rows below it. Its left edge is
-// clear of the panel measured on the family cards at (300, 163). On narrow windows the panel may
-// brush its corner, the accepted family trade.
-const POD_X = 330, POD_Y = 56, POD_W = 540, POD_H = 120;        // 330..870, center 600
-const POD_BOTTOM = POD_Y + POD_H;                               // 176
-const APP_BX = 470, APP_BY = 90, APP_BW = 260, APP_BH = 56;     // inner app box, centered in the Pod
+// The mounted directory drawn as its own listing: one row per entry, in name order, so every entry
+// owns a fixed slot and an entry that does not exist leaves its slot empty. The listing and the
+// right column sit right of x 420, the Pod left of the listing below the panel. Panel extent
+// measured per viewport in the record.
+const CX = 600;                                                   // canvas centre: the listing and the chips sit on it
+const ROW_W = 232, ROW_H = 56, ROW_GAP = 12;
+const ROW_X = CX - ROW_W / 2;                                     // 484..716, the pointer gutter left of it
+// The listing starts at 94 rather than at the top edge: with the chips at 530 that leaves 74 above
+// the title and 76 under the chips, so the drawing sits centred in the canvas rather than high in it.
+const ROW_Y0 = 94, TITLE_Y = ROW_Y0 - 20;                         // the listing title sits over row 0
+const rowY = (i) => ROW_Y0 + i * (ROW_H + ROW_GAP);               // 94 / 162 / 230 / 298 / 366
+const rowMY = (i) => rowY(i) + ROW_H / 2;                         // 122 / 190 / 258 / 326 / 394
+const ROW_CX = ROW_X + ROW_W / 2;                                 // 600, the canvas centre
+const ROW_R = ROW_X + ROW_W;
+// Name order, the way ls -a sorts it: the digits of a timestamp sort before the d of ..data.
+const V1 = 0, V2 = 1, DATA = 2, TMP = 3, CONF = 4;
+const GUTTER_X = ROW_X - 30;                                      // 454, the ..data pointer bracket
 
-const VOL_X = 330, VOL_Y = 268, VOL_W = 540, VOL_H = 194;       // 330..870, bottom 462
-const DATA_X = 510, DATA_Y = 300, DATA_W = 180, DATA_H = 48;    // ..data, center 600, bottom 348
-const DATA_CX = 600;
-const SYM_Y = DATA_Y + DATA_H / 2;                              // 324, the symlink pointer height
+// The writer and its source in one column right of the listing, 232 by 80 (NET.L-01).
+const BOX_W = 232, BOX_H = 80;
+// The column mirrors the Pod about CX: the Pod runs 100..332, so the column runs 868..1100.
+const POD_X = 100, POD_W = 232, POD_H = 104;
+const COL_X = 1200 - POD_X - BOX_W, COL_CX = COL_X + BOX_W / 2;    // 868..1100, centre 984
+const KUBE_Y = 184, KUBE_MY = KUBE_Y + BOX_H / 2;                 // 184..264, mid 224, inside the bus span
+const BUS_X = (ROW_X + ROW_W + COL_X) / 2;                        // 792, midway between listing and column
 
-const DIR_Y = 380, DIR_W = 200, DIR_H = 64;                     // dir slot row, bottom 444
-const DIR_BOTTOM = DIR_Y + DIR_H;
-const OLD_X = 360, OLD_CX = 460;                                // v1 slot, 360..560
-const NEW_X = 640, NEW_CX = 740;                                // v2 slot, 640..840
+// One Pod under the panel, 232 by 104 with a 192 by 44 app box (NET.L-01), level with the app.conf
+// row so the read is one straight run out of the row's left face.
+const POD_Y = rowMY(CONF) - POD_H / 2;                            // 342..446
+const API_Y = POD_Y + POD_H - BOX_H;                              // 366..446, floor level with the Pod
+const CAPTION_Y = POD_Y + POD_H + 30;                             // 476, the backing caption under the listing
 
-const KUBE_X = 430, KUBE_Y = 500, KUBE_W = 340, KUBE_H = 64;    // 430..770, center 600
-const CM_X = 110, SEC_X = 890, SRC_Y = 500, SRC_W = 200, SRC_H = 64; // mirrored about 600
-const SRC_MY = SRC_Y + SRC_H / 2;                               // 532, the source lane height
+const CHIP_W = 300, CHIP_GAP = 16, CHIP_H = 34, CHIPS_Y = 530;
+const chipX = (i) => CX - (3 * CHIP_W + 2 * CHIP_GAP) / 2 + i * (CHIP_W + CHIP_GAP);    // 134 / 450 / 766
 
-const CHIPS_Y = 594, CHIP_H = 34;
-const CHIPS = chipStrip({ w: 320, gap: 20, count: 3 });         // 100 / 440 / 780
+// Each static wire and its ball share one array.
+const W_WATCH = [[COL_CX, API_Y], [COL_CX, KUBE_Y + BOX_H]];
+const writeTo = (i) => [[COL_X, KUBE_MY], [BUS_X, KUBE_MY], [BUS_X, rowMY(i)], [ROW_R, rowMY(i)]];
+const W_V1 = writeTo(V1), W_V2 = writeTo(V2), W_TMP = writeTo(TMP);
+const W_READ = [[ROW_X, rowMY(CONF)], [POD_X + POD_W, rowMY(CONF)]];
+// The ..data pointer: out of its row left face, along the gutter, into a version row. Only one of
+// the two is ever drawn at rest, which is the whole swap.
+const pointTo = (i) => [[ROW_X, rowMY(DATA)], [GUTTER_X, rowMY(DATA)], [GUTTER_X, rowMY(i)], [ROW_X, rowMY(i)]];
 
-// Each static wire and its ball share one array. Every lane is a single straight segment.
-const W_CM_READ   = [[CM_X + SRC_W, SRC_MY], [KUBE_X, SRC_MY]];          // ConfigMap -> kubelet
-const W_SEC_READ  = [[SEC_X, SRC_MY], [KUBE_X + KUBE_W, SRC_MY]];        // Secret -> kubelet
-const W_WRITE_OLD = [[OLD_CX, KUBE_Y], [OLD_CX, DIR_BOTTOM]];            // kubelet -> v1 dir
-const W_WRITE_NEW = [[NEW_CX, KUBE_Y], [NEW_CX, DIR_BOTTOM]];            // kubelet -> v2 dir
-const W_APP_READ  = [[DATA_CX, VOL_Y], [DATA_CX, POD_BOTTOM]];           // volume -> Pod (the spine)
-// The subPath read leaves the v1 dir on its own centre line so it visibly misses ..data, then steps
-// into the Pod-to-volume corridor and enters the Pod beside the spine rather than out at its corner.
-const GAP_MY = (POD_BOTTOM + VOL_Y) / 2;                                 // 222
-const SUB_IN_X = DATA_CX - 60;                                           // 540
-const W_SUBPATH   = [[OLD_CX, DIR_Y], [OLD_CX, GAP_MY], [SUB_IN_X, GAP_MY], [SUB_IN_X, POD_BOTTOM]];
+// ONE speed for every ball on the card: routeDur clamps the 102 unit watch leg to the 700ms floor
+// and leaves the 266 unit writes at the same 700, so the short leg crawls beside the long one. At
+// 0.14 units per ms the shortest leg still rides 729ms, above that floor, and a tag stays readable.
+const PKT_SPEED = 0.14;
+const legLen = (pts) => pts.slice(1).reduce((n, q, i) => n + Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1]), 0);
+const legDur = (pts) => Math.round(legLen(pts) / PKT_SPEED);
+const D_WATCH = legDur(W_WATCH), D_V1 = legDur(W_V1), D_V2 = legDur(W_V2);   // 729 / 1900 / 1414
+const D_TMP = legDur(W_TMP), D_READ = legDur(W_READ);                        // 1900 / 1229
+const riding = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });   // lives as long as its ball (M-30a)
+// The watch lane is a 102 unit gap between two 232 wide boxes, and the ..data_tmp write ends on a
+// row face: both tags TRAIL their ball, so they end in the gap short of the face, and emerge once
+// clear of the box they leave. Each lives exactly as long as its ball (M-30a).
+const emerging = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true });
+const WATCH_TAG = { fn: emerging, dx: 60, dy: 20, emerge: 550 };
+// The two version writes climb, so their tag trails right of the ball and 50 above it: clear of the
+// Kubelet top at departure and right of the row face at arrival.
+const WRITE_TAG = { fn: riding, dx: 40, dy: -50 };
+const TMP_TAG = { fn: emerging, dx: 40, dy: 20, emerge: 500 };
+// The read runs left, so its tag trails right of the ball and above the app.conf row top.
+const READ_TAG = { fn: riding, dx: 24, dy: -34 };
 
-// The spine ends on the Pod floor at 176, where the default -14 parks the tag on the `mounts
-// /etc/config` sublabel: 66.3 x 9.0 units of ink for 400ms at a baseline gap of 0.24. Below the ball
-// only 10 and 12 clear all four viewports, and 10 is taken: at 12 the tag starts inside the volume
-// frame and grazes the `Volume /etc/config` title by 1.0 unit at the sync step, where the ball waits
-// 900ms before departing.
-const READ_TAG_DY = 10;
-// Only the sync step writes the `clock` caption, anchored start at x 618, which a centred tag takes
-// 15.2 units of as it climbs past, for 100ms. The tag runs 66 to 69 units wide over the four
-// viewports, so -20 is what its widest half needs. The other steps here leave the caption blank.
-const SYNC_TAG_DX = -20;
-// The two source lanes run through the middle of 64 tall boxes, so at -14 the tag is cut by the
-// ConfigMap or Secret side face for 600ms. -36 is the least that clears their tops on all four
-// viewports. `app.conf` on the keys step cannot take the same number: `write v1` rides the
-// neighbouring lane at the same height there, and the pair only parts at -58.
-const SRC_TAG_DY = -36;
-
-const SYM_OLD = [[DATA_X, SYM_Y], [OLD_CX, SYM_Y], [OLD_CX, DIR_Y]];
-const SYM_NEW = [[DATA_X + DATA_W, SYM_Y], [NEW_CX, SYM_Y], [NEW_CX, DIR_Y]];
-
-// Nudge the mounts /etc/config sublabel up 2px off the pod bottom edge: an ATTRIBUTE, which no
-// field writes.
-const nudgeSublabel = (el) => {
-  const sub = el.querySelector('.scheme-pod-sublabel');
-  if (sub) sub.setAttribute('y', String(POD_H - 10));
-};
-// The volume frame is a washed container rather than an outlined block, and `fill` is likewise
-// nothing any field reaches.
-const washFrame = (el) => { el.querySelector('.scheme-box-rect').style.fill = 'rgba(255, 255, 255, 0.02)'; };
-
-// Z-order (bottom -> top): the volume container, then blocks, then symlink lines and wires and
-// labels above them, then the chip strip, then the packet layer so every ball rides above.
+// Z-order (bottom -> top): the listing rows, the Pod, the column, the pointers and lanes,
+// the captions, the chips, then the packet layer.
 export const SCENE = {
-  'aria-label': 'ConfigMap and Secret as files: each key becomes a file in the mounted directory. Kubelet writes the keys into a timestamped directory and points a ..data symlink at it, and on update it writes a new directory then flips the symlink atomically, so a reader never sees a half-written config. Updates arrive on the Kubelet sync period, a subPath mount opts out of the swap and never updates, and Secrets default to tmpfs.',
+  'aria-label': 'ConfigMap and Secret volumes as files: the mounted directory is a listing of symlinks. Kubelet writes the keys of ConfigMap app, every key or only the ones the volume lists in items, as files into a hidden timestamped directory, points ..data at it, and app.conf is a symlink to ..data/app.conf. When the ConfigMap changes, Kubelet writes the whole new version into a second timestamped directory on its next sync, points a ..data_tmp symlink at it and renames it over ..data in one rename, atomic on Linux, then deletes the old directory. The app is not restarted and reads the new file the next time it opens it. A Secret volume is written the same way, on tmpfs on a Linux Node.',
   parts: [
     P.defs(),
-    // The mounted volume directory, named by a title centered on its top band. The title sits
-    // between the two inner lanes (x=460 and x=600 never cross it) and above ..data.
-    P.box({ x: VOL_X, y: VOL_Y, w: VOL_W, h: VOL_H, label: '', sublabel: '', tune: washFrame }),
-    // shellWrap is the handle for code that wants the shell alone. The PULSE is not that:
-    // it takes the whole Pod group, so the app box blinks with the Pod it belongs to.
-    P.group({
-      key: 'pod',
-      parts: [
-        P.pod({ key: 'shellWrap', x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod api-0', sublabel: 'mounts /etc/config', containers: 0, tune: nudgeSublabel }),
-        P.box({ key: 'appBox', x: APP_BX, y: APP_BY, w: APP_BW, h: APP_BH, label: 'app', sublabel: 'reads /etc/config/app.conf' }),
-      ],
+    P.box({ key: 'dirV1', x: ROW_X, y: rowY(V1), w: ROW_W, h: ROW_H, label: '..2026_09_19_10_00', sublabel: 'app.conf v1, mode 0644', opacity: 0 }),
+    P.box({ key: 'dirV2', x: ROW_X, y: rowY(V2), w: ROW_W, h: ROW_H, label: '..2026_09_19_10_07', sublabel: 'app.conf v2, mode 0644', opacity: 0 }),
+    P.box({ key: 'dataRow', x: ROW_X, y: rowY(DATA), w: ROW_W, h: ROW_H, label: '..data', sublabel: '-> ..2026_09_19_10_00', opacity: 0 }),
+    P.box({ key: 'tmpRow', x: ROW_X, y: rowY(TMP), w: ROW_W, h: ROW_H, label: '..data_tmp', sublabel: '-> ..2026_09_19_10_07', opacity: 0 }),
+    P.box({ key: 'confRow', x: ROW_X, y: rowY(CONF), w: ROW_W, h: ROW_H, label: 'app.conf', sublabel: '-> ..data/app.conf', opacity: 0 }),
+    P.pod({
+      key: 'pod', innerKey: 'appBox', x: POD_X, y: POD_Y, w: POD_W, h: POD_H,
+      label: 'Pod api-0', sublabel: 'mounts /etc/config',
+      inner: { dx: 20, dy: 26, w: POD_W - 40, h: 44, label: 'app', sublabel: 'reads app.conf' },
     }),
-    P.box({ key: 'dataLink', x: DATA_X, y: DATA_Y, w: DATA_W, h: DATA_H, label: '..data', sublabel: 'symlink' }),
-    P.box({ key: 'dirOld', x: OLD_X, y: DIR_Y, w: DIR_W, h: DIR_H, label: '..2026_07_10', sublabel: 'app.conf v1' }),
-    P.box({ key: 'dirNew', x: NEW_X, y: DIR_Y, w: DIR_W, h: DIR_H, label: '..2026_07_15', sublabel: 'app.conf v2', opacity: 0 }),
-    // The source row: kubelet centered, fed from both sides.
-    P.box({ key: 'kubelet', x: KUBE_X, y: KUBE_Y, w: KUBE_W, h: KUBE_H, label: 'Kubelet', sublabel: 'sync loop' }),
-    P.box({ key: 'cm', x: CM_X, y: SRC_Y, w: SRC_W, h: SRC_H, label: 'ConfigMap app', sublabel: 'key: app.conf' }),
-    P.box({ key: 'sec', x: SEC_X, y: SRC_Y, w: SRC_W, h: SRC_H, label: 'Secret TLS', sublabel: 'on tmpfs', opacity: OPACITY.notready }),
-    // Symlink pointers: relationships, not traffic, so relationPath rather than a stripped pathArrow.
-    // Only one is ever visible at a time, that is the whole flip.
-    P.relation({ key: 'symOld', points: SYM_OLD }),
-    P.relation({ key: 'symNew', points: SYM_NEW, opacity: 0 }),
-    P.lane({ points: W_CM_READ, dashed: true, dim: true }),
-    // Keyed because the Secret is a ghost until its own step, and its read lane is the Secret: an
-    // arrowhead at full strength out of a dimmed block reads as traffic that block is not carrying.
-    P.lane({ key: 'wSecRead', points: W_SEC_READ, dashed: true, dim: true }),
-    P.lane({ points: W_WRITE_OLD, dashed: true, dim: true }),
-    P.lane({ key: 'wWriteNew', points: W_WRITE_NEW, dashed: true, dim: true, opacity: 0 }),
-    P.lane({ points: W_APP_READ, dashed: true, dim: true }),
-    P.lane({ key: 'wSubpath', points: W_SUBPATH, dashed: true, dim: true, opacity: 0 }),
-    P.tag({ cls: 'scheme-label code', x: 600, y: VOL_Y + 22, text: 'Volume /etc/config' }),
-    // Corner tag naming what this block is: the kubelet-managed volume dir on the node. The path
-    // holds for both sources (the Secret tmpfs is mounted at the same location).
-    P.tag({ x: VOL_X + 12, y: VOL_Y + 22, anchor: 'start', text: '/var/lib/kubelet/pods/…' }),
-    // The sync-period note sits right of the spine, vertically centered in the Pod-to-volume gap
-    // (176..268, center 222, baseline compensated for the 11px font).
-    P.wire({ key: 'clock', x: 618, y: 226, anchor: 'start' }),
-    // Uniform chip strip: three chips of one size, centered on the scheme axis.
-    P.chip({ key: 'modeChip', x: CHIPS.x(0), y: CHIPS_Y, w: CHIPS.w, h: CHIP_H, name: 'source', value: 'ConfigMap' }),
-    P.chip({ key: 'swapChip', x: CHIPS.x(1), y: CHIPS_Y, w: CHIPS.w, h: CHIP_H, name: 'update', value: 'symlink to v1' }),
-    P.chip({ key: 'valueChip', x: CHIPS.x(2), y: CHIPS_Y, w: CHIPS.w, h: CHIP_H, name: 'app reads', value: 'app.conf v1' }),
+    P.box({ key: 'kubelet', x: COL_X, y: KUBE_Y, w: BOX_W, h: BOX_H, label: 'Kubelet', sublabel: 'writes the volume' }),
+    P.box({ key: 'api', x: COL_X, y: API_Y, w: BOX_W, h: BOX_H, label: 'API server', sublabel: 'holds ConfigMap app' }),
+    // The ..data pointers are relationships, not traffic: no ball ever rides them.
+    P.relation({ key: 'symV1', points: pointTo(V1), opacity: 0 }),
+    P.relation({ key: 'symV2', points: pointTo(V2), opacity: 0 }),
+    P.lane({ key: 'wWatch', points: W_WATCH, dashed: true, dim: true }),
+    P.lane({ key: 'wV1', points: W_V1, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wV2', points: W_V2, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wTmp', points: W_TMP, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wRead', points: W_READ, dashed: true, dim: true, opacity: 0 }),
+    P.tag({ key: 'title', cls: 'scheme-label code', x: ROW_CX, y: TITLE_Y, text: '/etc/config', opacity: 0 }),
+    // What backs the listing, and so born with it: on idle there are no files for it to be about.
+    P.tag({ key: 'backing', x: ROW_CX, y: CAPTION_Y, text: 'these files sit on Node storage, and a Secret volume on Linux sits in tmpfs, in RAM', opacity: 0 }),
+    P.chip({ key: 'target', x: chipX(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: '..data target', value: 'none' }),
+    P.chip({ key: 'dirs', x: chipX(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'version dirs', value: '0' }),
+    P.chip({ key: 'reads', x: chipX(2), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'app reads', value: 'nothing yet' }),
     P.packets(),
   ],
   reset: {
-    keys: ['kubelet', 'cm', 'sec', 'dataLink', 'dirOld', 'dirNew', 'appBox', 'modeChip', 'swapChip', 'valueChip'],
-    pods: ['shellWrap'],
+    keys: ['dirV1', 'dirV2', 'dataRow', 'tmpRow', 'confRow', 'kubelet', 'api', 'target', 'dirs', 'reads'],
+    pods: ['pod'],
   },
 };
 
-// STO.S-01 as a field: the v2 dir, its pointer and its write lane are born mid-story, the subPath
-// lane and the Secret WITH ITS READ LANE change shade, so every one of them is pinned on EVERY step.
-const STAGE = {
-  symOld: 1, symNew: 0, dirNew: 0, wWriteNew: 0, wSubpath: 0,
-  sec: OPACITY.notready, wSecRead: OPACITY.notready,
-};
-const FLIPPED = { ...STAGE, symOld: 0, symNew: 1, dirNew: 1, wWriteNew: 1 };
-const UP = { pod: 1 };
+// STO.S-01 as a field: every row is born or removed mid-story, and every lane and pointer goes with
+// the row on its end (STO.S-02, A-14), so the whole set is pinned on EVERY step.
+const stage = (o) => ({
+  pod: 1, wWatch: 1, title: 0, backing: 0,
+  dirV1: 0, dirV2: 0, dataRow: 0, tmpRow: 0, confRow: 0,
+  symV1: 0, symV2: 0, wV1: 0, wV2: 0, wTmp: 0, wRead: 0, ...o,
+});
+const EMPTY = stage({});
+const PROJECTED = stage({ title: 1, backing: 1, dirV1: 1, dataRow: 1, confRow: 1, symV1: 1, wV1: 1, wRead: 1 });
+const STAGED = { ...PROJECTED, dirV2: 1, wV2: 1 };
+const SWAPPED = { ...STAGED, symV1: 0, symV2: 1, dirV1: 0, wV1: 0 };
+
+const C_EMPTY = { target: 'none', dirs: '0', reads: 'nothing yet' };
+const C_PROJECTED = { ...C_EMPTY, target: 'v1 dir', dirs: '1' };
+const C_STAGED = { target: 'v1 dir', dirs: '2', reads: 'app.conf v1' };
+const C_RENAMED = { ...C_STAGED, target: 'v2 dir' };
+const C_SWAPPED = { ...C_RENAMED, dirs: '1' };
+const C_REREAD = { ...C_SWAPPED, reads: 'app.conf v2' };
+const TO_V1 = { dataRow: '-> ..2026_09_19_10_00' };
+const TO_V2 = { dataRow: '-> ..2026_09_19_10_07' };
+const SHOW = (target) => ({ target, from: 0, to: 1, dur: 300, fill: 'forwards', easing: 'ease-out' });
+const HIDE = (target) => ({ target, from: 1, to: 0, dur: 300, fill: 'forwards', easing: 'ease-in' });
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chipsCued: { modeChip: 'ConfigMap', swapChip: 'symlink to v1', valueChip: 'app.conf v1' },
-    opacity: { ...UP, ...STAGE },
+    chips: C_EMPTY,
+    sublabels: TO_V1,
+    opacity: EMPTY,
   },
   {
-    id: 'keys',
-    duration: 2600,
-    narration: 'Kubelet reads the keys from the ConfigMap and writes them as files into a timestamped directory on the Node. Every key becomes one file, and the value of the key becomes the contents of that file.',
-    chipsCued: { modeChip: 'ConfigMap', swapChip: 'v1 written to disk', valueChip: 'app.conf v1' },
-    opacity: { ...UP, ...STAGE },
-    lit: ['cm'],
-    // The keys travel out of the ConfigMap, so the Kubelet lights when they reach it and writes
-    // one hop later. Lit at entry it would be reading before anything had been sent.
+    id: 'project',
+    duration: 5200,
+    narration: 'By default Kubelet watches ConfigMap app on the API server. Before the container starts it writes every key as a file, or only the keys the volume lists in items, into a hidden timestamped directory, then points the ..data symlink at it. The app.conf entry is a symlink to ..data/app.conf. On Linux a Secret volume is built the same way, on tmpfs.',
+    chips: C_PROJECTED,
+    sublabels: TO_V1,
+    opacity: PROJECTED,
+    rewind: { chips: C_EMPTY, opacity: EMPTY },
+    lit: ['api'],
     flow: [
-      F.route({ points: W_CM_READ, name: 'read' }),
-      F.tag({ text: 'app.conf', points: W_CM_READ }),
-      F.light({ targets: ['kubelet'], at: 'read' }),
-      F.route({ points: W_WRITE_OLD, after: 'read', lights: ['dirOld'] }),
-      F.tag({ text: 'write v1', points: W_WRITE_OLD, after: 'read' }),
+      F.route({ points: W_WATCH, delay: BEAT.lead, dur: D_WATCH, name: 'watch', lights: ['kubelet'] }),
+      F.tag({ text: 'ConfigMap app', points: W_WATCH, delay: BEAT.lead, dur: D_WATCH, ...WATCH_TAG }),
+      // The directory and its lane appear together before the write leaves (STO.S-02, A-15).
+      F.fade({ ...SHOW('title'), at: 'watch' }),
+      F.fade({ ...SHOW('dirV1'), at: 'watch' }),
+      F.fade({ ...SHOW('wV1'), at: 'watch' }),
+      F.route({ points: W_V1, after: 'watch', plus: 250, dur: D_V1, name: 'write', lights: ['dirV1'] }),
+      F.tag({ text: 'app.conf v1', points: W_V1, after: 'watch', plus: 250, dur: D_V1, ...WRITE_TAG }),
+      // The pointer and the user-visible link exist once the files do.
+      F.fade({ ...SHOW('dataRow'), at: 'write' }),
+      F.fade({ ...SHOW('symV1'), at: 'write' }),
+      F.fade({ ...SHOW('confRow'), at: 'write' }),
+      F.fade({ ...SHOW('wRead'), at: 'write' }),
+      F.fade({ ...SHOW('backing'), at: 'write' }),
+      F.set({ at: 'write', chips: C_PROJECTED }),
+      F.light({ targets: ['dataRow', 'confRow', 'target', 'dirs'], at: 'write' }),
     ],
   },
   {
-    id: 'symlink',
-    duration: 2400,
-    narration: 'The path the app opens is a chain of symlinks. The app.conf symlink points into ..data, and ..data points at the current timestamped directory. So one symlink, ..data, decides which version every file resolves to.',
-    chipsCued: { modeChip: 'ConfigMap', swapChip: 'files are symlinks', valueChip: 'app.conf v1' },
-    opacity: { ...UP, ...STAGE },
-    lit: ['dataLink', 'dirOld', 'appBox'],
-    // The app reads through ..data (infra to Pod, a down-arrow): the ball leaves first, the Pod
-    // pulses on arrival.
+    id: 'stage',
+    duration: 7000,
+    narration: 'Someone edits ConfigMap app. The watch updates the Kubelet cache, and on its next periodic sync, by default a minute or so later, Kubelet writes the whole v2 into a second timestamped directory. Nothing points at it yet, so the app still reads v1.',
+    chips: C_STAGED,
+    sublabels: TO_V1,
+    opacity: STAGED,
+    rewind: { chips: C_PROJECTED, opacity: PROJECTED },
+    lit: ['api'],
     flow: [
-      F.route({ points: W_APP_READ, name: 'read' }),
-      F.tag({ text: 'resolves v1', points: W_APP_READ, dy: READ_TAG_DY }),
+      F.route({ points: W_WATCH, delay: BEAT.lead, dur: D_WATCH, name: 'watch', lights: ['kubelet'] }),
+      F.tag({ text: 'ConfigMap app v2', points: W_WATCH, delay: BEAT.lead, dur: D_WATCH, ...WATCH_TAG }),
+      F.fade({ ...SHOW('dirV2'), at: 'watch' }),
+      F.fade({ ...SHOW('wV2'), at: 'watch' }),
+      F.route({ points: W_V2, after: 'watch', plus: 250, dur: D_V2, name: 'write', lights: ['dirV2'] }),
+      F.tag({ text: 'app.conf v2', points: W_V2, after: 'watch', plus: 250, dur: D_V2, ...WRITE_TAG }),
+      F.set({ at: 'write', chips: { ...C_PROJECTED, dirs: '2' } }),
+      F.light({ targets: ['dirs', 'confRow'], at: 'write' }),
+      // With v2 on disk, the app opens app.conf and still resolves through ..data to v1.
+      F.route({ points: W_READ, after: 'write', plus: 700, dur: D_READ, name: 'read' }),
+      F.tag({ text: 'v1', points: W_READ, after: 'write', plus: 700, dur: D_READ, ...READ_TAG }),
       F.pulse({ pod: 'pod', at: 'read' }),
+      F.set({ at: 'read', chips: C_STAGED }),
+      F.light({ targets: ['reads'], at: 'read' }),
     ],
   },
   {
-    id: 'atomic',
-    duration: 2800,
-    narration: 'On update Kubelet does not edit the live files. It writes a whole new timestamped directory, then flips the single ..data symlink to point at it in one atomic step. A reader either sees all of v1 or all of v2, never a half-written mix.',
-    chipsCued: { modeChip: 'ConfigMap', swapChip: 'atomic symlink flip', valueChip: 'v2 on next read' },
-    // After the flip: the new dir exists and ..data points at it. That is the static end-state, and
-    // rewind puts the pre-flip stage back for the animated path alone.
-    opacity: { ...UP, ...FLIPPED },
-    lit: ['cm', 'dataLink', 'dirNew'],
-    rewind: { opacity: STAGE },
-    // The updated ConfigMap reaches kubelet first, then kubelet writes the new dir and flips the
-    // pointer the instant that dir is complete: old pointer out, new pointer in.
+    id: 'swap',
+    duration: 7800,
+    narration: 'In the same sync, Kubelet points a new ..data_tmp symlink at v2 and renames it over ..data. On Linux the rename is atomic, so opening app.conf gets all of v1 or all of v2, never a mix, and only then is the v1 directory deleted. Nothing restarts the app: the next time it opens app.conf, it reads v2.',
+    chips: C_REREAD,
+    sublabels: TO_V2,
+    // The static end state is after the rename, the delete and the re-read, and rewind puts the
+    // pre-swap listing back for the animated path alone.
+    opacity: SWAPPED,
+    rewind: { chips: C_STAGED, sublabels: TO_V1, opacity: STAGED },
+    lit: ['kubelet'],
     flow: [
-      F.route({ points: W_CM_READ, name: 'read' }),
-      F.tag({ text: 'app.conf v2', points: W_CM_READ, dy: SRC_TAG_DY }),
-      F.light({ targets: ['kubelet'], at: 'read' }),
-      F.fade({ target: 'dirNew', from: 0, to: 1, dur: 400, after: 'read', fill: 'forwards', easing: 'ease-out' }),
-      F.fade({ target: 'wWriteNew', from: 0, to: 1, dur: 400, after: 'read', fill: 'forwards', easing: 'ease-out' }),
-      F.route({ points: W_WRITE_NEW, after: 'read', name: 'write' }),
-      F.tag({ text: 'write v2', points: W_WRITE_NEW, after: 'read' }),
-      F.fade({ target: 'symOld', from: 1, to: 0, dur: 250, at: 'write', fill: 'forwards', easing: 'ease-in' }),
-      F.fade({ target: 'symNew', from: 0, to: 1, dur: 250, at: 'write', fill: 'forwards', easing: 'ease-out' }),
-    ],
-  },
-  {
-    id: 'sync',
-    duration: 3000,
-    narration: 'The flip is not instant across the cluster. A ConfigMap change reaches the file on the Kubelet sync period, up to about a minute, and even then nothing restarts the app. The process has to notice the file changed and re-read it on its own.',
-    chipsCued: { modeChip: 'ConfigMap', swapChip: 'up to 60s to propagate', valueChip: 'app.conf v2' },
-    opacity: { ...UP, ...FLIPPED },
-    wires: { clock: 'kubelet sync period, then the app re-reads' },
-    lit: ['dirNew', 'appBox'],
-    // After the sync delay the app re-reads, and ..data now resolves to v2.
-    flow: [
-      F.route({ points: W_APP_READ, delay: 900, name: 'read' }),
-      F.tag({ text: 'resolves v2', points: W_APP_READ, delay: 900, dy: READ_TAG_DY, dx: SYNC_TAG_DX }),
+      F.fade({ ...SHOW('tmpRow'), delay: 400 }),
+      F.fade({ ...SHOW('wTmp'), delay: 400 }),
+      // The ..data_tmp cue rides an F.set rather than `lights`, so `flowLights` never derives it
+      // onto the static path, where the row is already gone (S-18), and the fade below takes the
+      // class off with the row.
+      F.route({ points: W_TMP, delay: BEAT.lead, dur: D_TMP, name: 'link' }),
+      F.tag({ text: '..data_tmp', points: W_TMP, delay: BEAT.lead, dur: D_TMP, ...TMP_TAG }),
+      F.set({ at: 'link', lit: ['tmpRow'] }),
+      // The rename: ..data_tmp is gone and ..data, so app.conf, resolves to v2, in one beat.
+      F.fade({ ...HIDE('tmpRow'), at: 'link', plus: 500, unlight: ['tmpRow'] }),
+      F.fade({ ...HIDE('wTmp'), at: 'link', plus: 500 }),
+      F.fade({ ...HIDE('symV1'), at: 'link', plus: 500 }),
+      F.fade({ ...SHOW('symV2'), at: 'link', plus: 500 }),
+      F.set({ at: 'link', plus: 500, chips: C_RENAMED, sublabels: TO_V2 }),
+      F.light({ targets: ['dataRow', 'dirV2', 'target', 'confRow'], at: 'link', plus: 500 }),
+      // Then, a separate beat, the old directory is deleted.
+      F.fade({ ...HIDE('dirV1'), dur: 400, at: 'link', plus: 1700 }),
+      F.fade({ ...HIDE('wV1'), dur: 400, at: 'link', plus: 1700 }),
+      F.set({ at: 'link', plus: 2100, chips: C_SWAPPED }),
+      F.light({ targets: ['dirs'], at: 'link', plus: 2100 }),
+      // With v1 gone, the app opens app.conf again and resolves through ..data to v2.
+      F.route({ points: W_READ, at: 'link', plus: 2400, dur: D_READ, name: 'read' }),
+      F.tag({ text: 'v2', points: W_READ, at: 'link', plus: 2400, dur: D_READ, ...READ_TAG }),
       F.pulse({ pod: 'pod', at: 'read' }),
-    ],
-  },
-  {
-    id: 'subpath',
-    duration: 2600,
-    narration: 'A subPath mount takes a single file out of the volume and mounts it directly, bypassing the ..data symlink. Because it points straight at one timestamped file, the flip never reaches it, so a subPath-mounted key is frozen at the value it had when the container started.',
-    chipsCued: { modeChip: 'ConfigMap', swapChip: 'subPath opts out', valueChip: 'app.conf v1 forever' },
-    opacity: { ...UP, ...FLIPPED, wSubpath: 1 },
-    lit: ['dirOld'],
-    // The subPath read rises straight from the old dir, visibly missing ..data on its way up.
-    flow: [
-      F.route({ points: W_SUBPATH, name: 'read' }),
-      F.tag({ text: 'v1 forever', points: W_SUBPATH }),
-      F.pulse({ pod: 'pod', at: 'read' }),
-    ],
-  },
-  {
-    id: 'secret',
-    duration: 2400,
-    narration: 'A Secret mounted as a volume works exactly the same way, keys become files behind the atomic symlink swap. The one difference is that a Secret directory defaults to tmpfs, so its files live in memory and never get written to the Node disk.',
-    chipsCued: { modeChip: 'Secret (tmpfs)', swapChip: 'same symlink swap', valueChip: 'tls.crt from RAM' },
-    opacity: { ...UP, ...FLIPPED, sec: 1, wSecRead: 1 },
-    lit: ['sec'],
-    flow: [
-      F.route({ points: W_SEC_READ, lights: ['kubelet'] }),
-      F.tag({ text: 'tls.crt in RAM', points: W_SEC_READ, dy: SRC_TAG_DY }),
+      F.set({ at: 'read', chips: C_REREAD }),
+      F.light({ targets: ['reads'], at: 'read' }),
     ],
   },
 ];

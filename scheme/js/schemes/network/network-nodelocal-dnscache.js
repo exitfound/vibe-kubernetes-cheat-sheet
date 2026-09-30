@@ -163,7 +163,7 @@ export const STEPS_SPEC = [
     // Motion: blink 800, the tagged ask 1500 to 2300, the cross leg to 3100, the answer back to 3900,
     // the reply to 4700 and the client blink to 5600.
     duration: 6100,
-    narration: 'Without a local cache, each lookup is a UDP query to the kube-dns ClusterIP 10.96.0.10. The kube-proxy rules on Node-1 DNAT it to a CoreDNS Pod, here on Node-2, and the flow opens a conntrack entry that has to time out. When its A and AAAA queries race on that entry, one can be dropped, and the resolver waits out its five second timeout.',
+    narration: 'Without a local cache, each lookup from a ClusterFirst Pod is a UDP query to the kube-dns ClusterIP 10.96.0.10. The kube-proxy rules on Node-1 DNAT it to a CoreDNS Pod, here on Node-2, and the flow opens a conntrack entry that must time out. When its A and AAAA queries race on that entry, one can be dropped, and the resolver waits out its five second timeout.',
     chips: { rewriteChip: 'DNAT to CoreDNS', cacheChip: 'no cache', upChip: 'CoreDNS', ctChip: 'UDP per lookup' },
     wires: WIRES_BEFORE,
     ...stage(false),

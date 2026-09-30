@@ -16,9 +16,9 @@ LAYOUT   The RESOLVER side is one column on the right, x 790..1130: the /etc/res
          is tried in. Only their VALUES change per step (`not tried`, `NXDOMAIN`, an A record,
          `skipped`), so the one strip reads four different lookups without being rebuilt, and no
          step shows one candidate answered two ways.
-PANEL    Deepest at 1100x800 on `crossns`, 254.66: `OVERLAY_IDS=network-dns-ndots node --test
-         report/overlay.test.mjs` from `scheme/test/`. Bottom lo..hi per viewport: 142.56..177.44 at
-         1600x1000, 171.42..213.92 at 1280x860 and 229.82..254.66 at 1100x800, right edge 290.77 /
+PANEL    Deepest at 1100x800 on `resolvconf` (and the poster previewing it) and `crossns`, both
+         254.66: `OVERLAY_IDS=network-dns-ndots node --test report/overlay.test.mjs` from
+         `scheme/test/`. Bottom lo..hi per viewport: 142.56..177.44 at 1600x1000, 171.42..213.92 at 1280x860 and 229.82..254.66 at 1100x800, right edge 290.77 /
          377.76 / 396.55. The only block left of x 420 is CoreDNS, top at 380, 125 below that
          reading. The resolv.conf tag at y 48 and the column start at x 790, 393 right of the widest
          panel edge in the set, 396.55.
@@ -45,7 +45,21 @@ CONTENT  The default resolv.conf for `dnsPolicy: ClusterFirst` in namespace defa
          10.96.0.10`, `search default.svc.cluster.local svc.cluster.local cluster.local`, `options
          ndots:5`. The Kubelet appends the search domains of the Node to that list, so on a cloud
          Node the walk is longer than drawn: the resolvconf step says so, and the card draws a Node
-         with none rather than stating four as a universal count.
+         with none rather than stating four as a universal count. That is why the step reads `Any
+         search domains of the Node are appended after them`: the bare `are appended to the list as
+         well` is rejected because it promises Node domains the rows then do not show. The order is
+         the Kubelet cluster list first, the Node list after, as the DNS debugging task prints it
+         (`search default.svc.cluster.local svc.cluster.local cluster.local google.internal ...`).
+         The `desc` reads `fewer than five dots and no trailing dot is relative`: `any name with
+         fewer than five dots is relative` is rejected because its own last sentence, and the fqdn
+         step, make `api.example.com.` absolute with three dots.
+         Read against 1.35 and holding: ClusterFirst is the default when `dnsPolicy` is unset
+         ("Default is not the default DNS policy"), the Kubelet configures the file ("kubelet
+         configures this file for each Pod"), a cross-namespace name answers as `<svc>.<ns>`
+         (`data.prod`), and resolv.conf(5) states the threshold as the dots needed "before an
+         initial absolute query will be made". `the resolver inside the Pod keeps no cache` is about
+         the libc stub resolver the Pod box names (getaddrinfo), not about caches an application
+         runtime keeps above it.
          Fewer dots than ndots: every search domain first, the name as written last. A trailing dot
          makes the name absolute and nothing is appended. glibc and musl both keep that order.
          `A+AAAA queries` counts messages on the wire: getaddrinfo with AF_UNSPEC asks for A and AAAA

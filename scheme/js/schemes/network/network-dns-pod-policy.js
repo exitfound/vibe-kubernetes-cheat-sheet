@@ -18,14 +18,14 @@ const KUBELET_X = 484;
 const KUBELET_CX = KUBELET_X + BOX_W / 2;            // 600: the watch lane drops onto this x
 const POD_X = NODE_X + NODE_W - 20 - BOX_W, POD_Y = ROW_CY - POD_H / 2;   // 908, 288
 
-// Over the frame: the API server centred on the Kubelet, the three Pod spec fields beside it.
+// Over the frame: the API server centred on the Kubelet, the five Pod spec fields beside it.
 const API_Y = 60;
 const SPEC_X = 740, SPEC_W = 400, CHIP_H = 32;
-const SPEC_Y = [44, 84, 124];                         // 40 apart, centred on the API box
+const SPEC_Y = [44, 84, 124, 164, 204];               // 40 apart, the last 24 above the frame top
 // 400 and not 232: `dnsConfig.nameservers | 192.0.2.1 192.0.2.2 192.0.2.3` is the widest row.
 
 // Row B: the two files line for line. The Node file under its box, the Pod file under the Kubelet
-// and the Pod, 656 wide because the merged search line measures 489.3 at 1600x1000.
+// and the Pod, 656 wide because the merged search line on `merge` measures 551.3 at 1600x1000.
 const FILE_Y = [NODE_Y + 172, NODE_Y + 212, NODE_Y + 252];   // 432 472 512
 const POD_FILE_X = KUBELET_X, POD_FILE_W = POD_X + BOX_W - KUBELET_X;   // 484, 656
 
@@ -40,8 +40,8 @@ const CRI_MID = midX(CRI[0][0], CRI[1][0]);          // 812
 const LINES = ['nameserver', 'search', 'options'];
 const NODE_KEYS = ['nodeNS', 'nodeSearch', 'nodeOpts'];
 const POD_KEYS = ['podNS', 'podSearch', 'podOpts'];
-const SPEC_KEYS = ['policyChip', 'hostNetChip', 'nsChip'];
-const SPEC_NAMES = ['dnsPolicy', 'hostNetwork', 'dnsConfig.nameservers'];
+const SPEC_KEYS = ['policyChip', 'hostNetChip', 'nsChip', 'searchChip', 'optsChip'];
+const SPEC_NAMES = ['dnsPolicy', 'hostNetwork', 'dnsConfig.nameservers', 'dnsConfig.searches', 'dnsConfig.options'];
 
 // The file the Kubelet resolvConf setting names on this Node. It never changes on the card.
 const NODE_FILE = { nodeNS: '10.0.0.2', nodeSearch: 'corp.internal', nodeOpts: 'timeout:2' };
@@ -121,14 +121,18 @@ const stepOf = ({ id, duration, narration, prev, spec, host, read = [], file }) 
 const CLUSTER_SEARCH = 'default.svc.cluster.local svc.cluster.local cluster.local corp.internal';
 const CLUSTER_FILE = { podNS: '10.96.0.10', podSearch: CLUSTER_SEARCH, podOpts: 'ndots:5' };
 const NODE_COPY = { podNS: NODE_FILE.nodeNS, podSearch: NODE_FILE.nodeSearch, podOpts: NODE_FILE.nodeOpts };
-const spec = (policy, hostNet, ns) => ({ policyChip: policy, hostNetChip: hostNet, nsChip: ns });
-const IDLE = spec('unset', 'false', 'unset');
-const S_CLUSTER = spec('ClusterFirst', 'false', 'unset');
-const S_DEFAULT = spec('Default', 'false', 'unset');
-const S_HOSTNET = spec('ClusterFirst', 'true', 'unset');
-const S_WITHHOST = spec('ClusterFirstWithHostNet', 'true', 'unset');
-const S_NONE = spec('None', 'false', '192.0.2.1');
-const S_MERGE = spec('ClusterFirst', 'false', '192.0.2.1 192.0.2.2 192.0.2.3');
+// One dnsConfig search list and option list on both `none` and `merge`: svc.cluster.local repeats a
+// cluster search domain, so the merge drops it, and ndots:2 shares its name with ndots:5.
+const DC_SEARCH = 'svc.cluster.local lab.test', DC_OPTS = 'ndots:2 edns0';
+const spec = (policy, hostNet, ns = 'unset', search = 'unset', opts = 'unset') =>
+  ({ policyChip: policy, hostNetChip: hostNet, nsChip: ns, searchChip: search, optsChip: opts });
+const IDLE = spec('unset', 'false');
+const S_CLUSTER = spec('ClusterFirst', 'false');
+const S_DEFAULT = spec('Default', 'false');
+const S_HOSTNET = spec('ClusterFirst', 'true');
+const S_WITHHOST = spec('ClusterFirstWithHostNet', 'true');
+const S_NONE = spec('None', 'false', '192.0.2.1', DC_SEARCH, DC_OPTS);
+const S_MERGE = spec('ClusterFirst', 'false', '192.0.2.1 192.0.2.2 192.0.2.3', DC_SEARCH, DC_OPTS);
 
 // A reading step runs to 4000: three hops at the 700 floor land the CRI ball at 3100 and the Pod pulse
 // ends 900 later. `none` skips the file hop, 3200. Each step then holds 1300, the catalog median.
@@ -186,17 +190,17 @@ export const STEPS_SPEC = [
     prev: S_WITHHOST,
     spec: S_NONE,
     host: 'not used',
-    file: { podNS: '192.0.2.1', podSearch: 'ns1.svc.cluster.local my.dns.search.suffix', podOpts: 'ndots:2 edns0' },
+    file: { podNS: '192.0.2.1', podSearch: DC_SEARCH, podOpts: DC_OPTS },
   }),
   stepOf({
     id: 'merge',
     duration: 5300,
-    narration: 'On the other policies dnsConfig merges on top. Here ClusterFirst gets three more nameservers, appended and then cut to the first 3, so 192.0.2.3 is dropped. Extra search domains are appended the same way minus duplicates, and ndots:2 replaces ndots:5 because the name matches.',
+    narration: 'On the other policies dnsConfig merges on top. Its three nameservers are appended to the ClusterFirst one and then cut to the first 3, so 192.0.2.3 is dropped. Its searches are appended minus duplicates, so only lab.test is new, and ndots:2 replaces ndots:5 by name while edns0 is added.',
     prev: S_NONE,
     spec: S_MERGE,
     host: 'search only',
     read: ['nodeSearch'],
-    file: { podNS: '10.96.0.10 192.0.2.1 192.0.2.2', podSearch: CLUSTER_SEARCH, podOpts: 'ndots:2' },
+    file: { podNS: '10.96.0.10 192.0.2.1 192.0.2.2', podSearch: `${CLUSTER_SEARCH} lab.test`, podOpts: DC_OPTS },
   }),
 ];
 

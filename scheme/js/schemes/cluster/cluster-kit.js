@@ -20,7 +20,7 @@ export { POD_VIOLET };
 
 // Cluster pods are recoloured violet (#c0b0ff), so the pulse
 // stroke tint matches them rather than the workloads blue in scheme-kit.
-export const CLUSTER_TINT = Object.freeze({ base: 'rgb(192, 176, 255)', bright: 'rgb(224, 214, 255)' });
+export const CLUSTER_TINT = Object.freeze({ bright: 'rgb(224, 214, 255)' });
 
 export const { pulsePod, pulsePodDim } = makeTintedPulses(CLUSTER_TINT);
 

@@ -24,7 +24,7 @@
 // there as prose. This turns it into data, and closes the loop at the other end by reading the
 // declined ledger, so a proposal the user has already turned down never comes back.
 //
-// THE ONE RULE UNDER EVERYTHING HERE. A citation is NOT coverage. Fifteen of volumes-claims's
+// THE ONE RULE UNDER EVERYTHING HERE. A citation is NOT coverage. Nineteen of volumes-claims's
 // citations land in /concepts/storage, which proves the section reads that tree and proves nothing
 // about what it covers. So a page a card merely cites can reach PARTIAL and can never reach
 // COVERED. COVERED is decided from card NAMES, the same definition overlap.mjs already uses for

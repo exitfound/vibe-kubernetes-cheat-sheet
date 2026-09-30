@@ -85,6 +85,15 @@ const TOL = 6;              // slack on a face midpoint, in viewBox units
 const EDGE_TOL = 2;         // how close a point must be to a face to count as sitting ON it
 const TWIN_TOL = 2;         // how exactly two mirrored offsets must cancel to read as a pair (L-12)
 const FACE_FRAC = 0.18;     // an offset up to 18% of the face it sits on is not a stray coordinate
+
+// L-11: on a Node FRAME face an endpoint may sit level with the centre of a block the frame holds,
+// the block the lane is addressed to, so the arrowhead stops on the frame instead of piercing it.
+function aimedAtHeld(p, f, axis, blocks) {
+  return blocks.some(b => !b.isFrame &&
+    b.x >= f.x - EDGE_TOL && b.x + b.w <= f.x + f.w + EDGE_TOL &&
+    b.y >= f.y - EDGE_TOL && b.y + b.h <= f.y + f.h + EDGE_TOL &&
+    Math.abs((axis === 'v' ? p[1] - (b.y + b.h / 2) : p[0] - (b.x + b.w / 2))) <= TOL);
+}
 const AXIS_EPS = 0.01;      // a segment is axis-aligned within this, in viewBox units
 const THROUGH_INSET = 3;    // the rect THROUGH tests is shrunk by this on each side
 
@@ -212,7 +221,7 @@ for (const id of ids) {
             const push = (face, off, axis) => {
               const k = `${gk}:${face}`;
               if (!faceHits.has(k)) faceHits.set(k, []);
-              faceHits.get(k).push({ off, p, r, axis, step: i });
+              faceHits.get(k).push({ off, p, r, axis, step: i, blocks: data.blocks });
             };
             if (onV) push(Math.abs(p[0] - r.x) < EDGE_TOL ? 'left' : 'right', p[1] - my, 'v');
             if (onH) push(Math.abs(p[1] - r.y) < EDGE_TOL ? 'top' : 'bottom', p[0] - mx, 'h');
@@ -231,6 +240,7 @@ for (const id of ids) {
         const face = h.axis === 'v' ? h.r.h : h.r.w;
         if (off / face <= FACE_FRAC) continue;                      // a small share of a long face
         if (hits.some(o => o !== h && Math.abs(o.off + h.off) <= TWIN_TOL)) continue;   // L-12 pair
+        if (h.r.isFrame && aimedAtHeld(h.p, h.r, h.axis, h.blocks)) continue;          // L-11 frame face
         const r = h.r;
         const mid = h.axis === 'v' ? (r.y + r.h / 2) : (r.x + r.w / 2);
         const key = `OFFEDGE ${h.p} ${r.label} ${h.axis}`;

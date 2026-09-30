@@ -41,17 +41,17 @@ LANES    Ten wires, and a ball rides every one. The spine is x 600: LoadBalancer
          array feeding its wire, its ball and its tag.
 MOTION   A Pod sender pulses first and sends at `BEAT.afterPulse` (clusterip, externalname,
          headless). A box sender is lit in `lit` and sends at `BEAT.lead` (nodeport, loadbalancer).
-         Every tag fades in with its ball, 150ms from departure, on a card-local `makeRidingLabel`
-         with `emergeMode` and no `emerge` offset, so each one is placed where no block stands when
-         the ball leaves. A horizontal tag rides centred over its ball, lifted by `liftOver` to 6
+         Every tag lives exactly as long as its ball (M-30a): the segment tags on
+         `inMs: 100, outMs: 100, hold: 0`, the headless tag on a route binding at 200, so each one is
+         placed where no block stands when the ball leaves. A horizontal tag rides centred over its ball, lifted by `liftOver` to 6
          above the taller of the two rows it runs between: dy -46 on all three hops, since
          every box is 80 tall. The spine and DNS tags ride BESIDE their lane with the left
          end 8 to 10 past the right face of the column the lane runs through (`besideRight`: 724 to
          726 against 716, 300 to 302 against 292, at 1100x800 and 1600x1000), because any closer
          offset prints over the block the ball leaves or lands on. `SIDE_DY` -4 keeps the last spine
          tag 2 above the Node frame top. The host hop has the headless lane at x 320 on its right,
-         so its tag leads the ball beside the lane at dx 90 and fades out on `hold` -280, gone before
-         it reaches the host box. The headless tag rides left of its lane at dx -36 and crosses the
+         so its tag leads the ball beside the lane at dx 90 and dissolves with it on arrival, over
+         the host box for 100ms, which is accepted. The headless tag rides left of its lane at dx -36 and crosses the
          Client Pod right face and the app box corner for its first 280 to 350ms, 150 of them
          fading in: the lane leaves through a 28 unit run beside the Pod and a 58 unit gap to the
          Node frame, which a 61 unit tag cannot clear, and a fade-in held back until it clears the

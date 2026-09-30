@@ -34,16 +34,16 @@ Open the record section and look for the thing you are about to change. **A sett
 re-opened for free is how a measurement someone took with a browser gets thrown away**, and the
 record exists to stop exactly that.
 
-**The records come in two shapes and you have to handle both.**
+**A ruling lives in two kinds of block, and you have to read both.**
 
-- **`cluster` and `workloads`**: the factual blocks carry it. A measurement in `LAYOUT`, `PANEL`,
-  `SIZES`, `LANES`, `MOTION`, `WIRE LABELS`, `BUDGET` or `NAMING` states what the card does AND the
-  number that forced it, in the present tense. A sentence saying a value is bounded, forced, spent
-  or the minimum is a ruling: it says the room you are about to use is not there.
-- **`network` and `storage`**: those plus the older labels. A `DO NOT` carries the defect it
-  prevents, a `WHY NOT` carries the alternative that was measured and the number that killed it, and
-  an `OPEN` carries the measurement saying the rule can only be satisfied by making the picture
-  worse (`L-16`).
+- **The factual blocks**, in every category. A measurement in `LAYOUT`, `PANEL`, `SIZES`, `LANES`,
+  `MOTION`, `WIRE LABELS`, `BUDGET` or `NAMING` states what the card does AND the number that forced
+  it, in the present tense. A sentence saying a value is bounded, forced, spent or the minimum is a
+  ruling: it says the room you are about to use is not there.
+- **The constraint blocks**, which every category uses and `network` and `storage` use most. A
+  `DO NOT` carries the defect it prevents, a `WHY NOT` carries the alternative that was measured and
+  the number that killed it, and an `OPEN` carries the measurement saying the rule can only be
+  satisfied by making the picture worse (`L-16`).
 
 **The record is not the only place a ruling lives, and the second place is a test.** A baseline
 constant carries its reason in the comment above it, and that comment is a ruling nothing indexes:

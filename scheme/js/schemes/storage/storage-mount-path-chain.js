@@ -1,237 +1,225 @@
-import { P, F, defineCard, chipStrip, BEAT, OPACITY } from './storage-kit.js';
-// Design notes for this card: ./CARDS.md#storage-mount-path-chain
+import { P, F, defineCard, BEAT, OPACITY, STO } from './storage-kit.js';
+// Design notes for this card: ./CARDS/storage-mount-path-chain.md
 
 
-// The panel wall. CONTENT_W is COL_W * 2 + COL_GAP rather than typed, so the two columns re-solve
-// together and the corridor between them stays centred.
-const LEFT_X = 400;
-const COL_W = 180, COL_GAP = 40;
-const CONTENT_W = COL_W * 2 + COL_GAP;                   // 400
-const CONTENT_CX = LEFT_X + CONTENT_W / 2;               // 600, the canvas centre, shared by every tier
+// Three mount tables on one Node, side by side: Pod csi-node, the host, Pod A. Their rows share one
+// pitch, so an entry the kernel repeats in another table crosses one straight sideways corridor.
+// The whole card centres on the canvas, frame and chip grid alike, and the panel may cover its left edge.
+const FRAME_W = 740;                                     // three 220 tables, two 44 corridors, 16 pads
+const FRAME_X = STO.CX - FRAME_W / 2, FRAME_R = FRAME_X + FRAME_W;   // 230 / 970
+const PAD = 16;                                          // frame wall to the tables
+const SHELL_W = 220, ROW_W = 180;                        // a Pod table, and the rows inside it
+const ROW_IN = (SHELL_W - ROW_W) / 2;                    // 20, row to Pod wall
+const PLUG_X = FRAME_X + PAD;                            // 246
+const APP_X = FRAME_R - PAD - SHELL_W;                   // 734
+const HOST_CX = (FRAME_X + FRAME_R) / 2;                 // 600, the host table between the Pods
+const HOST_X = HOST_CX - ROW_W / 2;                      // 510, so both corridors are 44
+const PLUG_ROW_X = PLUG_X + ROW_IN, APP_ROW_X = APP_X + ROW_IN;   // 266 / 754
 
-const L_X = LEFT_X;                                      // 400, the Pod A column
-const R_X = LEFT_X + COL_W + COL_GAP;                    // 620, the Pod B column
-const L_CX = L_X + COL_W / 2;                            // 490
-const R_CX = R_X + COL_W / 2;                            // 710, and (490 + 710) / 2 == CONTENT_CX
+const FRAME_Y = 28;                                      // frame, caption and chip grid: 28..612, 28 either side
+const SHELL_Y = FRAME_Y + 32;                            // 60, under the frame label
+const HDR_H = 40;                                        // the host table heading, level with the Pod labels
+const ROW0_Y = SHELL_Y + 52;                             // 112
+const ROW_H = 64, ROW_GAP = 24, PITCH = ROW_H + ROW_GAP; // four rows on one pitch
+const ROW_Y = (i) => ROW0_Y + i * PITCH;                 // 112, 200, 288, 376
+const ROW_MY = (i) => ROW_Y(i) + ROW_H / 2;              // 144, 232, 320, 408
+const SHELL_H = ROW_Y(3) + ROW_H + 28 - SHELL_Y;         // 408, the Pod sublabel under the last row
+const FRAME_H = SHELL_Y + SHELL_H + 20 - FRAME_Y;        // 460
+const FRAME_B = FRAME_Y + FRAME_H;                       // 488
+const BRANCH_Y = FRAME_B + 28;                           // 516, the step 5 counterfactual (T-35)
+// The host root mount spans the first two rows, so the two peer links meet its face as a +-44 pair.
+const ROOT_H = ROW_H * 2 + ROW_GAP;                      // 152
 
-const CORRIDOR = 60;                                     // the gap between two tiers, uniform
-const POD_H = 116, BIND_H = 64, STG_H = 64, DEV_H = 88;
-const DISK_LBL_GAP = 32;                                 // disk bottom to chip strip
-const CHIP_H = 34;
-// Total ink height, top of the Pods to the bottom of the chip strip.
-const STACK_H = POD_H + CORRIDOR + BIND_H + CORRIDOR + STG_H + CORRIDOR + DEV_H + DISK_LBL_GAP + CHIP_H;
-const STACK_TOP = (640 - STACK_H) / 2;                   // 31, so the margin is 31 above and below
+// The chips stand under the frame, two by two and centred on it: four in one row need 184 each for
+// the worst pair and the 740 frame leaves 176. The grid starts 16 under the caption.
+const CHIP_GAP = 12, CHIP_COLS = 2;
+const CHIP_X0 = HOST_CX - (STO.CHIP_W * CHIP_COLS + CHIP_GAP * (CHIP_COLS - 1)) / 2;   // 362
+const CHIP_Y0 = BRANCH_Y + 16;                                                        // 532, last row ends 612
+const CHIP_X = (i) => CHIP_X0 + (i % CHIP_COLS) * (STO.CHIP_W + CHIP_GAP);
+const CHIP_Y = (i) => CHIP_Y0 + Math.floor(i / CHIP_COLS) * (STO.CHIP_H + CHIP_GAP);
 
-const POD_Y = STACK_TOP;                                 // 31
-const POD_BOTTOM = POD_Y + POD_H;                        // 147
-const BIND_Y = POD_BOTTOM + CORRIDOR;                    // 207
-const BIND_TOP = BIND_Y, BIND_BOTTOM = BIND_Y + BIND_H;  // 207 / 271
-const STG_Y = BIND_BOTTOM + CORRIDOR;                    // 331
-const STG_TOP = STG_Y, STG_BOTTOM = STG_Y + STG_H;       // 331 / 395
-const DEV_W = 180;
-const DEV_X = CONTENT_CX - DEV_W / 2;                    // 510
-const DEV_Y = STG_BOTTOM + CORRIDOR, DEV_TOP = DEV_Y;    // 455
-const DEV_BOTTOM = DEV_Y + DEV_H;                        // 543
+// Face points of the rows. A lane leaves a row inside a Pod and crosses the Pod wall: an endpoint
+// inside the shell is an arrival, not a crossing (render/geometry.test.mjs THROUGH).
+const PLUG_R = PLUG_ROW_X + ROW_W;                       // 446
+const HOST_L = HOST_X, HOST_R = HOST_X + ROW_W;          // 510 / 690
+const APP_L = APP_ROW_X;                                 // 754
+const W_STAGE = [[PLUG_R, ROW_MY(2)], [HOST_L, ROW_MY(2)]];   // the staging entry repeated
+const W_BIND = [[PLUG_R, ROW_MY(3)], [HOST_L, ROW_MY(3)]];    // the Pod bind entry repeated
+const W_START = [[HOST_R, ROW_MY(3)], [APP_L, ROW_MY(3)]];    // the runtime binds it at /data
+// The counterfactual ball rides the first leg of W_STAGE and stops on the Pod wall.
+const W_STOP = [[PLUG_R, ROW_MY(2)], [PLUG_X + SHELL_W, ROW_MY(2)]];
+const REL_PLUG = [[PLUG_R, ROW_MY(0)], [HOST_L, ROW_MY(0)]];
+const REL_PODS = [[PLUG_R, ROW_MY(1)], [HOST_L, ROW_MY(1)]];
 
-const LBL_POD_Y = POD_BOTTOM + 36;                       // 183, corridor 147..207
-const LBL_BIND_Y = BIND_BOTTOM + 36;                     // 307, corridor 271..331
-const LBL_DISK_Y = DEV_BOTTOM + 20;                      // 563, corridor 543..575
-const CHIPS_Y = DEV_BOTTOM + DISK_LBL_GAP;               // 575
+const row = (key, x, i, label, sublabel, h = ROW_H) => P.box({ key, x, y: ROW_Y(i), w: ROW_W, h, label, sublabel });
 
-// Sized against `bind mounts` + `Pod A and Pod B` at 178.9, ~29 units of air at 6.88 u/char.
-const CHIP_W = 232, CHIP_GAP = 16, CHIP_COUNT = 4;
-const STRIP = chipStrip({ cx: CONTENT_CX, w: CHIP_W, gap: CHIP_GAP, count: CHIP_COUNT });   // 112 .. 1088
-
-const lane = (cx, y1, y2) => [[cx, y1], [cx, y2]];
-
-const W_DEV_UP    = lane(CONTENT_CX, DEV_TOP, STG_BOTTOM);       // NodeStage: the one real mount
-const W_STG_A_UP  = lane(L_CX, STG_TOP, BIND_BOTTOM);            // NodePublish: bind into Pod A
-const W_STG_B_UP  = lane(R_CX, STG_TOP, BIND_BOTTOM);            // NodePublish: bind into Pod B
-const W_A_POD_UP  = lane(L_CX, BIND_TOP, POD_BOTTOM);            // runtime maps it to /data
-const W_B_POD_UP  = lane(R_CX, BIND_TOP, POD_BOTTOM);
-// The write: the same three corridors, reversed. Column B never carries one, so it has no pair.
-const W_POD_A_DN  = lane(L_CX, POD_BOTTOM, BIND_TOP);
-const W_A_STG_DN  = lane(L_CX, BIND_BOTTOM, STG_TOP);
-const W_STG_DEV_DN = lane(CONTENT_CX, STG_BOTTOM, DEV_TOP);
-
-const RIDE_UP = { dy: 18 };      // trailing side of an ascending ball
-
-const podBlock = (key, innerKey, x, label, opacity) => P.pod({
-  key, innerKey, opacity, x, y: POD_Y, w: COL_W, h: POD_H, label,
-  sublabel: 'uses vol-1 at /data', containers: 0,
-  inner: { dx: 14, dy: 40, w: COL_W - 28, h: 50, label: '/data', sublabel: 'mount point' },
-});
-
-// The list order IS the append order, which is the z-order: the disk and the blocks, then the Pods,
-// then every corridor lane and its caption, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Where the bytes land. One block device is mounted exactly once on the Node, at a global staging path, and that single staged filesystem is bind-mounted into a directory belonging to one Pod alone, which the runtime maps to slash data. Pod A and Pod B share the disk through two bind mounts off that one staging path, with no second attach and no second filesystem mount. A write descends the same chain onto the device, with no copy made at any hop.',
+  'aria-label': 'Mount namespaces on Node-1, drawn as three mount tables side by side: Pod csi-node, the CSI node plugin, on the left, the host where Kubelet and the runtime run in the middle, and Pod A on the right. The plugin volumeMounts set mountPropagation Bidirectional on /var/lib/kubelet/plugins and /var/lib/kubelet/pods, so the runtime binds both from the host root mount, shared on a systemd host, and all three are one peer group, shared:1. The staging mount of /dev/nvme1n1 and the bind mount into the Pod A directory are made inside the plugin and the kernel repeats both in the host table, which then lists /dev/nvme1n1 twice with no bytes copied. When the app container starts, the runtime gives it its own mount namespace and binds the host entry at /data, private because mountPropagation None is rprivate by default. If instead the plugin volumeMounts used None, its mounts would stay in its own table, the host table would get neither entry, and Pod A would get the empty host directory at /data.',
   parts: [
     P.defs(),
-    // cylinder() centres its label on the raw bbox, which reads high because the top cap is not part
-    // of the visible face. Re-centre on the face, derived from the height rather than typed.
-    P.cylinder({ key: 'dev', x: DEV_X, y: DEV_Y, w: DEV_W, h: DEV_H, label: '/dev/nvme1n1', labelY: DEV_H / 2 + 10 }),
-    P.box({
-      key: 'stg', x: LEFT_X, y: STG_Y, w: CONTENT_W, h: STG_H,
-      label: 'Global staging mount', sublabel: '/plugins/.../csi/vol-1/globalmount',
+    P.node({ x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'Node-1' }),
+    // A Pod is ONE group, shell and rows, so its pulse carries the whole table (M-03).
+    P.group({
+      key: 'plugPod',
+      parts: [
+        P.pod({ x: PLUG_X, y: SHELL_Y, w: SHELL_W, h: SHELL_H, label: 'Pod csi-node', sublabel: 'CSI node plugin, privileged', containers: 0 }),
+        row('plugR0', PLUG_ROW_X, 0, '.../kubelet/plugins', 'shared:1'),
+        row('plugR1', PLUG_ROW_X, 1, '.../kubelet/pods', 'shared:1'),
+        row('plugR2', PLUG_ROW_X, 2, '.../globalmount', 'no entry yet'),
+        row('plugR3', PLUG_ROW_X, 3, '.../uid-a/.../mount', 'no entry yet'),
+      ],
     }),
-    P.box({ key: 'bindA', x: L_X, y: BIND_Y, w: COL_W, h: BIND_H, label: 'Pod A bind mount', sublabel: '/pods/uid-a/volumes/vol-1' }),
-    // Pod B and its half of the chain are held back and revealed when the card first claims them.
-    P.box({ key: 'bindB', x: R_X, y: BIND_Y, w: COL_W, h: BIND_H, label: 'Pod B bind mount', sublabel: '/pods/uid-b/volumes/vol-1', opacity: 0 }),
-    podBlock('podA', 'ctrA', L_X, 'Pod A'),
-    podBlock('podB', 'ctrB', R_X, 'Pod B', 0),
-    P.lane({ key: 'wDevUp', points: W_DEV_UP, dashed: true, dim: true }),
-    P.lane({ key: 'wStgAUp', points: W_STG_A_UP, dashed: true, dim: true }),
-    P.lane({ key: 'wAPodUp', points: W_A_POD_UP, dashed: true, dim: true }),
-    P.lane({ key: 'wStgBUp', points: W_STG_B_UP, dashed: true, dim: true, opacity: 0 }),
-    P.lane({ key: 'wBPodUp', points: W_B_POD_UP, dashed: true, dim: true, opacity: 0 }),
-    // Each descent arrow is the reversed twin of a mount arrow and only ever REPLACES it, so all
-    // three start hidden and are crossfaded in one corridor at a time.
-    P.lane({ key: 'wPodADn', points: W_POD_A_DN, dashed: true, dim: true, opacity: 0 }),
-    P.lane({ key: 'wAStgDn', points: W_A_STG_DN, dashed: true, dim: true, opacity: 0 }),
-    P.lane({ key: 'wStgDevDn', points: W_STG_DEV_DN, dashed: true, dim: true, opacity: 0 }),
-    P.wire({ key: 'pod', x: CONTENT_CX, y: LBL_POD_Y }),
-    P.wire({ key: 'bind', x: CONTENT_CX, y: LBL_BIND_Y }),
-    P.wire({ key: 'disk', x: CONTENT_CX, y: LBL_DISK_Y }),
-    P.chip({ key: 'devChip', x: STRIP.x(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'device', value: '/dev/nvme1n1' }),
-    P.chip({ key: 'mountChip', x: STRIP.x(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'disk mounted', value: 'not yet' }),
-    P.chip({ key: 'bindChip', x: STRIP.x(2), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'bind mounts', value: 'none' }),
-    P.chip({ key: 'copyChip', x: STRIP.x(3), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'data copies', value: 'none' }),
+    P.box({ key: 'hostHdr', x: HOST_X, y: SHELL_Y, w: ROW_W, h: HDR_H, label: 'Host namespace', sublabel: 'Kubelet, runtime' }),
+    row('hostR01', HOST_X, 0, '/', 'host root, shared:1', ROOT_H),
+    row('hostR2', HOST_X, 2, '.../globalmount', 'no entry yet'),
+    row('hostR3', HOST_X, 3, '.../uid-a/.../mount', 'no entry yet'),
+    P.group({
+      key: 'appPod',
+      parts: [
+        P.pod({ key: 'appShell', x: APP_X, y: SHELL_Y, w: SHELL_W, h: SHELL_H, label: 'Pod A', sublabel: 'not started yet', containers: 0 }),
+        row('appR0', APP_ROW_X, 0, '/', 'no namespace yet'),
+        row('appR3', APP_ROW_X, 3, '/data', 'no namespace yet'),
+      ],
+    }),
+    // Nothing rides a peer link: it says the two mounts are one peer group, so it has no arrowhead.
+    P.relation({ key: 'relPlug', points: REL_PLUG }),
+    P.relation({ key: 'relPods', points: REL_PODS }),
+    P.lane({ key: 'wStage', points: W_STAGE, dashed: true, dim: true }),
+    P.lane({ key: 'wBind', points: W_BIND, dashed: true, dim: true }),
+    P.lane({ key: 'wStart', points: W_START, dashed: true, dim: true }),
+    P.wire({ key: 'branch', x: HOST_CX, y: BRANCH_Y }),
+    P.chip({ key: 'peerChip', x: CHIP_X(0), y: CHIP_Y(0), w: STO.CHIP_W, h: STO.CHIP_H, name: 'peer group', value: 'shared:1' }),
+    P.chip({ key: 'hostChip', x: CHIP_X(1), y: CHIP_Y(1), w: STO.CHIP_W, h: STO.CHIP_H, name: 'nvme1n1 on host', value: 'none' }),
+    P.chip({ key: 'appChip', x: CHIP_X(2), y: CHIP_Y(2), w: STO.CHIP_W, h: STO.CHIP_H, name: 'app /data', value: 'not mounted' }),
+    P.chip({ key: 'copyChip', x: CHIP_X(3), y: CHIP_Y(3), w: STO.CHIP_W, h: STO.CHIP_H, name: 'bytes copied', value: 'none' }),
     P.packets(),
   ],
   reset: {
-    keys: ['bindA', 'bindB', 'stg', 'dev', 'devChip', 'mountChip', 'bindChip', 'copyChip'],
-    pods: ['podA', 'podB'],
+    keys: [
+      'hostHdr', 'hostR01', 'hostR2', 'hostR3', 'plugR0', 'plugR1', 'plugR2', 'plugR3', 'appR0', 'appR3',
+      'peerChip', 'hostChip', 'appChip', 'copyChip',
+    ],
+    pods: ['plugPod', 'appPod'],
   },
 };
 
-// Two of the four never change on purpose: the device is the fixed bottom of the chain, and
-// `data copies: none` holding from the first step to the last IS the claim the card makes.
-const chips = (mounted, binds) => ({
-  devChip: '/dev/nvme1n1', mountChip: mounted, bindChip: binds, copyChip: 'none',
+// STO.S-01 as a field: every entry that comes and goes, Pod A, both peer links and every lane, on
+// every step. An entry not in a table yet is pending, with a sublabel saying so (C-14).
+const PEND = OPACITY.pending;
+const stage = ({ r2 = PEND, r3 = PEND, h2 = PEND, h3 = PEND, app = PEND, peers = 1 } = {}) => ({
+  plugR2: r2, plugR3: r3, hostR2: h2, hostR3: h3, appPod: app,
+  relPlug: peers, relPods: peers, wStage: 1, wBind: 1, wStart: 1,
 });
+// Every chip on every step (P-01). The copy chip never moves: no hop copies a byte.
+const chips = (peer, host, app) => ({ peerChip: peer, hostChip: host, appChip: app, copyChip: 'none' });
 
-// STO.S-01 as a field: every step pins the whole skeleton, Pod B included, so a prev/reset replay
-// lands right and a cancel mid-flight cannot strand a lane. Mount and descent are exclusive by pair.
-const stage = ({ podB = 0, binds = 0, descent = 0, podA = 1 } = {}) => ({
-  podA, podB, bindB: binds, wStgBUp: binds, wBPodUp: binds,
-  wDevUp: descent ? 0 : 1, wStgAUp: descent ? 0 : 1, wAPodUp: descent ? 0 : 1,
-  wPodADn: descent, wAStgDn: descent, wStgDevDn: descent,
-});
-
-// A corridor turns around before its ball uses it: mount arrow out and reversed twin in over the same
-// 300ms on one centre line reads as a ROTATION, and `rewind` restages the pair from the end state.
-const flip = (up, dn, when) => [
-  F.fade({ target: up, from: 1, to: 0, dur: 300, ...when, fill: 'forwards', easing: 'ease-in' }),
-  F.fade({ target: dn, from: 0, to: 1, dur: 300, ...when, fill: 'forwards', easing: 'ease-out' }),
-];
+const NO_ENTRY = 'no entry yet';
+const DEV = '/dev/nvme1n1';
+const SHARED = { plugR0: 'shared:1', plugR1: 'shared:1' };
+const EMPTY = { ...SHARED, plugR2: NO_ENTRY, plugR3: NO_ENTRY, hostR2: NO_ENTRY, hostR3: NO_ENTRY, appR0: 'no namespace yet', appR3: 'no namespace yet' };
+const STAGED = { ...EMPTY, plugR2: DEV, hostR2: DEV };
+const BOUND = { ...STAGED, plugR3: DEV, hostR3: DEV };
+const STARTED = { ...BOUND, appR0: 'overlay, container root', appR3: DEV };
+const PRIVATE = { ...EMPTY, plugR0: 'private, None', plugR1: 'private, None', plugR2: DEV, hostR2: 'no entry', hostR3: 'no entry' };
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chipsCued: chips('not yet', 'none'),
-    wires: { disk: 'attached to node-1' },
-    opacity: stage({ podA: OPACITY.pending }),
+    chipsCued: chips('shared:1', 'none', 'not mounted'),
+    sublabels: EMPTY,
+    podSublabels: { appShell: 'not started yet' },
+    opacity: stage(),
   },
   {
-    id: 'stage',
-    duration: 2600,
-    narration: 'The device is mounted exactly once, at a global staging path under the Kubelet plugins directory. This is the only place the filesystem itself is mounted on the Node. Everything above this point is not another mount of the disk, it is a view onto this one.',
-    chipsCued: chips('once', 'none'),
-    wires: { disk: 'mounted once, here' },
-    opacity: stage({ podA: OPACITY.pending }),
-    lit: ['dev'],
-    // No Pod is involved in NodeStage, so nothing pulses: the ball leaves after BEAT.lead so the
-    // lit device registers as the source before it departs, and the staging mount lights on arrival.
+    id: 'tables',
+    duration: 3800,
+    narration: 'The CSI node plugin runs in a container, so how can a mount it makes reach the host, and then Pod A? Each container gets its own mount namespace, a private list of mounts, and by default a mount call in a container changes only that list. Two lists matter so far: the plugin and the host, where Kubelet and the runtime run. Pod A gets one when its container starts.',
+    chipsCued: chips('shared:1', 'none', 'not mounted'),
+    sublabels: EMPTY,
+    podSublabels: { appShell: 'not started yet' },
+    opacity: stage(),
+    // Two tables exist, and each lights as the sentence names it: the plugin blinks, the host follows.
     flow: [
-      F.route({ points: W_DEV_UP, delay: BEAT.lead, name: 'stage' }),
-      F.tag({ text: 'NodeStage', points: W_DEV_UP, delay: BEAT.lead, ...RIDE_UP }),
-      F.light({ targets: ['stg'], at: 'stage' }),
+      F.pulse({ pod: 'plugPod' }),
+      F.light({ targets: ['hostHdr'], delay: BEAT.afterPulse }),
+    ],
+  },
+  {
+    id: 'shared',
+    duration: 4800,
+    narration: 'The plugin volumeMounts give /var/lib/kubelet/plugins and /var/lib/kubelet/pods mountPropagation: Bidirectional, allowed only in a privileged container. The runtime binds each from the host mount holding them, shared on a systemd host, so all three sit in one peer group, shared:1. The staging mount the plugin itself makes for /dev/nvme1n1 lands in its own list, and the kernel repeats it in the host list.',
+    chipsCued: chips('shared:1', '1 entry', 'not mounted'),
+    sublabels: STAGED,
+    podSublabels: { appShell: 'not started yet' },
+    opacity: stage({ r2: 1, h2: 1 }),
+    lit: ['hostR01'],
+    rewind: { chips: { hostChip: 'none' }, sublabels: EMPTY, opacity: { plugR2: PEND, hostR2: PEND } },
+    // Up-arrow order: the plugin blinks, its own entry appears, then the kernel repeats it sideways.
+    flow: [
+      F.pulse({ pod: 'plugPod' }),
+      F.fade({ target: 'plugR2', from: PEND, to: 1, dur: 500, delay: BEAT.afterPulse, fill: 'forwards', easing: 'ease-out', name: 'made', lights: ['plugR2'] }),
+      F.set({ at: 'made', sublabels: { plugR2: DEV } }),
+      F.route({ points: W_STAGE, after: 'made', name: 'rep', lights: ['hostR2'] }),
+      F.fade({ target: 'hostR2', from: PEND, to: 1, dur: 500, at: 'rep', fill: 'forwards', easing: 'ease-out' }),
+      F.set({ at: 'rep', sublabels: { hostR2: DEV }, chipsCued: { hostChip: '1 entry' } }),
     ],
   },
   {
     id: 'bind',
-    duration: 2800,
-    narration: 'NodePublish does not touch the disk again. It bind-mounts the staged directory into a directory that belongs to Pod A alone, under /var/lib/kubelet/pods and the Pod uid. A bind mount is a second doorway onto the exact same files, not a copy.',
-    chipsCued: chips('once', 'Pod A'),
-    wires: { bind: 'NodePublish: bind mount', disk: 'still mounted once' },
-    opacity: stage({ podA: OPACITY.pending }),
-    lit: ['stg'],
+    duration: 4000,
+    narration: 'Publishing the volume to Pod A usually adds a bind mount of that staged directory under /var/lib/kubelet/pods, and it reaches the host list the same way. A bind is not a copy: both entries are one filesystem on /dev/nvme1n1, the same files and the same inodes. That is why findmnt on Node-1 lists /dev/nvme1n1 twice.',
+    chipsCued: chips('shared:1', '2 entries', 'not mounted'),
+    sublabels: BOUND,
+    podSublabels: { appShell: 'not started yet' },
+    opacity: stage({ r2: 1, h2: 1, r3: 1, h3: 1 }),
+    rewind: { chips: { hostChip: '1 entry' }, sublabels: STAGED, opacity: { plugR3: PEND, hostR3: PEND } },
     flow: [
-      F.route({ points: W_STG_A_UP, delay: BEAT.lead, name: 'bind' }),
-      F.tag({ text: 'bind', points: W_STG_A_UP, delay: BEAT.lead, ...RIDE_UP }),
-      F.light({ targets: ['bindA'], at: 'bind' }),
+      F.pulse({ pod: 'plugPod' }),
+      F.fade({ target: 'plugR3', from: PEND, to: 1, dur: 500, delay: BEAT.afterPulse, fill: 'forwards', easing: 'ease-out', name: 'made', lights: ['plugR3'] }),
+      F.set({ at: 'made', sublabels: { plugR3: DEV } }),
+      F.route({ points: W_BIND, after: 'made', name: 'rep', lights: ['hostR3'] }),
+      F.fade({ target: 'hostR3', from: PEND, to: 1, dur: 500, at: 'rep', fill: 'forwards', easing: 'ease-out' }),
+      F.set({ at: 'rep', sublabels: { hostR3: DEV }, chipsCued: { hostChip: '2 entries' } }),
     ],
   },
   {
-    id: 'surface',
-    duration: 3000,
-    narration: 'That per-Pod directory is what the container runtime maps to /data inside Pod A. From the container it looks like a plain folder. Underneath, it is a bind mount off one staged device. Pod A can now read and write.',
-    chipsCued: chips('once', 'Pod A'),
-    wires: { pod: 'the runtime maps it' },
-    opacity: stage(),                                   // Pod A comes up to full opacity here
-    lit: ['bindA'],
-    // Infrastructure reaching a Pod is down-arrow ordering: the ball flies first, and Pod A is held
-    // dim until the volume actually surfaces inside it, then faded up in step with its own pulse.
-    rewind: { opacity: { podA: OPACITY.pending } },
+    id: 'start',
+    duration: 4100,
+    narration: 'Now the runtime starts the app container. It creates a new mount namespace for the container and binds the host entry of that Pod directory at /data, a third view of the same files. The volumeMount leaves mountPropagation at None, which is rprivate by default, so a mount the host adds under that directory later does not reach /data.',
+    chipsCued: chips('shared:1', '2 entries', 'private bind'),
+    sublabels: STARTED,
+    podSublabels: { appShell: 'app container' },
+    opacity: stage({ r2: 1, h2: 1, r3: 1, h3: 1, app: 1 }),
+    lit: ['hostHdr', 'hostR3'],
+    rewind: {
+      chips: { appChip: 'not mounted' }, sublabels: BOUND, podSublabels: { appShell: 'not started yet' },
+      opacity: { appPod: PEND },
+    },
+    // Down-arrow order: the host sends first, and Pod A comes up and blinks as /data lands in it.
     flow: [
-      F.route({ points: W_A_POD_UP, name: 'surface' }),
-      F.tag({ text: 'mount /data', points: W_A_POD_UP, ...RIDE_UP }),
-      F.fade({ target: 'podA', from: OPACITY.pending, to: 1, dur: 500, at: 'surface', fill: 'forwards', easing: 'ease-out' }),
-      F.pulse({ pod: 'podA', at: 'surface' }),
+      F.route({ points: W_START, delay: BEAT.lead, name: 'bind', lights: ['appR3'] }),
+      F.fade({ target: 'appPod', from: PEND, to: 1, dur: 500, at: 'bind', fill: 'forwards', easing: 'ease-out' }),
+      F.pulse({ pod: 'appPod', at: 'bind' }),
+      F.set({ at: 'bind', sublabels: { appR0: STARTED.appR0, appR3: DEV }, podSublabels: { appShell: 'app container' }, chipsCued: { appChip: 'private bind' } }),
     ],
   },
   {
-    id: 'second',
-    duration: 3600,
-    narration: 'A second Pod on the same Node gets its own directory and its own bind mount off the same global staging path. The disk is not attached twice and not staged twice. Two Pods, two bind mounts, one device underneath. That is how a single disk is shared across Pods on a Node.',
-    chipsCued: chips('once', 'Pod A and Pod B'),
-    wires: { bind: 'a second bind mount', disk: 'still mounted once' },
-    opacity: stage({ podB: 1, binds: 1 }),
-    lit: ['stg', 'bindA'],
-    rewind: { opacity: { podB: 0 } },
-    // The Pod B column materializes as the chain claims it: its lanes and bind box first, then the
-    // Pod itself once the bind mount has landed under it.
+    id: 'without',
+    duration: 5000,
+    narration: 'If instead the plugin volumeMounts used None, its mounts would stay in its own list. The host list would get neither entry, so Kubelet could not see the mount, and Pod A would get the empty host directory at /data, on the Node disk. Bidirectional is the one mode that sends mounts back to the host, and HostToContainer only receives them. The docs advise propagation only on hostPath or memory-backed emptyDir volumes, which the plugin directories are.',
+    chipsCued: chips('plugin not in it', 'none', 'not mounted'),
+    sublabels: PRIVATE,
+    podSublabels: { appShell: 'not started yet' },
+    wires: { branch: 'if instead the plugin volumeMounts use None' },
+    opacity: stage({ r2: 1, peers: 0 }),
+    rewind: { opacity: { plugR2: PEND }, sublabels: { plugR2: NO_ENTRY } },
+    // The plugin makes its entry, and the repeat stops on its own Pod wall: nothing crosses.
     flow: [
-      F.reveal({ target: 'wStgBUp', delay: 1 }),
-      F.reveal({ target: 'wBPodUp', delay: 1 }),
-      F.reveal({ target: 'bindB', delay: 1 }),
-      F.route({ points: W_STG_B_UP, delay: BEAT.lead, name: 'bind' }),
-      F.tag({ text: 'bind', points: W_STG_B_UP, delay: BEAT.lead, ...RIDE_UP }),
-      F.light({ targets: ['bindB'], at: 'bind' }),
-      F.route({ points: W_B_POD_UP, after: 'bind', name: 'surface' }),
-      F.tag({ text: 'mount /data', points: W_B_POD_UP, after: 'bind', ...RIDE_UP }),
-      F.fade({ target: 'podB', from: 0, to: 1, dur: 500, at: 'bind', fill: 'forwards', easing: 'ease-out' }),
-      F.pulse({ pod: 'podB', at: 'surface' }),
-    ],
-  },
-  {
-    id: 'write',
-    duration: 4400,
-    narration: 'Follow a write the other way. Pod A writes to /data, and the bytes pass down through its bind mount, into the global staging mount, and onto the device. No copy is made at any hop. All the mounts are windows onto the same blocks on the same disk.',
-    chipsCued: chips('once', 'Pod A and Pod B'),
-    wires: { pod: 'same files, no copy', disk: 'the bytes land here' },
-    opacity: stage({ podB: 1, binds: 1, descent: 1 }),
-    // No `lit`: the static end-state is the WHOLE CHAIN lit, and all three of those blocks earn it
-    // from an arrival, so flowLights re-derives exactly bindA, stg, dev for the reduced path.
-    rewind: { opacity: { wAPodUp: 1, wPodADn: 0, wStgAUp: 1, wAStgDn: 0, wDevUp: 1, wStgDevDn: 0 } },
-    // Pod A is the WRITER, so up-arrow ordering applies: the Pod blinks first and the write leaves at
-    // BEAT.afterPulse. Each hop chains off the previous hop's real arrival.
-    flow: [
-      F.pulse({ pod: 'podA' }),
-      ...flip('wAPodUp', 'wPodADn', { delay: 1 }),
-      F.route({ points: W_POD_A_DN, delay: BEAT.afterPulse, name: 'h1' }),
-      F.tag({ text: 'write', points: W_POD_A_DN, delay: BEAT.afterPulse }),
-      F.light({ targets: ['bindA'], at: 'h1' }),
-      ...flip('wStgAUp', 'wAStgDn', { at: 'h1' }),
-      F.route({ points: W_A_STG_DN, after: 'h1', name: 'h2' }),
-      F.tag({ text: 'same blocks', points: W_A_STG_DN, after: 'h1' }),
-      F.light({ targets: ['stg'], at: 'h2' }),
-      ...flip('wDevUp', 'wStgDevDn', { at: 'h2' }),
-      F.route({ points: W_STG_DEV_DN, after: 'h2', name: 'h3' }),
-      F.tag({ text: 'bytes land', points: W_STG_DEV_DN, after: 'h2' }),
-      F.light({ targets: ['dev'], at: 'h3' }),
+      F.pulse({ pod: 'plugPod' }),
+      F.fade({ target: 'plugR2', from: PEND, to: 1, dur: 500, delay: BEAT.afterPulse, fill: 'forwards', easing: 'ease-out', name: 'made', lights: ['plugR2'] }),
+      F.set({ at: 'made', sublabels: { plugR2: DEV } }),
+      F.route({ points: W_STOP, after: 'made', name: 'stop' }),
     ],
   },
 ];

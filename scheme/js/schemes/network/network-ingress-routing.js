@@ -119,10 +119,10 @@ const SERVED_WEB = `Pod ${WEB_IP}`, SERVED_API = `Pod ${API_IP}`, SERVED_404 = '
 // near the catalog median instead (M-12, PACING in motion.test).
 const BRANCH_DUR = 1500;
 // The Pod IP rides the ball from departure (NET.T-01), TAG_DX right of it so it clears the controller
-// frame, and TAG_HOLD retires it before its text reaches the Pod frame on the last run. It rides on the
-// side AWAY from the lane it turns into: below on the web branch, above on the api one.
-const TAG_DX = 54, TAG_HOLD = -750, TAG_DY_WEB = 18, TAG_DY_API = -14;
-const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: TAG_HOLD });
+// frame, and dissolves with the ball on arrival (M-30a). It rides on the side AWAY from the lane it
+// turns into: below on the web branch, above on the api one.
+const TAG_DX = 54, TAG_DY_WEB = 18, TAG_DY_API = -14;
+const ridingLabel = makeRidingLabel({ role: 'network', inMs: 200, outMs: 200, hold: 0 });
 const tag = (p) => F.tag({ fn: ridingLabel, dur: BRANCH_DUR, dx: TAG_DX, ...p });
 // The lookup lights the Service while the controller is still pulsing, before the ball leaves.
 const LOOKUP_MS = 400;
