@@ -1,9 +1,13 @@
 import { P, F, defineCard, laneY, midX, spread, shade, BEAT, OPACITY } from './network-kit.js';
 import { g, rect, text } from '../../lib/svg.js';
 
-// Design notes for this card: ./CARDS.md#network-kube-proxy-modes
+// Design notes for this card: ./CARDS/network-kube-proxy-modes.md
 
 
+// The content edges are mirrored about the canvas centre 600, and the three 350-wide chips with even
+// gaps centre the strip on it by construction, so nothing is stretched to make the composition
+// centre. The chain row is the one tier that does NOT centre, since it has to start right of the
+// panel edge.
 const SCHEME_L = 40, SCHEME_R = 1160;  // content edges, mirrored about the canvas centre 600
 
 // Narration panel measured at bottom <= 280 (a longer narration invalidates this): the axis sits low
@@ -32,9 +36,23 @@ const SVC = { x: ENGINE_L + 150 + ENGINE_GAP, w: 150 };          // 594..744
 const SEP = { x: ENGINE_L + 324 + ENGINE_GAP, w: ENGINE_R - (ENGINE_L + 348) }; // 768..912
 const IPVS = { x: ENGINE_L, w: ENGINE_W };
 
+// The pile `scale` reveals: three fading copies of the chain row, on the SAME three x segments so a
+// copy reads as a copy. It hangs off the row at 236 with a 16 gap and closes at 346, leaving 106
+// over the hash box, which is what keeps the two lanes separate. Both tags print ABOVE their own
+// element so this band belongs to the pile alone.
+const STACK_TOP = 252, STACK_H = 22, STACK_GAP = 36;
+// Halving each step, so the pile RECEDES rather than reading as three more rows of equal weight.
+const STACK_FADE = [0.52, 0.26, 0.13];
+
 const ENTRY_X = midX(CLIENT_R, ENGINE_L);   // 328: entry bend, centred in the client-to-engines gap
 const TURN_X = midX(ENGINE_R, POD_X);       // 936: delivery turn, centred in the engines-to-Pod gap
 const PAUSE = 240;          // dwell inside each chain box, so the walk reads as sequential
+// The two chain gaps are 24 units, and routeDur floors every ball at PKT_DUR_MIN 700, which on a gap
+// this short is 0.034 u/ms against the 0.45 canon: ranks 1 and 2 of the catalog's 876 balls, and on
+// screen the packet oozes across 24 units for 700ms instead of hopping. M-12 allows an explicit dur
+// with the justification at the call site, and this is it. 200 crosses the gap briskly and leaves
+// PAUSE to say `stopping at each`, which is what the step is actually about.
+const GAP_MS = 200;
 
 // Three chips of a fixed width spanning the whole content band, so the strip centres on 600.
 const CHIP_Y = 590, CHIP_H = 34, CHIP_W = 350;
@@ -50,6 +68,23 @@ const IPVS_H1 = [[CLIENT_R, AXIS], [ENTRY_X, AXIS], [ENTRY_X, BOT_Y], [IPVS.x, B
 const IPVS_H2 = [[ENGINE_R, BOT_Y], [TURN_X, BOT_Y], [TURN_X, PODB_Y], [POD_X, PODB_Y]];
 
 const POD_INNER = { dx: 18, dy: 28, w: POD_W - 36, h: 42, label: 'app', sublabel: 'eth0' };
+
+// The chain repeated, once per Service, drawn as bare rects rather than boxes: they are the SAME row
+// again and not new actors, so they take no label, no key and no `.scheme-box` semantics. Literal
+// cyan for the same reason `netns-stack-band` is literal, since a bare rect resolves no role token.
+function chainStack() {
+  const grp = g({ class: 'ipt-stack' });
+  STACK_FADE.forEach((a, r) => {
+    for (const seg of [KS, SVC, SEP]) {
+      grp.appendChild(rect({
+        x: seg.x, y: STACK_TOP + r * STACK_GAP, width: seg.w, height: STACK_H, rx: 4,
+        fill: `rgba(79,229,255,${(a * 0.09).toFixed(3)})`,
+        stroke: `rgba(79,229,255,${a})`, 'stroke-width': 1,
+      }));
+    }
+  });
+  return grp;
+}
 
 // IPVS engine: a wide box whose body is a bucket grid, so it reads as one indexed hash table that
 // does the work of the whole chain above it. No part kind draws a rect row, hence P.raw.
@@ -91,12 +126,13 @@ export const SCENE = {
     P.group({
       key: 'iptLane',
       parts: [
+        P.raw({ key: 'iptStack', make: chainStack }),
         P.box({ key: 'ks', x: KS.x, y: TOP_Y - ROW_H / 2, w: KS.w, h: ROW_H, label: 'KUBE-SERVICES', sublabel: 'match dst :80' }),
         P.box({ key: 'svc', x: SVC.x, y: TOP_Y - ROW_H / 2, w: SVC.w, h: ROW_H, label: 'KUBE-SVC', sublabel: 'statistic random' }),
         P.box({ key: 'sep', x: SEP.x, y: TOP_Y - ROW_H / 2, w: SEP.w, h: ROW_H, label: 'KUBE-SEP', sublabel: 'DNAT .2.7' }),
         P.lane({ points: IPT_H1, dashed: true, dim: true }),
-        P.arrow({ from: IPT_H2[0], to: IPT_H2[1], dashed: true, dim: true }),
-        P.arrow({ from: IPT_H3[0], to: IPT_H3[1], dashed: true, dim: true }),
+        P.lane({ points: IPT_H2, dashed: true, dim: true }),
+        P.lane({ points: IPT_H3, dashed: true, dim: true }),
         P.lane({ points: IPT_H4, dashed: true, dim: true }),
       ],
     }),
@@ -110,7 +146,7 @@ export const SCENE = {
     }),
     // Each lane carries one per-step tag. The tune hands the same <text> up under a second name,
     // because refs.wires is the setWire bucket and F.anim reaches for refs by key.
-    P.wire({ key: 'ipt', x: ENGINE_L + ENGINE_W / 2, y: TOP_Y + ROW_H, tune: (el, refs) => { refs.iptTag = el; } }),
+    P.wire({ key: 'ipt', x: ENGINE_L + ENGINE_W / 2, y: TOP_Y - ROW_H / 2 - 14, tune: (el, refs) => { refs.iptTag = el; } }),
     P.wire({ key: 'ipvs', x: ENGINE_L + ENGINE_W / 2, y: BOT_Y - IPVS_H / 2 - 14, tune: (el, refs) => { refs.ipvsTag = el; } }),
     P.chip({ key: 'iptChip', x: CHIPS.x(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'iptables', value: 'rule walk O(n)' }),
     P.chip({ key: 'pickChip', x: CHIPS.x(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'selection', value: 'one backend' }),
@@ -123,27 +159,38 @@ export const SCENE = {
   },
 };
 
-// Both lanes and both backends at rest, so each mode step states which half it dims.
-const ALL_UP = { iptLane: 1, ipvsLane: 1, podA: 1, podB: 1 };
+// Both lanes and both backends at rest, with the pile DOWN: each mode step states which half it
+// dims, and `scale` is the one step that raises the pile.
+const ALL_UP = { iptLane: 1, ipvsLane: 1, podA: 1, podB: 1, iptStack: 0 };
 // The complexity pair the two mode steps never move: only the scale step turns it over.
 const BASE_COST = { iptChip: 'rule walk O(n)', ipvsChip: 'hash O(1)' };
+// What the selection chip reads before a route has picked anything. It is the value `idle` states,
+// so a mode step entered from either direction starts from no pick rather than from the other
+// mode's answer.
+const NO_PICK = 'one backend';
 const TAG_FADE = { keyframes: [{ opacity: 0 }, { opacity: 1 }], options: { duration: 440, fill: 'forwards', easing: 'ease-out' } };
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { ...BASE_COST, pickChip: 'one backend' },
+    chips: { ...BASE_COST, pickChip: NO_PICK },
     opacity: ALL_UP,
   },
   {
     id: 'iptables',
-    duration: 5400,
+    // The walk is 900 of pulse, 729 across the entry, then three dwell-plus-hop beats and 700 down
+    // to the Pod, landing at 3349 with the arrival pulse closing at 4249. 4600 is that plus a beat
+    // to read on, where 5400 was the old crawl padded out.
+    duration: 4600,
     narration: 'In iptables mode the packet walks a chain box by box. It enters KUBE-SERVICES, jumps to the per-Service KUBE-SVC chain that picks an endpoint by statistic random, then a KUBE-SEP chain DNATs it to that Pod, here 10.244.2.7. The kernel walks these rules in sequence, so the chain grows O(n) with the number of Services.',
+    // S-13: the static block states the END. The pick does not exist until KUBE-SVC makes it, so
+    // `rewind` puts the chip back to the neutral reading `idle` states and `h2` turns it over.
     chips: { ...BASE_COST, pickChip: 'statistic random' },
+    rewind: { chips: { pickChip: NO_PICK } },
     wires: { ipt: 'stops at every rule' },
     opacity: { ...ALL_UP, ...shade(['ipvsLane', 'podB'], OPACITY.notready) },
-    lit: ['iptChip', 'pickChip'],
+    lit: ['iptChip'],
     // The animated path says the upper backend was served by PULSING it, which no lights list names.
     reducedLit: ['podABox'],
     // Up-arrow: the client blinks first, then the ball stops at each chain box for a dwell before
@@ -151,8 +198,9 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'client' }),
       F.route({ points: IPT_H1, delay: BEAT.afterPulse, name: 'h1', lights: ['ks'] }),
-      F.route({ points: IPT_H2, at: 'h1', plus: PAUSE, name: 'h2', lights: ['svc'] }),
-      F.route({ points: IPT_H3, at: 'h2', plus: PAUSE, name: 'h3', lights: ['sep'] }),
+      F.route({ points: IPT_H2, at: 'h1', plus: PAUSE, dur: GAP_MS, name: 'h2', lights: ['svc', 'pickChip'] }),
+      F.set({ at: 'h2', chips: { pickChip: 'statistic random' } }),
+      F.route({ points: IPT_H3, at: 'h2', plus: PAUSE, dur: GAP_MS, name: 'h3', lights: ['sep'] }),
       F.route({ points: IPT_H4, at: 'h3', plus: PAUSE, name: 'h4' }),
       F.pulse({ pod: 'podA', at: 'h4' }),
     ],
@@ -161,36 +209,49 @@ export const STEPS_SPEC = [
     id: 'ipvs',
     duration: 3500,
     narration: 'In IPVS mode the same kind of connection skips the walk. The Service is a virtual server and its endpoints are real servers in an in-kernel hash table, so a backend is found in one constant-time lookup no matter how many Services exist, here 10.244.3.9, scheduled with real algorithms like round-robin and least-connection.',
+    // The same shape as `iptables`, deliberately: each mode step enters on NO_PICK and produces its
+    // own answer, so neither one inherits the other's. Doing this to one and not the other is worse
+    // than doing it to neither (P-04).
     chips: { ...BASE_COST, pickChip: 'scheduler rr / lc' },
+    rewind: { chips: { pickChip: NO_PICK } },
     wires: { ipvs: 'one hash lookup, any scale' },
     opacity: { ...ALL_UP, ...shade(['iptLane', 'podA'], OPACITY.notready) },
-    lit: ['ipvsChip', 'pickChip'],
+    lit: ['ipvsChip'],
     // The hash table is where the connection LANDS, so it lights on arrival through the flow and
     // never at entry: lighting it here would hide its own arrival. The Pod pulse has no static twin.
     reducedLit: ['podBBox'],
     flow: [
       F.pulse({ pod: 'client' }),
-      F.route({ points: IPVS_H1, delay: BEAT.afterPulse, name: 'v1', lights: ['ipvs'] }),
+      F.route({ points: IPVS_H1, delay: BEAT.afterPulse, name: 'v1', lights: ['ipvs', 'pickChip'] }),
+      F.set({ at: 'v1', chips: { pickChip: 'scheduler rr / lc' } }),
       F.route({ points: IPVS_H2, at: 'v1', plus: PAUSE, name: 'v2' }),
       F.pulse({ pod: 'podB', at: 'v2' }),
     ],
   },
   {
     id: 'scale',
-    duration: 2600,
-    narration: 'Either mode turns the ClusterIP into a ready backend, and the difference scale exposes is the lookup. With thousands of Services the iptables chain is thousands of rules long and every new Service slows the walk, while the IPVS hash stays one step. That constant-time behaviour is why large clusters long preferred IPVS, though Kubernetes deprecated the IPVS mode in v1.35 in favour of the newer nftables mode.',
+    // 400 chars, and the hold IS the reading time on a step whose only motion is the pile and two
+    // tags. 4200 is what puts it on the catalog median pace that tools/timing.mjs prints. The
+    // narration also has a PANEL ceiling: it wraps to the same line count as a 410 char one, and a
+    // line more pushes the panel past 288 and covers the Client Pod. Re-measure, never estimate.
+    duration: 4200,
+    narration: 'Either mode turns the ClusterIP into a ready backend, and what scale exposes is the lookup. With thousands of Services the iptables chain is thousands of rules long and every new one slows the walk, while the IPVS hash stays one step. Large clusters long preferred IPVS for that, though Kubernetes deprecated it in v1.35, disables it by default in v1.40 and removes it in v1.43 in favour of nftables.',
     chips: { iptChip: 'thousands of rules', pickChip: 'unchanged by scale', ipvsChip: 'still one lookup' },
     wires: { ipt: 'grows with every Service', ipvs: 'constant time' },
-    opacity: ALL_UP,
+    // S-13: the static block states the END, so the pile stands here and `rewind` puts it back down.
+    opacity: { ...ALL_UP, iptStack: 1 },
     // What is true HERE is that selection is what scale does NOT touch. It must not say the two
     // modes select the same way: two earlier steps establish that they do not.
     lit: ['ks', 'svc', 'sep', 'ipvs', 'iptChip', 'ipvsChip', 'pickChip'],
-    // Both verdicts are already written above, so the animated path hides them and fades them back
-    // in one after the other. The reduced path shows them standing, which is why this is a rewind.
-    rewind: { opacity: { iptTag: 0, ipvsTag: 0 } },
+    // The pile and both verdicts are already written above, so the animated path hides all three and
+    // brings them up in order. The reduced path shows them standing, which is why this is a rewind.
+    rewind: { opacity: { iptStack: 0, iptTag: 0, ipvsTag: 0 } },
+    // The picture makes the argument before the words do: the chain repeats itself down the band
+    // while the hash box does not move, and only then do the two verdicts land.
     flow: [
-      F.anim({ target: 'iptTag', ...TAG_FADE, delay: 220 }),
-      F.anim({ target: 'ipvsTag', ...TAG_FADE, delay: 460 }),
+      F.reveal({ target: 'iptStack', delay: 260, name: 'grow' }),
+      F.anim({ target: 'iptTag', ...TAG_FADE, after: 'grow' }),
+      F.anim({ target: 'ipvsTag', ...TAG_FADE, after: 'grow', plus: 240 }),
     ],
   },
 ];

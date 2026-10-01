@@ -18,9 +18,8 @@ export { POD_VIOLET };
 // Per-category wrapper over scheme-kit for the Networking cards. The networking-specific pieces
 // are the cyan pod tint and its two pulse wrappers.
 
-// `base` must be the exact resting stroke and `bright` the tint-bright stop, for the reason under
-// WORKLOADS_TINT: the non-persist pulse fills forwards to `base`.
-export const NETWORK_TINT = Object.freeze({ base: 'rgb(79, 229, 255)', bright: 'rgb(158, 234, 247)' });
+// `bright` is the tint-bright stop the pulse peaks on, for the reason under WORKLOADS_TINT.
+export const NETWORK_TINT = Object.freeze({ bright: 'rgb(158, 234, 247)' });
 
 export const { pulsePod, pulsePodDim } = makeTintedPulses(NETWORK_TINT);
 

@@ -1,12 +1,19 @@
 import { P, F, defineCard, BEAT, packetArrival } from './storage-kit.js';
 import { podShell } from '../../lib/primitives.js';
-// Design notes for this card: ./CARDS.md#storage-fsgroup-ownership
+// Design notes for this card: ./CARDS/storage-fsgroup-ownership.md
 
 
+// Both columns are centred on this line. Kubelet is the catalog actor block and the Pod the catalog
+// 232 wide with 192 by 44 inner boxes (NET.L-01), so the card sizes with its siblings rather than on
+// its own numbers. The Pod is TALLER than the catalog 104 because it holds two inner boxes, not one.
 const CONTENT_CX = 600;
 
-const POD_W = 226, POD_H = 126;          // the storage-category Pod standard (storage-csi-attach-mount)
-const KUBE_W = 232, KUBE_H = 70;         // the storage-category server-box standard (storage-csi-architecture)
+const IN_W = 192, IN_H = 44;             // the catalog app box, twice
+const IN_APP_DY = 26, IN_ROW_GAP = 8, IN_FLOOR = 8;
+const IN_SEC_DY = IN_APP_DY + IN_H + IN_ROW_GAP;                    // 78: 26..70 and 78..122
+const POD_W = 232, POD_H = IN_SEC_DY + IN_H + IN_FLOOR;             // 130, 8 clear of the floor
+const IN_INSET = (POD_W - IN_W) / 2;                                // 20, the catalog side pad
+const KUBE_W = 232, KUBE_H = 80;         // the catalog actor block
 const TREE_W = 340, TREE_H = 152;
 const CYL_W = 150, CYL_H = 70;
 const CHIP_H = 32;
@@ -15,40 +22,37 @@ const DISK_GAP = 30;                     // tree to disk: a relationship, so it 
 const CHIP_GAP_V = 28;                   // disk to chip strip, with the disk caption in between
 
 const STACK_H = POD_H + CORRIDOR + KUBE_H + CORRIDOR + TREE_H + DISK_GAP + CYL_H + CHIP_GAP_V + CHIP_H;
-const STACK_TOP = (640 - STACK_H) / 2;   // 26, and the bottom margin matches it
+const STACK_TOP = (640 - STACK_H) / 2;   // 19, and the bottom margin matches it
 
-const POD_Y = STACK_TOP;                                 // 26
-const POD_X = CONTENT_CX - POD_W / 2;                    // 487
-const POD_BOTTOM = POD_Y + POD_H;                        // 152
-const POD_RIGHT = POD_X + POD_W;                         // 713
-const POD_CY = POD_Y + POD_H / 2;                        // 89
+const POD_Y = STACK_TOP;                                 // 19
+const POD_X = CONTENT_CX - POD_W / 2;                    // 484
+const POD_BOTTOM = POD_Y + POD_H;                        // 149
+const POD_RIGHT = POD_X + POD_W;                         // 716
+const POD_CY = POD_Y + POD_H / 2;                        // 84
 
-const KUBE_Y = POD_BOTTOM + CORRIDOR;                    // 192
+const KUBE_Y = POD_BOTTOM + CORRIDOR;                    // 189
 const KUBE_X = CONTENT_CX - KUBE_W / 2;                  // 484
-const KUBE_TOP = KUBE_Y, KUBE_BOTTOM = KUBE_Y + KUBE_H;  // 192 / 262
+const KUBE_TOP = KUBE_Y, KUBE_BOTTOM = KUBE_Y + KUBE_H;  // 189 / 269
 
-const TREE_Y = KUBE_BOTTOM + CORRIDOR;                   // 302
+const TREE_Y = KUBE_BOTTOM + CORRIDOR;                   // 309
 const TREE_X = CONTENT_CX - TREE_W / 2;                  // 430
-const TREE_BOTTOM = TREE_Y + TREE_H;                     // 454
-const TREE_CY = TREE_Y + TREE_H / 2;                     // 378
+const TREE_BOTTOM = TREE_Y + TREE_H;                     // 461
+const TREE_CY = TREE_Y + TREE_H / 2;                     // 385
 const TREE_RIGHT = TREE_X + TREE_W;                      // 770
 
-const CYL_Y = TREE_BOTTOM + DISK_GAP;                    // 484
+const CYL_Y = TREE_BOTTOM + DISK_GAP;                    // 491
 const CYL_X = CONTENT_CX - CYL_W / 2;                    // 525
-const CYL_BOTTOM = CYL_Y + CYL_H;                        // 554
+const CYL_BOTTOM = CYL_Y + CYL_H;                        // 561
 
-const DISK_LBL_Y = CYL_BOTTOM + 18;                      // 572, 10 clear of the chip strip
-const CHIPS_Y = CYL_BOTTOM + CHIP_GAP_V;                 // 582
-
-const IN_INSET = 16, IN_W = POD_W - IN_INSET * 2, IN_H = 42;   // 194 wide
-const IN_APP_DY = 26, IN_SEC_DY = 76;                          // 26..68 and 76..118, 8 clear of the floor
+const DISK_LBL_Y = CYL_BOTTOM + 18;                      // 579, 10 clear of the chip strip
+const CHIPS_Y = CYL_BOTTOM + CHIP_GAP_V;                 // 589
 
 const ROW_COUNT = 3, ROW_H = 24, ROW_GAP = 10, ROW_PAD = 16;
 const ROW_X = TREE_X + ROW_PAD;                          // 446
 const ROW_W = TREE_W - ROW_PAD * 2;                      // 308
-const ROW_TOP = TREE_Y + 52;                             // 354, 14 below the tree sublabel baseline
-const rowY  = i => ROW_TOP + i * (ROW_H + ROW_GAP);      // 354 / 388 / 422
-const rowCy = i => rowY(i) + ROW_H / 2;                  // 366 / 400 / 434
+const ROW_TOP = TREE_Y + 52;                             // 361, 14 below the tree sublabel baseline
+const rowY  = i => ROW_TOP + i * (ROW_H + ROW_GAP);      // 361 / 395 / 429
+const rowCy = i => rowY(i) + ROW_H / 2;                  // 373 / 407 / 441
 
 const ROW_NAMES = ['/data', 'app.log', '... 4.2M more'];
 const OWNER_BEFORE = 'root:root';
@@ -62,7 +66,7 @@ const TREE_LBL_Y = 22, TREE_SUB_Y = 38;
 
 const W_SEC_KUBE = [[CONTENT_CX, POD_BOTTOM], [CONTENT_CX, KUBE_TOP]];
 const W_CHOWN    = [[CONTENT_CX, KUBE_BOTTOM], [CONTENT_CX, TREE_Y]];
-const WRITE_X = 800;                                     // 30 clear of the tree, 87 clear of the Pod
+const WRITE_X = 800;                                     // 30 clear of the tree, 84 clear of the Pod
 const W_WRITE = [[POD_RIGHT, POD_CY], [WRITE_X, POD_CY], [WRITE_X, TREE_CY], [TREE_RIGHT, TREE_CY]];
 
 // Both write tags ride the W_WRITE elbow, whose ends sit on the Pod and tree side faces: centred on
@@ -73,13 +77,15 @@ const W_PERSIST = [[CONTENT_CX, TREE_BOTTOM], [CONTENT_CX, CYL_Y]];
 
 // The walk continues straight down the spine THROUGH the listing, so the chown and the walk read as
 // one movement that carries on into the tree rather than as two unrelated balls.
-const WALK_Y0 = TREE_Y + 44;                             // 346, just under the tree sublabel
+const WALK_Y0 = TREE_Y + 44;                             // 353, just under the tree sublabel
 const walkEndY = only => (only >= ROW_COUNT ? rowY(ROW_COUNT - 1) + ROW_H : rowCy(only - 1) + 12);
 const W_WALK = [[CONTENT_CX, WALK_Y0], [CONTENT_CX, walkEndY(ROW_COUNT)]];
 
 const WALK_SPEED = 0.068, WALK_MIN_MS = 420;
 const walkDur = only => Math.max(WALK_MIN_MS, Math.round((walkEndY(only) - WALK_Y0) / WALK_SPEED));
 
+// The family EXCEPTION: fsGroupChangePolicy + `Always (default)` measures 265, so 232 would collide
+// and 300 clears it by 35.
 const CHIP_W = 300, CHIP_GAP = 16, CHIP_COUNT = 3;
 const CHIPS_W = CHIP_W * CHIP_COUNT + CHIP_GAP * (CHIP_COUNT - 1);   // 932
 const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) =>
@@ -113,7 +119,7 @@ const appShell = () => podShell({
 // Z-order, bottom to top: the disk and the tree, the listing on it, kubelet and the Pod, the five
 // wires, the disk caption, the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'fsGroup and volume ownership: a freshly mounted volume is owned by root so a non-root container cannot write to it, and securityContext.fsGroup makes Kubelet chown and setgid the whole volume tree to that GID before the container starts, unless a CSI driver advertising VOLUME_MOUNT_GROUP does it instead, while fsGroupChangePolicy OnRootMismatch checks only the top-level directory and skips the walk when it already matches, which stops a volume of millions of files adding minutes to every Pod start the way the default policy Always does',
+  'aria-label': 'fsGroup and volume ownership: a freshly mounted volume is owned by root so a non-root container cannot write to it, and securityContext.fsGroup makes Kubelet chown and setgid the whole volume tree to that GID, on a volume type and CSI driver that support it, before the container starts, unless a CSI driver advertising VOLUME_MOUNT_GROUP does it instead, while fsGroupChangePolicy OnRootMismatch checks only the top-level directory and skips the walk when it already matches, which stops a volume of millions of files adding minutes to every Pod start the way the default policy Always does',
   parts: [
     P.defs(),
     // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse
@@ -225,17 +231,17 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'appPod' }),
       // No tag: it printed `fsGroup: 2000` over the identical secBox sublabel 2.22 above it, and every
-      // honest rewording restates the Kubelet sublabel the ball is flying at. See ./CARDS.md.
+      // honest rewording restates the Kubelet sublabel the ball is flying at. See ./CARDS/storage-fsgroup-ownership.md.
       F.route({ points: W_SEC_KUBE, delay: BEAT.afterPulse, name: 'read' }),
       F.light({ targets: ['kube'], at: 'read' }),
     ],
   },
   {
     id: 'chown',
-    // 4200 rather than 3400: adding the persist hop down to the volume pushed the step's own motion
-    // to 3631ms, and a duration under that would auto-advance while the change was still in flight.
-    duration: 4200,
-    narration: 'Before the container starts, Kubelet walks the volume tree and chowns every entry to group 2000, setting the setgid bit on directories so new files inherit it too. The owner stays root, the group becomes 2000. This is real work on real inodes, done once per mount. A CSI driver that advertises VOLUME_MOUNT_GROUP does the ownership itself instead, and then fsGroupChangePolicy has no effect at all.',
+    // The motion runs 3631ms with the persist hop, and the longest narration on the card needs the
+    // rest of 5200 to be read at the catalog median pace.
+    duration: 5200,
+    narration: 'Before the container starts, Kubelet walks the volume tree, chowns every entry to group 2000 and makes it group writable, setting the setgid bit on directories so new files inherit the group. The owner stays root. This is real work on real inodes, done once per mount. By default a CSI volume gets this only if it is ReadWriteOnce with an fsType. A CSI driver that advertises VOLUME_MOUNT_GROUP does the ownership itself instead, and then fsGroupChangePolicy has no effect at all.',
     chipsCued: chips('root:2000 g+s', 'denied', 'Always (default)'),
     sublabels: { secBox: 'fsGroup: 2000', tree: 'chown + setgid, entry by entry' },
     wires: { disk: 'now group 2000' },
@@ -282,13 +288,14 @@ export const STEPS_SPEC = [
     wires: { disk: 're-read on every start' },
     // The policy chip is the subject of this step, so it lights even though its value did not
     // change. Static highlight, not a flash: chips never blink.
-    lit: ['policyChip', 'cyl'],
+    // Kubelet does the walk, and its ball leaves from inside the tree with no arrival before it, so
+    // both are lit from entry (M-18a), beside the disk its inodes are read off.
+    lit: ['policyChip', 'kube', 'cyl', 'tree'],
     enter: showRows(true, ROW_COUNT),
     // The scan runs the whole listing again and nothing changes as a result, which IS the point:
     // the work is paid whether or not it was needed.
     flow: [
       ...walk(),
-      F.light({ targets: ['tree'], at: 'walk' }),
     ],
   },
   {
@@ -298,12 +305,12 @@ export const STEPS_SPEC = [
     chipsCued: chips('root:2000 g+s', 'allowed', 'OnRootMismatch'),
     sublabels: { secBox: 'fsGroup: 2000', tree: 'top dir matches, walk skipped' },
     wires: { disk: 'set on a previous start' },
-    lit: ['cyl'],
+    // Kubelet does the check and the tree sends the walk ball, so both are lit from entry, as on `always`.
+    lit: ['kube', 'cyl', 'tree'],
     // Only the top directory is visited, so only its row lights on either path.
     enter: showRows(true, 1),
     flow: [
       ...walk({ only: 1 }),
-      F.light({ targets: ['tree'], at: 'walk' }),
     ],
   },
 ];

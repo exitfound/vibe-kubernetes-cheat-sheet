@@ -1,158 +1,207 @@
-import { P, F, defineCard, makeRidingLabel, BEAT, OPACITY } from './network-kit.js';
+import { P, F, defineCard, ladder, makeRidingLabel, BEAT, OPACITY } from './network-kit.js';
 
-// Design notes for this card: ./CARDS.md#network-endpointslice-reconcile
+// Design notes for this card: ./CARDS/network-endpointslice-reconcile.md
 
+// The Service, the slice frame and the controller are ONE column on CX, the axis the write lane, the
+// Service relation and the watch trunk run on. The slice frame is sized by its rows, the boxes are 232.
+const COL_X = 420, COL_W = 360;
+const CX = COL_X + COL_W / 2;               // 600
+const COL_R = COL_X + COL_W;                // 780: the slice frame edge kube-proxy reads from
+const BOX_W = 232, BOX_H = 80;              // the kubelet block of network-model
+const BOX_X = CX - BOX_W / 2;               // 484
+const BOX_R = BOX_X + BOX_W;                // 716
 
-const CTLR_TOP = 350;                       // top edge of the controller box
-const SLICE_BOTTOM = 290;                   // bottom edge of the lowest endpoint row
-const WRITE_PATH = [[600, CTLR_TOP], [600, SLICE_BOTTOM]];   // controller -> slice, straight up
-const SLICE_RIGHT = 790, KPROXY_LEFT = 840; // slice right edge, kube-proxy left edge
-const READ_PATH = [[SLICE_RIGHT, 222], [KPROXY_LEFT, 222]];  // slice -> kube-proxy, straight right
+const SVC_Y = 36;
+const SVC_BOTTOM = SVC_Y + BOX_H;           // 116
 
-// The write tags ride 14 BELOW their ball: at the default -14 they park inside the ep3 row the lane
-// ends on, over the address it prints. The 60 units under the slice (290 to CTLR_TOP) are clear.
-const UPD_TAG_DY = 14;
-// Riding BELOW the ball puts the tag inside the controller at the start, so it emerges from that
-// box after the ball has climbed clear of its top edge (200ms of the 700ms write).
-const ridingLabel = makeRidingLabel({ role: 'network', dy: UPD_TAG_DY, emergeMode: true });
-const tag = (p) => F.tag({ fn: ridingLabel, ...p });
-const UPD_EMERGE = 200;
+// The slice is a frame, a two-line header over three rows, standing exactly midway: the same 38 gap
+// up to the Service and down to the controller, so the relation and the write lane are one length.
+const COL_GAP = 38;
+const SLICE_Y = SVC_BOTTOM + COL_GAP, SLICE_PAD = 14;   // 154
+const TITLE_Y = SLICE_Y + 22;               // 176: title baseline
+const BUDGET_Y = SLICE_Y + 40;              // 194: port and count baseline
+const EP_X = COL_X + SLICE_PAD, EP_W = COL_W - SLICE_PAD * 2, EP_H = 36;
+const epY = ladder({ y: SLICE_Y + 52, rowH: EP_H, gap: 6 });   // 206 / 248 / 290
+const SLICE_BOTTOM = epY(2) + EP_H + 12;    // 338
+const SLICE_H = SLICE_BOTTOM - SLICE_Y;     // 184
 
-const POD_Y = 488, POD_W = 250, POD_H = 128;
-const POD_INNER = { dx: 20, dy: 30, w: POD_W - 40, h: 48, label: 'app', sublabel: 'eth0' };
+// The controller writes UP into the slice frame across the lower gap.
+const CTLR_TOP = SLICE_BOTTOM + COL_GAP;    // 376
+const CTLR_BOTTOM = CTLR_TOP + BOX_H;       // 456
+const WRITE_PATH = [[CX, CTLR_TOP], [CX, SLICE_BOTTOM]];
+
+// kube-proxy reads the slice on the frame's own vertical centre, so the lane meets both faces square.
+const READ_Y = SLICE_Y + SLICE_H / 2;       // 246
+const KPROXY_LEFT = 860, KPROXY_TOP = READ_Y - BOX_H / 2;   // 206
+const READ_PATH = [[COL_R, READ_Y], [KPROXY_LEFT, READ_Y]];
+
+// Three Pods on one pitch, the middle one under CX. The comb bus joins all three to the controller.
+const BUS_Y = CTLR_BOTTOM + 24;             // 480
+const POD_Y = BUS_Y + 24, POD_W = 250, POD_H = 120;   // 504..624
+const POD_PITCH = POD_W + 135;              // 385
+const PODB_X = CX - POD_W / 2;              // 475
+const POD_CX = [CX - POD_PITCH, CX, CX + POD_PITCH];   // 215 / 600 / 985
+const POD_INNER = { dx: 20, dy: 28, w: POD_W - 40, h: 48, label: 'app', sublabel: 'eth0' };
+// Pod B reports through the watch trunk, straight up from its top face to the controller.
+const STATUS_PATH = [[CX, POD_Y], [CX, CTLR_BOTTOM]];
+
+// Tags fade in with their ball and out on arrival. On the trunk they stand 8 right of the column
+// boxes, so no face, bus or lane crosses the text, and the read tag rides 4 over the kube-proxy top.
+const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
+const tag = (p) => F.tag({ fn: ridingLabel, easing: 'linear', ...p });
+const TAG_CHAR = 6.2;
+const besideBoxes = (txt) => BOX_R + 8 + (txt.length * TAG_CHAR) / 2 - CX;
+const WRITE_DY = 14;                        // ink ends 4 under the slice frame on arrival
+const WATCH_DY = BUS_Y - POD_Y - 6;         // -30: ink starts 4 over the comb bus
+const READ_TAG = { dx: 8 + ('slice'.length * TAG_CHAR) / 2, dy: KPROXY_TOP - READ_Y - 6 };   // 23.5 / -46
 
 const livePod = (key, x, ip) => P.pod({
   key, innerKey: `${key}Box`, x, y: POD_Y, w: POD_W, h: POD_H,
   label: 'Pod app=web', sublabel: ip, inner: POD_INNER,
 });
 
-// The list order IS the append order, which is the z-order: the three tiers of blocks, then the
-// endpoint rows, then the wires above them, then the packet layer carrying the ball and its tag.
 export const SCENE = {
-  'aria-label': 'Service and EndpointSlice reconciliation: the controller watches Pods matching the Service selector and writes the ready ones into an EndpointSlice that kube-proxy consumes, with readiness gating membership',
+  'aria-label': 'Service and EndpointSlice: the EndpointSlice controller watches the three Pods matching the Service selector and writes one endpoint per Pod, an address and its ready condition, into EndpointSlice web-x9f2, which states the port once and by default holds up to 100 endpoints. When a Pod keeps failing its readiness probe and turns Ready=False, the controller rewrites its endpoint to ready=false without restarting the container, and kube-proxy builds Service rules from the one endpoint still ready',
   parts: [
     P.defs(),
-    // Top: the Service owns the selector and names the slice, but holds no addresses.
-    P.box({ key: 'service', x: 410, y: 52, w: 380, h: 70, label: 'Service web', sublabel: 'selector app=web · holds no addresses' }),
-    // Right: kube-proxy, the consumer that reads the slice. Lower-centre: the controller, the
-    // engine that watches Pods and writes the slice.
-    P.box({ key: 'kproxy', x: KPROXY_LEFT, y: 178, w: 280, h: 88, label: 'kube-proxy', sublabel: 'reads the slice' }),
-    P.box({ key: 'ctlr', x: 410, y: CTLR_TOP, w: 380, h: 90, label: 'EndpointSlice controller', sublabel: 'watches app=web, writes endpoints' }),
-    // Bottom: the live Pods (the source of truth).
-    livePod('podA', 90, '10.244.1.5 · ready'),
-    livePod('podB', 475, '10.244.2.7 · ready'),
-    livePod('podC', 860, '10.244.3.9 · notReady'),
-    // Centre: the EndpointSlice (the derived list). One row per matching Pod.
-    P.chip({ key: 'ep1', x: 410, y: 152, w: 380, h: 42, name: 'endpoint', value: '(empty)' }),
-    P.chip({ key: 'ep2', x: 410, y: 200, w: 380, h: 42, name: 'endpoint', value: '(empty)' }),
-    P.chip({ key: 'ep3', x: 410, y: 248, w: 380, h: 42, name: 'endpoint', value: '(empty)' }),
-    // A Service NAMES its slice through a selector and a controller WATCHES a Pod set: both are
-    // standing RELATIONSHIPS, not messages, so neither takes an arrowhead.
-    P.relation({ points: [[600, 122], [600, 152]] }),
+    P.box({ key: 'service', x: BOX_X, y: SVC_Y, w: BOX_W, h: BOX_H, label: 'Service web', sublabel: 'selector app=web · lists no Pods' }),
+    P.box({ key: 'slice', x: COL_X, y: SLICE_Y, w: COL_W, h: SLICE_H }),
+    P.tag({ x: CX, y: TITLE_Y, text: 'EndpointSlice web-x9f2', cls: 'scheme-box-label' }),
+    P.wire({ key: 'budget', x: CX, y: BUDGET_Y }),
+    P.box({ key: 'kproxy', x: KPROXY_LEFT, y: KPROXY_TOP, w: BOX_W, h: BOX_H, label: 'kube-proxy', sublabel: 'reads the slice' }),
+    P.box({ key: 'ctlr', x: BOX_X, y: CTLR_TOP, w: BOX_W, h: BOX_H, label: 'EndpointSlice controller', sublabel: 'watches Pods · writes the slice' }),
+    livePod('podA', PODB_X - POD_PITCH, '10.244.1.5 · Ready=True'),
+    livePod('podB', PODB_X, '10.244.2.7 · Ready=True'),
+    livePod('podC', PODB_X + POD_PITCH, '10.244.3.9 · Ready=False'),
+    P.chip({ key: 'ep1', x: EP_X, y: epY(0), w: EP_W, h: EP_H, name: 'endpoint', value: '' }),
+    P.chip({ key: 'ep2', x: EP_X, y: epY(1), w: EP_W, h: EP_H, name: 'endpoint', value: '' }),
+    P.chip({ key: 'ep3', x: EP_X, y: epY(2), w: EP_W, h: EP_H, name: 'endpoint', value: '' }),
+    // The Service names its slice and the controller watches the Pod set: standing relationships.
+    P.relation({ points: [[CX, SVC_BOTTOM], [CX, SLICE_Y]] }),
+    // The comb stays a relation, but at full stroke-opacity: it joins all three Pods to the trunk, and
+    // at 0.45 it read as fainter than the dashed arrows it meets.
+    P.relation({
+      points: [[POD_CX[0], POD_Y - 4], [POD_CX[0], BUS_Y], [POD_CX[2], BUS_Y], [POD_CX[2], POD_Y - 4]],
+      tune: (el) => { el.style.strokeOpacity = '1'; },
+    }),
+    P.arrow({ from: STATUS_PATH[0], to: STATUS_PATH[1], dashed: true, dim: true }),
     P.arrow({ from: WRITE_PATH[0], to: WRITE_PATH[1], dashed: true, dim: true }),
     P.arrow({ from: READ_PATH[0], to: READ_PATH[1], dashed: true, dim: true }),
-    P.relation({ points: [[600, 440], [600, 484]] }),
     P.packets(),
   ],
-  // The inner pod boxes (podABox etc.) light in the reduced-motion end-states, so they must be
-  // cleared here too or a replayed prior step leaks its .highlight into the next one.
   reset: {
-    keys: ['service', 'ctlr', 'kproxy', 'ep1', 'ep2', 'ep3', 'podABox', 'podBBox', 'podCBox'],
+    keys: ['service', 'slice', 'ctlr', 'kproxy', 'ep1', 'ep2', 'ep3', 'podABox', 'podBBox', 'podCBox'],
     pods: ['podA', 'podB', 'podC'],
   },
 };
 
-// Pod C is notReady from the first frame and Pod B only from its own step onward, so BOTH shades
-// are stated as fields on every step rather than restored by the reset prologue.
-const B_READY = { podB: 1, podC: OPACITY.notready };
-const B_DROPPED = { podB: OPACITY.notready, podC: OPACITY.notready };
+// Which Pods read Ready=False, stated on every step: Pod C from the first frame, Pod B from readiness.
+const C_DOWN = { podA: 1, podB: 1, podC: OPACITY.notready };
+const B_DOWN = { podA: 1, podB: OPACITY.notready, podC: OPACITY.notready };
 
 const EMPTY = '(empty)';
-const EP1_READY = '10.244.1.5:8080 · ready';
-const EP2_READY = '10.244.2.7:8080 · ready';
-const EP2_DROPPED = '10.244.2.7:8080 · notReady';
-const EP3_NOTREADY = '10.244.3.9:8080 · notReady';
+const EP1 = '10.244.1.5 · ready=true';
+const EP2_UP = '10.244.2.7 · ready=true';
+const EP2_DOWN = '10.244.2.7 · ready=false';
+const EP3 = '10.244.3.9 · ready=false';
+const NO_ROWS = { ep1: EMPTY, ep2: EMPTY, ep3: EMPTY };
+const BUDGET_0 = '0 of 100 endpoints';
+const BUDGET_3 = 'port 8080 · 3 of 100 endpoints';
+const KP_READS = 'reads the slice';
+const KP_RULES = 'rules for 10.244.1.5 only';
+const B_UP_SUB = '10.244.2.7 · Ready=True';
+const B_DOWN_SUB = '10.244.2.7 · Ready=False';
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { ep1: EMPTY, ep2: EMPTY, ep3: EMPTY },
-    podSublabels: { podB: '10.244.2.7 · ready' },
-    opacity: B_READY,
+    chips: NO_ROWS,
+    wires: { budget: BUDGET_0 },
+    sublabels: { kproxy: KP_READS },
+    podSublabels: { podB: B_UP_SUB },
+    opacity: C_DOWN,
   },
   {
     id: 'selector',
-    duration: 2200,
-    narration: 'The Service holds only a selector, app=web, and no addresses of its own. Every Pod carrying that label is a candidate backend, here three of them, but a Pod has to be Ready before it should receive traffic. Two are Ready, one is not.',
-    chips: { ep1: EMPTY, ep2: EMPTY, ep3: EMPTY },
-    podSublabels: { podB: '10.244.2.7 · ready' },
-    opacity: B_READY,
+    duration: 2600,
+    narration: 'The Service web holds a selector, app=web, and no list of backends. All three Pods carry that label, so all three match. Matching is not serving: 10.244.3.9 is failing its readiness probe, so its Ready condition is False.',
+    chips: NO_ROWS,
+    wires: { budget: BUDGET_0 },
+    sublabels: { kproxy: KP_READS },
+    podSublabels: { podB: B_UP_SUB },
+    opacity: C_DOWN,
     lit: ['service'],
-    // The animated path says the two candidates MATCHED by pulsing them, which no cue names.
-    reducedLit: ['podABox', 'podBBox'],
-    // The Ready candidates pulse together so the selector match reads clearly.
+    // The animated path says all three MATCHED by pulsing them, which no cue names.
+    reducedLit: ['podABox', 'podBBox', 'podCBox'],
     flow: [
       F.pulse({ pod: 'podA' }),
       F.pulse({ pod: 'podB' }),
+      F.pulse({ pod: 'podC', dim: true, from: OPACITY.notready }),
     ],
   },
   {
     id: 'reconcile',
-    duration: 2700,
-    narration: 'The EndpointSlice controller watches every matching Pod and writes the Ready ones into the slice as an IP and port, one endpoint each. So 10.244.1.5 and 10.244.2.7 are added. The third Pod is recorded too, but flagged notReady, so it stays out of the serving set.',
-    chips: { ep1: EP1_READY, ep2: EP2_READY, ep3: EP3_NOTREADY },
-    podSublabels: { podB: '10.244.2.7 · ready' },
-    opacity: B_READY,
+    duration: 3400,
+    narration: 'The EndpointSlice controller watches every matching Pod and writes one endpoint per Pod with an IP: its address and conditions, with the port stated once for the slice. 10.244.3.9 is listed with ready=false, so it stays out of the serving set. By default a slice holds up to 100 endpoints, and a bigger Service gets more slices.',
+    chips: { ep1: EP1, ep2: EP2_UP, ep3: EP3 },
+    wires: { budget: BUDGET_3 },
+    sublabels: { kproxy: KP_READS },
+    podSublabels: { podB: B_UP_SUB },
+    opacity: C_DOWN,
     lit: ['ctlr'],
-    // One write fills all three rows, so the animated path holds the slice empty until it lands at
-    // 1500 and the rows take their values and their highlight there together.
-    rewind: { chips: { ep1: EMPTY, ep2: EMPTY, ep3: EMPTY } },
-    // Both Ready endpoints are committed in this write and light together, so the tag names the
-    // set it commits rather than a single address.
+    reducedLit: ['podABox', 'podBBox', 'podCBox'],
+    // One write fills the slice: the rows and the count hold empty until the ball lands at 1500.
+    rewind: { chips: NO_ROWS, wires: { budget: BUDGET_0 } },
     flow: [
       F.pulse({ pod: 'podA' }),
       F.pulse({ pod: 'podB' }),
+      F.pulse({ pod: 'podC', dim: true, from: OPACITY.notready }),
       F.segment({ from: WRITE_PATH[0], to: WRITE_PATH[1], delay: BEAT.afterPulse, name: 'write' }),
-      tag({ text: 'ready endpoints', points: WRITE_PATH, delay: BEAT.afterPulse, easing: 'linear', emerge: UPD_EMERGE }),
-      F.light({ targets: ['ep1', 'ep2', 'ep3'], at: 'write' }),
-      F.set({ at: 'write', chips: { ep1: EP1_READY, ep2: EP2_READY, ep3: EP3_NOTREADY } }),
+      tag({ text: '3 endpoints', points: WRITE_PATH, delay: BEAT.afterPulse, dx: besideBoxes('3 endpoints'), dy: WRITE_DY }),
+      F.light({ targets: ['slice', 'ep1', 'ep2', 'ep3'], at: 'write' }),
+      F.set({ at: 'write', chips: { ep1: EP1, ep2: EP2_UP, ep3: EP3 }, wires: { budget: BUDGET_3 } }),
     ],
   },
   {
     id: 'readiness',
-    duration: 2500,
-    narration: 'Membership is gated on readiness, not liveness. When Pod 10.244.2.7 starts failing its readiness probe, the controller flips that endpoint to notReady and drops it from the serving set, so no new traffic is sent to it. The container is never restarted, and it rejoins the moment it reports Ready again.',
-    chips: { ep1: EP1_READY, ep2: EP2_DROPPED, ep3: EP3_NOTREADY },
-    podSublabels: { podB: '10.244.2.7 · notReady' },
-    // Pod B is what this step flips, so its shade is static end-state, not motion.
-    opacity: B_DROPPED,
-    lit: ['ctlr'],
-    // The animated path says Pod B was the one that flipped by pulsing it, which no cue names.
+    duration: 3600,
+    narration: 'Readiness, not liveness, decides who serves. After 3 failed readiness probes in a row, the failureThreshold default, the Kubelet sets the Ready condition of 10.244.2.7 to False, and the controller sees that through its watch. It rewrites the endpoint to ready=false. The container is not restarted, and one passing probe by default turns the Pod and its endpoint ready again.',
+    chips: { ep1: EP1, ep2: EP2_DOWN, ep3: EP3 },
+    wires: { budget: BUDGET_3 },
+    sublabels: { kproxy: KP_READS },
+    podSublabels: { podB: B_DOWN_SUB },
+    opacity: B_DOWN,
     reducedLit: ['podBBox'],
-    // Pod B pulses FROM its dimmed state: a plain pulsePod ramps from the resting tint and a Pod
-    // already at 0.40 barely registers it, so it takes the dim variant with its own opacity flash.
+    rewind: { chips: { ep2: EP2_UP } },
+    // Pod B blinks from its dim shade, its status rides the watch trunk up, then the controller writes.
     flow: [
       F.pulse({ pod: 'podB', dim: true, from: OPACITY.notready }),
-      F.segment({ from: WRITE_PATH[0], to: WRITE_PATH[1], delay: BEAT.afterPulse, name: 'upd' }),
-      tag({ text: '10.244.2.7 · notReady', points: WRITE_PATH, delay: BEAT.afterPulse, easing: 'linear', emerge: UPD_EMERGE }),
+      F.segment({ from: STATUS_PATH[0], to: STATUS_PATH[1], delay: BEAT.afterPulse, name: 'watch' }),
+      tag({ text: 'Ready=False', points: STATUS_PATH, delay: BEAT.afterPulse, dx: besideBoxes('Ready=False'), dy: WATCH_DY }),
+      F.light({ targets: ['ctlr'], at: 'watch' }),
+      F.segment({ from: WRITE_PATH[0], to: WRITE_PATH[1], after: 'watch', name: 'upd' }),
+      tag({ text: EP2_DOWN, points: WRITE_PATH, after: 'watch', dx: besideBoxes(EP2_DOWN), dy: WRITE_DY }),
       F.light({ targets: ['ep2'], at: 'upd' }),
+      F.set({ at: 'upd', chips: { ep2: EP2_DOWN } }),
     ],
   },
   {
     id: 'consume',
-    duration: 2300,
-    narration: 'The kube-proxy on every Node watches the EndpointSlice, never the Pods directly. When the slice changes it reprograms the Node dataplane so traffic to the Service only ever lands on a currently Ready endpoint. The slice is the contract between what is healthy and where packets go.',
-    chips: { ep1: EP1_READY, ep2: EP2_DROPPED, ep3: EP3_NOTREADY },
-    podSublabels: { podB: '10.244.2.7 · notReady' },
-    opacity: B_DROPPED,
-    lit: ['ep1'],
-    // kube-proxy reads the slice (one clean hop) and lights on arrival. The ball carries a short
-    // read tag so the direction of the pull reads clearly.
+    duration: 2800,
+    narration: 'The kube-proxy on every Node watches EndpointSlices, never the Pods. It writes Service rules for the ready endpoints, so traffic to web now reaches 10.244.1.5 alone. The slice is the contract between what is ready and where packets go.',
+    chips: { ep1: EP1, ep2: EP2_DOWN, ep3: EP3 },
+    wires: { budget: BUDGET_3 },
+    sublabels: { kproxy: KP_RULES },
+    podSublabels: { podB: B_DOWN_SUB },
+    opacity: B_DOWN,
+    lit: ['slice', 'ep1'],
+    rewind: { sublabels: { kproxy: KP_READS } },
     flow: [
-      F.segment({ from: READ_PATH[0], to: READ_PATH[1], name: 'read' }),
-      F.tag({ text: 'reads slice', points: READ_PATH, easing: 'linear' }),
+      F.segment({ from: READ_PATH[0], to: READ_PATH[1], delay: BEAT.lead, name: 'read' }),
+      tag({ text: 'slice', points: READ_PATH, delay: BEAT.lead, ...READ_TAG }),
       F.light({ targets: ['kproxy'], at: 'read' }),
+      F.set({ at: 'read', sublabels: { kproxy: KP_RULES } }),
     ],
   },
 ];

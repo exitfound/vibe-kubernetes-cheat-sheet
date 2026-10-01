@@ -40,13 +40,11 @@
 // A third one is closed rather than inherited: the original wrote `if (!live) continue;` and a step
 // whose debug handle was missing went silently uncounted. Here that is a finding of its own.
 
-import { test, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census, floor, SUBSET } from '../fixtures/catalog.mjs';
+import { cards, census, floor } from '../fixtures/catalog.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
-import {
-  DEFAULT_BASE, launch, initPage, discoverIds, openCard, stepCount, stepMeta, enterStep, stepSpan,
-} from '../fixtures/render.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
 
 // ---------------------------------------------------------------------------------------------
 // Control numbers, taken off a green run of the whole catalog, where every step outlasts its own
@@ -67,22 +65,16 @@ const overrun = (span, duration) => span - duration;
 
 const catalogued = await cards();
 
-const browser = await launch();
-// Registered on the line after the launch, before the page setup below: node:test runs an
-// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
-// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
-// then nobody's to close for the rest of the run.
-after(() => browser.close());
-
-// No explicit viewport, as the original had none. Spans are computed from route LENGTH in viewBox
-// units, so the size of the window is not load-bearing here, and keeping the original's conditions
-// is what makes its green run reproducible rather than merely similar.
-const page = await browser.newPage();
-await page.addInitScript(initPage, 'expose');
-const ids = await discoverIds(page, DEFAULT_BASE);
+// THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` takes the played pass once for the six
+// files that each used to take it, in the order their probes need, and this file reads `live` and
+// `span` off it. Spans are computed from route LENGTH in viewBox units, so the window size is not
+// load-bearing: the walk reads at 1600x1000 where this file had no explicit viewport, and the old
+// and new outputs were diffed line for line rather than argued about.
+const snap = readSnapshot();
+const ids = snap.ids;
 
 test(`the grid renders the whole catalog (${catalogued.length} cards)`, () => {
-  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${DEFAULT_BASE}/scheme/ : posters or grid broken`);
+  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${snap.base}/scheme/ : posters or grid broken`);
   census('duration grid', ids.length, catalogued.length);
 });
 
@@ -93,15 +85,15 @@ for (const id of ids) {
   test(id, async () => {
     walked++;                    // counted before the assertions, so this stays a census of
                                  // COVERAGE and a broken card is reported once, as itself.
-    await openCard(page, id);
-    const total = await stepCount(page);
+    const card = snap.cards[id];
+    const total = card.steps;
     assert.ok(total > 0, `stepCount is ${total}: no steps to walk`);
 
     // The declared durations, straight off the controller. A null here is not "no findings", it is
     // "the question could not be asked": without the debug handle there is nothing to compare a
     // span against, and the original skipped such a card with a note on stderr that no exit code
     // carried.
-    const meta = await stepMeta(page);
+    const meta = card.meta;
     assert.ok(meta, 'no window.__schemeCtl._timeline: the declared durations are unreachable, ' +
       'so nothing on this card was judged. Check that the inspect handle is exposed.');
     assert.equal(meta.length, total,
@@ -114,14 +106,13 @@ for (const id of ids) {
       // The played path with animations attached but no auto-advance, then frozen. Walking
       // statically instead would run every enter() under ctx.reduced and reach no animation at all,
       // which would make every span 0 and the whole file green by construction.
-      const live = await enterStep(page, i);
+      const { live, span } = card.played[i];
       if (!live) {
         findings.push(
           `UNMEASURED  ${id} step ${String(i).padStart(2)} "${stepId}": no debug handle, ` +
           'the step fell back to a static frame and its motion was never timed');
         continue;
       }
-      const span = await stepSpan(page);
       measured++;
       // Faithful to the original: a step that declares no duration reads 0. At runtime such a step
       // would fall back to Timeline's defaultDuration (2000), so the two numbers would disagree,

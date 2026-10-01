@@ -1,6 +1,6 @@
 ---
 name: card-facts
-description: Fact-check one scheme card against the Kubernetes documentation and the API reference, then check that the animation says the same thing as the text and that every chip, label, sublabel, wire string and aria-label carries a valid value. Builds a claim inventory from the live card, ranks the claims by risk, verifies each against a citable source, reconciles the picture with the narration step by step, and finishes by updating the CONTENT block of the card record and the catalog entry. Use when the user asks to verify the technical content of a card ("проверь техническую часть", "check the facts", "is this card technically correct", "verify against the docs", "проверь текст карточки по докам"), with the card id as the argument. For layout, geometry, motion and dead code use card-review instead.
+description: Fact-check one scheme card against the Kubernetes documentation and the API reference, then check that the animation says the same thing as the text and that every chip, label, sublabel, wire string and aria-label carries a valid value. Builds a claim inventory from the live card, ranks the claims by risk, verifies each against a citable source, reconciles the picture with the narration step by step, and finishes by updating the CONTENT block of the card record and the catalog entry. Use when the user asks to verify the technical content of a card ("проверь техническую часть", "check the facts", "is this card technically correct", "verify against the docs", "проверь текст карточки по докам"), with the card id as the argument. For layout, geometry, motion and dead code use card-review instead. For all four skills run end to end over a SET of cards unattended, use card-cycle.
 ---
 
 # Card facts
@@ -40,19 +40,23 @@ root. `node --test` and `npm run` need `scheme/test/`.
 
 ```bash
 python3 -m http.server 8888 --bind 0.0.0.0      # from the repo root, if nothing is serving
-cd scheme/test
+cd "$(git rev-parse --show-toplevel)"/scheme/test
 node ../../.claude/skills/card-facts/tools/claims.mjs <card-id>            # the inventory
 node ../../.claude/skills/card-facts/tools/claims.mjs <card-id> --tokens   # just the token table
 node tools/settled-dump.mjs <card-id>                                      # the settled state, as data
 ```
 
-Read alongside it:
+Read alongside it, and the first three arrive in ONE run rather than three:
 
-- the card source (`scheme/js/schemes/<category>/<card-id>.js`), for what each step declares
-- the catalog entry in `cards.js`: `title`, `desc`, `k8sVersion`, `sources`
-- the `CONTENT` block of the `## <card-id>` section in that folder's record: it already holds
-  the claims a previous pass checked and the wording those checks forced. Do not re-litigate a
-  settled wording without a source that overturns it.
+```bash
+node .claude/skills/_shared/tools/ctx.mjs <card-id>
+```
+
+- the card source, for what each step declares: `ctx.mjs` section 3, line-numbered and whole.
+- the catalog entry (`title`, `desc`, `k8sVersion`, `sources`): `ctx.mjs` section 1.
+- the record, whose `CONTENT` block already holds the claims a previous pass checked and the
+  wording those checks forced: `ctx.mjs` section 2. Do not re-litigate a settled wording without a
+  source that overturns it.
 - `scheme/CANON.md`, the `T-` group: the terminology and prose rules the fixes must land inside.
   `cd scheme/test && node tools/canon.mjs --block=T` prints it, and `--check=review` narrows it to
   the rows the prose test cannot see.
@@ -197,7 +201,9 @@ Every drawn value is a claim with a narrow definition of correct:
 ## 6. Siblings
 
 Any mechanism this card touches that another card owns: open that card and reconcile them. Quote
-both sentences in the finding. In this project, cross-reading cards that one reviewer had already
+both sentences in the finding. **Which cards those are is already printed**: `ctx.mjs` section 6
+resolves every sibling the desc, the aria-label, a narration or the record names, by id and by
+title, and lists the `... card` phrases it could not resolve for you to read by hand. In this project, cross-reading cards that one reviewer had already
 closed turned up 31 real defects across 87 cards, and most were a card disagreeing with a sibling,
 with its own other steps, or with its own labels.
 
@@ -233,19 +239,29 @@ Apply only what the user approves, and once approved, three project rituals come
   `docker rm -f kube-cheatsheet && docker build -t kube-cheatsheet . && docker run -d --name kube-cheatsheet -p 8080:80 kube-cheatsheet`
 - **Never commit unless the user asks.** Finish, report, and leave the tree uncommitted.
 
-After any prose edit, the fast loop is
-`SCHEME_IDS=<card-id> npm run test:render` (about 6s, this card only, floors off) plus
-`npm run test:unit`, and the full `npm test` once at the end. Re-read
-the changed sentences in the rendered panel, because a bulk edit over prose leaves the linters green
-and the meaning broken (`T-31`).
+After any prose edit the loop is `npm run test:unit` (1.4s) plus
+`SCHEME_IDS=<card-id> npm run test:render` (7s, this card only, floors off), and it is the WHOLE
+check this skill owes, not a fast approximation of one. What this skill edits is prose: a narration,
+a wire string, a chip label, an aria-label, a `desc`. Every catalog-wide rule over prose lives in
+`unit/**` and runs unfiltered there whatever `SCHEME_IDS` says: the `desc` band and sentence count
+(`D-04`, `D-05`), the term case and reword rules (`T-06`, `T-07`), the apostrophe and semicolon bans
+(`T-01`, `T-03`) and the dash sweep (`T-04`, `T-05`). Everything left that a prose edit can move is
+drawn on THIS card and is what the filtered render walk reads. The three minutes the unfiltered gate
+adds buy verdicts about other people's cards.
+
+Re-read the changed sentences in the rendered panel, because a bulk edit over prose leaves the
+linters green and the meaning broken (`T-31`).
 
 ---
 
 ## 8. Update the records
 
-Whatever you edited here, the LAST step is the markdown sweep in `card-review`'s phase 8, "sweep the
-numbers, do not judge them". A reworded `desc` or narration moves a character count, and a count is
-a claim about the tree that can go stale in a file you never opened. Run it and report its verdicts.
+Whatever you edited here, the LAST step is the count sweep in
+`.claude/skills/_shared/card-verify.md` section 4, "sweep the counts, do not judge them". A reworded
+`desc` or narration moves a character count, and a count is a claim about the tree that can go stale
+in a file you never opened. Run it and report its verdicts. When the edit lands on a card that
+already exists, `_shared/card-edit.md` is read BEFORE the first rewording: it carries the ruling
+check and the blast radius a prose change sets off.
 
 The fact check owns two places, and it is not finished until both are true:
 
@@ -278,7 +294,7 @@ terminology RULE changed, in which case it is a rulebook edit and belongs to a s
 Then:
 
 ```bash
-cd scheme/test && npm run test:unit      # docs.test.mjs: the record still parses and its anchors hold
+cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run test:unit      # docs.test.mjs: the record still parses and its anchors hold
 ```
 
 ---

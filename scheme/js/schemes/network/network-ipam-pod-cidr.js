@@ -1,18 +1,23 @@
 import { P, F, defineCard } from './network-kit.js';
 
-// Design notes for this card: ./CARDS.md#network-ipam-pod-cidr
+// Design notes for this card: ./CARDS/network-ipam-pod-cidr.md
 
 
-// Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 255. The three Node frames span
-// 80..1120 and are centred on the canvas, the control-plane column stands on their common centre.
+// Geometry. Panel right <= 397, bottom <= 305, and NODE_Y 312 is what clears that bottom. The three
+// Node frames span 80..1120 and are centred on the canvas, the control-plane column stands on their
+// common centre, and every x is derived from NODE_X / NODE_CX, so the Node columns, their slice
+// chips, their Pods and the allocation bus cannot drift apart.
 const NODE_Y = 312, NODE_W = 300, NODE_H = 290;
 const NODE_X = [80, 450, 820];
 const NODE_CX = NODE_X.map(x => x + NODE_W / 2);            // 230, 600, 970
 const SPINE_X = NODE_CX[1];                                 // 600: controller column and Node-2 drop
 
-const CFG_X = 460, CFG_W = 280, CFG_Y = 44, CFG_H = 64;     // the cluster pod CIDR pool
-const KCM_Y = 150, KCM_H = 72;
-const KCM_BOTTOM = KCM_Y + KCM_H;                           // 222: where every allocation leaves
+const CFG_X = 484, CFG_W = 232, CFG_Y = 44, CFG_H = 80;     // 484..716 by 44..124, the family object
+// Both boxes take the family 232 x 80: the two stand in one column, and a column reads as one only
+// when its blocks match. The controller sits at 166 rather than 150, so the 42 between them is
+// wider than the arrow it carries is long, and the pair reads as two objects rather than a stack.
+const KCM_Y = 166, KCM_H = 80;
+const KCM_BOTTOM = KCM_Y + KCM_H;                           // 246: where every allocation leaves
 
 const SLICE_W = 260, SLICE_H = 34, SLICE_Y = 350;
 const SLICE_X = NODE_X.map(x => x + (NODE_W - SLICE_W) / 2);// 100, 470, 840
@@ -21,7 +26,9 @@ const SLICE_BOTTOM = SLICE_Y + SLICE_H;                     // 384: where the IP
 const POD_Y = 442, POD_W = 200, POD_H = 130;
 const POD_X = NODE_CX.map(cx => cx - POD_W / 2);            // 130, 500, 870
 
-const BRANCH_Y = 264;                                       // the bus the flanking allocations turn on
+const BRANCH_Y = 280;                                       // the bus the flanking allocations turn on
+// 280 and not 264: it moves with the controller so the drop off its bottom face keeps its 34, and
+// it still stands 32 clear of the Node frames at 312 and 50 under the deepest panel bottom.
 // controller -> a Node slice: straight down the spine for Node-2, down and out along the bus for the
 // flanking two. Wire and ball come from the same array.
 const allocTo = (cx) => [[SPINE_X, KCM_BOTTOM], [SPINE_X, BRANCH_Y], [cx, BRANCH_Y], [cx, SLICE_Y]];
@@ -32,13 +39,15 @@ const CFG_DROP = [[SPINE_X, CFG_Y + CFG_H], [SPINE_X, KCM_Y]];     // the pool t
 const IPAM1 = [[NODE_CX[0], SLICE_BOTTOM], [NODE_CX[0], POD_Y]];   // Node-1 IPAM -> its Pod
 const IPAM2 = [[SPINE_X, SLICE_BOTTOM], [SPINE_X, POD_Y]];         // Node-2 IPAM -> its Pod
 
-// The three allocation balls share ONE travel time so they land together: routeDur is length-based
-// and would land the short centre path first.
+// The three allocation balls share ONE travel time so they land together: the kcm carves every slice
+// in one reconcile pass, and routeDur is length-based, which would land the short centre path first.
+// The card is registered for that in the `PACING` map of `render/motion.test.mjs`.
 const dur = 1100;
 
-// The six wires predate the kit binding and carry NO role, so the arrowhead stays the neutral dim
-// one. Omitting `role: ''` here would stamp the category role and swap the marker.
-const WIRE = { dashed: true, dim: true, role: '' };
+// All six wires share one shape: dashed because nothing sits on them between the beats, and dim so
+// the 1.4 stroke stays quiet under the bright ball. `dim` is a weight only, so the kit still fills
+// the category role and the line and its arrowhead keep the cyan.
+const WIRE = { dashed: true, dim: true };
 
 // A Pod that comes into existence mid-card: born hidden, revealed by its own 350ms fade.
 const REVEAL = { keyframes: [{ opacity: 0 }, { opacity: 1 }], options: { duration: 350, fill: 'forwards', easing: 'ease-out' } };
@@ -111,8 +120,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'allocate',
-    duration: 2600,
-    narration: 'With --allocate-node-cidrs set, the controller-manager carves a smaller, non-overlapping block out of the pool for every Node and writes it into node.spec.podCIDR. Here each Node gets its own /24, so Node-1 owns 10.244.1.0/24, Node-2 owns 10.244.2.0/24 and Node-3 owns 10.244.3.0/24.',
+    duration: 2900,
+    narration: 'With --allocate-node-cidrs set, the controller-manager carves a smaller, non-overlapping block out of the pool for every Node and writes it into node.spec.podCIDR. The block size comes from --node-cidr-mask-size, /24 by default, so Node-1 owns 10.244.1.0/24, Node-2 owns 10.244.2.0/24 and Node-3 owns 10.244.3.0/24.',
     chips: CARVED,
     podSublabels: { podA: 'IP pending' },
     opacity: LATER_HIDDEN,
@@ -146,8 +155,10 @@ export const STEPS_SPEC = [
   },
   {
     id: 'unique',
-    duration: 2600,
-    narration: 'Every other Node assigns the same way, out of its own slice. A Pod scheduled to Node-2 gets 10.244.2.8 from 10.244.2.0/24, a different /24 that can never overlap the addresses on Node-1. So every Pod IP is unique across the whole cluster, which is what lets any Pod be reached directly while routing only has to track which Node owns which /24.',
+    // The longest narration on the card, 452 characters, so it holds longest: 4200 reads at 9.29 ms
+    // per character, the pace of the three steps before it (9.21 to 9.34).
+    duration: 4200,
+    narration: 'Every other Node assigns the same way, out of its own slice. A Pod scheduled to Node-2 gets 10.244.2.8 from 10.244.2.0/24, a different /24 that can never overlap the addresses on Node-1. Node-3 holds 10.244.3.0/24 with no Pod scheduled on it yet, because a block is carved at Node registration. So every Pod IP is unique across the whole cluster, which is what lets any Pod be reached directly while routing only has to track which Node owns which /24.',
     chips: CARVED,
     podSublabels: { podA: 'IP 10.244.1.5', podB: 'IP 10.244.2.8' },
     // The Node-2 Pod and its arrow end the step present, which is what the static path shows. The

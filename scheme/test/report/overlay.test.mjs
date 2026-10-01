@@ -53,10 +53,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
-import {
-  DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, DIAGRAM_FACES, launch, initPage, discoverIds,
-  openCard, stepCount, gotoStep, fallbackFaces, overlayProbe,
-} from '../fixtures/render.mjs';
+import { DIAGRAM_FACES, DEFAULT_BASE } from '../fixtures/render.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
+
+// THE BROWSER IS NOT DRIVEN HERE ANY MORE. The three-viewport panel walk is taken once by
+// `tools/walk.mjs` and read by this file and by report/geometry-soft.test.mjs, which used to walk
+// the same two extra viewports with the same probe in a second Chromium. Every number, threshold
+// and printed line below is unchanged: the walk stores this file's four-edge reading as `panel`,
+// under the shared guards in fixtures/render.mjs overlayProbe, and the retry that file carried is
+// part of the walk now.
 
 // L-06. All three are measured in full here: unlike the geometry rules, which read the panel on the
 // extra viewports only to feed OCCLUDED, every number this file prints is a panel number.
@@ -84,13 +89,16 @@ const RECORDED_RIGHT = { value: 396.55, id: 'cluster-architecture', viewport: '1
 // 107.67 is the four-line panel at 1600x1000 and 15 cards sit on it, so an "attribution DIFFERS" on
 // the shallow end says nothing. 90.23 is one line under that cluster and one card reaches it.
 const RECORDED_BOTTOM = {
-  lo: 90, hi: 504,
+  lo: 90, hi: 379,
   shallowest: { value: 90.23, id: 'cluster-leader-election', viewport: '1600x1000', step: 2 },
-  deepest: { value: 503.13, id: 'workloads-pod-phase-machine', viewport: '1100x800', step: 5 },
+  // 504 stood on workloads-pod-lifecycle-phases until that card was rebuilt as a state machine and
+  // its narration cut to three sentences a step. Nothing reaches that depth now.
+  deepest: { value: 378.90, id: 'workloads-pod-qos-classes', viewport: '1100x800', step: 4 },
 };
 
-// L-05a: the panel shrinks in units by up to 186 across the viewport set.
-const RECORDED_SWING = 186;
+// L-05a: the panel shrinks in units by up to 131.68 across the viewport set. It was 186 while
+// workloads-pod-lifecycle-phases carried the catalog's deepest panel, and that card no longer does.
+const RECORDED_SWING = 131.68;
 
 // The step census of a green run of the whole catalog, per viewport.
 // The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
@@ -106,14 +114,6 @@ const SAME = 0.5;
 // one calculation of the panel rect through xMidYMid meet, four edges, of which this file reads all
 // four and that one reads two. It runs IN THE PAGE and carries the mapping argument in its own
 // comment.
-
-// One probe, with one retry when the diagram is momentarily absent (2.4c above).
-async function probeOverlay(page) {
-  const first = await page.evaluate(overlayProbe);
-  if (first) return first;
-  try { await page.waitForSelector(DIAGRAM, { timeout: SELECTOR_TIMEOUT_MS }); } catch (_) { return null; }
-  return page.evaluate(overlayProbe);
-}
 
 const f2 = n => Number.isFinite(n) ? n.toFixed(2) : 'n/a';
 const near = (a, b) => Number.isFinite(a) && Math.abs(a - b) <= SAME;
@@ -141,7 +141,6 @@ test('narration panel extent, per card and per viewport (report only, never fail
   const notes = [];
   // per card: { id, steps, byVp: Map(vpName -> { right, bottomLo, bottomHi, loStep, hiStep, perStep: [] }) }
   const rows = [];
-  let browser;
   let sampledCards = 0;
   const stepsPerVp = new Map(VIEWPORTS.map(v => [vpName(v), 0]));
 
@@ -152,11 +151,8 @@ test('narration panel extent, per card and per viewport (report only, never fail
   const overCeiling = [];
 
   try {
-    browser = await launch();
-    const context = await browser.newContext({ viewport: VIEWPORTS[0] });
-    const page = await context.newPage();
-    await page.addInitScript(initPage, 'expose');
-    const all = await discoverIds(page, DEFAULT_BASE);
+    const snap = readSnapshot();
+    const all = snap.ids;
     const ids = ONLY.length ? all.filter(i => ONLY.includes(i)) : all;
     for (const want of ONLY) {
       if (!all.includes(want)) notes.push(`${ONLY_VAR} names ${want}, which the grid does not render`);
@@ -164,19 +160,17 @@ test('narration panel extent, per card and per viewport (report only, never fail
 
     for (const id of ids) {
       try {
-        await openCard(page, id);
-        for (const f of await fallbackFaces(page)) fellBack.add(f);
-        const total = await stepCount(page);
+        const card = snap.cards[id];
+        for (const f of card.fellBack) fellBack.add(f);
+        const total = card.steps;
         if (!total) { notes.push(`${id}: stepCount 0, nothing walked`); continue; }
 
         const byVp = new Map();
         for (const vp of VIEWPORTS) {
           const name = vpName(vp);
-          await page.setViewportSize(vp);
           const acc = { right: -Infinity, bottomLo: Infinity, bottomHi: -Infinity, loStep: -1, hiStep: -1, perStep: [] };
           for (let i = 0; i < total; i++) {
-            await gotoStep(page, i);
-            const o = await probeOverlay(page);
+            const o = card.byVp[name][i].panel;
             if (!o) {
               acc.perStep.push(null);
               notes.push(`${id}: step ${i} at ${name} had no diagram or no panel, not sampled`);
@@ -197,7 +191,6 @@ test('narration panel extent, per card and per viewport (report only, never fail
           }
           byVp.set(name, acc);
         }
-        await page.setViewportSize(VIEWPORTS[0]);
         rows.push({ id, steps: total, byVp });
         sampledCards++;
       } catch (err) {
@@ -206,8 +199,6 @@ test('narration panel extent, per card and per viewport (report only, never fail
     }
   } catch (err) {
     notes.push(`harness: ${err.message.split('\n')[0]}`);
-  } finally {
-    if (browser) await browser.close();
   }
 
   // -------------------------------------------------------------------------------------------

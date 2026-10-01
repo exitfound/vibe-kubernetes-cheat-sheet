@@ -184,45 +184,155 @@ function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;
 
 let activeCat = 'all';
 let activeSub = null;
+// TWO values, and the reason is the round trip: `searchQuery` is what the filter matches against
+// (trimmed, folded to lower case) and `searchText` is what the reader actually typed, which is what
+// the hash carries and what goes back into the input on a reload.
+let searchText = '';
 let searchQuery = '';
 let activeController = null;
 let activeDialogScheme = null;
+
+// The hash carries TWO things, and this is the whole routing contract:
+//   #at=<key>&q=<search>                the state the grid is in: a section, a search, or both
+//   #scheme=<id>&step=<n>&at=<key>&q=<search>   a card, plus the grid state behind it
+// A key is a category key or a subcategory key, unambiguous because D-07 asserts no subcategory
+// key is shared between categories. `at=` is one parameter with one meaning in both forms, and it
+// carries the filter THROUGH a card, so closing the dialog lands back in the section the card was
+// opened from and reloading a deep link rebuilds that section rather than the whole catalog.
+//
+// WHY THE KEY IS NAMED RATHER THAN BARE, which is how /cli/ writes its own sections: the two
+// sub-apps share one hash namespace at the root, where the hub forwards `#...` to one of them. The
+// bare namespace belongs to /cli/ by being the default target, so /scheme/ has to prefix what it
+// writes or the hub cannot tell a section of one from a section of the other without carrying a
+// copy of this catalog's keys. A bare key is still READ (`parseHash`), so a hand-written or older
+// `#csi-mount-path` still resolves.
+const FILTER_KEYS = new Map();
+for (const c of CATEGORIES) {
+  if (c.key === 'all') continue;
+  FILTER_KEYS.set(c.key, { cat: c.key, sub: null });
+  for (const sc of (SUBCATEGORIES[c.key] || [])) FILTER_KEYS.set(sc.key, { cat: c.key, sub: sc.key });
+}
+
+function filterKey() {
+  if (activeCat === 'all') return '';
+  return activeSub || activeCat;
+}
+
+// Both halves of the grid state, in a fixed order so the URL does not churn. The search is
+// percent-encoded, which is what keeps a space, an `&` or a `#` inside a query from being read back
+// as a second parameter.
+function gridHash() {
+  const parts = [];
+  const key = filterKey();
+  if (key) parts.push(`at=${key}`);
+  if (searchQuery) parts.push(`q=${encodeURIComponent(searchText)}`);
+  return parts.length ? `#${parts.join('&')}` : '';
+}
+
+// Every write is a replaceState: the grid filter is a view, not a place, and it never fires
+// hashchange, so `apply` below cannot be re-entered by our own writes.
+function writeHash(hash) {
+  if (hash) {
+    if (location.hash !== hash) history.replaceState(null, '', hash);
+  } else if (location.hash) {
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+}
+
+function schemeHash(id, stepIdx) {
+  let hash = `#scheme=${id}`;
+  if (stepIdx != null) hash += `&step=${stepIdx + 1}`;
+  const grid = gridHash();
+  if (grid) hash += `&${grid.slice(1)}`;
+  return hash;
+}
+
+// `html` carries scroll-behavior: smooth, and `behavior: 'auto'` DEFERS to that CSS rather than
+// overriding it: measured, a filter change glided for half a second through the length of the old
+// grid before settling. `instant` is the only value that overrules the stylesheet.
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+// Returns whether anything moved, so a caller can decide to reset the scroll only when it did.
+// The search-side twin of applyFilter, and the only writer of the two search values. It owns the
+// input element too: a query restored from the hash has to appear in the box, or the grid is
+// filtered by something the reader cannot see and cannot clear.
+function applySearch(text, { render = true } = {}) {
+  const next = text || '';
+  const query = next.trim().toLowerCase();
+  if (query === searchQuery && next === searchText) return false;
+  searchText = next;
+  searchQuery = query;
+  const input = document.getElementById('searchInput');
+  if (input && input.value !== next) input.value = next;
+  if (render) renderGrid();
+  return true;
+}
+
+function applyFilter(key, { render = true } = {}) {
+  const spec = key ? FILTER_KEYS.get(key) : null;
+  const cat = spec ? spec.cat : 'all';
+  const sub = spec ? spec.sub : null;
+  if (cat === activeCat && sub === activeSub) return false;
+  activeCat = cat;
+  activeSub = sub;
+  if (render) {
+    renderCatNav();
+    renderSubNav();
+    renderGrid();
+  }
+  return true;
+}
 
 function init() {
   if (reducedMotion()) document.body.classList.add('reduced-motion');
   onReducedMotionChange(() => document.body.classList.toggle('reduced-motion', reducedMotion()));
   document.getElementById('year').textContent = new Date().getFullYear();
+  // The browser would restore a scroll offset measured against the grid it had BEFORE the filter
+  // was applied, which is a different document height and lands nowhere in particular.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  const parsed = parseHash();
+  applyFilter(parsed.filter, { render: false });
+  applySearch(parsed.q, { render: false });
   setupSearch();
   renderCatNav();
   renderSubNav();
   renderGrid();
+  // A hash that names no card and no section (a typo, a renamed key, a link from elsewhere) is
+  // cleaned out of the URL rather than left to look like state the page is holding.
+  if (!parsed.id) writeHash(gridHash());
   setupHashRouting();
   setupGlobalKeys();
+  setupScrollTop();
 }
 
 function setupSearch() {
   const input = document.getElementById('searchInput');
   const clear = document.getElementById('searchClear');
   let timer = null;
+  // A search narrows the grid the same way a section does, so it lands the reader at the top of the
+  // result and in a URL that survives a reload. Debounced at 80ms, which is what D-15 states.
+  const commit = () => {
+    if (!applySearch(input.value)) return;
+    writeHash(gridHash());
+    scrollToTop();
+  };
+  const clearSearch = () => {
+    clearTimeout(timer);
+    input.value = '';
+    commit();
+  };
   input.addEventListener('input', () => {
     clearTimeout(timer);
-    timer = setTimeout(() => {
-      searchQuery = input.value.trim().toLowerCase();
-      renderGrid();
-    }, 80);
+    timer = setTimeout(commit, 80);
   });
   clear.addEventListener('click', () => {
-    input.value = '';
-    searchQuery = '';
-    renderGrid();
+    clearSearch();
     input.focus();
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && document.activeElement === input) {
-      input.value = '';
-      searchQuery = '';
-      renderGrid();
-    }
+    if (e.key === 'Escape' && document.activeElement === input) clearSearch();
   });
 }
 
@@ -236,12 +346,14 @@ function renderCatNav() {
   inner.querySelectorAll('.cat-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const next = btn.dataset.cat;
-      if (next === activeCat) return;
+      if (next === activeCat) { writeHash(gridHash()); return; }
       activeCat = next;
       activeSub = null;
       renderCatNav();
       renderSubNav();
       renderGrid();
+      writeHash(gridHash());
+      scrollToTop();
     });
   });
 }
@@ -270,7 +382,7 @@ function renderSubNav() {
     btn.addEventListener('click', () => {
       const sub = btn.dataset.sub;
       if (sub === 'all') {
-        if (activeSub === null) return;
+        if (activeSub === null) { writeHash(gridHash()); return; }
         activeSub = null;
       } else if (activeSub === sub) {
         activeSub = null;
@@ -279,6 +391,8 @@ function renderSubNav() {
       }
       renderSubNav();
       renderGrid();
+      writeHash(gridHash());
+      scrollToTop();
     });
   });
 }
@@ -436,56 +550,9 @@ function renderPoster(scheme) {
   `;
 }
 
-// Old scheme ids still resolve, so deep links, bookmarks and indexed sitemap URLs keep opening the
-// right card. A rename is cheap only because this map exists: add the entry WITH it, never later.
-const SCHEME_ALIASES = {
-  // Old Cluster ids were keyed `control`. Every one still resolves.
-  'control-plane-architecture': 'cluster-architecture',
-  'control-plane-apply-flow': 'cluster-object-create-path',
-  'cluster-apply-flow': 'cluster-object-create-path',
-  'control-plane-delete-flow': 'cluster-cascading-deletion',
-  'control-etcd-raft': 'cluster-etcd-raft',
-  'control-leader-election': 'cluster-leader-election',
-  'control-scheduler-decision': 'cluster-scheduler-decision',
-  'control-admission-webhooks': 'cluster-admission-chain',
-  'control-api-structure': 'cluster-list-watch-informers',
-  'control-node-drain': 'cluster-node-drain',
-  'control-kubelet-sync-loop': 'cluster-kubelet-reconcile-loop',
-  'control-node-pressure-eviction': 'cluster-node-pressure-eviction',
-  'control-graceful-node-shutdown': 'cluster-graceful-node-shutdown',
-  'control-node-failure': 'cluster-node-failure',
-  'control-pod-sandbox-cri': 'cluster-pod-sandbox-cri',
-  'control-oom-kill': 'cluster-oom-kill',
-  // Six Cluster ids renamed to the name the card actually carries. Every old id still resolves.
-  'cluster-api-structure': 'cluster-list-watch-informers',
-  'cluster-admission-webhooks': 'cluster-admission-chain',
-  'cluster-node-garbage-collection': 'cluster-image-container-gc',
-  'cluster-delete-flow': 'cluster-cascading-deletion',
-  'cluster-kubelet-sync-loop': 'cluster-kubelet-reconcile-loop',
-  'cluster-pod-cgroup-tree': 'cluster-pod-cgroup-hierarchy',
-  'lifecycle-node-drain': 'cluster-node-drain',
-  'lifecycle-pod-phase-machine': 'workloads-pod-phase-machine',
-  'lifecycle-restart-policy': 'workloads-restart-policy',
-  'lifecycle-hooks': 'workloads-hooks',
-  'lifecycle-probes': 'workloads-probes',
-  'lifecycle-container-states': 'workloads-container-states',
-  'lifecycle-crashloopbackoff': 'workloads-crashloopbackoff',
-  'lifecycle-graceful-shutdown': 'workloads-graceful-shutdown',
-  'lifecycle-force-deletion': 'workloads-force-deletion',
-  // Preemption is the PostFilter stage of the scheduler, so the card lives in Cluster.
-  'workloads-pod-priority-preemption': 'cluster-pod-priority-preemption',
-  // A resize never leaves the one Pod it counts, so the card lives in Workloads.
-  'cluster-pod-resize': 'workloads-pod-resize',
-  'deployment-rolling-update': 'workloads-rolling-update',
-  'storage-statefulset-pvc-stickiness': 'workloads-pvc-stickiness',
-  'service-cluster-ip': 'network-service-clusterip',
-  'network-kube-proxy-iptables': 'network-kube-proxy-modes',
-};
-
 // The dialog lifecycle, and why a card module is lazy-imported: 108 modules are never all in
 // memory. A live controller is torn down first, or its animations land on the next dialog's canvas.
 async function openScheme(id, initialStep = null) {
-  id = SCHEME_ALIASES[id] || id;
   const scheme = SCHEMES.find(s => s.id === id);
   if (!scheme) return;
   if (activeController || activeDialogScheme || document.querySelector('dialog.scheme-dialog')) {
@@ -502,11 +569,7 @@ async function openScheme(id, initialStep = null) {
     dialog._inspectCleanup = attachInspector(dialog);
   }
   activeDialogScheme = scheme;
-  const baseHash = `#scheme=${id}`;
-  const wantedHash = initialStep != null ? `${baseHash}&step=${initialStep + 1}` : baseHash;
-  if (location.hash !== wantedHash) {
-    history.replaceState(null, '', wantedHash);
-  }
+  writeHash(schemeHash(id, initialStep));
 
   let mod;
   try {
@@ -525,8 +588,7 @@ async function openScheme(id, initialStep = null) {
     onStepChange: (idx, step, total, meta) => {
       updateNarration(dialog, idx, step, total, meta);
       if (activeDialogScheme && activeDialogScheme.id === scheme.id) {
-        const newHash = `#scheme=${scheme.id}&step=${idx + 1}`;
-        if (location.hash !== newHash) history.replaceState(null, '', newHash);
+        writeHash(schemeHash(scheme.id, idx));
       }
     },
     onPlayingChange: (playing) => updatePlayBtn(dialog, playing),
@@ -742,34 +804,96 @@ function closeDialog({ updateHash = true } = {}) {
     }
     dlg.remove();
   }
-  if (updateHash && location.hash) {
-    history.replaceState(null, '', location.pathname + location.search);
+  if (updateHash) writeHash(gridHash());
+}
+
+// Order-free, so `#scheme=x&step=2&at=storage` and a bare `#storage` go through one reader. An
+// unknown token is ignored rather than treated as a filter: a stale link opens the full catalog.
+function parseHash() {
+  const out = { id: null, step: null, filter: null, q: '' };
+  const raw = location.hash.slice(1);
+  if (!raw) return out;
+  for (const part of raw.split('&')) {
+    let m;
+    if ((m = /^scheme=([\w-]+)$/.exec(part))) {
+      out.id = m[1];
+    } else if ((m = /^step=(\d+)$/.exec(part))) {
+      const n = parseInt(m[1], 10);
+      out.step = n > 0 ? n - 1 : null;
+    } else if ((m = /^at=([\w-]+)$/.exec(part))) {
+      if (FILTER_KEYS.has(m[1])) out.filter = m[1];
+    } else if ((m = /^q=(.*)$/.exec(part))) {
+      // A hand-edited hash can carry a stray percent, which throws rather than returning anything.
+      try { out.q = decodeURIComponent(m[1]); } catch (_) { out.q = m[1]; }
+    } else if (FILTER_KEYS.has(part)) {
+      out.filter = part;
+    }
+  }
+  return out;
+}
+
+// A RELOAD is the reader asking for the card again, not asking to be dropped back where they were:
+// the step in the hash records how far the animation got, and restoring it lands them on a frozen
+// middle frame of something they were watching play. A link, a bookmark or a back is a different
+// intent and keeps its step. `navigation.type` is what tells the two apart.
+function isReload() {
+  try {
+    const nav = performance.getEntriesByType('navigation')[0];
+    return !!nav && nav.type === 'reload';
+  } catch (_) {
+    return false;
   }
 }
 
-function parseSchemeHash() {
-  const m = location.hash.match(/^#scheme=([\w-]+)(?:&step=(\d+))?/);
-  if (!m) return null;
-  const stepNum = m[2] ? parseInt(m[2], 10) : null;
-  const stepIdx = stepNum != null && stepNum > 0 ? stepNum - 1 : null;
-  return { id: m[1], step: stepIdx };
-}
-
 function setupHashRouting() {
+  const reloaded = isReload();
+  let first = true;
   const apply = () => {
-    const parsed = parseSchemeHash();
-    if (parsed) {
-      if (!activeDialogScheme || activeDialogScheme.id !== parsed.id) {
-        openScheme(parsed.id, parsed.step);
-      } else if (parsed.step != null && activeController && activeController.gotoStep) {
-        activeController.gotoStep(parsed.step);
-      }
-    } else if (activeController) {
-      closeDialog({ updateHash: false });
+    const parsed = parseHash();
+    // Only the OPENING pass, and only after a reload: a hashchange that arrives later is a
+    // navigation of its own and means what it says.
+    const step = first && reloaded ? null : parsed.step;
+    first = false;
+    // Grid state arriving through the hash (a shared link, an edited URL) rebuilds the grid; init
+    // has already applied the first one, so this is a no-op on the opening call. Both halves are
+    // applied before either renders, or a hash carrying a section AND a search renders twice.
+    const filterMoved = applyFilter(parsed.filter, { render: false });
+    const searchMoved = applySearch(parsed.q, { render: false });
+    if (filterMoved || searchMoved) {
+      renderCatNav();
+      renderSubNav();
+      renderGrid();
+      scrollToTop();
     }
+    if (parsed.id) {
+      if (!activeDialogScheme || activeDialogScheme.id !== parsed.id) {
+        openScheme(parsed.id, step);
+      } else if (step != null && activeController && activeController.gotoStep) {
+        activeController.gotoStep(step);
+      }
+      return;
+    }
+    if (activeController) closeDialog({ updateHash: false });
+    // Same normalisation init does, for a hash that arrives without a reload: a fragment link into
+    // the open page is a hashchange, not a fresh load, so init never sees it.
+    writeHash(gridHash());
   };
   window.addEventListener('hashchange', apply);
   apply();
+}
+
+// The scroll-to-top button, wired exactly as cli/js/app.js wires its own: the same 300px threshold
+// and the same smooth glide, which is the one place the CSS smooth scroll is wanted rather than
+// fought (D-16 owns the filter reset, which is instant on purpose).
+const SCROLL_THRESHOLD = 300;
+
+function setupScrollTop() {
+  const btn = document.getElementById('scrollTopBtn');
+  if (!btn) return;
+  window.addEventListener('scroll', () => {
+    btn.classList.toggle('visible', window.scrollY > SCROLL_THRESHOLD);
+  }, { passive: true });
+  btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 }
 
 function setupGlobalKeys() {

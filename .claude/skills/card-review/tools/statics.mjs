@@ -161,10 +161,20 @@ for (const m of body.matchAll(/\bopacity:\s*\{/g)) {
   for (const k of keysOf(objectAt(body, m.index + m[0].length - 1))) addressed.add(k);
 }
 const declared = new Set([...partKeys, ...[...body.matchAll(/(?:shellKey|innerKey|id):\s*'([\w-]+)'/g)].map(m => m[1])]);
+// A key can also be MINTED from a template, which no source sweep resolves to a string:
+// `innerKey: `${p.key}Box`` over a PODS array, or `key: `pod${i + 1}`` over an index. Reading only
+// quoted literals reported every one of them as a step naming a part that does not exist, which is
+// the tool being blind rather than the card being wrong. Each template becomes a shape instead: the
+// literal text around every `${...}`, with the substitutions as wildcards.
+const minted = [...body.matchAll(/(?:shellKey|innerKey|key|id):\s*`([^`]*\$\{[^`]*)`/g)].map((m) => {
+  const shape = m[1].split(/\$\{[^}]*\}/).map(lit => lit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[\\w-]+');
+  return { src: m[1], re: new RegExp(`^${shape}$`) };
+});
 for (const k of addressed) {
-  if (!declared.has(k) && !/^(?:\.\.\.|OPACITY|STANDING)/.test(k) && uses(k) <= 2 && !body.includes(`${k}:`)) {
-    say('NO-SUCH-KEY', `${rel}  a step names '${k}' and no part declares it`);
-  }
+  if (declared.has(k) || /^(?:\.\.\.|OPACITY|STANDING)/.test(k) || uses(k) > 2 || body.includes(`${k}:`)) continue;
+  const by = minted.find(t => t.re.test(k));
+  if (by) { notByKey.push(`'${k}': minted from the template \`${by.src}\`, which no source sweep resolves`); continue; }
+  say('NO-SUCH-KEY', `${rel}  a step names '${k}' and no part declares it`);
 }
 
 // ---- a lane nobody rides, a ball on a path nobody draws ---------------------------------------
@@ -200,12 +210,15 @@ for (const s of strings) {
 if (/[—]/.test(src)) say('PROSE', `${rel} contains an em-dash somewhere in the file`);
 
 // ---- comment runs (S-34) ----------------------------------------------------------------------
+// The ceiling lives in unit/files.test.mjs and in the canon row; this is the third home and the one
+// that drifts, so it is named once here and read twice below.
+const S34_CEILING = 6;
 let run = 0, runStart = 0;
 lines.forEach((l, i) => {
   if (l.trimStart().startsWith('//')) { if (!run) runStart = i + 1; run++; }
-  else { if (run > 2) say('S-34', `${rel}:${runStart}  comment run of ${run} lines, ceiling is 2`); run = 0; }
+  else { if (run > S34_CEILING) say('S-34', `${rel}:${runStart}  comment run of ${run} lines, ceiling is ${S34_CEILING}`); run = 0; }
 });
-if (run > 2) say('S-34', `${rel}:${runStart}  comment run of ${run} lines, ceiling is 2`);
+if (run > S34_CEILING) say('S-34', `${rel}:${runStart}  comment run of ${run} lines, ceiling is ${S34_CEILING}`);
 
 // ---- the catalog wiring around the card --------------------------------------------------------
 const cardsJs = readFileSync(join(SCHEMES, category, 'cards.js'), 'utf8');
@@ -228,15 +241,14 @@ const recordMd = existsSync(perCard)
 if (!recordMd.includes(`## ${id}\n`)) say('RECORD', `${recordRel} has no "## ${id}" section`);
 else {
   const section = recordMd.split(`## ${id}\n`)[1].split('\n## ')[0];
+  // One record SHAPE in all four categories: a single `### layout` block of labelled notes (`S-51`),
+  // so any second heading, a per-line anchor or a poster note included, is itself the finding.
   for (const a of section.matchAll(/^### before `(.+)`$/gm)) {
-    if (!src.includes(a[1])) say('ANCHOR', `${recordRel} anchor no longer occurs in the card: ${a[1].slice(0, 70)}`);
+    say('RECORD', `${recordRel} carries an anchor, and a ${category} record is one "### layout" block: ${a[1].slice(0, 70)}`);
   }
+  if (section.includes('### poster')) say('RECORD', `${recordRel} carries a "### poster" note, which a ${category} record does not (R-12)`);
   for (const label of ['WHAT']) if (!section.includes(label)) say('RECORD', `the ${id} record has no ${label} block`);
 }
-const appJs = readFileSync(join(ROOT, 'scheme/js/app.js'), 'utf8');
-const aliases = [...appJs.matchAll(/'([\w-]+)':\s*'([\w-]+)'/g)].filter(m => m[2] === id).map(m => m[1]);
-if (aliases.length) say('ALIASES', `old hashes forwarding here: ${aliases.join(', ')} (keep them, and check they still resolve)`);
-
 console.log(out.length ? out.join('\n') : 'nothing found by the static sweep.');
 if (notByKey.length) {
   console.log(`\nnot reported, these kinds are not addressed by key:\n  ${notByKey.join('\n  ')}`);

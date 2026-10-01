@@ -18,9 +18,8 @@ export { POD_VIOLET };
 // Per-category wrapper over scheme-kit for the Storage cards. The storage-specific pieces are the
 // jade pod tint, its two pulse wrappers and setCylinderLabel.
 
-// `base` must be the exact resting stroke and `bright` the tint-bright stop, for the reason under
-// WORKLOADS_TINT: the non-persist pulse fills forwards to `base`.
-export const STORAGE_TINT = Object.freeze({ base: 'rgb(94, 202, 148)', bright: 'rgb(174, 224, 199)' });
+// `bright` is the tint-bright stop the pulse peaks on, for the reason under WORKLOADS_TINT.
+export const STORAGE_TINT = Object.freeze({ bright: 'rgb(174, 224, 199)' });
 
 
 // The cylinder is the storage family's own block (the backing disk / PV). No other
@@ -32,22 +31,23 @@ export function setCylinderLabel(cylEl, txt) {
 
 export const { pulsePod, pulsePodDim } = makeTintedPulses(STORAGE_TINT);
 
-// The category's X grammar, measured over the 31 cards. Storage centres on a spine and hangs a
-// chip strip under it, so what is shared is a CENTRE and the strip's scalars.
+// The category's chip grammar, measured over the 37 cards. What they share is a CENTRE and the
+// scalars of the chip strip hung under the drawing.
 export const STO = Object.freeze({
-  CX: 600,                    // 22 of the 23 cards naming a centre-X, and 30 of the 31 chip strips
-  // CHIP_H 34 on 27 of 31, CHIP_GAP 16 on 18 of the 25 naming it, CHIP_W 232 on 12, 4 chips on 22.
+  CX: 600,                    // all 19 cards naming a centre-X, and 28 of the 34 chip strips
+  // CHIP_H 34 on 30 of 34 strips, a 16 gap on 25, one width of 232 on 16, 4 chips on 24.
   CHIP_H: 34, CHIP_GAP: 16, CHIP_W: 232, CHIP_COUNT: 4,
 });
 
-// Fix the width AND the gap, derive the span, centre it: 23 cards hand-roll exactly this, and
-// strip() fixes the gap while spread() fixes the width, both spanning an exact from..to instead.
+// Fix the width AND the gap, derive the span, centre it: 17 cards call this, and strip() fixes
+// the gap while spread() fixes the width, both spanning an exact from..to instead.
 export const chipStrip = ({ cx = STO.CX, w = STO.CHIP_W, gap = STO.CHIP_GAP, count = STO.CHIP_COUNT } = {}) => {
   const x0 = cx - (w * count + gap * (count - 1)) / 2;
   return { w, gap, x: (i) => x0 + i * (w + gap) };
 };
 
-// All 600 role literals in this folder are 'storage', its 26 Pods included, so no recolour.
+// Every role literal in this folder is 'storage', so no recolour: 38 are makeRidingLabel calls a
+// card makes past this binding, and one is the bare podShell of storage-fsgroup-ownership.
 // The default tag that rides a ball (M-30). Other timings: own makeRidingLabel, passed as F.tag fn.
 const ridingLabel = makeRidingLabel({ role: 'storage' });
 

@@ -6,7 +6,10 @@
     (function () {
       var h = location.hash;
       if (!h) return;
-      location.replace((h.indexOf('#scheme=') === 0 ? '/scheme/' : '/cli/') + h);
+      // /scheme/ NAMES what it writes (#scheme= a card, #at= a section of the grid); the bare
+      // namespace is /cli/'s, which is why it is the default target rather than a matched one.
+      var toScheme = h.indexOf('#scheme=') === 0 || h.indexOf('#at=') === 0;
+      location.replace((toScheme ? '/scheme/' : '/cli/') + h);
     })();
   </script>
   <meta name="color-scheme" content="dark">

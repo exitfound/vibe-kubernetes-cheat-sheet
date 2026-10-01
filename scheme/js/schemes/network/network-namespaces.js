@@ -1,89 +1,126 @@
-import { P, F, defineCard, OPACITY } from './network-kit.js';
+import { P, F, defineCard, BEAT } from './network-kit.js';
 import { rect } from '../../lib/svg.js';
 import { podShell } from '../../lib/primitives.js';
 
-// Design notes for this card: ./CARDS.md#network-namespaces
+// Design notes for this card: ./CARDS/network-namespaces.md
 
 
-const POD_TOP = 160;      // Pod netns shell top
-const POD_H = 304;        // Pod netns shell height
-const POD_CY = POD_TOP + POD_H / 2;   // 312: Pod netns vertical center, the host block centers on this
-const AXIS_Y = POD_CY;    // 312: veth axis = the shared center of the host and Pod blocks, so the cable runs dead level between them
-const HOST_EDGE = 410;    // host stack right edge (veth start)
-const HOST_H = 150;       // host block height
-const HOST_Y = POD_CY - HOST_H / 2;   // 237: host block top, vertically centered on the Pod netns block
-const POD_LEFT = 600;     // Pod netns shell left edge (veth end): the cable stops at the namespace
-const POD_W = 448;        // Pod netns shell width
-const POD_CX = POD_LEFT + POD_W / 2;  // 824: Pod netns horizontal center, the interior content + labels center on this
-const COL_SPREAD = 113;   // half the gap between the two interior columns
-const COL_L = POD_CX - COL_SPREAD;    // 711: left column center (app over eth0)
-const COL_R = POD_CX + COL_SPREAD;    // 937: right column center (sidecar over lo)
-const ROW_TOP = 196;      // container row top
-const ROW_TOP_H = 60;
-const ROW_TOP_BOT = ROW_TOP + ROW_TOP_H;   // container row bottom (256)
-const IFACE_H = 60;       // interface box height (eth0 / lo)
-const ROW_BOT = 330;      // stack-interface row top: pushed well below the containers so they do not touch
-const RAIL_Y = 293;       // shared-stack rail (bus), midway in the gap between the two rows
-const BAND_CX = POD_CX;   // 824: shared-stack band center = Pod center, so the band + its label sit centered
+// One derived column. The slab row is the unit: the band is padded off it, the shell is padded off
+// the band, the three tenants are sized across the band, and the host block outside takes the
+// category width (NET.L-01). HOST_Y is derived from the SHELL and the host height, so the host
+// stands level with the middle of the Pod NETNS block and the cable lands on its left face
+// midpoint. Re-typing the host y is what breaks the pairing.
+const CX = 820;                            // Pod NETNS column centre: shell, band, slabs and the middle container all centre here
+const SLAB_W = 472;                        // a layer is a slab across the band, not an actor box
+const SLAB_X = CX - SLAB_W / 2;            // 584
+const SLAB_H = 44;
+const SLAB_GAP = 8;
+const SLAB_TOP = 312;                      // top of the ports slab, the first layer under the tenants
+const slabY = (i) => SLAB_TOP + i * (SLAB_H + SLAB_GAP);   // 312, 364, 416, 468
 
-// The localhost path: app drops to the shared rail, rides it across, and climbs to the sidecar. This
-// is the in-Pod loopback path, so it touches both container taps and the rail in one motion.
-const LOCAL_PATH = [[COL_L, ROW_TOP_BOT], [COL_L, RAIL_Y], [COL_R, RAIL_Y], [COL_R, ROW_TOP_BOT]];
+const BAND_PAD = 16;                       // band face to slab face
+const SLAB_PAD = 24;                       // the extra inset the slabs take inside the band, left and right
+const BAND_X = SLAB_X - SLAB_PAD;          // 560
+const BAND_W = SLAB_W + 2 * SLAB_PAD;      // 520: the stack band, and the width the tenants are sized across
+const BAND_Y = SLAB_TOP - BAND_PAD;        // 296
+const BAND_H = slabY(3) + SLAB_H + BAND_PAD - BAND_Y;      // 232: 296..528
 
-// One interior connector style: a constant dashed dim line, no arrowhead (direction is carried by the
-// packet). The empty role is what holds the neutral hue: any role would tint the line category cyan.
-const dashLink = (key, x1, y1, x2, y2) => P.relation({ key, points: [[x1, y1], [x2, y2]], role: '' });
+const IN_PAD = 40;                         // shell face to band face
+const SHELL_X = BAND_X - IN_PAD;           // 520: clear of the narration panel wall, measured at 396.55 on 1100x800
+const SHELL_W = BAND_W + 2 * IN_PAD;       // 600
+const SHELL_Y = 91;
+const SHELL_FOOT = 32;                     // band bottom to shell bottom: the room the shell sublabel prints in
+const SHELL_H = BAND_Y + BAND_H + SHELL_FOOT - SHELL_Y;    // 469: 91..560
 
-// The netns shell and the shared-stack band sit as plain siblings inside podGroup, and no part kind
-// emits a lone podShell or a bare rect, so both are P.raw and hand their role to the primitive.
-const netnsShell = () => podShell({ x: POD_LEFT, y: POD_TOP, w: POD_W, h: POD_H, label: 'Pod NETNS', sublabel: 'isolated stack · 10.244.1.5', containers: 0, role: 'network' });
+const CROW_Y = SHELL_Y + 40;               // 131: container row top, under the shell label and over the taps
+const CROW_H = 56;
+const CROW_BOT = CROW_Y + CROW_H;          // 187: taps leave here and run 125 to the ports slab, 12 whole `5 5` periods plus a closing dash
+const CTR_GAP = 20;
+const CTR_W = (BAND_W - 2 * CTR_GAP) / 3;  // 160: three tenants across the band width
+const ctrX = (i) => BAND_X + i * (CTR_W + CTR_GAP);        // 560, 740, 920
+const ctrCX = (i) => ctrX(i) + CTR_W / 2;                  // 640, 820, 1000
+
+const HOST_W = 232;                        // NET.L-01: an actor outside the band takes the category width
+const HOST_H = 80;                         // the catalog actor height, matching `network-model` Kubelet
+const HOST_CY = SHELL_Y + SHELL_H / 2;     // 325.5: the left face midpoint of the shell, and the height the cable runs at
+const HOST_Y = HOST_CY - HOST_H / 2;       // 285.5: the host block centres on the Pod NETNS block, not on a layer inside it
+const VETH_LEN = 155;                      // 15 whole `5 5` periods plus a closing dash, so both ends of the cable land on paint
+const HOST_X = SHELL_X - VETH_LEN - HOST_W; // 133
+const HOST_EDGE = HOST_X + HOST_W;         // 365: veth start
+
+// The three lines a ball rides, and the one it never does. Each array feeds BOTH the drawn line and
+// the packet that travels it (A-02), so the two cannot drift. Every one ends on the FACE MIDPOINT
+// of what it really touches (L-11). The veth stops on the SHELL, because the namespace as a whole
+// is what the cable joins and what answers the arrival. The two taps stay interior, since a
+// container socket IS in this port space and a lane terminating on a box inside a Pod shell is an
+// arrival rather than a lane through it.
+const VETH = [[HOST_EDGE, HOST_CY], [SHELL_X, HOST_CY]];         // host stack -> the namespace boundary
+const TAP_APP = [[ctrCX(1), CROW_BOT], [ctrCX(1), SLAB_TOP]];    // app     -> the port layer
+const TAP_SIDE = [[ctrCX(2), SLAB_TOP], [ctrCX(2), CROW_BOT]];   // the port layer -> sidecar
+const TAP_PAUSE = [[ctrCX(0), CROW_BOT], [ctrCX(0), SLAB_TOP]];  // pause HOLDS the namespace: no ball rides this one
+
+// The four layers, top to bottom as the stack really runs: sockets at the top where the containers
+// sit, the wire at the bottom where the veth lands. Every step states all four (P-01 applied to the
+// field the values live in), so a value is never carried silently.
+const SLABS = (ports, rules, routes, iface) => ({
+  slabPorts: ports, slabRules: rules, slabRoutes: routes, slabIface: iface,
+});
+const EMPTY = SLABS('all free', 'no rules', 'none', 'lo only');
+const WIRED = SLABS('all free', 'no rules', 'default via eth0', 'lo + eth0');
+const SHARED = SLABS('one shared space', 'no rules', 'default via eth0', 'lo + eth0');
+const PRIVATE = SLABS('one shared space', 'own chains', 'default via eth0', 'lo + eth0');
+
+// The netns shell and the stack band sit as plain siblings inside podGroup, and no part kind emits
+// a lone podShell or a bare rect, so both are P.raw and hand their role to the primitive.
+const netnsShell = () => podShell({ x: SHELL_X, y: SHELL_Y, w: SHELL_W, h: SHELL_H, label: 'Pod NETNS', sublabel: 'one private stack · 10.244.1.5', containers: 0, role: 'network' });
 // `width`/`height`, not `w`/`h`: svg.js sets whatever key it is handed as an ATTRIBUTE, and an SVG
 // rect with no width renders nothing, so a band given `w`/`h` is in the DOM and invisible.
-const stackBand = () => rect({ class: 'netns-stack-band', x: BAND_CX - 204, y: 276, width: 408, height: 122, rx: 10,
+const stackBand = () => rect({ class: 'netns-stack-band', x: BAND_X, y: BAND_Y, width: BAND_W, height: BAND_H, rx: 10,
   style: 'fill:rgba(79,229,255,0.035);stroke:rgba(79,229,255,0.28);stroke-width:1' });
 
-// Z-order: host stack, then pod shell + band + rail/taps, then the interface/container boxes over
-// the rail, then the veth cable + wire labels, then chips, then the packet layer on top.
+// Z-order: host stack, then the pod group (shell, band, taps, then the boxes over them), then the
+// veth cable and the wire labels, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'Network namespaces: the pause container holds one isolated network stack with its own interfaces, routing table and ports, every container in the Pod shares it and reaches the others over localhost, and a veth pair is the only link between the Pod namespace and the host namespace',
+  'aria-label': 'Network namespaces: the pause container opens one network namespace and holds it for the life of the Pod, the namespace is drawn as a stack of four layers with its own ports, packet rules, routing table and interfaces, every container in the Pod joins that same stack instead of getting one of its own, and on the usual plugins a single veth pair is the one link between it and the host namespace',
   parts: [
     P.defs(),
-    P.box({ key: 'host', x: 150, y: HOST_Y, w: 260, h: HOST_H, label: 'Host NETNS', sublabel: 'node NICs · routes · iptables' }),
+    P.box({ key: 'host', x: HOST_X, y: HOST_Y, w: HOST_W, h: HOST_H, label: 'Host NETNS', sublabel: 'ports · iptables · routes · NICs' }),
     P.group({
       key: 'podGroup',
       parts: [
         P.raw({ make: netnsShell }),
         P.raw({ make: stackBand }),
-        P.tag({ x: BAND_CX, y: 420, text: 'shared network stack' }),
-        dashLink('rail', COL_L, RAIL_Y, COL_R, RAIL_Y),          // the shared stack bus
-        dashLink('tapApp', COL_L, ROW_TOP_BOT, COL_L, RAIL_Y),   // app     -> rail
-        dashLink('tapSide', COL_R, ROW_TOP_BOT, COL_R, RAIL_Y),  // sidecar -> rail
-        dashLink('tapEth', COL_L, ROW_BOT, COL_L, RAIL_Y),       // eth0    -> rail
-        dashLink('tapLo', COL_R, ROW_BOT, COL_R, RAIL_Y),        // lo      -> rail
-        // The four boxes drawn inside the Pod go INSIDE its group, so the pulse reaches them: a Pod
+        // pause holds the namespace open. Nothing travels this line on any step, so it is the one
+        // interior link that is a relation at 0.45 rather than a route at full strength (A-06).
+        P.relation({ key: 'tapPause', points: TAP_PAUSE }),
+        P.arrow({ key: 'tapApp', from: TAP_APP[0], to: TAP_APP[1], dashed: true, dim: true }),
+        P.arrow({ key: 'tapSide', from: TAP_SIDE[0], to: TAP_SIDE[1], dashed: true, dim: true }),
+        // The four layers of the one stack. The value of each layer is its sublabel, so a reading
+        // sits beside the thing it describes instead of in a strip under the picture. A block label
+        // is a heading and takes a capital (T-09), and `iptables` is the one that keeps its own
+        // casing because the lowercase IS the program name.
+        P.box({ key: 'slabPorts', x: SLAB_X, y: slabY(0), w: SLAB_W, h: SLAB_H, label: 'Ports', sublabel: 'one shared space' }),
+        P.box({ key: 'slabRules', x: SLAB_X, y: slabY(1), w: SLAB_W, h: SLAB_H, label: 'iptables', sublabel: 'own chains' }),
+        P.box({ key: 'slabRoutes', x: SLAB_X, y: slabY(2), w: SLAB_W, h: SLAB_H, label: 'Routes', sublabel: 'default via eth0' }),
+        P.box({ key: 'slabIface', x: SLAB_X, y: slabY(3), w: SLAB_W, h: SLAB_H, label: 'Interfaces', sublabel: 'lo + eth0' }),
+        // The tenants drawn inside the Pod go INSIDE its group, so the pulse reaches them: a Pod
         // blinks as one thing and everything drawn inside it blinks with it (M-03).
-        P.box({ key: 'eth0', x: COL_L - 79, y: ROW_BOT, w: 158, h: IFACE_H, label: 'eth0', sublabel: '10.244.1.5' }),
-        P.box({ key: 'lo', x: COL_R - 79, y: ROW_BOT, w: 158, h: IFACE_H, label: 'lo', sublabel: '127.0.0.1' }),
-        // Containers (tenants) on top, the shared stack (eth0 + lo) on the row below.
-        P.box({ key: 'app', x: COL_L - 79, y: ROW_TOP, w: 158, h: ROW_TOP_H, label: 'app', sublabel: 'container' }),
-        P.box({ key: 'side', x: COL_R - 79, y: ROW_TOP, w: 158, h: ROW_TOP_H, label: 'sidecar', sublabel: 'container' }),
+        P.box({ key: 'pause', x: ctrX(0), y: CROW_Y, w: CTR_W, h: CROW_H, label: 'pause', sublabel: 'netns owner' }),
+        P.box({ key: 'app', x: ctrX(1), y: CROW_Y, w: CTR_W, h: CROW_H, label: 'app', sublabel: 'container' }),
+        P.box({ key: 'side', x: ctrX(2), y: CROW_Y, w: CTR_W, h: CROW_H, label: 'sidecar', sublabel: 'container' }),
       ],
     }),
-    // A ball rides this cable, so A-06 makes it an arrow rather than a relation, and a two-ENDED cable
-    // takes no arrowhead: no part kind draws that combination, which is what the tune is for.
-    P.arrow({ key: 'vethWire', from: [HOST_EDGE, AXIS_Y], to: [POD_LEFT, AXIS_Y], dashed: true, dim: true,
-      tune: (el) => el.removeAttribute('marker-end') }),
-    P.wire({ key: 'veth', x: 505, y: AXIS_Y - 12 }),
-    P.wire({ key: 'local', x: BAND_CX, y: RAIL_Y - 12 }),
-    // Info chips centered under the diagram: the row spans exactly host-left (150) to Pod-right (1048).
-    P.chip({ key: 'scopeChip', x: 150, y: 500, w: 210, h: 34, name: 'namespace', value: 'host' }),
-    P.chip({ key: 'ifaceChip', x: 376, y: 500, w: 205, h: 34, name: 'interfaces', value: 'node NICs' }),
-    P.chip({ key: 'portChip', x: 597, y: 500, w: 180, h: 34, name: 'ports', value: 'shared' }),
-    P.chip({ key: 'reachChip', x: 793, y: 500, w: 255, h: 34, name: 'reach', value: 'node + beyond' }),
+    // A ball rides this cable, so A-06 makes it an arrow rather than a relation, and it keeps its
+    // arrowhead: the head is the pointer into the Pod NETNS block, where the ball lands and what
+    // pulses when it does. No step writes its opacity: all five stand at full strength, so the
+    // field would be five copies of the CSS default.
+    P.arrow({ key: 'vethWire', from: VETH[0], to: VETH[1], dashed: true, dim: true }),
+    P.wire({ key: 'veth', x: (HOST_EDGE + SHELL_X) / 2, y: HOST_CY - 12 }),
+    P.wire({ key: 'local', x: (ctrCX(1) + ctrCX(2)) / 2, y: BAND_Y - 12 }),
     P.packets(),
   ],
   reset: {
-    keys: ['host', 'app', 'side', 'lo', 'eth0', 'scopeChip', 'ifaceChip', 'portChip', 'reachChip'],
+    keys: ['host', 'pause', 'app', 'side', 'slabPorts', 'slabRules', 'slabRoutes', 'slabIface'],
     pods: ['podGroup'],
   },
 };
@@ -92,64 +129,79 @@ export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { scopeChip: 'host', ifaceChip: 'node NICs', portChip: 'shared', reachChip: 'node + beyond' },
-    opacity: { vethWire: 1 },
+    // The poster states the values the card STARTS on, not the ones it ends on. It previews the
+    // text of `open` (D-14) and that sentence reads `no routes, no rules and every port still
+    // free`, so PRIVATE here put four end-of-card values under it for a second and then flipped all
+    // four at once with no beat. `network-netfilter-path`, `network-dns-ndots` and
+    // `network-conntrack-nat` all state their pre-story values here for the same reason.
+    sublabels: EMPTY,
   },
   {
-    id: 'fresh',
-    duration: 2200,
-    narration: 'When the Pod sandbox starts, the pause container is handed a brand new network namespace. At first it holds only a loopback device and nothing else, fully cut off from the host stack and from every other Pod. It cannot yet reach anything outside itself.',
-    chips: { scopeChip: 'pod', ifaceChip: 'lo only', portChip: 'shared', reachChip: 'isolated' },
-    // The veth does not exist until CNI adds it next step, so the cable to the host is drawn dim
-    // (C-14): at full strength it contradicted the fully cut off this narration states.
-    opacity: { vethWire: OPACITY.notready },
-    // Only lo is live yet: every block and wire is drawn, but lo is the one that lights. Nothing
-    // flows in or out yet, so lo simply holds its highlight outline, no flash.
-    lit: ['lo', 'ifaceChip', 'reachChip', 'scopeChip'],
+    id: 'open',
+    // 303 chars. With no motion left on this step the whole hold is reading time, and 2800 put it at
+    // 9.24 ms/char against a catalog median of 10.27 (tools/timing.mjs). 3100 is that median.
+    duration: 3100,
+    narration: 'When the Pod sandbox starts, the pause container opens a brand new network namespace and holds it for the life of the Pod, and only a Pod that sets hostNetwork goes without one. The stack inside is empty: one loopback device, no routes, no rules and every port still free. Nothing reaches in or out yet.',
+    sublabels: EMPTY,
+    // The one beat here is the pair that lights: pause as the container holding the namespace open,
+    // and the loopback as the one thing a fresh stack holds. No pod pulse, because nothing arrives
+    // and nothing travels, and a pulse over an already-drawn picture cues nothing while ERASING
+    // these two (the OPEN note in the record). A step with no motion is M-27, and this is one.
+    lit: ['pause', 'slabIface'],
   },
   {
-    id: 'veth',
-    duration: 2400,
-    narration: 'CNI then adds a veth pair: one end becomes eth0 inside the Pod namespace with the Pod IP, the peer stays in the host namespace, plugged straight into the host stack. That single cable is the only path between the two stacks, so all Pod traffic to the Node and beyond crosses it.',
-    chips: { scopeChip: 'pod', ifaceChip: 'lo + eth0', portChip: 'shared', reachChip: 'node + beyond' },
+    id: 'door',
+    duration: 3400,
+    narration: 'The CNI plugin then joins the namespace to the outside with a veth pair, and the in-Pod end of that pair appears in this stack as eth0. A default route is written through it, so that one cable becomes the path between the Pod and everything outside it. Plugins that hand the Pod a second device are the exception.',
+    // S-13: the static block states the END. Neither value exists until the ball lands, so both are
+    // wound back to what `open` left before the flow runs.
+    sublabels: WIRED,
+    rewind: { sublabels: { slabRoutes: 'none', slabIface: 'lo only' } },
     wires: { veth: 'veth pair' },
-    opacity: { vethWire: 1 },
-    // The host link comes alive: the host stack lights, and the packet that rides the veth lights eth0.
-    lit: ['host', 'ifaceChip', 'reachChip'],
-    // Down-arrow: the packet crosses the veth from the host side into eth0, which lights on arrival,
-    // then the pod shell pulses as the namespace gains reach.
+    // The ball leaves the host stack, so the host lights before it goes (M-18a). It lands on the
+    // shell rather than on a layer, so what answers is the whole namespace pulsing, and the two
+    // layers the cable brought turn over and light after that pulse: the outer block first, the
+    // events inside it second. The reduced guard derives the pair from `lights`.
+    lit: ['host'],
     flow: [
-      F.segment({ from: [HOST_EDGE, AXIS_Y], to: [POD_LEFT, AXIS_Y], name: 'hop', lights: ['eth0'] }),
+      F.segment({ from: VETH[0], to: VETH[1], name: 'hop', delay: BEAT.lead }),
       F.pulse({ pod: 'podGroup', at: 'hop' }),
+      F.set({ at: 'hop', plus: BEAT.afterPulse, lights: ['slabIface', 'slabRoutes'], sublabels: { slabRoutes: 'default via eth0', slabIface: 'lo + eth0' } }),
     ],
   },
   {
-    id: 'shared',
-    duration: 2600,
-    narration: 'Every container in the Pod joins this same namespace, so app and sidecar share one eth0 and one set of ports. They reach each other over 127.0.0.1 with no network hop, which is why two containers in a Pod cannot both bind the same port.',
-    chips: { scopeChip: 'pod', ifaceChip: 'lo + eth0', portChip: 'shared', reachChip: 'node + beyond' },
+    id: 'join',
+    duration: 3000,
+    narration: 'A second container does not get a stack of its own, it enters this one. Both of them sit on the same four layers, which is why a second eth0 and a second set of ports never appear, and why each of them reaches the other over the loopback without leaving the Pod.',
+    sublabels: SHARED,
+    rewind: { sublabels: { slabPorts: 'all free' } },
     wires: { local: 'localhost' },
-    opacity: { vethWire: 1 },
-    // Every container now shares the one stack: app, sidecar and eth0 all light, lo lights on arrival.
-    lit: ['app', 'eth0', 'portChip'],
+    lit: ['app'],
+    // The hop enters the stack at the app tap and leaves it at the sidecar tap: the ball fades at
+    // the band face and re-emerges at the far tap (NET.A-01), and the port layer it passed through
+    // lights and turns over between the two.
     flow: [
-      F.route({ points: LOCAL_PATH, lights: ['side', 'lo'] }),
+      F.segment({ from: TAP_APP[0], to: TAP_APP[1], name: 'down', delay: BEAT.lead, lights: ['slabPorts'] }),
+      F.set({ at: 'down', sublabels: { slabPorts: 'one shared space' } }),
+      F.segment({ from: TAP_SIDE[0], to: TAP_SIDE[1], after: 'down', lights: ['side'] }),
     ],
   },
   {
-    id: 'isolation',
-    duration: 2600,
-    narration: 'Because the stack is private, the Pod has its own routing table, its own iptables and its own port space, all separate from the host and from other Pods. Delete the Pod and the namespace is torn down, releasing the veth and the IP in one move.',
-    chips: { scopeChip: 'pod · private', ifaceChip: 'lo + eth0', portChip: 'own space', reachChip: 'node + beyond' },
+    id: 'private',
+    duration: 3000,
+    narration: 'Because the stack is a copy rather than a window, the routing table and the packet rules inside it belong to this Pod alone, and a port bound in here does not collide with the Node. Delete the Pod and the runtime calls CNI DEL to release the address and remove the veth, and the namespace goes with it.',
+    sublabels: PRIVATE,
+    // S-13 again: the static block states the END. `own chains` is the fourth layer's turn and it
+    // is the only one no ball produces, so it waits on the pulse instead of standing at t=0.
+    rewind: { sublabels: { slabRules: 'no rules' } },
     wires: { veth: 'veth pair' },
-    opacity: { vethWire: 1 },
-    // The veth still links the two stacks here, so keep the host lit and the cable bright instead of
-    // letting it read as a dead line: this is the contrast the step is about (pod-private vs host).
-    lit: ['host', 'eth0', 'lo', 'scopeChip', 'portChip', 'reachChip'],
-    // No new traffic: the whole shared stack (shell + band + rail) pulses to mark the isolated
-    // stack as the unit that lives and dies as one.
+    // The cable still joins the two stacks here, so the host stays lit and the cable bright: this
+    // is the contrast the step is about, pod-private against the Node it sits on.
+    lit: ['host', 'slabRules', 'slabRoutes', 'slabPorts'],
+    // No new traffic. The whole namespace pulses as the unit that lives and dies as one.
     flow: [
       F.pulse({ pod: 'podGroup' }),
+      F.set({ delay: BEAT.afterPulse, sublabels: { slabRules: 'own chains' } }),
     ],
   },
 ];

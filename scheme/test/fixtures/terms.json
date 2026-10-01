@@ -242,7 +242,7 @@
       "policy, true and false for a condition status.",
       "memory: the value Memory, the only NON-EMPTY legal value of emptyDir.medium, drawn on the",
       "medium chip of storage-emptydir. That one string is all this entry exempts today, and the",
-      "empty medium is drawn as node disk on the same chip, so the chip is not a pure literal.",
+      "empty medium is drawn as node storage on the same chip, so the chip is not a pure literal.",
       "KNOWN LIMITATION of the whole list, not of any one entry: untouchable() in render/inline.test.mjs",
       "short-circuits BEFORE the want check, so an entry exempts want title as well as want lower.",
       "A future BLOCK LABEL whose first token matches any word here will never be told to take its",

@@ -1,190 +1,223 @@
-import { P, F, defineCard, laneY, midX, shade, BEAT, OPACITY } from './network-kit.js';
+import { P, F, defineCard, laneY, midX, shade, makeRidingLabel, BEAT, OPACITY } from './network-kit.js';
 
-// Design notes for this card: ./CARDS.md#network-ingress-routing
+// Design notes for this card: ./CARDS/network-ingress-routing.md
 
 
-const FLOW_Y = 343;                  // (RULE_BOTTOM + CHIP_Y) / 2, the spine of the left-to-right flow
-const ROW_DY = 70;                   // web branch sits this far above FLOW_Y, api the same below
-const { out: WEB_Y, back: API_Y } = laneY(FLOW_Y, ROW_DY);   // 273 web, 413 api
+// Four columns: the controller Service left, the controller Pod under its Ingress, and the backend
+// Pods on the right with each Service hung OFF its Pod as a lookup rather than standing in the path.
+const LB_X = 40, LB_W = 232, LB_H = 76;           // NET.L-01
+const LB_RIGHT = LB_X + LB_W;                     // 272
+const CTRL_W = 232, CTRL_H = 114;                 // the standard Pod shell, same as both backends
+const RULE_W = 320;                               // the longest rule row inks under it at 1100x800
+const RULE_X = 420;                               // L-03: the first x clear of the panel column
+const RULE_CX = RULE_X + RULE_W / 2;              // 580
+const CTRL_X = RULE_CX - CTRL_W / 2;              // 464: the controller stands centred under its rules
+const CTRL_RIGHT = CTRL_X + CTRL_W;               // 696
+const POD_W = 232, POD_H = 114;
+const POD_X = 1160 - POD_W;                       // 928, mirrors LB_X about x=600
+const POD_CX = POD_X + POD_W / 2;                 // 1044
+const FAN_X = midX(CTRL_RIGHT, POD_X);            // 812, the bus both branches split on
 
-const LB_X = 40, LB_W = 200, LB_H = 76;
-const CTRL_W = 210, CTRL_H = 114;    // standard pod shell, same as the backends
-const CTRL_X = 440;
-const SVC_X = 730, SVC_W = 160, SVC_H = 66;
-const POD_X = 950, POD_W = 210, POD_H = 114;
+// The Ingress document: a caption, then one tls row and two rule rows.
+const RULE_H = 36, RULE_GAP = 6;
+const RULE_Y = 62;
+const ruleY = (i) => RULE_Y + i * (RULE_H + RULE_GAP);
+const RULE_BOTTOM = ruleY(2) + RULE_H;            // 182
 
-const LB_RIGHT = LB_X + LB_W;                 // 240
-const CTRL_RIGHT = CTRL_X + CTRL_W;           // 650
-const CTRL_CX = CTRL_X + CTRL_W / 2;          // 545
-const CTRL_TOP = FLOW_Y - CTRL_H / 2;         // 286
-const SVC_RIGHT = SVC_X + SVC_W;              // 890
-const POD_RIGHT = POD_X + POD_W;              // 1160
-const FAN_X = midX(CTRL_RIGHT, SVC_X);        // 690, the vertical bus the branches split on
-
-const RULE_W = 260;
-const RULE_CX = CTRL_CX;                      // the panel sits centred above the controller
-const RULE_X = RULE_CX - RULE_W / 2;          // 415, clear of the narration overlay (399)
-const RULE_BOTTOM = 146;                      // bottom edge of the lower rule chip
-const CHIP_Y = 540;                           // bottom chip strip
+// The request pair runs on FLOW_Y, the branches sit ROW_DY off it, and each Service hangs SVC_GAP
+// beyond its own Pod, above web and below api, so no lane ever meets a Service.
+const FLOW_Y = 356;
+const LANE_DY = 12;
+const { out: REQ_Y, back: BACK_Y } = laneY(FLOW_Y, LANE_DY);   // 344 request, 368 answer
+const ROW_DY = 78;
+const { out: WEB_Y, back: API_Y } = laneY(FLOW_Y, ROW_DY);     // 278 web, 434 api
+const CTRL_TOP = FLOW_Y - CTRL_H / 2;             // 299
+const SVC_H = 56, SVC_GAP = 24;
+const WEB_POD_TOP = WEB_Y - POD_H / 2;            // 221
+const API_POD_BOTTOM = API_Y + POD_H / 2;         // 491
+const SVC_WEB_Y = WEB_POD_TOP - SVC_GAP - SVC_H;  // 141
+const SVC_API_Y = API_POD_BOTTOM + SVC_GAP;       // 515
+const CHIP_Y = 592, CHIP_H = 34;
 
 // Each static wire and the packet that rides it share the same points array.
-const ENTRY = [[LB_RIGHT, FLOW_Y], [CTRL_X, FLOW_Y]];
-const TO_WEB = [[CTRL_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, WEB_Y], [SVC_X, WEB_Y]];
-const TO_API = [[CTRL_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, API_Y], [SVC_X, API_Y]];
-const WEB_HOP = [[SVC_RIGHT, WEB_Y], [POD_X, WEB_Y]];
-const API_HOP = [[SVC_RIGHT, API_Y], [POD_X, API_Y]];
+const REQ = [[LB_RIGHT, REQ_Y], [CTRL_X, REQ_Y]];
+const BACK = [[CTRL_X, BACK_Y], [LB_RIGHT, BACK_Y]];
+const TO_WEB = [[CTRL_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, WEB_Y], [POD_X, WEB_Y]];
+const TO_API = [[CTRL_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, API_Y], [POD_X, API_Y]];
+const OWNS = [[RULE_CX, CTRL_TOP], [RULE_CX, RULE_BOTTOM]];
+const WEB_SEL = [[POD_CX, SVC_WEB_Y + SVC_H], [POD_CX, WEB_POD_TOP]];
+const API_SEL = [[POD_CX, API_POD_BOTTOM], [POD_CX, SVC_API_Y]];
 
-const podBlock = ({ key, x, y, w, h, label, ip }) => P.pod({
-  key, innerKey: `${key}Box`, x, y, w, h, label, sublabel: ip,
-  inner: { dx: 20, dy: 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0' },
+const WEB_IP = '10.244.1.5', API_IP = '10.244.2.7';
+
+const podBlock = ({ key, y, label, ip }) => P.pod({
+  key, innerKey: `${key}Box`, x: POD_X, y, w: POD_W, h: POD_H, label, sublabel: ip,
+  inner: { dx: 20, dy: 34, w: POD_W - 40, h: 52, label: 'app', sublabel: 'eth0' },
 });
 
-// The list order IS the append order, which is the z-order: the blocks first, then the rules panel
-// and every wire above them, then the chip strip, then the packet layer carrying the ball.
+// The list order IS the append order, which is the z-order: the blocks first, then the Ingress
+// document and every wire above them, then the chip strip, then the packet layer carrying the ball.
 export const SCENE = {
-  'aria-label': 'Ingress controller routing: an Ingress controller Pod watches Ingress objects, matches the request host and path against the rules, terminates TLS, and proxies each request on to the backend Service and Pod its rule names, slash to Service web and slash api to Service api',
+  'aria-label': 'Ingress controller routing: a controller Pod behind a LoadBalancer or NodePort Service of its own watches Ingress shop, whose TLS entry names Secret shop-tls and whose two Prefix rules send shop.io/ to Service web and shop.io/api to Service api. It terminates TLS, matches the Host header and the longest path, reads the Ready endpoints of the chosen Service from its EndpointSlice and proxies straight to that Pod IP, and a request for a host no Ingress of its class names gets a 404 from the default backend of the controller itself',
   parts: [
     P.defs(),
-    // Every block is centred on its own row: extLB and the controller on FLOW_Y, each Service on the
-    // same row as the backend Pod it fronts, so no wire ever meets a block off-centre.
-    P.box({ key: 'extLB', x: LB_X, y: FLOW_Y - LB_H / 2, w: LB_W, h: LB_H, label: 'External LB', sublabel: 'or NodePort' }),
-    P.box({ key: 'svcWeb', x: SVC_X, y: WEB_Y - SVC_H / 2, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: '' }),
-    P.box({ key: 'svcApi', x: SVC_X, y: API_Y - SVC_H / 2, w: SVC_W, h: SVC_H, label: 'Service api', sublabel: '' }),
-    podBlock({ key: 'podWeb', x: POD_X, y: WEB_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.1.5' }),
-    podBlock({ key: 'podApi', x: POD_X, y: API_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod api', ip: '10.244.2.7' }),
-    podBlock({ key: 'ctrl', x: CTRL_X, y: CTRL_TOP, w: CTRL_W, h: CTRL_H, label: 'Ingress controller Pod', ip: 'watches Ingress' }),
-    P.tag({ x: RULE_CX, y: 56, text: 'Ingress "shop" · ingressClassName nginx' }),
-    P.chip({ key: 'ruleA', x: RULE_X, y: 66, w: RULE_W, h: 36, name: 'shop.io/', value: '-> Service web:80' }),
-    P.chip({ key: 'ruleB', x: RULE_X, y: 110, w: RULE_W, h: 36, name: 'shop.io/api', value: '-> Service api:80' }),
-    P.arrow({ x1: ENTRY[0][0], y1: ENTRY[0][1], x2: ENTRY[1][0], y2: ENTRY[1][1], dashed: true, dim: true }),
-    P.relation({ points: [[CTRL_CX, CTRL_TOP], [CTRL_CX, RULE_BOTTOM]], dash: '5 5' }),
+    P.box({ key: 'extLB', x: LB_X, y: FLOW_Y - LB_H / 2, w: LB_W, h: LB_H, label: 'Controller Service', sublabel: 'LoadBalancer or NodePort' }),
+    P.pod({
+      key: 'ctrl', innerKey: 'ctrlBox', x: CTRL_X, y: CTRL_TOP, w: CTRL_W, h: CTRL_H,
+      label: 'Ingress controller Pod', sublabel: 'watches Ingress, endpoints',
+      inner: { dx: 20, dy: 34, w: CTRL_W - 40, h: 52, label: 'app', sublabel: 'eth0' },
+    }),
+    podBlock({ key: 'podWeb', y: WEB_POD_TOP, label: 'Pod web', ip: WEB_IP }),
+    podBlock({ key: 'podApi', y: API_Y - POD_H / 2, label: 'Pod api', ip: API_IP }),
+    P.box({ key: 'svcWeb', x: POD_X, y: SVC_WEB_Y, w: POD_W, h: SVC_H, label: 'Service web', sublabel: `EndpointSlice: ${WEB_IP}` }),
+    P.box({ key: 'svcApi', x: POD_X, y: SVC_API_Y, w: POD_W, h: SVC_H, label: 'Service api', sublabel: `EndpointSlice: ${API_IP}` }),
+    P.tag({ x: RULE_CX, y: RULE_Y - 10, text: 'Ingress shop · ingressClassName: nginx' }),
+    P.chip({ key: 'tlsRow', x: RULE_X, y: ruleY(0), w: RULE_W, h: RULE_H, name: 'tls shop.io', value: '-> Secret shop-tls' }),
+    P.chip({ key: 'ruleA', x: RULE_X, y: ruleY(1), w: RULE_W, h: RULE_H, name: 'shop.io / Prefix', value: '-> Service web:80' }),
+    P.chip({ key: 'ruleB', x: RULE_X, y: ruleY(2), w: RULE_W, h: RULE_H, name: 'shop.io /api Prefix', value: '-> Service api:80' }),
+    // Relations, never ridden: the controller reads its Ingress, and each Service selects its Pod.
+    P.relation({ points: OWNS, dash: '5 5' }),
+    P.relation({ key: 'webSel', points: WEB_SEL, dash: '5 5' }),
+    P.relation({ key: 'apiSel', points: API_SEL, dash: '5 5' }),
+    P.arrow({ from: REQ[0], to: REQ[1], dashed: true, dim: true }),
+    P.arrow({ from: BACK[0], to: BACK[1], dashed: true, dim: true }),
     P.lane({ key: 'fanWeb', points: TO_WEB, dashed: true, dim: true }),
     P.lane({ key: 'fanApi', points: TO_API, dashed: true, dim: true }),
-    P.arrow({ key: 'podWebWire', x1: WEB_HOP[0][0], y1: WEB_HOP[0][1], x2: WEB_HOP[1][0], y2: WEB_HOP[1][1], dashed: true, dim: true }),
-    P.arrow({ key: 'podApiWire', x1: API_HOP[0][0], y1: API_HOP[0][1], x2: API_HOP[1][0], y2: API_HOP[1][1], dashed: true, dim: true }),
-    P.wire({ key: 'w', x: midX(LB_RIGHT, CTRL_X), y: FLOW_Y - 12 }),
-    P.wire({ key: 'web', x: SVC_X + SVC_W / 2, y: WEB_Y - SVC_H / 2 - 10 }),
-    P.wire({ key: 'api', x: SVC_X + SVC_W / 2, y: API_Y + SVC_H / 2 + 18 }),
-    P.chip({ key: 'hostChip', x: LB_X, y: CHIP_Y, w: 310, h: 34, name: 'Host', value: 'none' }),
-    P.chip({ key: 'pathChip', x: 370, y: CHIP_Y, w: 290, h: 34, name: 'path', value: 'none' }),
-    P.chip({ key: 'tlsChip', x: 680, y: CHIP_Y, w: POD_RIGHT - 680, h: 34, name: 'TLS', value: 'terminated at controller' }),
+    P.wire({ key: 'req', x: midX(LB_RIGHT, CTRL_X), y: REQ_Y - 10 }),
+    P.wire({ key: 'back', x: midX(LB_RIGHT, CTRL_X), y: BACK_Y + 18 }),
+    P.chip({ key: 'hostChip', x: 40, y: CHIP_Y, w: 220, h: CHIP_H, name: 'Host', value: 'none' }),
+    P.chip({ key: 'pathChip', x: 280, y: CHIP_Y, w: 200, h: CHIP_H, name: 'path', value: 'none' }),
+    P.chip({ key: 'tlsChip', x: 500, y: CHIP_Y, w: 330, h: CHIP_H, name: 'TLS', value: 'none' }),
+    P.chip({ key: 'servedChip', x: 850, y: CHIP_Y, w: 310, h: CHIP_H, name: 'served by', value: 'none' }),
     P.packets(),
   ],
   reset: {
-    keys: ['extLB', 'ruleA', 'ruleB', 'svcWeb', 'svcApi', 'hostChip', 'pathChip', 'tlsChip', 'ctrlBox', 'podWebBox', 'podApiBox'],
+    keys: ['extLB', 'tlsRow', 'ruleA', 'ruleB', 'svcWeb', 'svcApi', 'hostChip', 'pathChip', 'tlsChip', 'servedChip', 'ctrlBox', 'podWebBox', 'podApiBox'],
     pods: ['ctrl', 'podWeb', 'podApi'],
   },
 };
 
-// A branch is its Service, its Pod AND the two lanes joining them: a lane into a Service the request
-// did not choose is not a route on this step, and blocks listed without lanes leave arrows lit.
+// A branch is its Service, its Pod, the selector between them and the lane into the Pod, all
+// stated on every step as fields so a dim never leaks. 'both' is neutral, 'none' dims both.
 const BRANCH = {
-  web: ['svcWeb', 'podWeb', 'fanWeb', 'podWebWire'],
-  api: ['svcApi', 'podApi', 'fanApi', 'podApiWire'],
+  web: ['svcWeb', 'podWeb', 'webSel', 'fanWeb'],
+  api: ['svcApi', 'podApi', 'apiSel', 'fanApi'],
 };
-
-// Dim the branch the current request is not taking, as FIELDS: both branches are stated on every
-// step, so a dim never leaks. 'both' leaves the scheme neutral, before any rule has matched.
 const branch = (active) => ({
   opacity: {
-    ...shade(BRANCH.web, active === 'api' ? OPACITY.notready : 1),
-    ...shade(BRANCH.api, active === 'web' ? OPACITY.notready : 1),
+    ...shade(BRANCH.web, active === 'web' || active === 'both' ? 1 : OPACITY.notready),
+    ...shade(BRANCH.api, active === 'api' || active === 'both' ? 1 : OPACITY.notready),
   },
 });
 
-// The two rule rows are the Ingress SPEC drawn as a document, and the TLS note is a standing
-// property of this topology: constants of the diagram, so every step states all three.
-const SPEC = { ruleA: '-> Service web:80', ruleB: '-> Service api:80', tlsChip: 'terminated at controller' };
+// The three Ingress rows are the object drawn as a document: constants every step states.
+const SPEC = { tlsRow: '-> Secret shop-tls', ruleA: '-> Service web:80', ruleB: '-> Service api:80' };
+const TERMINATED = 'shop-tls, terminated';
+const SERVED_WEB = `Pod ${WEB_IP}`, SERVED_API = `Pod ${API_IP}`, SERVED_404 = 'controller, 404';
+
+// A branch is 310 units, which the 700ms floor runs at 0.44 u/ms, so a tagged ball rides BRANCH_DUR
+// near the catalog median instead (M-12, PACING in motion.test).
+const BRANCH_DUR = 1500;
+// The Pod IP rides the ball from departure (NET.T-01), TAG_DX right of it so it clears the controller
+// frame, and dissolves with the ball on arrival (M-30a). It rides on the side AWAY from the lane it
+// turns into: below on the web branch, above on the api one.
+const TAG_DX = 54, TAG_DY_WEB = 18, TAG_DY_API = -14;
+const ridingLabel = makeRidingLabel({ role: 'network', inMs: 200, outMs: 200, hold: 0 });
+const tag = (p) => F.tag({ fn: ridingLabel, dur: BRANCH_DUR, dx: TAG_DX, ...p });
+// The lookup lights the Service while the controller is still pulsing, before the ball leaves.
+const LOOKUP_MS = 400;
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { hostChip: 'none', pathChip: 'none', ...SPEC },
+    chips: { hostChip: 'none', pathChip: 'none', tlsChip: 'none', servedChip: 'none', ...SPEC },
     ...branch('both'),
   },
   {
     id: 'rules',
-    duration: 2200,
-    narration: 'The controller watches the Ingress objects that name its ingressClassName. This Ingress shop says that requests to shop.io/ go to Service web and shop.io/api go to Service api. The controller compiles those rules into its proxy config and waits for traffic.',
-    // No request yet, so the request chips stay empty and both branches stay neutral.
-    chips: { hostChip: 'none', pathChip: 'none', ...SPEC },
+    duration: 3000,
+    narration: 'The controller watches the Ingress objects whose ingressClassName names its IngressClass. Ingress shop holds a TLS entry for shop.io and two rules, both with pathType Prefix: / goes to Service web and /api to Service api. The controller compiles them into its proxy config.',
+    chips: { hostChip: 'none', pathChip: 'none', tlsChip: 'none', servedChip: 'none', ...SPEC },
     ...branch('both'),
-    lit: ['ruleA', 'ruleB'],
-    // The controller compiles the rules: it pulses, the rule chips just light.
+    lit: ['tlsRow', 'ruleA', 'ruleB'],
     reducedLit: ['ctrlBox'],
     flow: [F.pulse({ pod: 'ctrl' })],
   },
   {
     id: 'entry',
-    duration: 2200,
-    narration: 'External traffic does not reach the controller magically: it arrives through a Service of its own, usually a LoadBalancer or NodePort in front of it. A client request for shop.io lands on the controller Pod, and it terminates TLS here before looking at anything else.',
-    wires: { w: 'GET shop.io/' },
-    chips: { hostChip: 'shop.io', pathChip: '/', ...SPEC },
+    duration: 3000,
+    narration: 'External traffic reaches the controller through a Service of its own, usually a LoadBalancer or NodePort. An HTTPS request for shop.io/ lands on the controller Pod, which serves the certificate from Secret shop-tls, the one its TLS entry names for that host, and terminates TLS.',
+    wires: { req: 'HTTPS shop.io/' },
+    chips: { hostChip: 'shop.io', pathChip: '/', tlsChip: TERMINATED, servedChip: 'none', ...SPEC },
     ...branch('both'),
-    lit: ['hostChip', 'pathChip', 'extLB', 'tlsChip'],
+    lit: ['extLB'],
     reducedLit: ['ctrlBox'],
-    // Down-arrow: the request arrives at the controller (one hop), which pulses on arrival.
+    rewind: { chips: { hostChip: 'none', pathChip: 'none', tlsChip: 'none' } },
     flow: [
-      F.segment({ from: ENTRY[0], to: ENTRY[1], name: 'inb' }),
+      F.segment({ from: REQ[0], to: REQ[1], name: 'inb', lights: ['hostChip', 'pathChip', 'tlsChip', 'tlsRow'] }),
+      F.set({ at: 'inb', chips: { hostChip: 'shop.io', pathChip: '/', tlsChip: TERMINATED } }),
       F.pulse({ pod: 'ctrl', at: 'inb' }),
     ],
   },
   {
-    id: 'match-proxy',
-    // Motion runs pulse(800) + fan(700, the floor) + beat(100) + hop(700, the floor), so the backend
-    // pulse (900) lands at 2300 and ends at 3200, leaving a ~400ms settle rather than snapping on.
-    duration: 3600,
-    narration: 'The controller reads the request Host header, shop.io, and the path, /, and matches them against its compiled rules. Only the / rule matches, so it proxies the request to Service web and resolves it through the EndpointSlice to a Ready Pod IP. The api branch stays idle for this request.',
-    wires: { web: 'proxy -> web' },
-    chips: { hostChip: 'shop.io', pathChip: '/', ...SPEC },
+    id: 'match-web',
+    // Motion: pulse 800, the branch at BRANCH_DUR, the Pod pulse 900, so 3200 of motion.
+    duration: 4400,
+    narration: 'Now it reads the Host header, shop.io, and the path, /. Only the / rule matches. The controller does not hand the request to the Service ClusterIP: it reads the Ready endpoints of Service web from its EndpointSlice and proxies straight to Pod IP 10.244.1.5.',
+    chips: { hostChip: 'shop.io', pathChip: '/', tlsChip: TERMINATED, servedChip: SERVED_WEB, ...SPEC },
     ...branch('web'),
-    lit: ['ruleA', 'hostChip', 'pathChip'],
+    lit: ['ruleA'],
     reducedLit: ['ctrlBox', 'podWebBox'],
-    // The controller proxies, so the Service is the destination of that hop and lights when the
-    // ball lands on it, not before the controller has even chosen the branch.
+    rewind: { chips: { servedChip: 'none' } },
     flow: [
       F.pulse({ pod: 'ctrl' }),
-      F.route({ points: TO_WEB, delay: BEAT.afterPulse, name: 'toSvc', lights: ['svcWeb'] }),
-      F.segment({ from: WEB_HOP[0], to: WEB_HOP[1], after: 'toSvc', name: 'toPod' }),
+      F.light({ targets: ['svcWeb'], delay: LOOKUP_MS }),
+      F.route({ points: TO_WEB, delay: BEAT.afterPulse, dur: BRANCH_DUR, name: 'toPod', lights: ['servedChip'] }),
+      tag({ text: `to ${WEB_IP}`, points: TO_WEB, delay: BEAT.afterPulse, dy: TAG_DY_WEB }),
+      F.set({ at: 'toPod', chips: { servedChip: SERVED_WEB } }),
       F.pulse({ pod: 'podWeb', at: 'toPod' }),
     ],
   },
   {
-    id: 'api-request',
-    duration: 2400,
-    narration: 'A second request arrives through the same entry point, this time for shop.io/api. Same host, same controller, same terminated TLS. Only the request path is different, and no rule has been picked yet.',
-    // Exact mirror of the entry step: a request lands and TLS is terminated, nothing is matched yet,
-    // so no rule chip lights and BOTH branches stay neutral. The rule is chosen in api-proxy.
-    wires: { w: 'GET shop.io/api' },
-    chips: { hostChip: 'shop.io', pathChip: '/api', ...SPEC },
-    ...branch('both'),
-    lit: ['pathChip', 'extLB', 'tlsChip'],
-    reducedLit: ['ctrlBox'],
-    // Down-arrow: the request arrives at the controller (one hop), which pulses on arrival.
+    id: 'match-api',
+    // Motion: the request 700, pulse 800, the branch at BRANCH_DUR, the Pod pulse 900, so 3900 of motion.
+    duration: 5200,
+    narration: 'A second HTTPS request asks for shop.io/api. Both rules match it, because Prefix / matches every path, and the Ingress spec gives precedence to the longest matching path, so /api wins. The controller reads the endpoints of Service api and proxies straight to Pod IP 10.244.2.7.',
+    wires: { req: 'HTTPS shop.io/api' },
+    chips: { hostChip: 'shop.io', pathChip: '/api', tlsChip: TERMINATED, servedChip: SERVED_API, ...SPEC },
+    ...branch('api'),
+    lit: ['extLB', 'ruleB'],
+    reducedLit: ['ctrlBox', 'podApiBox'],
+    rewind: { chips: { pathChip: '/', servedChip: SERVED_WEB } },
     flow: [
-      F.segment({ from: ENTRY[0], to: ENTRY[1], name: 'inb' }),
+      F.segment({ from: REQ[0], to: REQ[1], name: 'inb', lights: ['pathChip'] }),
+      F.set({ at: 'inb', chips: { pathChip: '/api' } }),
       F.pulse({ pod: 'ctrl', at: 'inb' }),
+      F.light({ targets: ['svcApi'], at: 'inb', plus: LOOKUP_MS }),
+      F.route({ points: TO_API, at: 'inb', plus: BEAT.afterPulse, dur: BRANCH_DUR, name: 'toPod', lights: ['servedChip'] }),
+      tag({ text: `to ${API_IP}`, points: TO_API, at: 'inb', plus: BEAT.afterPulse, dy: TAG_DY_API }),
+      F.set({ at: 'toPod', chips: { servedChip: SERVED_API } }),
+      F.pulse({ pod: 'podApi', at: 'toPod' }),
     ],
   },
   {
-    id: 'api-proxy',
-    duration: 3600,           // same beat budget as match-proxy, which it mirrors
-    narration: 'This time both rules match, because the Prefix path / is a prefix of every path. Kubernetes breaks the tie by longest matching path, so shop.io/api wins and the controller proxies down the other branch, to Service api and on to a Ready Pod behind it.',
-    wires: { api: 'proxy -> api' },
-    chips: { hostChip: 'shop.io', pathChip: '/api', ...SPEC },
-    ...branch('api'),
-    // Both rules matched, so BOTH chips light. The longest match, ruleB, is the one that wins, and it
-    // is the only branch that carries the ball.
-    lit: ['ruleA', 'ruleB', 'hostChip', 'pathChip'],
-    reducedLit: ['ctrlBox', 'podApiBox'],
-    // Exact mirror of match-proxy on the lower fan: the controller pulses first as the sender, the
-    // ball leaves at BEAT.afterPulse, and the api backend Pod pulses on arrival.
+    id: 'no-match',
+    // Motion: the request 700, pulse 800, the answer 700, so 2200 of motion.
+    duration: 3400,
+    narration: 'A plain HTTP request for other.io/ arrives. No Ingress of this class names that host and Ingress shop sets no defaultBackend, so the Ingress API leaves the answer to the controller. This one hands it to its own default backend, which answers 404, and neither Service is looked up.',
+    wires: { req: 'HTTP other.io/', back: 'HTTP 404' },
+    chips: { hostChip: 'other.io', pathChip: '/', tlsChip: 'none, plain HTTP', servedChip: SERVED_404, ...SPEC },
+    ...branch('none'),
+    lit: ['extLB'],
+    reducedLit: ['ctrlBox'],
+    rewind: { chips: { hostChip: 'shop.io', pathChip: '/api', tlsChip: TERMINATED, servedChip: SERVED_API } },
     flow: [
-      F.pulse({ pod: 'ctrl' }),
-      F.route({ points: TO_API, delay: BEAT.afterPulse, name: 'toSvc', lights: ['svcApi'] }),
-      F.segment({ from: API_HOP[0], to: API_HOP[1], after: 'toSvc', name: 'toPod' }),
-      F.pulse({ pod: 'podApi', at: 'toPod' }),
+      F.segment({ from: REQ[0], to: REQ[1], name: 'inb', lights: ['hostChip', 'pathChip', 'tlsChip'] }),
+      F.set({ at: 'inb', chips: { hostChip: 'other.io', pathChip: '/', tlsChip: 'none, plain HTTP' } }),
+      F.pulse({ pod: 'ctrl', at: 'inb' }),
+      F.segment({ from: BACK[0], to: BACK[1], at: 'inb', plus: BEAT.afterPulse, name: 'answer', lights: ['servedChip'] }),
+      F.set({ at: 'answer', chips: { servedChip: SERVED_404 } }),
     ],
   },
 ];

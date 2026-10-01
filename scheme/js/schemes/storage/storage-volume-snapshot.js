@@ -1,251 +1,252 @@
-import { P, F, defineCard, BEAT, FADE, OPACITY, STO, chipStrip, REVEAL_MS } from './storage-kit.js';
-// Design notes for this card: ./CARDS.md#storage-volume-snapshot
+import { P, F, defineCard, BEAT, FADE, OPACITY, REVEAL_MS, chipStrip, makeRidingLabel } from './storage-kit.js';
+// Design notes for this card: ./CARDS/storage-volume-snapshot.md
 
 
+// The volume is drawn as its blocks: three rows of six cells in one pool frame, each row led by a
+// header naming whose data it is. The row unit (header, gap, cells) centres on CX.
 const CX = 600;
+const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const HEAD_W = 144, HEAD_GAP = 24;
+const CELL_W = 104, CELL_GAP = 28, CELLS = LETTERS.length;
+const CELLS_W = CELLS * CELL_W + (CELLS - 1) * CELL_GAP;                    // 764
+const ROW_W = HEAD_W + HEAD_GAP + CELLS_W;                                  // 932
+const HEAD_X = CX - ROW_W / 2, HEAD_CX = HEAD_X + HEAD_W / 2;               // 134 / 206
+const CELL_X0 = HEAD_X + HEAD_W + HEAD_GAP;                                 // 302
+const cellX = (i) => CELL_X0 + i * (CELL_W + CELL_GAP);
+const cellCX = (i) => cellX(i) + CELL_W / 2;                                // 354 .. 1014
+const C_CX = cellCX(2);                                                     // 618
 
-const REQ_X = 420, REQ_Y = 36, REQ_W = 360, REQ_H = 68;
-const REQ_RIGHT = REQ_X + REQ_W;                                            // 780
-const REQ_MY = REQ_Y + REQ_H / 2, REQ_BOTTOM = REQ_Y + REQ_H;               // 70 / 104
+// The pool starts under the deepest measured panel floor (see the record PANEL). The top inset holds
+// the frame label, the rows sit ROW_PITCH apart, and the bottom inset closes the frame under the last.
+const FRAME_Y = 268, FRAME_INSET_X = 24, FRAME_TOP = 36, FRAME_BOTTOM = 20;
+const ROW_H = 52, ROW_PITCH = 88;
+const LIVE_Y = FRAME_Y + FRAME_TOP;                                         // 304
+const SNAP_Y = LIVE_Y + ROW_PITCH, REST_Y = SNAP_Y + ROW_PITCH;             // 392 / 480
+const FRAME_X = HEAD_X - FRAME_INSET_X, FRAME_W = ROW_W + 2 * FRAME_INSET_X; // 110 / 980
+const FRAME_H = REST_Y + ROW_H + FRAME_BOTTOM - FRAME_Y;                    // 284, floor 552
 
-const RST_X = 840, RST_W = 240;
+// The catalog Pod (NET.L-01), centred on block C: every write it makes lands straight down on C.
+const POD_W = 232, POD_H = 104, POD_Y = 36, POD_BOTTOM = POD_Y + POD_H;     // 140
+const APP_W = 192, APP_H = 44, APP_DY = 26;
 
-// The middle row's left box lands at 144..376 whatever the spread, under the panel (x<=397 to y=280),
-// so the row starts BELOW the panel floor and the chain runs right to left to reach it on the free side.
-const MID_Y = 282, MID_H = 68, MID_BOTTOM = MID_Y + MID_H;                  // 350
-const MID_W = 232, MID_SPREAD = 340, MID_MY = MID_Y + MID_H / 2;            // 316
-const MID_CX = [CX - MID_SPREAD, CX, CX + MID_SPREAD];                      // 260 / 600 / 940
-const SNAP_CX = MID_CX[0], VSC_CX = MID_CX[1], CTRL_CX = MID_CX[2];
-const SNAP_RIGHT = SNAP_CX + MID_W / 2, VSC_LEFT = VSC_CX - MID_W / 2;      // 376 / 484
-const VSC_RIGHT = VSC_CX + MID_W / 2, CTRL_LEFT = CTRL_CX - MID_W / 2;      // 716 / 824
+// The two API objects stand as one column, the catalog actor block 232 by 80, its right edge flush
+// with the pool frame. The column is the snapshot pair (a PVC and its PV, one level up).
+const OBJ_W = 232, OBJ_H = 80, OBJ_X = FRAME_X + FRAME_W - OBJ_W, OBJ_CX = OBJ_X + OBJ_W / 2;   // 858 / 974
+const SNAP_OBJ_Y = 36, CONT_Y = SNAP_OBJ_Y + OBJ_H + 40;                    // 36 / 156
 
-const CYL_W = 176, CYL_H = 90;
-const FRAME_INSET = 42;
-const FRAME_X = 144, FRAME_W = 912, FRAME_Y = 396;                          // 144..1056, below the
-const FRAME_H = CYL_H + FRAME_INSET * 2;                                    // middle row, 396..570
-
-const CYL_Y = FRAME_Y + FRAME_INSET;                                        // 438
-const CYL_MY = CYL_Y + CYL_H / 2, CYL_TOP = CYL_Y;                          // 483 / 438
-const CYL_SPREAD = 300;
-const SRC_CX = CX - CYL_SPREAD, SNAPDATA_CX = CX, RESTORED_CX = CX + CYL_SPREAD;   // 300 / 600 / 900
-// Three disks 176 wide at 300/600/900 span 212..988 inside a frame at 144..1056, so the frame keeps 68
-// of margin on each side and the disks keep 124 between them, which is the run each shelf hop travels.
-
-// Kept clear of the frame rather than midway to it: the middle row sits close.
-const CORRIDOR_Y = FRAME_Y - 18;                            // 378
-const REQ_CORRIDOR_Y = 157;
-const CAPTION_Y = CYL_Y + CYL_H + 24;             // 552
-const CHIPS_Y = 588;                              // 18 below the frame, and 18 above the canvas floor
-
+const CHIPS_Y = 572;             // 20 under the frame floor
 const CHIP_W = 232, CHIP_GAP = 16;
-const CHIPS = chipStrip({ cx: CX, w: CHIP_W, gap: CHIP_GAP });   // 112 / 360 / 608 / 856
+const CHIPS = chipStrip({ cx: CX, w: CHIP_W, gap: CHIP_GAP });              // 112 .. 1088
 
-// The request goes down and the mirrored status goes up, so the two share the VolumeSnapshot floor
-// as a pair either side of its midpoint instead of running on one another.
-const REQ_LANE = 16;
-const W_REQ_CTRL  = [[CX - REQ_LANE, REQ_BOTTOM], [CX - REQ_LANE, REQ_CORRIDOR_Y], [CTRL_CX, REQ_CORRIDOR_Y], [CTRL_CX, MID_Y]];
-const W_CTRL_VSC  = [[CTRL_LEFT, MID_MY], [VSC_RIGHT, MID_MY]];
-const W_VSC_SNAP  = [[VSC_LEFT, MID_MY], [SNAP_RIGHT, MID_MY]];
-const W_CREATE    = [[SNAP_CX, MID_BOTTOM], [SNAP_CX, CORRIDOR_Y], [SNAPDATA_CX, CORRIDOR_Y], [SNAPDATA_CX, CYL_TOP]];
-// The driver answers back up the same lane, reversed, so the two hops read as one call and its return.
-const W_ACK       = [...W_CREATE].reverse();
-const W_SNAP_VSC  = [[SNAP_RIGHT, MID_MY], [VSC_LEFT, MID_MY]];
-const W_VSC_REQ   = [[CX + REQ_LANE, MID_Y], [CX + REQ_LANE, REQ_BOTTOM]];
-const W_COPY      = [[SRC_CX + CYL_W / 2, CYL_MY], [SNAPDATA_CX - CYL_W / 2, CYL_MY]];
-const W_SEED      = [[SNAPDATA_CX + CYL_W / 2, CYL_MY], [RESTORED_CX - CYL_W / 2, CYL_MY]];
+// A write is addressed to the volume in the pool, so it stops on the frame face level with block C.
+const W_WRITE = [[C_CX, POD_BOTTOM], [C_CX, FRAME_Y]];
+const W_BIND  = [[OBJ_CX, SNAP_OBJ_Y + OBJ_H], [OBJ_CX, CONT_Y]];
+// The column sits flush with the frame edge, off every block centre, so the call leaves the content
+// side face and drops into the pool level with block D, the nearest column clear of the Pod.
+const CONT_MY = CONT_Y + OBJ_H / 2;                                         // 196
+const W_CALL  = [[OBJ_X, CONT_MY], [cellCX(3), CONT_MY], [cellCX(3), FRAME_Y]];
+const W_KEEP  = [[C_CX, LIVE_Y + ROW_H], [C_CX, SNAP_Y]];
+const W_SEED  = [[HEAD_CX, SNAP_Y + ROW_H], [HEAD_CX, REST_Y]];
+// A snapshot block is a POINTER at a live block until something writes that block, so the row keeps
+// one undirected link per column. Block C's link is the one the keep lane replaces.
+const ptr = (i) => [[cellCX(i), SNAP_Y], [cellCX(i), LIVE_Y + ROW_H]];
 
-// A tag on a hop BETWEEN two blocks of one row rides above that row, not on its midline: every such
-// hop here is shorter than the tag, so on the midline a block edge prints through it the whole way.
-const ROW_TAG_DY = MID_Y - MID_MY - 6;                          // -40: the tag floor lands 3 above the row
-const SHELF_TAG_DY = FRAME_Y + FRAME_INSET / 2 + 4 - CYL_MY;    // -62: centred in the band above the disks
+// Every tag lives exactly as long as its ball (M-30a), and fades in once clear of the block it leaves.
+const tagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true });
+// The bind hop is 40 long, shorter than a tag is tall plus its travel, so its tag rides left of the
+// column, centred in the 124 gap to the Pod, and kept short enough to clear both. The call tag rides above its ball and ahead of it, clear of the
+// content on the side leg and of the lane on the drop. The two hops inside the pool cross a 36 gap
+// between rows of cells and carry no tag at all: any tag there prints into a cell at one end.
+const BESIDE_OBJ = { dx: (C_CX + POD_W / 2 + OBJ_X) / 2 - OBJ_CX };        // centre 796
+const CALL_TAG = { dx: -60, dy: -14 };
 
-// Every lane on this card is born hidden: STO.S-02 keeps a lane off screen until the step that runs it.
 const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true, opacity: 0 });
+const head = (key, y, label, sublabel) => P.box({ key, x: HEAD_X, y, w: HEAD_W, h: ROW_H, label, sublabel });
+const cell = (row, y, i, sublabel, opacity) => P.box({ key: `${row}${LETTERS[i]}`, x: cellX(i), y, w: CELL_W, h: ROW_H, label: LETTERS[i], sublabel, opacity });
+const row = (prefix, y, subs, opacity) => LETTERS.map((_, i) => cell(prefix, y, i, subs[i], opacity));
 
-// The primitive centres the label on the raw bbox, which reads high because the top cap ellipse is not
-// part of the visible front face. Re-centre on the face, derived from the height.
-const disk = (key, cx, label) => P.cylinder({ key, x: cx - CYL_W / 2, y: CYL_Y, w: CYL_W, h: CYL_H, label, labelY: CYL_H / 2 + 10 });
+// The versions each row holds: the live volume at 09:58, and the 10:00 state the snapshot froze.
+const V_BEFORE = ['v1', 'v1', 'v1', 'v1', 'v1', 'v1'];
+const V_FROZEN = ['v1', 'v1', 'v2', 'v1', 'v1', 'v1'];
 
-// List order IS append order, which is z-order: the backend frame, then the blocks and disks that
-// stand inside it, then the reference, lanes and captions, then the chip strip, then the packet layer.
+// List order IS append order, which is z-order: the pool frame, the Pod and the two API objects, the
+// three row groups (the snapshot row carries its pointers), the lanes and caption, chips, packets.
 export const SCENE = {
-  'aria-label': 'Volume Snapshots: a VolumeSnapshot is the namespaced request snap-1 and a VolumeSnapshotClass names the CSI driver, the snapshot controller creates the cluster-scoped VolumeSnapshotContent and binds the two before anything is taken, the external-snapshotter then calls CreateSnapshot on the driver, and a fresh PVC restores from the result, but source, snapshot and restore all sit in one storage backend, so a snapshot is not a backup',
+  'aria-label': 'Volume Snapshots: Pod db-0 keeps writing the blocks of PVC data-1 in a Ceph pool, VolumeSnapshot snap-1 binds to a cluster-scoped VolumeSnapshotContent the way a PVC binds a PV, and at 10:00 CreateSnapshot freezes the volume as pointers to its six blocks with nothing copied. At 10:05 a new write to block C makes the pool keep the old C for the snapshot, so the live volume moves on while snap-1 still reads 10:00, and PVC restore-1 with dataSource snap-1 gets a new volume holding that 10:00 state. All three live in one pool, so if the pool is lost they are lost together and the snapshot was not a backup',
   parts: [
     P.defs(),
-    P.node({ key: 'frame', x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'Storage backend' }),
-    P.box({ key: 'req', x: REQ_X, y: REQ_Y, w: REQ_W, h: REQ_H, label: 'VolumeSnapshot snap-1', sublabel: 'volumeSnapshotClassName: ebs-snapclass' }),
-    P.box({ key: 'restore', x: RST_X, y: REQ_Y, w: RST_W, h: REQ_H, label: 'PVC restore-1', sublabel: 'dataSource: snap-1', opacity: 0 }),
-    // One per cluster and shipped independently of any driver, which is exactly why it is a separate
-    // block from the sidecar rather than folded into it.
-    P.box({ key: 'ctrl', x: CTRL_CX - MID_W / 2, y: MID_Y, w: MID_W, h: MID_H, label: 'Snapshot-controller', sublabel: 'one per cluster' }),
-    P.box({ key: 'vsc', x: VSC_CX - MID_W / 2, y: MID_Y, w: MID_W, h: MID_H, label: 'VolumeSnapshotContent', sublabel: 'cluster-scoped', opacity: 0 }),
-    // The sidecar rides beside the driver named by the class, which is what the sublabel states.
-    P.box({ key: 'snapper', x: SNAP_CX - MID_W / 2, y: MID_Y, w: MID_W, h: MID_H, label: 'External-snapshotter', sublabel: 'driver: ebs.csi.aws.com' }),
-    disk('src', SRC_CX, 'Source Volume'),
-    disk('snapData', SNAPDATA_CX, 'Snapshot Data'),
-    disk('restored', RESTORED_CX, 'Restored Volume'),
-    // dataSource: the restore claim references the snapshot. Also a relationship, so no arrowhead.
-    P.relation({ key: 'dsRef', points: [[REQ_RIGHT, REQ_MY], [RST_X, REQ_MY]], dash: '5 5', opacity: 0 }),
-    lane('wReqCtrl', W_REQ_CTRL),
-    lane('wCtrlVsc', W_CTRL_VSC),
-    lane('wVscSnap', W_VSC_SNAP),
-    lane('wCreate', W_CREATE),
-    lane('wAck', W_ACK),
-    lane('wSnapVsc', W_SNAP_VSC),
-    lane('wVscReq', W_VSC_REQ),
-    lane('wCopy', W_COPY),
+    P.node({ key: 'frame', x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'Ceph pool rbd' }),
+    // The GROUP is the pulse target, and nothing inside it lights (STO.C-02).
+    P.pod({
+      key: 'pod', x: C_CX - POD_W / 2, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod db-0', sublabel: 'claim: data-1', containers: 0,
+      inner: { dx: (POD_W - APP_W) / 2, dy: APP_DY, w: APP_W, h: APP_H, label: 'app', sublabel: 'writes /data' },
+    }),
+    P.box({ key: 'snap', x: OBJ_X, y: SNAP_OBJ_Y, w: OBJ_W, h: OBJ_H, label: 'VolumeSnapshot snap-1', sublabel: 'source: PVC data-1', opacity: 0 }),
+    P.box({ key: 'cont', x: OBJ_X, y: CONT_Y, w: OBJ_W, h: OBJ_H, label: 'VolumeSnapshotContent', sublabel: 'cluster-scoped', opacity: 0 }),
+    P.group({ key: 'rowLive', parts: [
+      head('hLive', LIVE_Y, 'Live volume', 'PVC data-1'),
+      ...row('l', LIVE_Y, V_BEFORE),
+    ] }),
+    // The snapshot blocks rest at the pending shade while they only POINT at a live block, and a block
+    // turns full once the snapshot holds its own copy of it.
+    P.group({ key: 'rowSnap', opacity: 0, parts: [
+      head('hSnap', SNAP_Y, 'Snapshot data', 'frozen at 10:00'),
+      ...row('s', SNAP_Y, V_FROZEN, OPACITY.pending),
+      ...LETTERS.map((L, i) => P.relation({ key: `p${L}`, points: ptr(i), dash: '3 3' })),
+    ] }),
+    P.group({ key: 'rowRest', opacity: 0, parts: [
+      head('hRest', REST_Y, 'Restored volume', 'PVC restore-1'),
+      ...row('r', REST_Y, V_FROZEN),
+    ] }),
+    lane('wWrite', W_WRITE),
+    lane('wBind', W_BIND),
+    lane('wCall', W_CALL),
+    lane('wKeep', W_KEEP),
     lane('wSeed', W_SEED),
-    P.wire({ key: 'srcCap', x: SRC_CX, y: CAPTION_Y }),
-    P.wire({ key: 'snapCap', x: SNAPDATA_CX, y: CAPTION_Y }),
-    P.wire({ key: 'restoredCap', x: RESTORED_CX, y: CAPTION_Y }),
-    // Every one of these is a real field except the last, which is the point of the card rather than a
-    // status: 'Content' is status.boundVolumeSnapshotContentName, whose full name is too long to print.
-    P.chip({ key: 'contChip', x: CHIPS.x(0), y: CHIPS_Y, w: CHIP_W, h: STO.CHIP_H, name: 'Content', value: 'none' }),
-    P.chip({ key: 'handChip', x: CHIPS.x(1), y: CHIPS_Y, w: CHIP_W, h: STO.CHIP_H, name: 'snapshotHandle', value: 'none' }),
-    P.chip({ key: 'readyChip', x: CHIPS.x(2), y: CHIPS_Y, w: CHIP_W, h: STO.CHIP_H, name: 'readyToUse', value: 'false' }),
-    P.chip({ key: 'storeChip', x: CHIPS.x(3), y: CHIPS_Y, w: CHIP_W, h: STO.CHIP_H, name: 'stored', value: 'same system' }),
+    // The counterfactual caption of the last step (T-35), in the frame label band, above all three rows.
+    P.wire({ key: 'poolCap', x: CX, y: FRAME_Y + 22 }),
+    P.chip({ key: 'timeChip', x: CHIPS.x(0), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'time', value: '09:58' }),
+    P.chip({ key: 'readyChip', x: CHIPS.x(1), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'readyToUse', value: 'none' }),
+    P.chip({ key: 'sharedChip', x: CHIPS.x(2), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'shared blocks', value: 'none' }),
+    P.chip({ key: 'storeChip', x: CHIPS.x(3), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'stored', value: 'same pool' }),
     P.packets(),
   ],
   reset: {
-    keys: ['req', 'restore', 'ctrl', 'vsc', 'snapper', 'src', 'snapData', 'restored',
-      'contChip', 'handChip', 'readyChip', 'storeChip'],
+    keys: ['snap', 'cont', 'hSnap', 'hRest', 'lC', 'sC', 'rC',
+      'timeChip', 'readyChip', 'sharedChip', 'storeChip'],
+    pods: ['pod'],
   },
 };
 
 
-// Every step writes EVERY chip. A chip left unset keeps the previous step's value, which is how a card
-// comes to report readyToUse true on the step that is still taking the snapshot.
-const chips = (cont, hand, ready, store) => ({ contChip: cont, handChip: hand, readyChip: ready, storeChip: store });
+// Every step writes EVERY chip (P-01).
+const chips = (time, ready, shared, store) => ({ timeChip: time, readyChip: ready, sharedChip: shared, storeChip: store });
 
-// STO.S-01 as a field: every element born mid-story, and every lane, is pinned on EVERY step, never
-// inherited, because the reduced replay walks 0..n and clearHighlights clears classes not inline styles.
-const LANES = ['wReqCtrl', 'wCtrlVsc', 'wVscSnap', 'wCreate', 'wAck', 'wSnapVsc', 'wVscReq', 'wCopy', 'wSeed'];
-const stage = ({ vsc = OPACITY.pending, restore = 0, snapData = OPACITY.pending, restored = OPACITY.pending, ds = 0, lanes = [] } = {}) => ({
-  vsc, restore, snapData, restored, dsRef: ds,
+// STO.S-01 as a field: every element born or changed mid-story, and every lane, is pinned on EVERY
+// step. The pointer of block C goes the moment its keep lane takes its place.
+const LANES = ['wWrite', 'wBind', 'wCall', 'wKeep', 'wSeed'];
+const stage = ({ snap = 0, cont = 0, rowSnap = 0, ptrC = 1, sC = OPACITY.pending, rowRest = 0, rows = 1, lanes = [] } = {}) => ({
+  snap, cont, rowSnap, pC: ptrC, sC, rowRest, rowLive: rows,
   ...Object.fromEntries(LANES.map(k => [k, lanes.includes(k) ? 1 : 0])),
 });
-
-const BOUND_SUB = 'bound to snapcontent-9f2';
+// The objects and rows that stand once each step is over, so a later step starts from them.
+const BOUND = { snap: 1, cont: 1 };
+const CUT = { ...BOUND, rowSnap: 1 };
+const KEPT = { ...CUT, ptrC: 0, sC: 1 };
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chipsCued: chips('none', 'none', 'false', 'same system'),
-    sublabels: { req: 'volumeSnapshotClassName: ebs-snapclass' },
-    wires: { srcCap: 'claim data-1', snapCap: 'not taken yet' },
+    chipsCued: chips('09:58', 'none', 'none', 'same pool'),
+    sublabels: { lC: 'v1' },
     opacity: stage(),
   },
   {
-    id: 'class',
-    duration: 2600,
-    narration: 'The snapshot names a VolumeSnapshotClass, and that class carries the driver field naming the CSI plugin that knows how to take snapshots, plus a deletionPolicy of Delete or Retain that decides whether the real snapshot outlives the object. It is the same shape as a StorageClass one level up: the request states intent, the class states which driver carries it out.',
-    chipsCued: chips('none', 'none', 'false', 'same system'),
-    // No sublabel: this step inherits what the step before it left on the request box.
-    wires: { srcCap: 'claim data-1', snapCap: 'not taken yet' },
-    opacity: stage(),
-    // Both ends of the class relationship light and hold: the request that names the class, and the
-    // sidecar that rides beside the driver the class names. No blink: see the PULSE MODEL note.
-    lit: ['req', 'snapper'],
-  },
-  {
-    id: 'bind',
-    // Two chained hops plus the bound link drawing itself in once both ends exist.
-    duration: 4400,
-    narration: 'The snapshot controller runs once per cluster, independent of any driver, and watches both kinds of object. It picks up the new request, creates a VolumeSnapshotContent for it and binds the two one to one. This cluster-scoped object is the counterpart of a PV, and it exists before any snapshot has been taken.',
-    chipsCued: chips('snapcontent-9f2', 'none', 'false', 'same system'),
-    sublabels: { req: BOUND_SUB },
-    wires: { srcCap: 'claim data-1', snapCap: 'not taken yet' },
-    opacity: stage({ vsc: 1, lanes: ['wReqCtrl', 'wCtrlVsc'] }),
-    // The request is where the first ball departs from, so it is lit at entry. The controller and the
-    // object it writes are receivers and earn their highlights on arrival.
-    lit: ['req'],
-    // The content exists by the END of this step, so visible is the static end-state and the animated
-    // path starts it back on the pending shade the reveal below lifts.
-    rewind: { opacity: { vsc: OPACITY.pending } },
+    id: 'live',
+    duration: 3000,
+    narration: 'Pod db-0 writes to PVC data-1, whose volume lives in a Ceph pool. The card draws that volume as six blocks, A to F, and every write gives a block a new version: this one turns C v1 into C v2. The volume keeps changing like this for as long as the Pod runs.',
+    chipsCued: chips('09:58', 'none', 'none', 'same pool'),
+    sublabels: { lC: 'v2' },
+    opacity: stage({ lanes: ['wWrite'] }),
+    rewind: { sublabels: { lC: 'v1' } },
+    // Up-arrow out of a Pod: it blinks first and the write leaves on BEAT.afterPulse (M-15).
     flow: [
-      F.route({ points: W_REQ_CTRL, delay: BEAT.lead, name: 'watch' }),
-      // Rides BELOW the ball: the request corridor at 157 clears every measured panel floor but a tag
-      // above the ball would not, and the offset keeps it off the request box floor it leaves from.
-      F.tag({ text: 'snap-1', points: W_REQ_CTRL, delay: BEAT.lead, dy: 22 }),
-      F.light({ targets: ['ctrl'], at: 'watch' }),
-      F.route({ points: W_CTRL_VSC, after: 'watch', name: 'write' }),
-      // Rides in the band above the middle row: the row gap is 108 and the tag is wider, so at the
-      // default offset the row edge prints through it at both ends of the hop.
-      F.tag({ text: 'create and bind', points: W_CTRL_VSC, after: 'watch', dy: ROW_TAG_DY }),
-      F.reveal({ target: 'vsc', from: OPACITY.pending, at: 'write' }),
-      F.light({ targets: ['vsc'], at: 'write' }),
+      F.pulse({ pod: 'pod' }),
+      F.route({ points: W_WRITE, delay: BEAT.afterPulse, name: 'write', lights: ['lC'] }),
+      F.tag({ text: 'write C v2', points: W_WRITE, delay: BEAT.afterPulse, dx: 58, fn: tagFn, emerge: 200 }),
+      F.set({ at: 'write', sublabels: { lC: 'v2' } }),
     ],
   },
   {
-    id: 'create',
-    duration: 5200,
-    narration: 'Creating that content is what wakes the CSI snapshotter sidecar. It watches VolumeSnapshotContent objects and never the request itself, and it calls CreateSnapshot on the driver. The backend freezes a point in time copy beside the source, usually by reference rather than by duplicating every byte.',
-    chipsCued: chips('snapcontent-9f2', 'creating', 'false', 'same system'),
-    sublabels: { req: BOUND_SUB },
-    wires: { srcCap: 'claim data-1', snapCap: 'point-in-time copy' },
-    opacity: stage({ vsc: 1, snapData: 1, lanes: ['wVscSnap', 'wCreate', 'wCopy'] }),
-    // The content is where the first ball departs from, so it is lit at entry.
-    lit: ['vsc'],
-    rewind: { opacity: { snapData: OPACITY.pending } },
+    id: 'request',
+    duration: 3400,
+    narration: 'You create VolumeSnapshot snap-1 with source data-1 and a VolumeSnapshotClass that names the CSI driver. A cluster-scoped VolumeSnapshotContent is created and bound to it one to one, the same pair shape as a PVC and its PV. All three kinds are CRDs, installed with the snapshot controller, not built in.',
+    chipsCued: chips('09:59', 'false', 'none', 'same pool'),
+    sublabels: { lC: 'v2' },
+    opacity: stage({ ...BOUND, lanes: ['wBind'] }),
+    // The request is where the ball leaves, so it is lit at entry. The content is the receiver.
+    lit: ['snap'],
+    rewind: { opacity: { snap: 0, cont: OPACITY.pending, wBind: 0 } },
     flow: [
-      F.route({ points: W_VSC_SNAP, delay: BEAT.lead, name: 'wake' }),
-      F.tag({ text: 'new content', points: W_VSC_SNAP, delay: BEAT.lead, dy: ROW_TAG_DY }),
-      F.light({ targets: ['snapper'], at: 'wake' }),
-      F.route({ points: W_CREATE, after: 'wake', name: 'call' }),
-      F.tag({ text: 'CreateSnapshot', points: W_CREATE, after: 'wake' }),
-      F.reveal({ target: 'snapData', from: OPACITY.pending, at: 'call' }),
-      // The copy itself: the point in time frozen out of the source into the new snapshot, which is the
-      // whole reason both disks sit inside one backend frame.
-      F.route({ points: W_COPY, at: 'call', plus: REVEAL_MS, name: 'copy' }),
-      F.light({ targets: ['src'], at: 'call', plus: REVEAL_MS }),
-      F.light({ targets: ['snapData'], at: 'copy' }),
+      F.reveal({ target: 'snap' }),
+      // The content is what the lane points AT, so it comes in at the pending shade (M-24).
+      F.fade({ target: 'cont', from: 0, to: OPACITY.pending, dur: REVEAL_MS, fill: 'forwards', easing: 'ease-out' }),
+      // The lane is one construction with the two objects on its ends (STO.S-02), so it comes in with them.
+      F.fade({ target: 'wBind', from: 0, to: 1, dur: REVEAL_MS, fill: 'forwards', easing: 'ease-out' }),
+      F.route({ points: W_BIND, delay: BEAT.lead, name: 'bind', lights: ['cont'] }),
+      F.tag({ text: 'bind 1:1', points: W_BIND, delay: BEAT.lead, ...BESIDE_OBJ, fn: tagFn, emerge: 150 }),
+      F.reveal({ target: 'cont', from: OPACITY.pending, at: 'bind' }),
     ],
   },
   {
-    id: 'ready',
-    // Three chained hops back up the chain: driver to sidecar, sidecar to content, content to request.
-    duration: 5000,
-    narration: 'A snapshot handle comes back from the driver. The sidecar writes it into the content status and flips readyToUse to true, and the controller mirrors that status up onto snap-1, which can now be consumed. Note where the data sits: on the same storage system as the source, right beside it. If that system fails both are lost, so a snapshot is not a backup.',
-    chipsCued: chips('snapcontent-9f2', 'snap-0c41', 'true', 'not a backup'),
-    sublabels: { req: BOUND_SUB },
-    wires: { srcCap: 'same system', snapCap: 'same system' },
-    opacity: stage({ vsc: 1, snapData: 1, lanes: ['wAck', 'wSnapVsc', 'wVscReq'] }),
-    lit: ['snapData', 'ctrl'],
+    id: 'cut',
+    duration: 3200,
+    narration: 'At 10:00 the content triggers CreateSnapshot, which the CSI driver runs against the pool. On a copy-on-write backend like this one no data moves: the snapshot is a frozen map pointing at the six blocks exactly as they are now, C v2 included. That is why it can be ready in seconds.',
+    chipsCued: chips('10:00', 'true', '6 of 6', 'same pool'),
+    sublabels: { lC: 'v2' },
+    opacity: stage({ ...CUT, lanes: ['wCall'] }),
+    lit: ['cont'],
+    rewind: { opacity: { rowSnap: 0 }, chips: { readyChip: 'false', sharedChip: 'none' } },
     flow: [
-      F.route({ points: W_ACK, delay: BEAT.lead, name: 'ack' }),
-      F.tag({ text: 'snapshotHandle', points: W_ACK, delay: BEAT.lead }),
-      F.light({ targets: ['snapper'], at: 'ack' }),
-      F.route({ points: W_SNAP_VSC, after: 'ack', name: 'status' }),
-      F.tag({ text: 'readyToUse true', points: W_SNAP_VSC, after: 'ack', dy: ROW_TAG_DY }),
-      F.light({ targets: ['vsc'], at: 'status' }),
-      F.route({ points: W_VSC_REQ, after: 'status', name: 'mirror' }),
-      // Rides BELOW the ball: this hop ends ON the request box bottom edge, and above the ball the tag
-      // would print across the box sublabel.
-      F.tag({ text: 'status mirrored', points: W_VSC_REQ, after: 'status', dy: 22 }),
-      F.light({ targets: ['req'], at: 'mirror' }),
+      F.route({ points: W_CALL, delay: BEAT.lead, name: 'call' }),
+      F.tag({ text: 'CreateSnapshot', points: W_CALL, delay: BEAT.lead, ...CALL_TAG, fn: tagFn, emerge: 150 }),
+      F.reveal({ target: 'rowSnap', at: 'call' }),
+      F.light({ targets: ['hSnap'], at: 'call' }),
+      F.set({ at: 'call', chipsCued: { readyChip: 'true', sharedChip: '6 of 6' } }),
+    ],
+  },
+  {
+    id: 'diverge',
+    duration: 3800,
+    narration: 'At 10:05 the Pod writes block C again. The pool keeps the old C v2 for the snapshot before the new version lands, so this one block now exists twice. The live volume reads C v3, while snap-1 still sees every block exactly as it was at 10:00.',
+    chipsCued: chips('10:05', 'true', '5 of 6', 'same pool'),
+    sublabels: { lC: 'v3' },
+    opacity: stage({ ...KEPT, lanes: ['wWrite', 'wKeep'] }),
+    rewind: { opacity: { sC: OPACITY.pending }, sublabels: { lC: 'v2' }, chips: { sharedChip: '6 of 6' } },
+    // The write reaches C first, the old version drops into the snapshot, and only then does the
+    // live block read the new one: the order the narration states.
+    flow: [
+      F.pulse({ pod: 'pod' }),
+      F.route({ points: W_WRITE, delay: BEAT.afterPulse, name: 'write', lights: ['lC'] }),
+      F.tag({ text: 'write C v3', points: W_WRITE, delay: BEAT.afterPulse, dx: 58, fn: tagFn, emerge: 200 }),
+      F.route({ points: W_KEEP, after: 'write', name: 'keep', lights: ['sC'] }),
+      F.reveal({ target: 'sC', from: OPACITY.pending, at: 'keep' }),
+      F.set({ at: 'keep', sublabels: { lC: 'v3' }, chipsCued: { sharedChip: '5 of 6' } }),
     ],
   },
   {
     id: 'restore',
-    duration: 3600,
-    narration: 'To restore, create a brand new PVC whose dataSource names snap-1. That claim resolves through the bound content, and provisioning asks the driver for a fresh volume seeded from the snapshot. The original is untouched, the restore is a separate independent disk, and all three of them still sit in the same backend.',
-    chipsCued: chips('snapcontent-9f2', 'snap-0c41', 'true', 'not a backup'),
-    sublabels: { req: BOUND_SUB },
-    wires: { srcCap: 'untouched', snapCap: 'seeds the restore', restoredCap: 'independent disk' },
-    opacity: stage({ vsc: 1, snapData: 1, restored: 1, restore: 1, ds: 1, lanes: ['wSeed'] }),
-    // The snapshot data is where the ball departs from, so it is lit at step entry.
-    lit: ['snapData'],
-    rewind: { opacity: { restore: 0, restored: OPACITY.pending, dsRef: 0 } },
-    // The claim and its dataSource reference appear first: they are what triggers everything below.
+    duration: 3000,
+    narration: 'To go back, create PVC restore-1 in the same StorageClass, with dataSource snap-1. Provisioning builds a new volume holding C v2, the 10:00 state, not the C v3 live now. It is only crash consistent: whatever db-0 still held in memory at 10:00 is not in it.',
+    chipsCued: chips('10:20', 'true', '5 of 6', 'same pool'),
+    sublabels: { lC: 'v3' },
+    opacity: stage({ ...KEPT, rowRest: 1, lanes: ['wSeed'] }),
+    // The snapshot is what the new volume is built from, so it is lit at entry.
+    lit: ['hSnap'],
+    rewind: { opacity: { rowRest: OPACITY.pending, wSeed: 0 } },
     flow: [
-      F.reveal({ target: 'restore' }),
-      F.fade({ target: 'dsRef', from: 0, to: 1, dur: FADE.in, delay: REVEAL_MS, fill: 'forwards', easing: 'ease-out' }),
-      F.light({ targets: ['restore'], delay: REVEAL_MS }),
-      F.route({ points: W_SEED, delay: BEAT.lead + REVEAL_MS, name: 'seed' }),
-      F.tag({ text: 'new volume from snap-1', points: W_SEED, delay: BEAT.lead + REVEAL_MS, dy: SHELF_TAG_DY }),
-      F.reveal({ target: 'restored', from: OPACITY.pending, at: 'seed' }),
-      F.light({ targets: ['restored'], at: 'seed' }),
+      F.fade({ target: 'rowRest', from: 0, to: OPACITY.pending, dur: REVEAL_MS, fill: 'forwards', easing: 'ease-out' }),
+      F.fade({ target: 'wSeed', from: 0, to: 1, dur: REVEAL_MS, fill: 'forwards', easing: 'ease-out' }),
+      F.route({ points: W_SEED, delay: BEAT.lead, name: 'seed', lights: ['hRest', 'rC'] }),
+      F.reveal({ target: 'rowRest', from: OPACITY.pending, at: 'seed' }),
+    ],
+  },
+  {
+    id: 'loss',
+    duration: 3000,
+    narration: 'All three sit in one pool. If that pool is lost, the live volume, the snapshot and the restored copy go with it, while snap-1 and its content stay in the API naming data that is gone. On a backend like this a snapshot is not a backup until it is copied somewhere else.',
+    chipsCued: chips('10:20', 'true', '5 of 6', 'lost with pool'),
+    sublabels: { lC: 'v3' },
+    wires: { poolCap: 'if the pool is lost' },
+    opacity: stage({ ...KEPT, rowSnap: OPACITY.terminated, rowRest: OPACITY.terminated, rows: OPACITY.terminated }),
+    // No ball and no Pod blink: the step states a counterfactual, and the objects that outlive the
+    // data carry its beat as a static highlight (M-27).
+    lit: ['snap', 'cont'],
+    rewind: { opacity: { rowSnap: 1, rowRest: 1, rowLive: 1 }, chips: { storeChip: 'same pool' } },
+    flow: [
+      ...['rowLive', 'rowSnap', 'rowRest'].map(target => F.fade({ target, to: OPACITY.terminated, dur: FADE.out, delay: BEAT.lead, fill: 'forwards' })),
+      F.set({ delay: BEAT.lead, chipsCued: { storeChip: 'lost with pool' } }),
     ],
   },
 ];

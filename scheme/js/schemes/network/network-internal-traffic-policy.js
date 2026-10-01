@@ -1,199 +1,214 @@
-import { P, F, defineCard, makeRidingLabel, shade, BEAT, OPACITY } from './network-kit.js';
+import { P, F, defineCard, makeRidingLabel, shade, strip, BEAT, OPACITY } from './network-kit.js';
 
-// Design notes for this card: ./CARDS.md#network-internal-traffic-policy
+// Design notes for this card: ./CARDS/network-internal-traffic-policy.md
 
 
-const FLOW_Y = 405;
+// Two peer Node frames mirrored about x=600, each holding the same row. The frame tops and the
+// Service bus hang under the deepest panel, so every narration is held to eight lines at 1100x800.
+const FRAME_W = 540, FRAME_GAP = 40;
+const N1_X = 600 - FRAME_GAP / 2 - FRAME_W;    // 40
+const N2_X = 600 + FRAME_GAP / 2;              // 620
+const NODE_Y = 254, NODE_H = 254;
+const NODE_BOTTOM = NODE_Y + NODE_H;           // 508
 
-const SVC_X = 450, SVC_Y = 56, SVC_W = 300, SVC_H = 74;
-const SVC_CX = SVC_X + SVC_W / 2;              // 600
-const SVC_BOTTOM = SVC_Y + SVC_H;              // 130
+// One row per frame, sized BY the frame (NET.L-01 third clause): 14 + 140 + 38 + 156 + 38 + 140 + 14.
+// kube-proxy stands above the Pods, so it is not in the row and takes 232, spanning client to agent.
+const PAD = 14, POD_W = 140, HOP = 38, DP_W = 156, KP_W = 232;
+const POD_H = 100, DP_H = 80, KP_H = 80, KP_Y = NODE_Y + 20;   // kube-proxy 274..354
+const DP_Y = KP_Y + KP_H + 30;                 // 384, the relation gap: the Pod tops stand 20 under kube-proxy
+const FLOW_Y = DP_Y + DP_H / 2;                // 424
+const POD_Y = FLOW_Y - POD_H / 2;              // 374
+const NOTE_Y = 494;                            // agent readiness note, between the Pod bottom and the frame bottom
 
-const NODE_Y = 312, NODE_H = 186;
-const NODE_BOTTOM = NODE_Y + NODE_H;           // 498
-const N1_X = 40, N1_W = 700;
-const N1_CX = N1_X + N1_W / 2;                 // 390, the axis the Service ownership line lands on
-const N2_X = 780, N2_W = 380;
+// Everything in a row is an offset from its frame, so Node-2 is Node-1 moved 580 to the right.
+const row = (nx) => {
+  const client = nx + PAD;                     // 54 | 634
+  const dp = client + POD_W + HOP;             // 232 | 812
+  const agent = dp + DP_W + HOP;               // 426 | 1006
+  return { client, dp, agent, dpCx: dp + DP_W / 2, agentCx: agent + POD_W / 2 };
+};
+const R1 = row(N1_X), R2 = row(N2_X);          // dpCx 310 | 890, agentCx 496 | 1076
 
-const POD_W = 190, POD_H = 104;
-const POD_Y = FLOW_Y - POD_H / 2;              // 353
-const CLIENT_X = 70;
-const CLIENT_RIGHT = CLIENT_X + POD_W;         // 260
-const KP_X = 300, KP_W = 180, KP_H = 68;
-const KP_TOP = FLOW_Y - KP_H / 2;              // 371
-const KP_RIGHT = KP_X + KP_W;                  // 480
-const KP_CX = KP_X + KP_W / 2;                 // 390
-const PODA_X = 530;                            // local backend, inside Node-1
-const PODB_X = 875;                            // remote backend, inside Node-2
-const PODB_CX = PODB_X + POD_W / 2;            // 970
+// The Service sits over the gap between the frames, and its bus lands on each frame top above kube-proxy.
+const SVC_W = 232, SVC_H = 80, SVC_Y = 112;
+const SVC_X = 600 - SVC_W / 2;                 // 484
+const BUS_Y = NODE_Y - 14;                     // 240
 
-const UNDER_Y = NODE_BOTTOM + 40;              // 538, the underlay lane between the Nodes
-const CHIP_Y = 578, CHIP_H = 34;
-const SCHEME_LEFT = N1_X;                      // 40
-const SCHEME_RIGHT = N2_X + N2_W;              // 1160
-
+// Both cross legs use each frame bottom as an L-12 pair about the dataplane axis, out at -70 and in
+// at +70, 8 inside the dataplane edges. Nested, 820..380 inside 240..960, so no vertical crosses a horizontal.
+const TWIN = 70;
+const INNER_Y = NODE_BOTTOM + 22, OUTER_Y = NODE_BOTTOM + 54;   // 530, 562
+const CHIP_Y = 596, CHIP_H = 34;
+const CHIPS = strip({ from: N1_X, to: N2_X + FRAME_W, count: 4, gap: 20 });   // 265 wide each
 
 // Each static wire and the ball that rides it share the same points array.
-const TO_KP = [[CLIENT_RIGHT, FLOW_Y], [KP_X, FLOW_Y]];
-const TO_LOCAL = [[KP_RIGHT, FLOW_Y], [PODA_X, FLOW_Y]];
-// The DNAT happens inside kube-proxy, so the remote leg re-emerges BELOW it, on the Node-1 bottom edge:
-// by the time the ball is on this path the packet has already left the Node.
-const TO_REMOTE = [[KP_CX, NODE_BOTTOM], [KP_CX, UNDER_Y], [PODB_CX, UNDER_Y], [PODB_CX, NODE_BOTTOM]];
-// Ownership marker from the Service down onto the Node-1 top edge, not into kube-proxy.
-const OWN = [[SVC_CX, SVC_BOTTOM], [SVC_CX, 240], [N1_CX, 240], [N1_CX, NODE_Y]];
+const IN1 = [[R1.dp - HOP, FLOW_Y], [R1.dp, FLOW_Y]];
+const IN2 = [[R2.dp - HOP, FLOW_Y], [R2.dp, FLOW_Y]];
+const LOC1 = [[R1.dp + DP_W, FLOW_Y], [R1.agent, FLOW_Y]];
+const LOC2 = [[R2.dp + DP_W, FLOW_Y], [R2.agent, FLOW_Y]];
+// The DNAT happens inside the Node dataplane, so a cross leg re-emerges on the frame bottom UNDER it.
+const X1 = [[R1.dpCx - TWIN, NODE_BOTTOM], [R1.dpCx - TWIN, OUTER_Y], [R2.dpCx + TWIN, OUTER_Y], [R2.dpCx + TWIN, NODE_BOTTOM]];
+const X2 = [[R2.dpCx - TWIN, NODE_BOTTOM], [R2.dpCx - TWIN, INNER_Y], [R1.dpCx + TWIN, INNER_Y], [R1.dpCx + TWIN, NODE_BOTTOM]];
+const BUS1 = [[600, SVC_Y + SVC_H], [600, BUS_Y], [R1.dpCx, BUS_Y], [R1.dpCx, NODE_Y]];
+const BUS2 = [[600, SVC_Y + SVC_H], [600, BUS_Y], [R2.dpCx, BUS_Y], [R2.dpCx, NODE_Y]];
 
-// The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: hold 0
-// drops the ClusterIP the instant the ball reaches kube-proxy, so the DNAT-ed address stands alone.
-const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0 });
-const tag = (p) => F.tag({ fn: ridingLabel, ...p });
+// The tag rides a cross-node ball from departure, below it and TWIN behind it, between the two verticals
+// of each frame bottom, and dissolves with it on arrival (M-30a): rising, it crosses its own lane.
+const crossLabel = makeRidingLabel({ role: 'network', inMs: 200, outMs: 200, hold: 0 });
+const TAG_INNER = { fn: crossLabel, dx: TWIN };    // rides left, trails right
+const TAG_OUTER = { fn: crossLabel, dx: -TWIN };   // rides right, trails left
+const tag = (p) => F.tag({ dy: 18, ...p });
 
-// A tag on a hop INSIDE Node-1 rides in the band under the Node frame label: those two hops are 40
-// and 50 units long against a 121 unit address, so on the lane a Pod face prints through the glyphs.
-const IN_NODE_TAG_DY = POD_Y - FLOW_Y - 4;   // -56: the lowest clear offset, ink 3 above the Pod tops
+const CLIENT_INNER = { dx: 18, dy: 26, w: POD_W - 36, h: 44, label: 'app', sublabel: 'eth0' };
+const AGENT_INNER = { dx: 18, dy: 26, w: POD_W - 36, h: 44, label: 'node-agent', sublabel: 'DaemonSet' };
 
-const POD_INNER = { dx: 20, dy: 30, w: POD_W - 40, h: 46, label: 'app', sublabel: 'eth0' };
+const nodeRow = (n, r, ips) => [
+  P.pod({
+    key: `client${n}`, innerKey: `client${n}Box`, x: r.client, y: POD_Y, w: POD_W, h: POD_H,
+    label: 'Client Pod', sublabel: ips[0], inner: CLIENT_INNER,
+  }),
+  P.box({ key: `kp${n}`, x: r.dpCx - KP_W / 2, y: KP_Y, w: KP_W, h: KP_H, label: 'kube-proxy', sublabel: 'writes rules' }),
+  P.box({ key: `dp${n}`, x: r.dp, y: DP_Y, w: DP_W, h: DP_H, label: 'Node dataplane', sublabel: 'Service rules' }),
+  P.pod({
+    key: `agent${n}`, innerKey: `agent${n}Box`, x: r.agent, y: POD_Y, w: POD_W, h: POD_H,
+    label: `agent-${n}`, sublabel: ips[1], inner: AGENT_INNER,
+  }),
+];
 
-// The list order IS the append order, which is the z-order: the two Nodes in back, then the blocks
-// inside them, then the Service, then wires + notes, then chips, then the packet layer on top.
+// The list order IS the append order, which is the z-order: the frames in back, the two rows, the
+// Service, then wires, relations and notes, then chips, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'internalTrafficPolicy Cluster versus Local: with Cluster the kube-proxy on the client Node programs every ready endpoint, so a call to the ClusterIP can be DNAT-ed to a backend on another Node and cross the cluster network. With Local it keeps only the endpoints on that same Node, so the packet never leaves it, and if the Node runs no backend at all the endpoint set is empty and kube-proxy drops the packets, so the caller hangs and times out, because Local has no fallback and no health check.',
+  'aria-label': 'internalTrafficPolicy Cluster versus Local on a DaemonSet Service: two Nodes each run a client Pod and one node-agent Pod, and kube-proxy on each Node writes the Service rules its dataplane runs. With Cluster both agents are in both rule sets, so a call can be DNAT-ed to the agent on the other Node. With Local each Node keeps only its own agent and calls stay on their Node. When agent-2 is ready=false the Node-2 rules drop its call, although agent-1 on Node-1 is ready.',
   parts: [
     P.defs(),
-    P.node({ key: 'node1', x: N1_X, y: NODE_Y, w: N1_W, h: NODE_H, label: 'Node-1' }),
-    P.node({ key: 'node2', x: N2_X, y: NODE_Y, w: N2_W, h: NODE_H, label: 'Node-2' }),
-    P.pod({
-      key: 'client', innerKey: 'clientBox', x: CLIENT_X, y: POD_Y, w: POD_W, h: POD_H,
-      label: 'Client Pod', sublabel: '10.244.1.5', inner: POD_INNER,
-    }),
-    P.box({ key: 'kproxy', x: KP_X, y: KP_TOP, w: KP_W, h: KP_H, label: 'kube-proxy', sublabel: 'on Node-1' }),
-    P.pod({
-      key: 'podA', innerKey: 'podABox', x: PODA_X, y: POD_Y, w: POD_W, h: POD_H,
-      label: 'Pod web', sublabel: '10.244.1.9', inner: POD_INNER,
-    }),
-    P.pod({
-      key: 'podB', innerKey: 'podBBox', x: PODB_X, y: POD_Y, w: POD_W, h: POD_H,
-      label: 'Pod web', sublabel: '10.244.2.7', inner: POD_INNER,
-    }),
-    P.box({ key: 'svc', x: SVC_X, y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: 'ClusterIP 10.96.0.20:80' }),
-    P.arrow({ from: TO_KP[0], to: TO_KP[1], dashed: true, dim: true }),
-    P.arrow({ key: 'localWire', from: TO_LOCAL[0], to: TO_LOCAL[1], dashed: true, dim: true }),
-    P.lane({ key: 'remoteWire', points: TO_REMOTE, dashed: true, dim: true }),
-    P.relation({ points: OWN, dash: '5 5' }),
-    // What each backend is to the kube-proxy on Node-1. Both notes sit on one baseline under the Pods,
-    // inside their Nodes, so they read as a pair that the policy flips.
-    P.wire({ key: 'a', x: PODA_X + POD_W / 2, y: 480 }),
-    P.wire({ key: 'b', x: PODB_CX, y: 480 }),
-    P.chip({ key: 'policyChip', x: SCHEME_LEFT, y: CHIP_Y, w: 290, h: CHIP_H, name: 'internalTrafficPolicy', value: 'Cluster' }),
-    P.chip({ key: 'scopeChip', x: 350, y: CHIP_Y, w: 300, h: CHIP_H, name: 'endpoints in scope', value: 'none' }),
-    P.chip({ key: 'hopChip', x: 670, y: CHIP_Y, w: 210, h: CHIP_H, name: 'leaves Node', value: 'none' }),
-    P.chip({ key: 'resultChip', x: 900, y: CHIP_Y, w: SCHEME_RIGHT - 900, h: CHIP_H, name: 'result', value: 'none' }),
+    P.node({ key: 'node1', x: N1_X, y: NODE_Y, w: FRAME_W, h: NODE_H, label: 'Node-1' }),
+    P.node({ key: 'node2', x: N2_X, y: NODE_Y, w: FRAME_W, h: NODE_H, label: 'Node-2' }),
+    ...nodeRow(1, R1, ['10.244.1.5', '10.244.1.9']),
+    ...nodeRow(2, R2, ['10.244.2.5', '10.244.2.9']),
+    P.box({ key: 'svc', x: SVC_X, y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service node-agent', sublabel: 'ClusterIP 10.96.0.30:80' }),
+    P.arrow({ from: IN1[0], to: IN1[1], dashed: true, dim: true }),
+    P.arrow({ from: IN2[0], to: IN2[1], dashed: true, dim: true }),
+    P.arrow({ key: 'loc1', from: LOC1[0], to: LOC1[1], dashed: true, dim: true }),
+    P.arrow({ key: 'loc2', from: LOC2[0], to: LOC2[1], dashed: true, dim: true }),
+    P.lane({ key: 'x1', points: X1, dashed: true, dim: true }),
+    P.lane({ key: 'x2', points: X2, dashed: true, dim: true }),
+    // kube-proxy WRITES the rules its dataplane runs and never forwards a packet: no head, no ball.
+    P.relation({ points: [[R1.dpCx, KP_Y + KP_H], [R1.dpCx, DP_Y]], dash: '5 5' }),
+    P.relation({ points: [[R2.dpCx, KP_Y + KP_H], [R2.dpCx, DP_Y]], dash: '5 5' }),
+    // Every kube-proxy reads the Service: the bus lands on each frame top above it.
+    P.relation({ points: BUS1, dash: '5 5' }),
+    P.relation({ points: BUS2, dash: '5 5' }),
+    P.wire({ key: 'a1', x: R1.agentCx, y: NOTE_Y }),
+    P.wire({ key: 'a2', x: R2.agentCx, y: NOTE_Y }),
+    P.chip({ key: 'policyChip', x: CHIPS.x(0), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'internalTrafficPolicy', value: 'Cluster' }),
+    P.chip({ key: 'rules1Chip', x: CHIPS.x(1), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'Node-1 rules', value: 'agent-1 · agent-2' }),
+    P.chip({ key: 'rules2Chip', x: CHIPS.x(2), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'Node-2 rules', value: 'agent-1 · agent-2' }),
+    P.chip({ key: 'resultChip', x: CHIPS.x(3), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'result', value: 'none' }),
     P.packets(),
   ],
   reset: {
-    keys: ['svc', 'kproxy', 'policyChip', 'scopeChip', 'hopChip', 'resultChip', 'clientBox', 'podABox', 'podBBox'],
-    pods: ['client', 'podA', 'podB'],
+    keys: ['svc', 'kp1', 'kp2', 'dp1', 'dp2', 'policyChip', 'rules1Chip', 'rules2Chip', 'resultChip',
+      'client1Box', 'client2Box', 'agent1Box', 'agent2Box'],
+    pods: ['client1', 'client2', 'agent1', 'agent2'],
   },
 };
 
-// A backend and the lane kube-proxy would reach it by are ONE thing: out of scope, the lane is not a
-// route any more. Every step states all seven, or a dim set by one policy leaks into the next.
-const ALL_UP = { node1: 1, client: 1, podA: 1, localWire: 1, podB: 1, node2: 1, remoteWire: 1 };
-const REMOTE = ['podB', 'node2', 'remoteWire'];
-const LOCAL = ['podA', 'localWire'];
-const outOfScope = (keys) => ({ opacity: { ...ALL_UP, ...shade(keys, OPACITY.notready) } });
+// What the rules on each Node hold, as ONE opacity field (A-16): an endpoint out of the rules dims
+// from step entry, while every headed leg stays at full on every step.
+const ALL_UP = { agent1: 1, agent2: 1, loc1: 1, loc2: 1, x1: 1, x2: 1 };
+const stage = (out = []) => ({ opacity: { ...ALL_UP, ...shade(out, OPACITY.notready) } });
+const BOTH = 'agent-1 · agent-2';
+
+// One call from a client into its own Node dataplane, lighting it on arrival: the rules run there.
+const call = (n, name, start = 0) => [
+  F.pulse({ pod: `client${n}`, delay: start }),
+  F.segment({ from: (n === 1 ? IN1 : IN2)[0], to: (n === 1 ? IN1 : IN2)[1], delay: start + BEAT.afterPulse, name, lights: [`dp${n}`] }),
+];
+
+// kube-proxy rewrites a rule set on this beat and the calls start only after it, so the rules
+// visibly change before any ball leaves a client.
+const RULES_MS = 300, CALL_MS = 600;
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { policyChip: 'Cluster', scopeChip: 'none', hopChip: 'none', resultChip: 'none' },
-    opacity: ALL_UP,
+    chips: { policyChip: 'Cluster', rules1Chip: BOTH, rules2Chip: BOTH, resultChip: 'none' },
+    wires: { a1: 'ready=true', a2: 'ready=true' },
+    ...stage(),
   },
   {
     id: 'cluster',
-    // Motion: client pulse, the ball leaves at BEAT.afterPulse(800), reaches kube-proxy at 1500, the
-    // remote leg runs 1600..3067, and the backend pulse (900) ends at 3967. The floor leaves a settle.
-    duration: 4400,
-    narration: 'With the default Cluster, kube-proxy on Node-1 programs every ready endpoint of the Service, on any Node. The client dials the ClusterIP and the packet is DNAT-ed to the backend on Node-2, so it leaves the Node and crosses the cluster network. Load spreads evenly over all backends, at the price of a cross-node, and possibly cross-zone, hop.',
-    chips: { policyChip: 'Cluster', scopeChip: 'all ready (2)', hopChip: 'yes', resultChip: 'served by Node-2' },
-    // Both backends are programmed, so both notes read as endpoints. This flow happens to take the
-    // remote one.
-    wires: { a: 'endpoint · local', b: 'endpoint · remote' },
-    opacity: ALL_UP,
-    lit: ['resultChip', 'svc', 'policyChip', 'scopeChip', 'hopChip'],
-    // The animated path says the remote backend was served by PULSING it, which no lights list names.
-    reducedLit: ['podBBox'],
-    // The three outcome chips hold the idle none: the scope is read when the call reaches kube-proxy
-    // at 1500, and the hop and the result are only true once the remote leg lands at 3067.
-    rewind: { chips: { scopeChip: 'none', hopChip: 'none', resultChip: 'none' } },
-    // Up-arrow: the client is the sender, so it pulses FIRST and the ball leaves at BEAT.afterPulse
-    // carrying the ClusterIP. The DNAT happens inside kube-proxy, so the remote leg carries the Pod address.
+    // Motion: both clients pulse, both balls reach their dataplane at 1500, the inner leg lands at
+    // 2676 and the outer one at 3440, whose agent pulse ends at 4340.
+    duration: 4800,
+    narration: 'A DaemonSet runs one agent Pod per Node behind Service node-agent. With the default Cluster, kube-proxy on each Node writes both agents into its Service rules, so a call can be DNAT-ed to either one. Here both calls land on the agent of the other Node and cross the cluster network.',
+    chips: { policyChip: 'Cluster', rules1Chip: BOTH, rules2Chip: BOTH, resultChip: 'crossed Nodes' },
+    wires: { a1: 'ready=true', a2: 'ready=true' },
+    ...stage(),
+    lit: ['kp1', 'kp2', 'rules1Chip', 'rules2Chip'],
+    // The animated path says both agents were served by PULSING them, which no lights list names.
+    reducedLit: ['agent1Box', 'agent2Box'],
+    rewind: { chips: { resultChip: 'none' } },
     flow: [
-      F.pulse({ pod: 'client' }),
-      F.segment({ from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, name: 'toKp' }),
-      tag({ text: 'dst 10.96.0.20:80', points: TO_KP, delay: BEAT.afterPulse, easing: 'linear', dy: IN_NODE_TAG_DY }),
-      F.light({ targets: ['kproxy'], at: 'toKp' }),
-      F.set({ at: 'toKp', chips: { scopeChip: 'all ready (2)' } }),
-      F.route({ points: TO_REMOTE, after: 'toKp', name: 'out' }),
-      tag({ text: 'dst 10.244.2.7:8080', points: TO_REMOTE, after: 'toKp', dy: 20 }),
-      F.pulse({ pod: 'podB', at: 'out' }),
-      F.set({ at: 'out', chips: { hopChip: 'yes', resultChip: 'served by Node-2' } }),
+      ...call(1, 'in1'),
+      ...call(2, 'in2'),
+      F.route({ points: X2, after: 'in2', name: 'out2' }),
+      tag({ text: 'dst 10.244.1.9:8080', points: X2, after: 'in2', ...TAG_INNER }),
+      F.route({ points: X1, after: 'in1', name: 'out1' }),
+      tag({ text: 'dst 10.244.2.9:8080', points: X1, after: 'in1', ...TAG_OUTER }),
+      F.pulse({ pod: 'agent1', at: 'out2' }),
+      F.pulse({ pod: 'agent2', at: 'out1' }),
+      F.set({ at: 'out1', chips: { resultChip: 'crossed Nodes' } }),
+      F.light({ targets: ['resultChip'], at: 'out1' }),
     ],
   },
   {
     id: 'local',
-    // Motion: client pulse, ball leaves at 800, lands on kube-proxy at 1500, the local leg runs
-    // 1600..2300, and the backend pulse (900) ends at 3200.
-    duration: 3600,
-    narration: 'Set internalTrafficPolicy to Local and kube-proxy keeps only the endpoints that live on Node-1 itself. The same call to the same ClusterIP now goes to the local Pod, the packet never leaves the Node, and the cross-node hop is gone. This is how a Pod reaches the node-local agent of a DaemonSet, a log shipper or a per-node cache, without paying to cross the cluster.',
-    chips: { policyChip: 'Local', scopeChip: 'node-local (1)', hopChip: 'no', resultChip: 'served by Node-1' },
-    wires: { a: 'endpoint · in scope', b: 'endpoint · out of scope' },
-    // The remote backend is no longer programmed on this Node, so it, its Node and the lane that
-    // would have reached it go dim: out of scope is the whole point of Local.
-    ...outOfScope(REMOTE),
-    lit: ['resultChip', 'svc', 'policyChip', 'scopeChip', 'hopChip'],
-    // The animated path says the local backend was served by PULSING it, which no lights list names.
-    reducedLit: ['podABox'],
-    // The policy is the PREMISE of the step and stands from entry. The three outcomes carry what the
-    // Cluster step left until the call re-earns them, at kube-proxy (1500) and at the local Pod (2300).
-    rewind: { chips: { scopeChip: 'all ready (2)', hopChip: 'yes', resultChip: 'served by Node-2' } },
-    // The DNAT resolves to the local Pod, so the ball leaves the FAR edge of kube-proxy and the
-    // packet never leaves the Node.
+    // Motion: kube-proxy writes at 300, both balls reach their dataplane at 2100, the local legs land
+    // at 2900 and the agent pulses end at 3800.
+    duration: 4200,
+    narration: 'Set internalTrafficPolicy to Local. On the next sync, kube-proxy on each Node rewrites its rules: Node-1 keeps only agent-1 and Node-2 only agent-2. The same call to the same ClusterIP now stays on its own Node. This lets a Pod reach the node-local agent of a DaemonSet, such as a log shipper or a metrics agent.',
+    chips: { policyChip: 'Local', rules1Chip: 'agent-1', rules2Chip: 'agent-2', resultChip: 'stayed on its Node' },
+    wires: { a1: 'ready=true', a2: 'ready=true' },
+    ...stage(),
+    lit: ['policyChip'],
+    // The animated path says both agents were served by PULSING them, which no lights list names.
+    reducedLit: ['agent1Box', 'agent2Box'],
+    // The policy is the premise and stands from entry. Each rule set flips when its kube-proxy writes
+    // it at RULES_MS, and the result reads none until the local legs land.
+    rewind: { chips: { rules1Chip: BOTH, rules2Chip: BOTH, resultChip: 'none' } },
     flow: [
-      F.pulse({ pod: 'client' }),
-      F.segment({ from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, name: 'toKp' }),
-      tag({ text: 'dst 10.96.0.20:80', points: TO_KP, delay: BEAT.afterPulse, easing: 'linear', dy: IN_NODE_TAG_DY }),
-      F.light({ targets: ['kproxy'], at: 'toKp' }),
-      F.set({ at: 'toKp', chips: { scopeChip: 'node-local (1)' } }),
-      F.segment({ from: TO_LOCAL[0], to: TO_LOCAL[1], after: 'toKp', name: 'give' }),
-      tag({ text: 'dst 10.244.1.9:8080', points: TO_LOCAL, after: 'toKp', easing: 'linear', dy: IN_NODE_TAG_DY }),
-      F.pulse({ pod: 'podA', at: 'give' }),
-      F.set({ at: 'give', chips: { hopChip: 'no', resultChip: 'served by Node-1' } }),
+      F.light({ targets: ['kp1', 'kp2', 'rules1Chip', 'rules2Chip'], delay: RULES_MS }),
+      F.set({ delay: RULES_MS, chips: { rules1Chip: 'agent-1', rules2Chip: 'agent-2' } }),
+      ...call(1, 'in1', CALL_MS),
+      ...call(2, 'in2', CALL_MS),
+      F.segment({ from: LOC1[0], to: LOC1[1], after: 'in1', name: 'give1' }),
+      F.segment({ from: LOC2[0], to: LOC2[1], after: 'in2', name: 'give2' }),
+      F.pulse({ pod: 'agent1', at: 'give1' }),
+      F.pulse({ pod: 'agent2', at: 'give2' }),
+      F.set({ at: 'give1', chips: { resultChip: 'stayed on its Node' } }),
+      F.light({ targets: ['resultChip'], at: 'give1' }),
     ],
   },
   {
     id: 'no-local-backend',
-    // Motion: client pulse, ball leaves at 800 and lands on kube-proxy at 1500. Nothing leaves it: the
-    // point of the step is the hop that does NOT happen.
-    duration: 2900,
-    narration: 'The catch is that Local has no fallback. If Node-1 runs no backend of its own the endpoint set is empty, kube-proxy has nothing to DNAT to, and it drops the packets rather than forwarding them to Node-2, so the caller just hangs until it times out. There is no health check to steer callers elsewhere, which is the real difference from externalTrafficPolicy, so Local is safe only when a backend is guaranteed on every Node, as a DaemonSet gives.',
-    chips: { policyChip: 'Local', scopeChip: 'node-local (0)', hopChip: 'no', resultChip: 'traffic dropped' },
-    wires: { a: 'no local backend', b: 'endpoint · out of scope' },
-    // Node-1 has lost its backend and the remote one is still out of scope, so both Pods go dim, and
-    // both lanes with them: there is nothing left for kube-proxy to send to.
-    ...outOfScope([...LOCAL, ...REMOTE]),
-    lit: ['policyChip', 'scopeChip', 'resultChip'],
-    // The empty scope and the drop are one reading, taken where the packet dies: both carry the
-    // Local step values until the ball reaches kube-proxy at 1500.
-    rewind: { chips: { scopeChip: 'node-local (1)', resultChip: 'served by Node-1' } },
-    // The call is made exactly as before, and it dies at kube-proxy: the ball arrives, the box lights,
-    // and no further ball leaves. The absent second hop is the whole point of the step.
+    // Motion: kube-proxy on Node-2 writes the DROP rule at 300, the Node-2 ball dies on its dataplane
+    // at 2100. Nothing leaves it: the absent second hop is the whole point of the step.
+    duration: 3300,
+    narration: 'Local never falls back to another Node. Once agent-2 turns ready=false, kube-proxy on Node-2 writes a DROP rule for the ClusterIP, in the default iptables mode, so this call hangs until it times out though agent-1 is ready. Local suits a DaemonSet only while every Node with callers runs a ready agent.',
+    chips: { policyChip: 'Local', rules1Chip: 'agent-1', rules2Chip: 'drop', resultChip: 'dropped on Node-2' },
+    wires: { a1: 'ready=true', a2: 'ready=false' },
+    // agent-2 is out of every rule set and dims from entry.
+    ...stage(['agent2']),
+    lit: ['policyChip'],
+    rewind: { chips: { rules2Chip: 'agent-2', resultChip: 'none' } },
     flow: [
-      F.pulse({ pod: 'client' }),
-      F.segment({ from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, name: 'toKp' }),
-      tag({ text: 'dst 10.96.0.20:80', points: TO_KP, delay: BEAT.afterPulse, easing: 'linear', dy: IN_NODE_TAG_DY }),
-      F.light({ targets: ['kproxy'], at: 'toKp' }),
-      F.set({ at: 'toKp', chips: { scopeChip: 'node-local (0)', resultChip: 'traffic dropped' } }),
+      F.light({ targets: ['kp2', 'rules2Chip'], delay: RULES_MS }),
+      F.set({ delay: RULES_MS, chips: { rules2Chip: 'drop' } }),
+      ...call(2, 'in2', CALL_MS),
+      F.set({ at: 'in2', chips: { resultChip: 'dropped on Node-2' } }),
+      F.light({ targets: ['resultChip'], at: 'in2' }),
     ],
   },
 ];

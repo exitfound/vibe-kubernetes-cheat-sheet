@@ -2,13 +2,20 @@
   "name": "scheme-test",
   "private": true,
   "type": "module",
-  "description": "Tests for the scheme/ sub-app. Never shipped. Render tests need a server at http://localhost:8888 (python3 -m http.server 8888 from the repo root); BASE= overrides it. SCHEME_IDS=<id>[,<id>] narrows every render walk to those cards for a single-card review (seconds against minutes) and turns the catalog floors and censuses OFF, announcing itself as a SUBSET: the gate is the unfiltered run.",
+  "description": "Tests for the scheme/ sub-app. Never shipped. The browser-driven half needs a server at http://localhost:8888 (python3 -m http.server 8888 from the repo root); BASE= overrides it. Nothing under render/ or report/ opens a browser: tools/walk.mjs opens each card once and they assert over what it wrote. SCHEME_IDS=<id>[,<id>] narrows that walk to those cards for a single-card review (seconds against minutes) and turns the catalog floors and censuses OFF, announcing itself as a SUBSET: the gate is the unfiltered run.",
+  "//walk": "EVERY browser-driven file asserts over tools/walk.mjs, which opens each card ONCE and takes every reading. It is a PIPELINE STAGE and not a cache: test, test:render and report each take it first, every time, so no assertion can read a walk of a tree that has since changed. `npm run all` takes it once for both suites, which is what to run when you want the gate and the report together. Before this, twelve files drove a Chromium each and re-opened all 123 cards: 137 of the suite's 265 seconds went on re-opening cards another process had open a moment earlier.",
   "//": "Globs, not directories. On Node 22.15.1 `node --test unit/ render/` tries to LOAD each directory as a module and fails with MODULE_NOT_FOUND before running anything, and a glob that matches nothing exits 0, which is what keeps unit/ and report/ green while they are still empty.",
+  "//concurrency": "MEASURED 2026-09-01 on this 4-core box, quiet: render at --test-concurrency 1/2/3/4 = 181.2/137.6/132.4/127.7s. The default is availableParallelism()-1 = 3, and pinning 4 buys 3.5% on a quiet machine while making a loaded one worse: nine of these files each hold a Chromium, and the suite is memory-bound before it is CPU-bound. So render is left on the default deliberately. test:unit is pinned to 4 because those files hold no browser: 4.0s at 1, 1.8s at 4.",
+  "//selftest": "NOT part of the gate and never run by it. `tools/mutate.mjs` breaks a real card one known defect at a time and requires the check CANON.md names for that rule to go red on it, on its named axis. It is the only thing in the tree that asks whether a CHECK works rather than whether a CARD does: a check that sees nothing and a check that finds nothing print the same thing, and R-08a is the case where that difference had been read the wrong way for weeks. Needs the server, since two of its five mutations run the render tier.",
   "scripts": {
-    "test": "node --test 'unit/**/*.test.mjs' 'render/**/*.test.mjs'",
-    "test:unit": "node --test 'unit/**/*.test.mjs'",
-    "test:render": "node --test 'render/**/*.test.mjs'",
-    "report": "node --test 'report/**/*.test.mjs'"
+    "walk": "node tools/walk.mjs",
+    "test": "node tools/walk.mjs && node --test 'unit/**/*.test.mjs' 'render/**/*.test.mjs'",
+    "all": "node tools/walk.mjs && node --test 'unit/**/*.test.mjs' 'render/**/*.test.mjs' 'report/**/*.test.mjs'",
+    "test:unit": "node --test --test-concurrency=4 'unit/**/*.test.mjs'",
+    "test:render": "node tools/walk.mjs && node --test 'render/**/*.test.mjs'",
+    "report": "node tools/walk.mjs && node --test 'report/**/*.test.mjs'",
+    "selftest": "node tools/mutate.mjs",
+    "docs:sync": "node tools/docs-sync.mjs"
   },
   "devDependencies": {
     "playwright": "^1.47.0"

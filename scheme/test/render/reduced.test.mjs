@@ -62,14 +62,12 @@
 // the two cases a parallel walk by slot swallows, a key present on one path only and lists of
 // unequal length, are findings here.
 
-import { test, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census, floor, SUBSET, FULL_ONLY, CATALOG_BASELINE } from '../fixtures/catalog.mjs';
+import { cards, census, FULL_ONLY, CATALOG_BASELINE } from '../fixtures/catalog.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
-import {
-  DEFAULT_BASE, discoverIds, enterStep, gotoStep, installKeyHelpers, installOpacityHelpers,
-  launch, openCard, seekStep, initPage, stepCount, stepMeta, stepSpan,
-} from '../fixtures/render.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
+import { vpName, VIEWPORTS } from '../tools/walk.mjs';
 
 // The catalog as it stands. Asserted, not printed: a walk that sees fewer cards or fewer steps
 // reports fewer findings and passes, which is the failure mode this whole suite is built against.
@@ -108,11 +106,6 @@ for (const name of ENFORCED) {
 // its neighbour belongs is still twice the slack away and still reports.
 const OPACITY_SLACK = 0.06;
 
-// How far past its own span a step is seeked before the snapshot. 400 has one job: put every
-// delayed effect of the step behind the playhead, deferred handlers included. It costs nothing
-// because the seek is instant, so the only way this number is wrong is by being too small.
-const SETTLE_PAST_SPAN_MS = 400;
-
 // Findings kept per axis for the summary. A queue that is only counted cannot be drained.
 const SAMPLES_PER_AXIS = 4;
 
@@ -140,47 +133,6 @@ const TRANSIENT = '#packetLayer';
 // so the two snapshots can be matched by identity instead of by position. See ../fixtures/render.mjs
 // for what is deliberately kept OUT of it and why.
 // -------------------------------------------------------------------------------------------
-const snap = (sel) => {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  if (!svg) return { els: [], wires: [], collisions: 0 };
-  if (!window.__opacity) throw new Error('window.__opacity missing: installOpacityHelpers ran after navigation');
-  if (!window.__keyed) throw new Error('window.__keyed missing: installKeyHelpers ran after navigation');
-
-  let collisions = 0;
-  const count = (c) => { if (c) collisions++; };
-
-  // The <text> a block draws ITSELF, never the text of a block nested inside it. A Pod contains an
-  // inner .scheme-box and a Node frame contains whole Pods, so plain textContent would report one
-  // wrong sublabel on the box that owns it AND on every ancestor, and one repair would close three
-  // findings at once. `closest` answers which element in the list owns a given text node, and the
-  // join is by drawn order, which for a value chip is name then value.
-  const ownText = (el) => {
-    const out = [];
-    for (const t of el.querySelectorAll('text')) {
-      if (t.closest(sel.els) !== el) continue;
-      out.push((t.textContent || '').trim());
-    }
-    return out.join(' | ');
-  };
-
-  const els = window.__keyed(svg, sel.els, sel.transient).map(({ el, key, collision }) => {
-    count(collision);
-    return {
-      key,
-      own: window.__opacity.own(el),
-      eff: window.__opacity.effective(el, svg),
-      txt: ownText(el),
-      hl: el.classList.contains('highlight'),
-    };
-  });
-
-  const wires = window.__keyed(svg, sel.wires, sel.transient).map(({ el, key, collision }) => {
-    count(collision);
-    return { key, text: (el.textContent || '').trim() };
-  });
-
-  return { els, wires, collisions };
-};
 
 // -------------------------------------------------------------------------------------------
 // A step's deferred side effects hang on `a.onfinish`: lightBoxAt adds its arrival class that way
@@ -197,87 +149,29 @@ const snap = (sel) => {
 // seek, 0 after. So the handlers are captured while they still exist, with the end time of each,
 // and replayed afterwards for exactly those the seek went past.
 // -------------------------------------------------------------------------------------------
-const captureDeferred = (sel) => {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  window.__deferred = [];
-  if (!svg) return [];
-  if (!window.__keyed) throw new Error('window.__keyed missing: installKeyHelpers ran after navigation');
-  for (const a of document.getAnimations()) {
-    const tgt = a.effect && a.effect.target;
-    if (!tgt || !svg.contains(tgt)) continue;
-    if (typeof a.onfinish !== 'function') continue;
-    const t = a.effect.getComputedTiming();
-    const end = (Number(t.delay) || 0) + (Number(t.activeDuration) || 0);
-    window.__deferred.push({ fn: a.onfinish, end });
-  }
-
-  // Which elements does this step PULSE? A pulse cannot be shown statically, so the reduced branch
-  // stands in for it with a .highlight on the Pod inner box. That is the documented convention, not
-  // a defect, and without this exemption the HIGHLIGHT axis reports it 130 more times and stops
-  // being a signal at all. Collected before the seek, while the pulse animations still exist.
-  //
-  // SCOPE: the exemption is about the REDUCED branch of a step that pulses. It does not license a
-  // .highlight left on an inner container box on the PLAYED path, which is STO.C-02 and S-19, and
-  // which nothing here can see because both paths accumulate it identically.
-  const pulsedTargets = new Set();
-  for (const a of document.getAnimations()) {
-    const tgt = a.effect && a.effect.target;
-    if (!tgt || !svg.contains(tgt)) continue;
-    const kf = a.effect.getKeyframes ? a.effect.getKeyframes() : [];
-    if (!kf.some(k => k.filter !== undefined || k.stroke !== undefined)) continue;
-    pulsedTargets.add(tgt);
-  }
-  // Returned as KEYS, the same ones snap() reads, so the exemption survives the scene being
-  // re-ordered. Never return slot numbers here: a slot number points at whatever element happens
-  // to occupy that slot, silently.
-  const pulsedKeys = [];
-  for (const { el, key } of window.__keyed(svg, sel.els, sel.transient)) {
-    for (const t of pulsedTargets) { if (el === t || el.contains(t)) { pulsedKeys.push(key); break; } }
-  }
-  return pulsedKeys;
-};
 
 // Replayed in END-TIME order, which is the only order that reproduces a real playback: two handlers
 // writing the SAME value are a last-writer-wins race, and getAnimations() hands them back in
-// composite order, which for timers on one element is CREATION order. workloads-daemonset step 1
-// is the demonstration: three creates raise one count, tap 0 has the longest lane (1933ms against
-// 1320) and lands the final 3, and replaying as captured ended on tap 2 and its 2. The sort is
+// composite order, which for timers on one element is CREATION order. workloads-daemonset step 2
+// is the demonstration: three creates raise one count, tap 0 has the longest lane (2196ms against
+// 1582) and lands the final 3, and replaying as captured ended on tap 2 and its 2. The sort is
 // stable, so handlers that genuinely finish together keep the order the browser would fire them in.
-const runDeferred = (t) => {
-  let n = 0;
-  const due = (window.__deferred || []).filter(d => d.end <= t).sort((a, b) => a.end - b.end);
-  for (const d of due) {
-    try { d.fn(); n++; } catch (_) {}
-  }
-  return n;
-};
 
 // -------------------------------------------------------------------------------------------
 
 const catalogued = await cards();
 
-const browser = await launch();
-// Registered on the line after the launch, before the page setup below: node:test runs an
-// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
-// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
-// then nobody's to close for the rest of the run.
-after(() => browser.close());
-
-// NOT reducedMotion, and NOT a shared default viewport: the played path has to run the real motion,
-// and 1600x1000 is the size every geometry number in this suite is measured at (L-06's first row).
-// Geometry moves with viewport height, so a shared default would compare two different pictures.
-const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
-const page = await context.newPage();
-// Every init script BEFORE the first navigation. An init script only runs on a document still to be
-// created, so installing __opacity or __keyed after openCard leaves it undefined and snap() throws.
-await page.addInitScript(initPage, 'expose');
-await installOpacityHelpers(page);
-await installKeyHelpers(page);
-
-// One bundle, handed to both in-page functions, so neither can be looking at a different scene.
-const SELECTORS = { els: SEL, wires: WIRE_SEL, transient: TRANSIENT };
-
-const ids = await discoverIds(page, DEFAULT_BASE);
+// THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` takes both frames this file compares:
+// the PLAYED one in its played pass (enterStep, captureDeferred, seek past the span, runDeferred,
+// snap) and the REDUCED one in its static pass (gotoStep, snap), at 1600x1000 and NOT under
+// reducedMotion, which are the conditions this file set and the reasons it gave: the played path
+// has to run the real motion, and 1600x1000 is the size every geometry number in this suite is
+// measured at (L-06's first row). The three in-page functions moved to fixtures/probes.mjs
+// verbatim, and the selector bundle they share is declared in the walk beside the pass that uses
+// it, so neither frame can be looking at a different scene.
+const snap = readSnapshot();
+const ids = snap.ids;
+const VP = vpName(VIEWPORTS[0]);
 
 // Per-axis totals over the whole catalog, and a few worked examples of each.
 const totals = new Map(AXES.map(a => [a, 0]));
@@ -290,7 +184,7 @@ let keyCollisions = 0;  // how often the key had to fall back on document order,
 // Two independent answers to "how many cards are there": the rendered grid and data.js. Comparing
 // them is what makes a short run red instead of quietly green over a subset.
 test(`the grid renders the whole catalog (${CARD_TOTAL} cards)`, () => {
-  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${DEFAULT_BASE}/scheme/ : posters or grid broken`);
+  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${snap.base}/scheme/ : posters or grid broken`);
   assert.equal(catalogued.length, CARD_TOTAL,
     `data.js lists ${catalogued.length} cards, this suite was calibrated against ${CARD_TOTAL}`);
   census('reduced grid', ids.length, catalogued.length);
@@ -300,14 +194,14 @@ for (const id of ids) {
   test(id, async () => {
     cardsWalked++;                  // counted before the assertions, so a broken card is still
                                     // counted as covered and reported once, as itself.
-    await openCard(page, id);
-    const total = await stepCount(page);
+    const card = snap.cards[id];
+    const total = card.steps;
     assert.ok(total > 0, `${id}: stepCount is ${total}, there are no steps to compare`);
     stepsSeen += total;
 
     // Step ids off the live controller, only so a finding can name the step by its own id. A
     // card without the debug handle still gets compared, it just reports by index.
-    const meta = await stepMeta(page);
+    const meta = card.meta;
 
     const found = new Map(AXES.map(a => [a, []]));
 
@@ -318,16 +212,11 @@ for (const id of ids) {
 
       // PLAYED: run the step's real play-path, freeze well past its own span, then replay the
       // deferred handlers the seek jumped over, then let the DOM settle.
-      await enterStep(page, i);
-      const pulsed = new Set(await page.evaluate(captureDeferred, SELECTORS));
-      const span = await stepSpan(page);
-      await seekStep(page, span + SETTLE_PAST_SPAN_MS);
-      await page.evaluate(runDeferred, span + SETTLE_PAST_SPAN_MS);
-      const played = await page.evaluate(snap, SELECTORS);
+      const pulsed = new Set(card.played[i].pulsed);
+      const played = card.played[i].snap;
 
       // REDUCED: the same step applied statically, the way prev and reset replay it.
-      await gotoStep(page, i);
-      const reduced = await page.evaluate(snap, SELECTORS);
+      const reduced = card.byVp[VP][i].snap;
 
       stepsDiffed++;
       keyCollisions += played.collisions + reduced.collisions;

@@ -4,7 +4,7 @@
 // finding, and because a path stripped two ways makes one page look like two.
 //
 // THE BANDS ARE A HEURISTIC AND THE HEADER OF EACH TOOL SAYS SO AGAIN. A marker is a word a card
-// of that depth tends to use, not proof that the card sits there: `storage-ephemeral-vs-persistent`
+// of that depth tends to use, not proof that the card sits there: `storage-volume-data-homes`
 // names the Kubelet without being a Kubelet card, and a card can teach the mount path without ever
 // writing `mount`. The signature is EVIDENCE a human rates against, and where the two disagree the
 // rating wins and says why.

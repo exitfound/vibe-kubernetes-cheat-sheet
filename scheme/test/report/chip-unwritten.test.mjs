@@ -30,9 +30,8 @@
 //                     nobody is claiming anything about it, so the question is only whether a chip
 //                     is the right part kind for it.
 //
-// The exemplar of the sharp form is `network-north-south-path svcChip`, named in the D1 inventory:
-// three steps highlight it, none writes it, and the highlight is the cue for a value that never
-// changes.
+// The sharp form, as the D1 inventory named it: a chip that several steps highlight, that none
+// writes, so the highlight is the cue for a value that never changes.
 //
 // ===========================================================================================
 // WHY report/ AND NOT unit/
@@ -74,6 +73,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
+import { carriedBlock, shapeProblems, staleKeys } from '../fixtures/carried.mjs';
 import { importAll, stepTotal } from '../fixtures/module.mjs';
 import { walkParts } from '../fixtures/spec.mjs';
 
@@ -194,12 +194,11 @@ test('a chip no step writes (report only, census is the assertion)', (t) => {
       'and no step lights it either');
   }
 
-  if (held.length) {
-    out.push('');
-    for (const r of held) out.push(`   CARRIED  ${r.carryKey}\n      WHY ${r.why}`);
-  }
-  const stale = [...CHIP_CARRIED.keys()].filter(k => !all.some(r => r.carryKey === k));
-  if (stale.length) out.push(`   carried entries no longer reported (stale, remove them): ${stale.join(' | ')}`);
+  // One shape for a carried row across every report file: ../fixtures/carried.mjs owns it.
+  if (held.length) out.push('');
+  const stale = staleKeys('LIT-NOT-WRITTEN', all.map(r => r.carryKey));
+  for (const l of carriedBlock('LIT-NOT-WRITTEN', held.map(r => ({ key: r.carryKey, why: r.why })), stale)) out.push(l);
+  for (const b of shapeProblems('LIT-NOT-WRITTEN', new Set(catalogued.map(c => c.id)))) out.push(`   BROKEN RULING  ${b}`);
 
   if (notes.length) {
     out.push('');

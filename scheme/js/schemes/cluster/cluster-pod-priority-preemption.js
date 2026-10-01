@@ -169,8 +169,11 @@ export const STEPS_SPEC = [
     wires: { req: 'DELETE .../pods/pod-a · Graceful · nominatedNodeName=Node-1' },
     // What step 3 left. At entry these would have Pod A Terminating before the DELETE has left.
     rewind: { chips: { attemptChip: 'preempt mode', victimChip: 'Pod A · priority 100' } },
-    // Pin final state inline so cancel does not flash to default. Pod A is Terminating here, as
-    // the victim chip says in words, so it keeps its slot at that shade.
+    // Pin final state inline so cancel does not flash to default. Pod A is Terminating here, as the
+    // victim chip says in words, so it keeps its slot at that shade. DO NOT pin it to 0 and animate
+    // 1 to 0 on the eviction packet landing: a Pod inside its terminationGracePeriodSeconds is the
+    // most present thing on the diagram, not an absence. It leaves the slot on the BIND step,
+    // where the narration says it has exited and its capacity has returned to the Node.
     opacity: { ...STANDING, pod1: OPACITY.terminating },
     lit: ['attemptChip', 'focusChip', 'scheduler', 'victimChip'],
     chain: 3,

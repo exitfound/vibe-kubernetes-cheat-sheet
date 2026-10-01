@@ -51,7 +51,7 @@ scheme/
   CANON.md      the card rulebook: every catalog-wide rule, with ids
   css/        tokens.css (category colors), styles.css (layout/dialog), diagrams.css (SVG classes)
   js/
-    app.js    router, grid, modal lifecycle, keyboard, hash routing
+    app.js    router, grid, modal lifecycle, keyboard, hash routing (card AND grid filter, D-16)
     data.js   barrel: CATEGORIES registry + the four manifests as SCHEMES / SUBCATEGORIES
     posters.js  barrel: the four poster maps merged into POSTERS
     lib/      svg, primitives, timeline, motion, sidebar, inspector,
@@ -62,9 +62,9 @@ scheme/
               step-spec.js    the steps as data: makeFlowKinds, makeSteps, flowLights, defineCardWith
     schemes/<category>/       one folder per category, the unit of context
       CLAUDE.md               what is true of THIS category only, as <CAT>.* rules
-      CARDS.md                the design record for THIS category's cards, or its preamble and
-                              index when the category is in the split shape below
-      CARDS/<id>.md           the SPLIT shape: one record file per card. cluster only today
+      CARDS.md                the preamble and grid-order index of THIS category's records, or
+                              the whole record for a category in the one-file shape (none today)
+      CARDS/<id>.md           the SPLIT shape: one record file per card. all four categories
       cards.js posters.js     that category's SCHEMES + SUBCATEGORIES, and its grid thumbnails
       <category>-kit.js       the tint, pulsePod/pulsePodDim, the P / F / defineCard bindings
       <id>.js                 one module per diagram
@@ -108,25 +108,25 @@ tint. The column below is what a kit carries beyond even that.
 | Folder | Cards | Tint | Kit surface beyond the common set |
 |---|---|---|---|
 | `cluster/` | 28 | violet `rgb(192, 176, 255)` | `CLU`, `LAYOUT` |
-| `workloads/` | 20 | sky blue `rgb(91, 184, 255)` | `WL`, the X layout canon |
-| `network/` | 37 | cyan `rgb(79, 229, 255)` | none |
-| `storage/` | 31 | jade `rgb(94, 202, 148)` | `setCylinderLabel`, `STO`, `chipStrip` |
+| `workloads/` | 32 | sky blue `rgb(91, 184, 255)` | `WL`, the X layout canon |
+| `network/` | 44 | cyan `rgb(79, 229, 255)` | none |
+| `storage/` | 39 | jade `rgb(94, 202, 148)` | `setCylinderLabel`, `STO`, `chipStrip` |
 
 The size of the SHARED list is deliberately written down nowhere: `S-22` makes the four kits
 compared against each other the source of truth, in `unit/module.test.mjs`.
 
 ## Catalog and categories
 
-`js/data.js` exports `SCHEMES` (116 entries), `CATEGORIES`, and `SUBCATEGORIES`. An entry's fields
+`js/data.js` exports `SCHEMES` (143 entries), `CATEGORIES`, and `SUBCATEGORIES`. An entry's fields
 are `D-01`, the id-to-folder convention is `D-02`, the key and label constraints are `D-07`, and the
 three `CATEGORY_*` maps are projections of one registry (`D-08`, `D-09`).
 
 | Label | key | color | cards | subcategories (`key` to label) |
 |---|---|---|---|---|
 | Cluster | `cluster` | `#7d86ff` indigo | 28 | `control-plane`, `node-runtime`, `node-lifecycle` |
-| Workloads | `workloads` | `#5bb8ff` sky blue | 20 | `pods-bootstrap`, `pods-lifecycle`, `controllers` |
-| Networking | `network` | `#4fe5ff` cyan | 37 | `network-foundations`, `pod-networking`, `services-endpoints`, `external-traffic`, `dns-service-discovery` |
-| Storage | `storage` | `#5eca94` jade | 31 | `volume-foundations`, `volumes-claims`, `csi-mount-path`, `stateful-data` |
+| Workloads | `workloads` | `#5bb8ff` sky blue | 32 | `pods-bootstrap`, `pods-lifecycle`, `controllers` |
+| Networking | `network` | `#4fe5ff` cyan | 44 | `network-foundations`, `pod-networking`, `services-endpoints`, `external-traffic`, `dns-service-discovery` |
+| Storage | `storage` | `#5eca94` jade | 39 | `volume-foundations`, `volumes-claims`, `csi-mount-path`, `stateful-data` |
 
 Labels for the subcategory keys live in each folder's `cards.js` and `CLAUDE.md`. The ORDER of each
 list is an editorial argument, not a set (`D-10`), and it is recorded beside the list it orders.
@@ -134,7 +134,7 @@ list is an editorial argument, not a set (`D-10`), and it is recorded beside the
 ## Scheme module contract
 
 Each `js/schemes/<category>/<id>.js` is lazy-imported on dialog open. **There is exactly ONE legal
-export surface** (`S-02`), and `unit/module.test.mjs` prints the count on every run: **116 migrated,
+export surface** (`S-02`), and `unit/module.test.mjs` prints the count on every run: **143 migrated,
 0 legacy**. That surface is the declarative form below, and a hand-written one is a regression
 rather than an alternative this contract admits. What NAMES a card slipping back is the DETECTOR
 described below.
@@ -159,7 +159,8 @@ neighbouring category's colour by default, which is the narrow reading of `S-42`
 a hand-written `build()` said by where a line sat, the list says by position. Groups nest, so a
 wrapper is a part like any other and not an escape. The part kinds are `defs group box cylinder node
 chip tag chain arrow lane relation wire packets raw pod`, and `P.pod` builds the whole tinted Pod
-block in the byte order the hand-written copies used.
+block in the byte order the hand-written copies used. What a `node` frame cannot do, and what the
+panel does to its label, are the last section of this file.
 
 `reset.keys`, `reset.pods` and `reset.extra` are written out and never inferred. Inferring pods adds
 a `clearPodHighlight` that wipes inline styles the picture depends on.
@@ -192,7 +193,7 @@ and `plus: N` adds to whichever of the three was used. An entry earns a name wit
 **The reduced-motion guard is derived.** `flowLights(flow)` collects the ordered union of every
 `lights` list, so a card writes no `if (ctx.reduced)` at all. What it cannot derive is a highlight
 the static path shows INSTEAD of a pulse, because no `lightBoxAt` names it: that is `reducedLit`,
-declared on **111 steps** (network 89, workloads 20, cluster 2, storage 0). It is the ordinary shape
+declared on **177 steps** (network 141, workloads 34, cluster 2, storage 0). It is the ordinary shape
 of the static path wherever a Pod pulses instead of lighting, not an exception. A wrong derivation
 lands on the HIGHLIGHT axis of `render/reduced.test.mjs`, which is enforced along with the other
 three (`S-16`), so `npm test` is what catches it.
@@ -205,8 +206,9 @@ in. Do not reorder those two lines in `writeStatics`: a step is free to state a 
 and without a fixed order the picture would depend on the shape of the literal. Which writer a card
 uses is inherited from the primitive it already called and swapping them is a VISIBLE change
 (`P-09`), so the split runs per CATEGORY rather than per card: cluster, workloads and network are
-`chips` throughout, and storage is the sole `chipsCued` category, with `storage-pvc-binding` the one
-file mixing both. Read off the migrated data: **483 steps carry `chips` and 191 carry `chipsCued`**,
+`chips` throughout, save the one `workloads-poststart-prestop-hooks` card with 4 cued steps, and
+storage is the `chipsCued` category, 200 of the cued steps, with
+`storage-container-filesystem`, `storage-emptydir` and `storage-hostpath` the three files mixing both. Read off the migrated data: **649 steps carry `chips` and 204 carry `chipsCued`**,
 because every step states every chip (`P-01`).
 
 `chips` is the state after the STATIC block, which is not the end of the
@@ -217,22 +219,22 @@ value plays `chips`, then `enter`, then `rewind`, then every `F.set` in flow ord
 previous step's values, which `S-13` forbids. `duration` is copied verbatim, and only
 `render/duration.test.mjs` can see it at all.
 
-**The escapes, and how narrow they are.** **83 of the 116 cards are fully declarative**; 33 carry at
-least one hook, **137 hooks in all** (`part.raw` 46, `step.enter` 42, `part.tune` 35, `F.run` 13,
-`reset.extra` 1, `step.motion` 0), and each exists for something with no honest general verb:
+**The escapes, and how narrow they are.** **87 of the 143 cards are fully declarative**; 56 carry at least one hook, **248 hooks in all** (`part.raw` 111, `step.enter` 49, `part.tune` 76, `F.run` 12,
+`reset.extra` 0, `step.motion` 0), and each exists for something with no honest general verb:
 `part.tune` reaches an element the builder already made, to capture a nested ref, write an SVG
 *attribute* or an inline `style.fill` no field reaches, build extra children inside a part (a second
 inner box in a Pod, a row of slot rects), or file a `P.wire` into the main ref bucket as well.
-Three of its 35 sites accumulate an ARRAY ref, and those three are READ, by the seven `enter`
-hooks of `storage-fsgroup-ownership`. An array ref nothing reads does not belong in `tune`: every
-element already carries its own `key:`.
+Three of its 76 sites accumulate an ARRAY ref, and those three are READ, by the seven `enter`
+hooks of `storage-fsgroup-ownership`. Three more on `storage-volume-attach-limits` build one the same
+way, the slot rects of its three Node frames, read by its eight `enter` hooks. An array ref nothing
+reads does not belong in `tune`: every element already carries its own `key:`.
 `part.raw` draws a bare `<rect>` or a free text node, `step.enter` writes text or an attribute no
-field reaches, and `F.run` at delay 0 is an imperative beat standing inside the flow order. Ten of
-the thirteen `F.run` are that delay-0 form; the three on `cluster-cpu-throttling` carry a real delay
+field reaches, and `F.run` at delay 0 is an imperative beat standing inside the flow order. Nine of
+the twelve `F.run` are that delay-0 form; the three on `cluster-cpu-throttling` carry a real delay
 and are genuine deferred callbacks, the only ones in the catalogue.
-Storage carries the highest share, 15 of 31, and its folder `CLAUDE.md` accounts for them BY HOOK
-KIND in four rows, naming only 3 of the 15 cards, where cluster, network and workloads each name
-every card of their own. If a
+Storage carries a hook on 11 of its 39 cards, and its folder `CLAUDE.md` accounts for them BY HOOK
+KIND in four rows, naming every card inside each row the way cluster's does, where network and
+workloads table them per card. If a
 card looks like it needs a new VERB, stop and say so: three categories out of four grew the DSL zero
 times, and its three additions were each serialised through the coordinator: `F.tag` and `F.ripple`
 for network, and `F.flash`, which is the declarative door to `flashChips` and the only reason
@@ -256,8 +258,10 @@ going prev calls `scene.reset()` then replays steps 0..target with `ctx.reduced 
 to their final state without animating.
 
 The shape rules for both forms are the `S-` block of `./CANON.md`, and `unit/skeleton.test.mjs`
-reads them off the spec with no browser. The poster-first model is `D-14`, and the search, hash
-routing and in-dialog keys are `D-15`.
+reads them off the spec with no browser. The poster-first model is `D-14`, the search and the
+in-dialog keys are `D-15`, and the hash contract (a filter and a search are both
+state, a scroll reset belongs to each, and the root hub matches on the `#scheme=` / `#at=` prefixes)
+is `D-16`.
 
 ## Adding a card
 
@@ -268,8 +272,8 @@ routing and in-dialog keys are `D-15`.
 3. Add the `SCHEMES` entry in that folder's `cards.js` (`D-01`). Target **410-460 characters, 3
    sentences**; `D-04` and `D-05` fail outside 400-470 and 2-4.
 4. Add the poster to that folder's `posters.js` (`D-06`). Get the concept signed off first (`R-01`).
-5. Put the design record under `## <id>`, in `js/schemes/<category>/CARDS.md` or, where the
-   category has split, in its own `js/schemes/<category>/CARDS/<id>.md` plus a row in the index.
+5. Put the design record under `## <id>` in its own `js/schemes/<category>/CARDS/<id>.md`, the
+   shape all four categories are in, plus a row in that folder's `CARDS.md` index.
    Leave the single pointer comment under the card's imports (`S-36`).
 6. Add a `<url>` to the repo-root `sitemap.xml` if it should be deep-linkable (`D-12`).
 7. `cd test && npm test`, then open the rendered frames.
@@ -308,14 +312,19 @@ it goes is `S-35`; the table below is the same split from the other side.
 | how a number was derived, in two lines | a trailing comment on the constant |
 | history: dates, "used to", reverted decisions, review vocabulary | deleted |
 
-Card-scoped notes (posters included, since `POSTERS` is keyed by card id) go to that category's
-record, keyed by card id. Each card links to its section with one pointer under its imports, and the
-pointer follows the shape that category is in:
+Card-scoped notes go to that category's record, keyed by card id, with one exception: a poster's
+note is the comment directly above that poster in the folder's `posters.js` (`R-12`). Each card
+links to its section with one pointer under its imports, and the pointer follows the shape that
+category is in:
 
 ```js
-// Design notes for this card: ./CARDS.md#storage-multi-attach-error    // one file per category
-// Design notes for this card: ./CARDS/cluster-node-drain.md            // one file per card
+// Design notes for this card: ./CARDS/storage-multi-attach-error.md    // one file per card
+// Design notes for this card: ./CARDS.md#<card-id>                     // one file per category
 ```
+
+All four categories carry the first form today. The second is what `recordPointer` in
+`test/fixtures/catalog.mjs` derives for a category holding its records in one `CARDS.md`, and no
+category does.
 
 **The record holds what the code cannot say**: measured overlay extents per viewport, why a width is
 what it is, which numbers are hard floors and what binds them, which alternatives were tried and
@@ -358,6 +367,26 @@ node tools/buildframe.mjs   --all --out=DIR --base=http://localhost:8888
 node tools/canon.mjs --check=review --block=L,A
 ```
 
+**`tools/mutate.mjs` is the fourth thing in that directory and it is none of the three.** It
+asserts, it is not run by `npm test`, and its subject is the SUITE rather than a card: it breaks a
+real card one known defect at a time and requires the check `./CANON.md` names for that rule to go
+red on it, on its named axis.
+
+```
+cd scheme/test
+npm run selftest                # every mutation. needs the server, minutes
+node tools/mutate.mjs --list    # what they are, no card touched
+node tools/mutate.mjs offedge   # one of them
+```
+
+Run it after writing or editing a check, and after a rule changes hands between `review` and a
+machine. A `BLIND` verdict is a real finding: a rule cites a check that does not see its defect,
+which no green run can show, because a check that sees nothing and a check that finds nothing print
+the same thing. `WRONG` and `ANCHOR` are defects in `mutate.mjs` itself, not in the suite: the
+mutation grew too broad, or the card moved under it and it needs re-aiming. It edits a card in the
+working tree and restores it from memory in a `finally` and from an `exit` handler, never with
+`git checkout --`.
+
 `settled-dump` plays every step in REAL TIME and reads the frame it leaves behind: glyphs, the
 `.highlight` set, the opacities. Freezing a card hides a deferred callback (`at()` schedules its
 work as the onfinish of an empty animation, and a paused animation never fires one), so this is the
@@ -371,16 +400,53 @@ against it reads stale content and agrees with itself. Serve the live tree with
 `python3 -m http.server 8888`, and a second tree (a `git archive` of some commit) on its own port.
 
 The `Check` column of `./CANON.md` is the same information from the other side: given a rule, which
-test (if any) would notice it breaking, as `test:<file>/<name>` or `report:<file>/<name>`.
+machine (if any) would notice it breaking, as `test:<file>/<name>`, `report:<file>/<name>` or
+`skill:<tool>/<name>`. The third names a tool under `.claude/skills/*/tools/` that decides the rule
+and emits a finding: it runs when a skill or a human asks it to, never on its own, so a rule
+carrying one still has to be RUN. A tool that only prints numbers is not one of these and its rules
+stay `review`.
 
 ## The findings that are left open
 
-**The `OPEN` findings in the four card records are not to be closed without a reason**: **54** today
-(cluster 19, storage 14, workloads 5, network 16). Each carries its own measurement and an explanation
-of why the rule can only be satisfied by making the picture worse (`L-16`).
+**The `OPEN` findings in the four card records are not to be closed without a reason**: **46** today
+(cluster 0, storage 13, workloads 15, network 18), counted as `OPEN` BLOCKS, and a block may hold
+more than one finding where a record states each at most once. Each carries its own measurement and
+an explanation of why the rule can only be satisfied by making the picture worse (`L-16`). The cluster record carries
+none: its design record holds measurements and the reasons behind them, and a parked defect is not one
+of the things it is for.
 
-**That is not the same population as the soft geometry findings, which number 10** (CENTRE 3,
-CENTRE-LOW 6, OCCLUDED 1, printed by `report/geometry-soft.test.mjs`). The `OPEN` entries cover more
-than geometry, and one number was used for both for months. Count them separately. The full list of
+**That is not the same population as the soft geometry findings, which number 54** (CENTRE 33,
+CENTRE-LOW 16, OCCLUDED 5, printed by `report/geometry-soft.test.mjs`). The `OPEN` entries cover more
+than geometry, so the two are counted separately. The full list of
 deliberate exceptions, including the ones that are not `OPEN` findings, is the last section of
 `./CANON.md`.
+
+## The constraints a card cannot close
+
+Three facts about the narration panel and about `node()`. Each is a property of the house rather than
+a defect of whichever card met it last, so it is stated once, here, and a record that runs into one
+cites this section instead of re-deriving it.
+
+**The band the panel gives back at a wide viewport cannot be filled.** A card's geometry is pinned to
+its DEEPEST panel, because `L-03` allows a block left of x=420 only below that card's own panel
+bottom and the deepest reading is the narrowest viewport: `cluster-pod-priority-preemption` measures
+279.51 at 1100x800 against 177.44 at 1600x1000. The hundred-odd units the panel vacates as the dialog
+widens therefore stand empty on any card reaching that far left, whatever layout it took, and filling
+them on one card alone makes it the one member of its family that differs. `L-05a` is why the panel
+moves and why clamping its height does not touch this.
+
+**A `node()` frame takes no cue.** `diagrams.css` carries a `.highlight` rule for `.scheme-pod`,
+`.scheme-box`, `.scheme-cylinder` and `.scheme-chip`, and none for `.scheme-node`, so a step
+narrating a Node's own state changing has nothing on screen to react. It fails SILENTLY: five steps
+on three cards in two categories already name a frame in `lit` or in a `lights` list and render no
+difference. Closing it is one catalog-wide CSS rule reaching every frame in the tree, which is not a
+change one card makes.
+
+**A `node()` frame's label sits in the panel column.** `primitives.js` prints it at `x: 12, y: 18`
+inside the frame, so it inks from `NODE_X + 12` against a panel right edge of `x<=397` (`L-02`), and
+a frame starting left of about 385 whose top is above that card's panel bottom loses the label
+outright. Worst case is the Control plane frame at (150, 90) that `cluster-architecture`,
+`cluster-object-create-path` and `cluster-cascading-deletion` share, covered on every measured
+viewport. `OCCLUDED` never reports it, because `report/geometry-soft.test.mjs` skips frames, and
+walking one card's label to the far corner through `tune` is not the fix: it buys one card a position
+every other frame in the catalogue reads from.

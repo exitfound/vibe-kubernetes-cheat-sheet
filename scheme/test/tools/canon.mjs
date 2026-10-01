@@ -29,7 +29,7 @@
 //   node tools/canon.mjs --check=review --ids     ids only, one per line, for a checklist
 //   node tools/canon.mjs --json                   the selected rows as JSON, for a script
 //
-// `--check=` takes `review`, `test`, `report` or `hook`, comma separated. A row naming two values
+// `--check=` takes `review`, `test`, `report`, `skill` or `hook`, comma separated. A row naming two values
 // matches either, which is the honest reading: `report:motion/M-12` is measured and printed, and a
 // row carrying both a `test:` and a `report:` value is covered for the half the test names only.
 //
@@ -170,7 +170,7 @@ if (ARGS.has('json')) {
   const byBlock = new Map();
   for (const r of ROWS) {
     if (r.kind !== 'rule') continue;
-    if (!byBlock.has(r.block)) byBlock.set(r.block, { rows: 0, test: 0, report: 0, review: 0, hook: 0 });
+    if (!byBlock.has(r.block)) byBlock.set(r.block, { rows: 0, test: 0, report: 0, skill: 0, review: 0, hook: 0 });
     const o = byBlock.get(r.block);
     o.rows++;
     for (const k of kindsOf(r.check)) if (k in o) o[k]++;
@@ -180,15 +180,15 @@ if (ARGS.has('json')) {
   console.log(`CANON.md, ${ROWS.filter(r => r.kind === 'rule').length} rule rows and ` +
     `${ROWS.filter(r => r.kind === 'index').length} category index rows`);
   console.log('');
-  console.log('  block                                    rows   test  report  review    hook');
+  console.log('  block                                    rows   test  report   skill  review    hook');
   for (const [block, o] of byBlock) {
-    console.log(`  ${block.slice(0, 38).padEnd(38)} ${pad(o.rows, 6)} ${pad(o.test, 6)} ${pad(o.report, 7)} ${pad(o.review, 7)} ${pad(o.hook, 7)}`);
+    console.log(`  ${block.slice(0, 38).padEnd(38)} ${pad(o.rows, 6)} ${pad(o.test, 6)} ${pad(o.report, 7)} ${pad(o.skill, 7)} ${pad(o.review, 7)} ${pad(o.hook, 7)}`);
   }
   const tot = [...byBlock.values()].reduce((a, o) => ({
     rows: a.rows + o.rows, test: a.test + o.test, report: a.report + o.report,
-    review: a.review + o.review, hook: a.hook + o.hook,
-  }), { rows: 0, test: 0, report: 0, review: 0, hook: 0 });
-  console.log(`  ${'TOTAL'.padEnd(38)} ${pad(tot.rows, 6)} ${pad(tot.test, 6)} ${pad(tot.report, 7)} ${pad(tot.review, 7)} ${pad(tot.hook, 7)}`);
+    skill: a.skill + o.skill, review: a.review + o.review, hook: a.hook + o.hook,
+  }), { rows: 0, test: 0, report: 0, skill: 0, review: 0, hook: 0 });
+  console.log(`  ${'TOTAL'.padEnd(38)} ${pad(tot.rows, 6)} ${pad(tot.test, 6)} ${pad(tot.report, 7)} ${pad(tot.skill, 7)} ${pad(tot.review, 7)} ${pad(tot.hook, 7)}`);
   console.log('');
   console.log(`  The ${tot.review} review rows are the ones a card review is FOR: no machine anywhere`);
   console.log('  stands between them and a defect. Ask for them with --check=review.');

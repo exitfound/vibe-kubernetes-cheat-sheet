@@ -62,6 +62,9 @@ const CHIP_Y = i => CHIP_ROW(Math.floor(i / CHIP_COLS));
 // KERNEL, and lives inside the scale group so it cannot outlive what it points at.
 const NODE_RELATION = [[SPINE_X, TOP_BOTTOM], [SPINE_X, NODE_Y]];
 const JOG_Y = midX(TOP_BOTTOM, FRAME_Y);                 // 140
+// OFFEDGE scores an endpoint against BLOCK faces, and neither a node() frame nor a bare rect is
+// one, so the (900, 160) end is invisible to it. It lands on the face midpoint regardless:
+// SCALE_CX 900 is the stack midpoint by construction and FRAME_Y 160 is the frame's top wall.
 const SCALE_RELATION = [[KERN_CX, TOP_BOTTOM], [KERN_CX, JOG_Y], [SCALE_CX, JOG_Y], [SCALE_CX, FRAME_Y]];
 
 // Presentation shades, not lifecycle phases: a spent budget is not a phase. Channel list is the
@@ -288,7 +291,9 @@ export const STEPS_SPEC = [
     lit: ['kernel', 'statChip', 'stateChip'],
     enter: bars([RUN_W, RUN_W, RUN_W], ALL_CAPS),
     // cAdvisor reads the cgroup files, so the counter surfaces kernel to Kubelet on the lower
-    // lane. Same shape and same lane as the observe step of cluster-oom-kill, on purpose.
+    // lane. Same shape and same lane as the observe step of cluster-oom-kill, on purpose: on
+    // both, the last step is the Kubelet learning what the kernel already did, PLEG relisting a
+    // dead container there and cAdvisor here, and the Kubelet lights on arrival, not at entry.
     flow: [F.top({ from: KERN_X, to: KUBE_R, y: DOWN_Y, lights: ['kubelet'] })],
   },
 ];

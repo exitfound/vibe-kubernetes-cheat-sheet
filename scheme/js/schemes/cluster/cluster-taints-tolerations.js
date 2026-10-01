@@ -3,7 +3,7 @@ import { P, F, defineCard, ladder, strip, spread, midX, shade, CLU, BEAT, FADE, 
 // Design notes for this card: ./CARDS/cluster-taints-tolerations.md
 
 // Layout C with no ladder at all: the chips take a three-across bottom strip, the mid band holds a
-// block. Panel x<=396.55 y<=229.82, frame top 372: NO NARRATION MAY PASS 309 CHARACTERS.
+// block. Panel x<=396.55 y<=229.82, evictor top 252: NO NARRATION MAY PASS 313 CHARACTERS.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = midX(CONTENT_L, CONTENT_R);                   // 600, the canvas centre by construction
@@ -18,10 +18,13 @@ const TOP_CY = midX(TOP_Y, TOP_BOTTOM);                  // 80, the box centre l
 const WIRE_X = midX(API_R, SCHED_X);                     // 812, the gap midpoint
 const WIRE_Y = TOP_Y - 14;                               // 26, above the row: the drop owns below it
 
-// LEFT of the API and below it. 420 is the leftmost x the panel leaves free above its bottom, and
-// the block is CENTRED on it, so its riser leaves the top face midpoint rather than a corner.
+// LEFT of the API and below it. 420 is a MEASURED floor: the panel reaches 396.55 at 1100x800 and
+// L-03 puts everything above the panel bottom right of 420, so it is the leftmost x a riser out of
+// the mid band may take. The block is CENTRED on it, so its riser leaves the top face midpoint
+// rather than a corner: a 232 wide box centred on 420 runs 304..536, whose left half sits under
+// the panel column and is legal only because EV_Y 252 is 22.18 below the deepest panel bottom.
 const EV_CX = 420;
-const EV_X = EV_CX - BOX_W / 2, EV_R = EV_X + BOX_W;     // 304..536
+const EV_X = EV_CX - BOX_W / 2;                          // 304..536
 const EV_Y = 252, EV_BOTTOM = EV_Y + BOX_H;              // 252..332, 22.18 under the deepest panel
 
 const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
@@ -35,8 +38,10 @@ const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
 // ONE endpoint on the API bottom face, so it takes the spine: 600 leaves the API bottom midpoint
 // and lands on the Node frame top midpoint, both centres by construction.
 const DROP_X = CX;                                       // 600
-// ONE right angle: up the evictor spine to the top row centre line, then into the API LEFT face on
-// the same y the top lane rides, so both lanes meet the row on its midline.
+// ONE right angle: up the evictor spine at 420, the only x that clears the panel, to TOP_CY 80,
+// the box centre line the top lane already rides, then into the API LEFT face at 484 on the same
+// midline the Scheduler meets its right face at 716. It crosses nothing: at x 420 it is 64 left
+// of the API and 180 left of the drop, and at y 80 it stands 172 above the evictor.
 const EVICT_REQ = [[EV_CX, EV_Y], [EV_CX, TOP_CY], [API_X, TOP_CY]];
 // ONE lane into the Node band, addressed to the frame rather than to a Pod inside it: a single
 // vertical drop, and which Pod it is about comes from the pulse.
@@ -121,8 +126,8 @@ const NS = 'NoSchedule', PNS = 'PreferNoSchedule', BOTH = 'PreferNoSchedule, NoE
 const HDR_NS = 'dedicated=db · NoSchedule';
 const HDR_PNS = 'dedicated=db · PreferNoSchedule';
 const HDR_BOTH = 'dedicated=db · PreferNoSchedule + NoExecute';
-// The three chips that are settled from step 2 on and never move again. P-01 wants every step to
-// state every chip, and these are restated rather than inherited.
+// The three chips that settle on step 2, restated on every step rather than inherited (P-01).
+// tolerChip and opChip never move again, secondsChip is overwritten by the last step's own key.
 const CONTRACT = { tolerChip: 'dedicated · any effect', opChip: 'defaults to Equal, or Exists', secondsChip: 'unset · stays bound' };
 const DYING = OPACITY.terminating, GONE = OPACITY.terminated;
 // Every step writes all three Pod shades. web-2 is not on the Node until it binds.
@@ -136,7 +141,7 @@ export const STEPS_SPEC = [
     opacity: STANDING,
   },
   {
-    // Durations follow the cluster averages per step type: still steps 2400, moving steps the tail.
+    // Durations by step type: still steps 2400, one hop 2600, two hops 2800.
     id: 'taint',
     duration: 2600,
     narration: 'A taint is three fields on the Node object: a key, an optional value, and an effect. Node-1 takes dedicated=db:NoSchedule into spec.taints. Nothing on the Node stirs, because NoSchedule is a gate on the way in and says nothing about the Pods already bound here.',

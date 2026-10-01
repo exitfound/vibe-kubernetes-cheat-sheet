@@ -1,14 +1,20 @@
 import { P, F, defineCard, makeRidingLabel, laneY, midX, shade, OPACITY } from './network-kit.js';
 
-// Design notes for this card: ./CARDS.md#network-hostnetwork-hostport
+// Design notes for this card: ./CARDS/network-hostnetwork-hostport.md
 
 
+// The Node frame is the outer extent and the three column centres are spaced inside it. NODE_Y 305
+// puts the frame just under the panel, and the client above it sits at x >= 450 only because of
+// that. Raising the frame puts its top-left corner and the portmap box under the overlay.
 const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 265;
 
 const COL1_CX = 240, COL2_CX = 600, COL3_CX = 960;
 
-const CLIENT_X = 450, CLIENT_Y = 56, CLIENT_W = 300, CLIENT_H = 74;
-const CLIENT_BOTTOM = CLIENT_Y + CLIENT_H;     // 130
+// The client takes the catalog object width (NET.L-01) at the 232 x 80 the two top blocks of
+// `network-ipam-pod-cidr` carry, and stays centred on COL2_CX, which puts it at the same x 484.
+const CLIENT_W = 232, CLIENT_H = 80, CLIENT_Y = 56;
+const CLIENT_X = COL2_CX - CLIENT_W / 2;       // 484
+const CLIENT_BOTTOM = CLIENT_Y + CLIENT_H;     // 136
 
 // Row 1: the Node NIC and the rule that sits on its ingress path, both on one baseline.
 const R1_Y = 330, R1_H = 64;
@@ -47,7 +53,9 @@ const SCHEME_RIGHT = NODE_X + NODE_W;          // 1160
 
 // Each static wire and the ball that rides it share the same points array. The three NIC exits are one
 // per direction, and the rule rejoins the ordinary path on the bus between the rows.
-const ENTRY = [[COL2_CX, CLIENT_BOTTOM], [COL2_CX, R1_Y]];               // LAN client -> the Node NIC
+// NET.A-02: traffic from the LAN is delivered TO the Node, so the entry stops on the frame top face
+// midpoint at NODE_Y and the NIC 25 units below it lights on arrival. It never crosses the border.
+const ENTRY = [[COL2_CX, CLIENT_BOTTOM], [COL2_CX, NODE_Y]];             // LAN client -> the Node frame
 const TO_PM = [[ETH_X, R1_CY], [PM_RIGHT, R1_CY]];                       // NIC -> the portmap rule
 const TO_AGENT = [[ETH_RIGHT, R1_CY], [COL3_CX, R1_CY], [COL3_CX, R2_Y]];// NIC -> the hostNetwork Pod
 const TO_BRIDGE = [[BR_IN_ORD, R1_BOTTOM], [BR_IN_ORD, BR_TOP]];         // NIC -> the bridge, ordinary route
@@ -58,16 +66,22 @@ const VETH = [[BR_X, POD_CY], [APP_RIGHT, POD_CY]];                      // brid
 // floats the DNAT-ed address out of the portmap rule, and hold 0 clears each address as its hop lands.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
-// The hostNetwork hop leaves the NIC face, which on the lane cuts the address it carries. -40 parks
-// the tag in the band between the Node frame and the NIC row, clear on all four viewports.
+// The hostNetwork hop starts on the NIC right face, so at the default -14 the tag tail sits inside
+// Node eth0 and its border strikes the first character for 100ms. -40 parks it level with the frame
+// caption, between the Node frame top (305) and the NIC row (330): 6.7 under the frame, 5.4 over
+// the row, clear on all four viewports. A dx offset overlaps by 4.4 units at 1600x1000 and 8.4 at
+// 900x650, so the clear dx set starts at +10 there and stops reading as the address of its own ball.
 const AGENT_TAG_DY = -40;
 
 const POD_INNER = { dx: 20, dy: 30, w: POD_W - 40, h: 48, label: 'app', sublabel: 'eth0' };
+// The hostNetwork container has no interface of its own to name, so its inner box names the one it
+// binds, which is the Node NIC drawn above it. `eth0` there would draw the veth the card denies.
+const AGENT_INNER = { ...POD_INNER, sublabel: 'Node eth0' };
 
 // The list order IS the append order, which is the z-order: the Node frame in back, then the blocks
 // inside and above it, then wires + the veth label, then chips, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'hostNetwork and hostPort: an ordinary Pod has its own network namespace, its own Pod IP and a veth pair into the bridge. A Pod with hostNetwork true has no namespace of its own at all, so it has no veth and no Pod IP, it runs in the Node namespace and binds straight to the Node address, at the cost of the Node port space and its own isolation. A Pod with a hostPort keeps everything it had, and the CNI portmap plugin only adds a DNAT rule on the Node that rewrites the Node address and host port to the Pod IP and container port.',
+  'aria-label': 'hostNetwork and hostPort: an ordinary Pod has its own network namespace, its own Pod IP and a veth pair into the bridge. A Pod with hostNetwork true has no namespace of its own at all, so it has no veth and no Pod IP of its own, it runs in the Node namespace and binds straight to the Node address, at the cost of the Node port space and its own isolation. A Pod with a hostPort keeps everything it had, and the CNI portmap plugin only adds a port mapping on the Node that rewrites the Node address and host port to the Pod IP and container port.',
   parts: [
     P.defs(),
     P.node({ key: 'theNode', x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -81,7 +95,7 @@ export const SCENE = {
     }),
     P.pod({
       key: 'podAgent', innerKey: 'podAgentBox', x: AGENT_X, y: R2_Y, w: POD_W, h: POD_H,
-      label: 'Pod node-agent', sublabel: 'hostNetwork: true', inner: POD_INNER,
+      label: 'Pod node-agent', sublabel: 'hostNetwork: true', inner: AGENT_INNER,
     }),
     // The entry hop is the one lane whose two ends are lit on every step, so it alone needs no key.
     P.arrow({ from: ENTRY[0], to: ENTRY[1], dashed: true, dim: true }),
@@ -137,7 +151,7 @@ export const STEPS_SPEC = [
   {
     id: 'hostnetwork',
     // Motion: entry(700) + hop beat(100) + lane(707) = 1507, then the Pod pulse (900) ends at 2407.
-    duration: 3000,
+    duration: 3800,
     narration: 'With hostNetwork true the Pod gets no namespace of its own at all. It runs inside the Node namespace, so there is no veth, no Pod IP and no bridge in the path: the container binds straight to the Node interfaces. A client that dials 192.168.1.20:80 is served by the Pod with no NAT anywhere, which is exactly how kube-proxy, the CNI agent and node-exporter run.',
     chips: { nsChip: 'the Node one', ipChip: '192.168.1.20 (Node)', vethChip: 'none', portChip: 'Node IP :80' },
     sublabels: { portmap: 'none' },
@@ -159,7 +173,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'hostnetwork-cost',
-    duration: 2400,
+    duration: 3300,
     narration: 'The price is the Node port space and the isolation. The container listens on the Node itself, so a second Pod that wants the same port cannot run here, and the Pod sees every Node interface with nothing of its own between it and the host. That is a privilege for the agents that must see the Node, not for applications.',
     chips: { nsChip: 'the Node one', ipChip: '192.168.1.20 (Node)', vethChip: 'none', portChip: 'Node IP :80' },
     sublabels: { portmap: 'none' },
@@ -174,7 +188,7 @@ export const STEPS_SPEC = [
     // Motion: entry(700) + beat + rule hop(700) + beat + rewrite route(913) + beat + veth(700) = 3313,
     // then the Pod pulse (900) ends at 4213. The floor leaves a settle.
     duration: 4400,
-    narration: 'The hostPort field is the smaller hammer. The Pod keeps its own namespace, its Pod IP and its veth, and the CNI portmap plugin only adds one DNAT rule on the Node: anything arriving at 192.168.1.20:8080 is rewritten to 10.244.1.5:80 and then delivered down the ordinary bridge and veth. The Pod is reachable from the LAN and still never learns that it was.',
+    narration: 'The hostPort field is the smaller hammer. The Pod keeps its own namespace, its Pod IP and its veth, and the CNI portmap plugin only adds a port mapping on the Node: anything arriving at 192.168.1.20:8080 is DNAT-ed to 10.244.1.5:80 and then delivered down the ordinary bridge and veth. The Pod is reachable from the LAN and its socket still only ever sees its own address and port.',
     chips: { nsChip: 'own', ipChip: '10.244.1.5', vethChip: 'yes', portChip: 'Node IP :8080' },
     wires: { veth: 'veth pair' },
     sublabels: { portmap: PM_MAPPED },
@@ -197,7 +211,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'tradeoff',
-    duration: 2600,
+    duration: 4300,
     narration: 'Both fields spend the same scarce thing, a port on the Node, so the Scheduler counts a hostPort as a Node resource and only one replica of that Pod can land here. The difference is what you give up: hostNetwork hands the Node namespace to the container and suits the agents that must see it, while hostPort keeps the Pod isolated and punches a single port through to it. Everything else belongs behind a Service.',
     chips: { nsChip: 'own or the Node one', ipChip: 'Pod IP or Node IP', vethChip: 'yes or none', portChip: 'one per Node either way' },
     wires: { veth: 'veth pair' },

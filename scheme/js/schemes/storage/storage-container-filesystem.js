@@ -1,153 +1,237 @@
-import { P, F, defineCard, BEAT } from './storage-kit.js';
-// Design notes for this card: ./CARDS.md#storage-container-filesystem
+import { P, F, defineCard, BEAT, FADE, OPACITY, REVEAL_MS, makeRidingLabel, chipStrip, routeDur } from './storage-kit.js';
+// Design notes for this card: ./CARDS/storage-container-filesystem.md
 
 
-const POD_X = 440, POD_Y = 48, POD_W = 320, POD_H = 140;
-const POD_BOTTOM = POD_Y + POD_H;                     // 188
-const POD_CX = POD_X + POD_W / 2;                     // 600
-const POD_RIGHT = POD_X + POD_W;                      // 760
+// A layer-precedence grid: rows are the overlay layers top to bottom, columns are four paths, and a
+// cell is drawn only where that layer holds that path. The whole grid is right of the panel (x<=397).
+// The row box is a row header sized by its widest string, 208, and the four cells share what is
+// left of 420..1180 on one 12 unit rhythm, so every cell is 126 (record, SIZES).
+const ROW_X = 420, ROW_W = 208, BLOCK_H = 80, GRID_R = 1180, CELL_GAP = 12;
+const CELL_X0 = ROW_X + ROW_W + CELL_GAP;                                 // cells 640..1180
+const CELL_W = (GRID_R - CELL_X0 - 3 * CELL_GAP) / 4;                     // 126
+const colX = (i) => CELL_X0 + i * (CELL_W + CELL_GAP);
+const colCX = (i) => colX(i) + CELL_W / 2;                                // 703 / 841 / 979 / 1117
+const DATA_CX = colCX(0), CONF_CX = colCX(1), CACHE_CX = colCX(2), TOOL_CX = colCX(3);
+const ROW_GAP = 52;                                                       // the gap a tag rides in
+const rowY = (i) => 20 + i * (BLOCK_H + ROW_GAP);                         // 20 / 152 / 284 / 416
+const MERGED_Y = rowY(0), UPPER_Y = rowY(1), BASE_Y = rowY(3);
+const MERGED_B = MERGED_Y + BLOCK_H, UPPER_B = UPPER_Y + BLOCK_H;         // 100, 232
 
-const STK_X = 460, STK_W = 280;                       // stack centred on 600
-const WR_Y = 234, WR_H = 48;                          // writable layer (upperdir)
-const L3_Y = 292, L2_Y = 346, L1_Y = 400, LH = 44;    // read-only image layers, bottom 444
+// Three chips of 280 centred on 600, 164..1036: the worst pair needs 256 (record, SIZES).
+const CHIP_Y = 596;
+const CH = chipStrip({ count: 3, w: 280 });
 
-const VOL_W = 220, VOL_X = POD_CX - VOL_W / 2;        // 490, centred under the stack
-const VOL_Y = 482, VOL_H = 96;                        // 482..578
-const VOL_MY = VOL_Y + VOL_H / 2;                     // 530
-const VOL_RIGHT = VOL_X + VOL_W;                      // 710
+// The volume sits on the left margin, mirroring the grid's 20 on the right so the content centres
+// on 600. The /data shaft enters its face below the cap ellipse, level with the label (STO.L-02).
+const VOL_X = 1200 - GRID_R, VOL_Y = 484, VOL_W = 200, VOL_H = 96;        // 20..220, 484..580
+const VOL_MY = VOL_Y + VOL_H / 2 + 8, VOL_RIGHT = VOL_X + VOL_W;          // 540, 220
 
-const BYPASS_X = 820;                                 // the volume wire descends right of the stack
-const EXIT_Y = 130;                                   // where it leaves the Container side
-const CHIPS_Y = 596;
+// The read and the copy-up never share a frame (stage), so both run on the column centre.
+const L_READ   = [[CONF_CX, BASE_Y], [CONF_CX, MERGED_B]];                // base -> merged
+const L_COPY   = [[CONF_CX, BASE_Y], [CONF_CX, UPPER_B]];                 // base -> upperdir
+const L_CREATE = [[CACHE_CX, MERGED_B], [CACHE_CX, UPPER_Y]];             // merged -> upperdir
+const L_WHITE  = [[TOOL_CX, MERGED_B], [TOOL_CX, UPPER_Y]];               // merged -> upperdir
+const L_VOL    = [[DATA_CX, MERGED_B], [DATA_CX, VOL_MY], [VOL_RIGHT, VOL_MY]];
 
-const W_COPYUP = [[POD_CX, POD_BOTTOM], [POD_CX, WR_Y]];
-const W_VOL    = [[POD_RIGHT, EXIT_Y], [BYPASS_X, EXIT_Y], [BYPASS_X, VOL_MY], [VOL_RIGHT, VOL_MY]];
+// The grid legs are 52 to 316 units and would sit on or near the 700ms floor, where a tag
+// retires unread, so they ride a fixed leg. Every ball runs 15 percent faster than its base pace:
+// the legs than 1500, the 923 unit shaft than its routeDur.
+const PACE = 1.15;
+const LEG_DUR = Math.round(1500 / PACE);                                  // 1304
+const SHAFT_DUR = Math.round(routeDur(L_VOL) / PACE);                     // 2051 -> 1784
+// Every tag rides level with its ball, 12 clear of it beside the lane, and lives exactly as long
+// as the ball (M-30a). dy 4 centres the 11px text on the ball.
+const tagGrid = makeRidingLabel({ role: 'storage', dy: 4, inMs: 200, outMs: 200, hold: 0 });
+const tagShaft = makeRidingLabel({ role: 'storage', dx: 24, dy: 17 });
 
-const LAYER_FADE = 500;                               // the layer and its wire cross-fade as one
+const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
+const row = (key, i, label, sublabel) => P.box({ key, x: ROW_X, y: rowY(i), w: ROW_W, h: BLOCK_H, label, sublabel });
+const cell = (key, col, r, label, sublabel, opacity) =>
+  P.box({ key, x: colX(col), y: rowY(r), w: CELL_W, h: BLOCK_H, label, sublabel, opacity });
 
-// Z-order (bottom -> top): blocks, wires and the mount label, the chip strip, then the packet layer
-// so every ball rides above. The Container group holds shell and Process box as PEERS, so both pulse.
+// Z-order (bottom -> top): the four row boxes, the cells, the volume, the lanes, the chip strip,
+// then the packet layer. Upperdir cells and the merged /tmp/cache cell are born hidden.
 export const SCENE = {
-  'aria-label': 'Container filesystem layers: a container root filesystem is read-only image layers stacked by overlayfs with one thin writable layer on top. A write copies the file up into the writable layer rather than changing the image, and that writable layer is discarded when the container is removed, which is why data written outside a volume vanishes. A mounted volume bypasses the overlay and writes straight to real storage.',
+  'aria-label': 'Container filesystem layers: with the default overlayfs snapshotter, a container sees its root filesystem as one overlay mount, drawn as a grid of layers by paths. The merged row on top is what the container sees. A read of /etc/app.conf falls through the empty upperdir and the app layer to the base layer. Creating /tmp/cache writes a new file into the upperdir. Editing app.conf first copies the whole file up from the base layer into the upperdir, and the base copy stays unchanged. Deleting /bin/tool writes a whiteout into the upperdir, so the merged view hides the file while the app layer still holds it. A write under /data never enters the overlay: /data is a volume mounted over the merged tree, and the bytes land on the volume. When the container is replaced, the new one starts with an empty upperdir, so /bin/tool shows again and app.conf comes from the base layer, the old upperdir is deleted once the old container is removed, and only the volume still holds db.',
   parts: [
     P.defs(),
-    P.group({
-      key: 'ctr',
-      parts: [
-        P.pod({ key: 'ctrShell', x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Container', sublabel: 'root filesystem', containers: 0 }),
-        P.box({ key: 'ctrBox', x: POD_X + 24, y: POD_Y + 46, w: POD_W - 48, h: 60, label: 'Process', sublabel: 'sees one tree at /' }),
-      ],
-    }),
-    P.box({ key: 'l1', x: STK_X, y: L1_Y, w: STK_W, h: LH, label: 'Image layer: base', sublabel: 'read-only' }),
-    P.box({ key: 'l2', x: STK_X, y: L2_Y, w: STK_W, h: LH, label: 'Image layer: deps', sublabel: 'read-only' }),
-    P.box({ key: 'l3', x: STK_X, y: L3_Y, w: STK_W, h: LH, label: 'Image layer: app', sublabel: 'read-only' }),
-    // Born hidden: the writable layer does not exist until its own step adds it.
-    P.box({ key: 'writable', x: STK_X, y: WR_Y, w: STK_W, h: WR_H, label: 'Writable layer', sublabel: 'upperdir, starts empty', opacity: 0 }),
+    row('rowMerged', 0, 'merged', 'what the container sees'),
+    row('rowUpper', 1, 'upperdir', 'writable, this container only'),
+    row('rowApp', 2, 'lowerdir: app layer', 'image layer, read-only'),
+    row('rowBase', 3, 'lowerdir: base layer', 'image layer, read-only'),
+    cell('mData', 0, 0, '/data', 'volume mount'),
+    cell('mConf', 1, 0, '/etc/app.conf', 'from base'),
+    cell('mCache', 2, 0, '/tmp/cache', 'new file', 0),
+    cell('mTool', 3, 0, '/bin/tool', 'from app layer'),
+    cell('uConf', 1, 1, '/etc/app.conf', 'edited copy', 0),
+    cell('uCache', 2, 1, '/tmp/cache', 'new file', 0),
+    cell('uTool', 3, 1, '/bin/tool', 'whiteout', 0),
+    cell('aTool', 3, 2, '/bin/tool', 'original'),
+    cell('bConf', 1, 3, '/etc/app.conf', 'original'),
     // The primitive centers the label on the raw bbox, which reads high under the cap ellipse.
     P.cylinder({ key: 'volume', x: VOL_X, y: VOL_Y, w: VOL_W, h: VOL_H, label: 'Volume', labelY: VOL_H / 2 + 12 }),
-    // The copy-up wire targets the writable layer, so it is born hidden with it and only ever shows
-    // while the layer itself is on screen (STO.S-02).
-    P.lane({ key: 'wCopyup', points: W_COPYUP, dashed: true, dim: true, opacity: 0 }),
-    P.lane({ points: W_VOL, dashed: true, dim: true }),
-    P.wire({ key: 'mount', x: BYPASS_X + 14, y: 346, anchor: 'start' }),
-    P.chip({ key: 'fsChip', x: 100, y: CHIPS_Y, w: 320, h: 34, name: 'root fs', value: 'read-only image layers' }),
-    P.chip({ key: 'writeChip', x: 440, y: CHIPS_Y, w: 320, h: 34, name: 'last write', value: 'none' }),
-    P.chip({ key: 'persistChip', x: 780, y: CHIPS_Y, w: 320, h: 34, name: 'persists', value: 'no, in writable' }),
+    lane('lRead', L_READ),
+    lane('lCopy', L_COPY),
+    lane('lCreate', L_CREATE),
+    lane('lWhite', L_WHITE),
+    lane('lVol', L_VOL),
+    P.chip({ key: 'fromChip', x: CH.x(0), y: CHIP_Y, w: CH.w, h: 34, name: 'app.conf from', value: 'not read yet' }),
+    P.chip({ key: 'upperChip', x: CH.x(1), y: CHIP_Y, w: CH.w, h: 34, name: 'upperdir', value: 'empty' }),
+    P.chip({ key: 'dataChip', x: CH.x(2), y: CHIP_Y, w: CH.w, h: 34, name: '/data', value: 'empty' }),
     P.packets(),
   ],
   reset: {
-    keys: ['writable', 'l3', 'l2', 'l1', 'volume', 'ctrBox', 'fsChip', 'writeChip', 'persistChip'],
-    pods: ['ctrShell'],
+    keys: [
+      'rowMerged', 'mData', 'mConf', 'mCache', 'mTool', 'uConf', 'uCache', 'uTool', 'bConf',
+      'volume', 'fromChip', 'upperChip', 'dataChip',
+    ],
+    pods: [],
   },
 };
 
-const RO_FS = 'read-only image layers', RW_FS = 'RO image + RW top';
-const IN_WRITABLE = 'no, in writable';
-
-// STO.S-01 as a field: the writable layer and its wire come and go, so both are pinned on every
-// step, alongside the Container that holds them.
-const STACK_OFF = { ctr: 1, writable: 0, wCopyup: 0 };
-const STACK_ON  = { ctr: 1, writable: 1, wCopyup: 1 };
+// STO.S-01 as one literal: each upperdir cell is born with its lane, and the read lane is gone
+// while an upperdir copy of app.conf stands in its slot. The volume shaft is always drawn.
+const stage = ({ cache = 0, conf = 0, tool = 0 } = {}) => ({
+  mCache: cache, uCache: cache, lCreate: cache,
+  uConf: conf, lCopy: conf, lRead: conf ? 0 : 1,
+  uTool: tool, lWhite: tool, lVol: 1,
+});
+const PEND = OPACITY.pending;
+const SLOT_MS = 350;                                                      // two of these end inside BEAT.lead
+const SUB = { mConf: 'from base', mTool: 'from app layer' };
+const HELD = 'cache, app.conf, whiteout';
+const GONE = ['mCache', 'uCache', 'lCreate', 'uConf', 'lCopy', 'uTool', 'lWhite'];
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    // The writable layer is hidden on the poster, so the chip must not claim an RW top yet.
-    chipsCued: { fsChip: RO_FS, writeChip: 'none', persistChip: IN_WRITABLE },
-    opacity: STACK_OFF,
+    chipsCued: { fromChip: 'not read yet', upperChip: 'empty', dataChip: 'empty' },
+    sublabels: SUB,
+    opacity: stage(),
   },
   {
-    id: 'layers',
-    duration: 2200,
-    narration: 'The image layers are read-only. They come straight from the image and are shared between every container built on it, so nothing a container does can change them. This is the lower half of the overlay.',
-    chipsCued: { fsChip: RO_FS, writeChip: 'none', persistChip: IN_WRITABLE },
-    opacity: STACK_OFF,
-    lit: ['l3', 'l2', 'l1'],
-    // The container starts and assembles its root from the image layers, so the shell pulses.
-    flow: [F.pulse({ pod: 'ctr' })],
-  },
-  {
-    id: 'writable',
-    duration: 2200,
-    narration: 'On top sits one thin writable layer, the upperdir. Every file the container creates or changes at runtime lands here, and it starts empty. Nothing else in the root filesystem can be written to.',
-    chipsCued: { fsChip: RW_FS, writeChip: 'none', persistChip: IN_WRITABLE },
-    // The layer and its wire are present by the END of the step, so full opacity is the static
-    // state the reduced path stops at, and rewind is what the fade-in starts from.
-    opacity: STACK_ON,
-    lit: ['writable'],
-    rewind: { opacity: { writable: 0, wCopyup: 0 } },
+    id: 'read',
+    duration: 3600,
+    narration: 'The top row is what the container sees: one overlay mount over the layers below it. It reads /etc/app.conf, and a lookup takes the highest layer holding that path. The upperdir and the app layer have none, so the base layer serves it.',
+    chips: { fromChip: 'base layer' },
+    chipsCued: { upperChip: 'empty', dataChip: 'empty' },
+    sublabels: SUB,
+    opacity: stage(),
+    lit: ['bConf'],
+    rewind: { chips: { fromChip: 'not read yet' } },
     flow: [
-      F.fade({ target: 'writable', from: 0, to: 1, dur: LAYER_FADE, fill: 'forwards', easing: 'ease-out' }),
-      F.fade({ target: 'wCopyup', from: 0, to: 1, dur: LAYER_FADE, fill: 'forwards', easing: 'ease-out' }),
+      F.route({ points: L_READ, delay: BEAT.lead, dur: LEG_DUR, name: 'read', lights: ['mConf'] }),
+      F.tag({ text: 'app.conf', points: L_READ, delay: BEAT.lead, dur: LEG_DUR, fn: tagGrid, dx: -37 }),
+      F.set({ at: 'read', chips: { fromChip: 'base layer' }, lights: ['fromChip'] }),
+    ],
+  },
+  {
+    id: 'create',
+    duration: 3600,
+    narration: 'The container creates /tmp/cache. No image layer can be written, so the new file lands in the upperdir, the one writable layer this container owns, and the merged view shows it from there.',
+    chips: { upperChip: 'cache' },
+    chipsCued: { fromChip: 'base layer', dataChip: 'empty' },
+    sublabels: SUB,
+    opacity: stage({ cache: 1 }),
+    lit: ['mCache'],
+    rewind: { chips: { upperChip: 'empty' } },
+    // The merged cell, its lane and the pending upperdir cell appear as one before the ball leaves,
+    // and the upperdir cell lands on full with it.
+    flow: [
+      F.reveal({ target: 'mCache' }),
+      F.reveal({ target: 'lCreate' }),
+      F.fade({ target: 'uCache', from: 0, to: PEND, dur: REVEAL_MS, easing: 'ease-out' }),
+      F.route({ points: L_CREATE, delay: BEAT.lead, dur: LEG_DUR, name: 'create', lights: ['uCache'] }),
+      F.tag({ text: 'cache', points: L_CREATE, delay: BEAT.lead, dur: LEG_DUR, fn: tagGrid, dx: 28 }),
+      F.reveal({ target: 'uCache', from: PEND, at: 'create' }),
+      F.set({ at: 'create', chips: { upperChip: 'cache' }, lights: ['upperChip'] }),
     ],
   },
   {
     id: 'copyup',
-    duration: 2800,
-    narration: 'A write to a path that lives in an image layer does not touch the image. The overlayfs driver copies the file up into the writable layer first, then applies the change there. The read-only layer underneath is left exactly as it was.',
-    chipsCued: { fsChip: RW_FS, writeChip: '/app/config', persistChip: IN_WRITABLE },
-    opacity: STACK_ON,
-    // The process writes, so it is lit from entry on both paths. The writable layer RECEIVES, so it
-    // earns its highlight on the arrival, which is also what flowLights hands the reduced path.
-    lit: ['ctrBox'],
+    duration: 3800,
+    narration: 'Now the container edits /etc/app.conf. Overlayfs first copies the whole file up from the base layer into the upperdir, and the edit lands on that copy. The merged view now resolves to the upper copy, and the base copy is hidden but unchanged.',
+    chips: { fromChip: 'upperdir', upperChip: 'cache, app.conf' },
+    chipsCued: { dataChip: 'empty' },
+    sublabels: { ...SUB, mConf: 'from upperdir' },
+    opacity: stage({ cache: 1, conf: 1 }),
+    lit: ['bConf'],
+    rewind: { chips: { fromChip: 'base layer', upperChip: 'cache' }, sublabels: SUB },
+    // The read lane leaves the upper slot before the copy takes it, so the two never share a frame,
+    // and both are done before the copy departs on BEAT.lead.
     flow: [
-      F.pulse({ pod: 'ctr' }),
-      F.route({ points: W_COPYUP, delay: BEAT.afterPulse, lights: ['writable'] }),
-      F.tag({ text: 'copy-up', points: W_COPYUP, delay: BEAT.afterPulse }),
+      F.fade({ target: 'lRead', from: 1, to: 0, dur: SLOT_MS, fill: 'forwards', easing: 'ease-out', name: 'slot' }),
+      F.fade({ target: 'uConf', from: 0, to: PEND, dur: SLOT_MS, at: 'slot', easing: 'ease-out' }),
+      F.fade({ target: 'lCopy', from: 0, to: 1, dur: SLOT_MS, at: 'slot', easing: 'ease-out' }),
+      F.route({ points: L_COPY, delay: BEAT.lead, dur: LEG_DUR, name: 'copy', lights: ['uConf'] }),
+      F.tag({ text: 'copy-up', points: L_COPY, delay: BEAT.lead, dur: LEG_DUR, fn: tagGrid, dx: 34 }),
+      F.reveal({ target: 'uConf', from: PEND, at: 'copy' }),
+      F.set({
+        at: 'copy', chips: { fromChip: 'upperdir', upperChip: 'cache, app.conf' },
+        sublabels: { mConf: 'from upperdir' }, lights: ['mConf', 'fromChip', 'upperChip'],
+      }),
     ],
   },
   {
-    id: 'discard',
-    duration: 2600,
-    narration: 'When the container is removed, its writable layer is thrown away with it. That is why anything written to the root filesystem, such as logs, temp files or a scratch database, is gone the moment the container restarts. The image layers remain, empty of your changes.',
-    chipsCued: { fsChip: RO_FS, writeChip: 'discarded', persistChip: IN_WRITABLE },
-    // The writable layer is discarded and its copy-up wire goes with it: no layer, no wire. The
-    // Container block itself stays at full strength, the story is the vanishing layer.
-    opacity: STACK_OFF,
-    rewind: { opacity: { writable: 1, wCopyup: 1 } },
+    id: 'whiteout',
+    duration: 3800,
+    narration: 'Deleting /bin/tool cannot touch the app layer, which is read-only. Overlayfs writes a whiteout for that name into the upperdir instead, and the merged view no longer shows the file. The app layer still holds it.',
+    chips: { upperChip: HELD },
+    chipsCued: { fromChip: 'upperdir', dataChip: 'empty' },
+    sublabels: { mConf: 'from upperdir', mTool: 'no such file' },
+    opacity: stage({ cache: 1, conf: 1, tool: 1 }),
+    lit: ['mTool'],
+    rewind: { chips: { upperChip: 'cache, app.conf' }, sublabels: { mTool: 'from app layer' } },
     flow: [
-      F.fade({ target: 'writable', from: 1, to: 0, dur: LAYER_FADE, fill: 'forwards', easing: 'ease-in' }),
-      F.fade({ target: 'wCopyup', from: 1, to: 0, dur: LAYER_FADE, fill: 'forwards', easing: 'ease-in' }),
+      F.reveal({ target: 'lWhite' }),
+      F.fade({ target: 'uTool', from: 0, to: PEND, dur: REVEAL_MS, easing: 'ease-out' }),
+      F.route({ points: L_WHITE, delay: BEAT.lead, dur: LEG_DUR, name: 'white', lights: ['uTool'] }),
+      F.tag({ text: 'whiteout', points: L_WHITE, delay: BEAT.lead, dur: LEG_DUR, fn: tagGrid, dx: -37 }),
+      F.reveal({ target: 'uTool', from: PEND, at: 'white' }),
+      F.set({ at: 'white', chips: { upperChip: HELD }, sublabels: { mTool: 'no such file' }, lights: ['upperChip'] }),
     ],
   },
   {
     id: 'volume',
-    duration: 3000,
-    narration: 'The container comes back and gets a brand new empty writable layer, everything the old one held is gone. A mounted volume is a hole punched through the overlay straight to real storage: a write under /data skips the writable layer entirely and lands on the volume, so it survives the container being replaced. Persist anything you care about on a volume, never on the root filesystem.',
-    chipsCued: { fsChip: RW_FS, writeChip: '/data on volume', persistChip: 'yes, on volume' },
-    opacity: STACK_ON,
-    wires: { mount: 'mounted at /data' },
-    lit: ['ctrBox'],
-    rewind: { opacity: { writable: 0, wCopyup: 0 } },
-    // The fresh container gets its empty layer back, then writes to /data, which bypasses the
-    // overlay and lands on the disk. The volume lights when that write arrives.
+    duration: 3800,
+    narration: 'The container writes db under /data, and that write never enters the overlay. /data is a volume, a separate mount placed over the merged tree at that path, so the bytes skip every layer row and land on the volume.',
+    chips: { dataChip: 'db' },
+    chipsCued: { fromChip: 'upperdir', upperChip: HELD },
+    sublabels: { mConf: 'from upperdir', mTool: 'no such file' },
+    opacity: stage({ cache: 1, conf: 1, tool: 1 }),
+    lit: ['rowMerged', 'mData'],
+    rewind: { chips: { dataChip: 'empty' } },
+    // The one lane with no cell on it below the merged row: the shaft rides SHAFT_DUR.
     flow: [
-      F.fade({ target: 'writable', from: 0, to: 1, dur: LAYER_FADE, fill: 'forwards', easing: 'ease-out' }),
-      F.fade({ target: 'wCopyup', from: 0, to: 1, dur: LAYER_FADE, fill: 'forwards', easing: 'ease-out' }),
-      F.pulse({ pod: 'ctr' }),
-      F.route({ points: W_VOL, delay: BEAT.afterPulse, lights: ['volume'] }),
-      F.tag({ text: 'write /data', points: W_VOL, delay: BEAT.afterPulse }),
+      F.route({ points: L_VOL, delay: BEAT.lead, dur: SHAFT_DUR, name: 'vol', lights: ['volume'] }),
+      F.tag({ text: 'db', points: L_VOL, delay: BEAT.lead, dur: SHAFT_DUR, fn: tagShaft }),
+      F.set({ at: 'vol', chips: { dataChip: 'db' }, lights: ['dataChip'] }),
+    ],
+  },
+  {
+    id: 'remove',
+    duration: 4400,
+    narration: 'The container is replaced, and the merged row now shows the new one. It starts with a new, empty upperdir, so the cache, the edited app.conf and the whiteout are gone, /bin/tool shows again, and app.conf comes from the base layer. The old upperdir is deleted once the old container is removed. Only the volume still holds db.',
+    chips: { fromChip: 'base layer', upperChip: 'new, empty' },
+    chipsCued: { dataChip: 'db' },
+    sublabels: SUB,
+    opacity: stage(),
+    lit: ['rowMerged', 'bConf', 'volume'],
+    rewind: {
+      opacity: stage({ cache: 1, conf: 1, tool: 1 }),
+      chips: { fromChip: 'upperdir', upperChip: HELD },
+      sublabels: { mConf: 'from upperdir', mTool: 'no such file' },
+    },
+    // The upperdir contents and their lanes fade as one, the read lane comes back, then the
+    // replacement reads app.conf along it.
+    flow: [
+      ...GONE.map((k, i) => F.fade({ target: k, to: 0, dur: FADE.out, fill: 'forwards', name: i ? undefined : 'wipe' })),
+      F.set({ at: 'wipe', chips: { upperChip: 'new, empty' }, sublabels: { mTool: 'from app layer' }, lights: ['upperChip', 'mTool'] }),
+      F.fade({ target: 'lRead', from: 0, to: 1, dur: REVEAL_MS, at: 'wipe', fill: 'forwards', easing: 'ease-out', name: 'back' }),
+      F.route({ points: L_READ, after: 'back', dur: LEG_DUR, name: 'reread', lights: ['mConf'] }),
+      F.tag({ text: 'app.conf', points: L_READ, after: 'back', dur: LEG_DUR, fn: tagGrid, dx: -37 }),
+      F.set({ at: 'reread', chips: { fromChip: 'base layer' }, sublabels: { mConf: 'from base' }, lights: ['fromChip'] }),
     ],
   },
 ];

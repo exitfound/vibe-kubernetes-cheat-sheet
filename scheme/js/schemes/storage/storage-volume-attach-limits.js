@@ -1,45 +1,48 @@
 import { P, F, defineCard, BEAT, FADE, chipStrip, routeDur, setBoxLabel, makeRidingLabel } from './storage-kit.js';
 import { rect } from '../../lib/svg.js';
-// Design notes for this card: ./CARDS.md#storage-volume-attach-limits
+// Design notes for this card: ./CARDS/storage-volume-attach-limits.md
 
+// The panel wall. CONTENT_W 400 then puts CONTENT_CX exactly on 600, forced by the chip strip, which
+// at 976 units is far wider than any tier above it and therefore sets the visual centre. The node row
+// is the one tier allowed outside CONTENT_W, because it sits below the panel floor.
 const LEFT_X = 400;
 const CONTENT_W = 400;
 const CONTENT_CX = LEFT_X + CONTENT_W / 2;               // 600
 
 // ---- Vertical stack, chained off one origin so the whole card centres by moving one number ----
-const POD_H = 110, SCHED_H = 60, CSI_H = 56, NODE_H = 150, CHIP_H = 32;
-const G_POD_SCHED = 54, G_SCHED_CSI = 50, G_CSI_NODE = 48, G_NODE_CHIPS = 24;
+// The Scheduler and CSINode are the catalog actor block and the Pod the catalog Pod (NET.L-01):
+// 232 by 80, and 232 by 104 around a 192 by 44 box.
+const BLOCK_W = 232, BLOCK_H = 80;
+const POD_H = 104, SCHED_H = BLOCK_H, CSI_H = BLOCK_H, NODE_H = 140, CHIP_H = 32;
+const G_POD_SCHED = 46, G_SCHED_CSI = 50, G_CSI_NODE = 48, G_NODE_CHIPS = 24;
 
 const STACK_H = POD_H + G_POD_SCHED + SCHED_H + G_SCHED_CSI + CSI_H + G_CSI_NODE + NODE_H + G_NODE_CHIPS + CHIP_H;
-const STACK_TOP = (640 - STACK_H) / 2;                   // 32, and the bottom margin matches it
+const STACK_TOP = (640 - STACK_H) / 2;                   // 18, and the bottom margin matches it
 
-// 226x110 is the storage family Pod, set by storage-csi-attach-mount and kept here so a Pod is the
-// same object across the row.
-const POD_W = 226;
-const POD_X = CONTENT_CX - POD_W / 2;                    // 487
-const POD_Y = STACK_TOP;                                 // 32
-const POD_BOTTOM = POD_Y + POD_H;                        // 142
+const POD_W = BLOCK_W;
+const POD_X = CONTENT_CX - POD_W / 2;                    // 484
+const POD_Y = STACK_TOP;                                 // 18
+const POD_BOTTOM = POD_Y + POD_H;                        // 122
 
-const PVC_DY = 34, PVC_H = 46;
+const PVC_W = 192, PVC_DY = 26, PVC_H = 44;              // the catalog app box, 26 under the Pod label
 
-// Matched to CSI_W (280) so the Scheduler and the CSINode box below it read as one column. The
-// sublabel 'NodeVolumeLimits filter' measures about 250 units, so 280 still leaves ~30 units of air.
-const SCHED_W = 280;
-const SCHED_X = CONTENT_CX - SCHED_W / 2;                // 460, aligned with CSI_X
-const SCHED_Y = POD_BOTTOM + G_POD_SCHED;                // 198
-const SCHED_BOTTOM = SCHED_Y + SCHED_H;                  // 258
+// One width for the Scheduler and the CSINode box below it, so they read as one column.
+const SCHED_W = BLOCK_W;
+const SCHED_X = CONTENT_CX - SCHED_W / 2;                // 484, aligned with CSI_X
+const SCHED_Y = POD_BOTTOM + G_POD_SCHED;                // 168
+const SCHED_BOTTOM = SCHED_Y + SCHED_H;                  // 248
 
-const CSI_W = 280;
-const CSI_X = CONTENT_CX - CSI_W / 2;                    // 460..740
-const CSI_Y = SCHED_BOTTOM + G_SCHED_CSI;                // 302
-const CSI_TOP = CSI_Y, CSI_BOTTOM = CSI_Y + CSI_H;       // 302 / 358
-const CSI_MID_Y = CSI_Y + CSI_H / 2;                     // 330, where the two side entries land
-const CSI_LEFT = CSI_X, CSI_RIGHT = CSI_X + CSI_W;       // 460 / 740
+const CSI_W = BLOCK_W;
+const CSI_X = CONTENT_CX - CSI_W / 2;                    // 484..716
+const CSI_Y = SCHED_BOTTOM + G_SCHED_CSI;                // 298
+const CSI_TOP = CSI_Y, CSI_BOTTOM = CSI_Y + CSI_H;       // 298 / 378
+const CSI_MID_Y = CSI_Y + CSI_H / 2;                     // 338, where the two side entries land
+const CSI_LEFT = CSI_X, CSI_RIGHT = CSI_X + CSI_W;       // 484 / 716
 
 const NODE_W = 220, NODE_GAP = 30;
 const NODES_W = NODE_W * 3 + NODE_GAP * 2;               // 720
 const NODES_X0 = CONTENT_CX - NODES_W / 2;               // 240
-const NODE_Y = CSI_BOTTOM + G_CSI_NODE;                  // 406
+const NODE_Y = CSI_BOTTOM + G_CSI_NODE;                  // 426
 const NODE_X = [0, 1, 2].map(i => NODES_X0 + i * (NODE_W + NODE_GAP)); // 240 / 490 / 740
 const NODE_CX = NODE_X.map(x => x + NODE_W / 2);         // 350 / 600 / 850, centred on 600
 
@@ -49,12 +52,13 @@ const SLOT_N = 8, SLOT_COLS = 4, SLOT_W = 26, SLOT_HGT = 26, SLOT_GAP = 10;
 const SLOT_ROW_W = SLOT_COLS * SLOT_W + (SLOT_COLS - 1) * SLOT_GAP;    // 134
 const SLOT_X0 = (NODE_W - SLOT_ROW_W) / 2;               // 43
 const SLOT_Y0 = 38;                                      // two rows, 38..64 and 74..100
-const CNT_X = 24, CNT_Y = 110, CNT_W = NODE_W - 48, CNT_H = 30;        // 172 wide, bottom 140, 10 clear
+const CNT_X = 24, CNT_Y = 102, CNT_W = NODE_W - 48, CNT_H = 30;        // 172 wide, bottom 132, 8 clear
 
+// Sized against allocatable.count + `8 per node` at 186, leaving ~22 units between the halves.
 const CHIP_W = 232, CHIP_GAP = 16, CHIP_COUNT = 4;
 // Fix the width and the gap, derive the 976 unit span, centre it on CONTENT_CX: 112..1088.
 const CHIPS = chipStrip({ cx: CONTENT_CX, w: CHIP_W, gap: CHIP_GAP, count: CHIP_COUNT });
-const CHIPS_Y = NODE_Y + NODE_H + G_NODE_CHIPS;          // 572
+const CHIPS_Y = NODE_Y + NODE_H + G_NODE_CHIPS;          // 590
 
 const LANE_DX = 40;
 const W_POD_SCHED = [[CONTENT_CX - LANE_DX, POD_BOTTOM], [CONTENT_CX - LANE_DX, SCHED_Y]];
@@ -77,8 +81,8 @@ const CAP_TAG_DX = [-16, 0, 16];
 // 14 clear of that floor, and 22 rather than 16 because at 16 the ball prints on the line.
 const CAP_TAG_DY = [-14, 22, -14];
 
-// The read lane is 44 long between two boxes, so the tag starts inside the Scheduler and on its
-// sublabel. It fades in only once the ball is clear of that floor: 22 of the 44 units, 300 ms.
+// The read lane is 50 long between two boxes, so the tag starts inside the Scheduler and on its
+// sublabel. It fades in only once the ball is clear of that floor: 22 of the 50 units, 300 ms.
 const emergeTag = makeRidingLabel({ role: 'storage', emergeMode: true });
 const READ_TAG_EMERGE = 300;
 
@@ -149,7 +153,7 @@ export const SCENE = {
       key: 'podNew', shellKey: 'podShell', innerKey: 'podBox',
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H,
       label: 'Pod web-0', sublabel: 'not created', containers: 0,
-      inner: { dx: 16, dy: PVC_DY, w: POD_W - 32, h: PVC_H, label: 'PVC data-web-0', sublabel: 'needs one slot' },
+      inner: { dx: (POD_W - PVC_W) / 2, dy: PVC_DY, w: PVC_W, h: PVC_H, label: 'PVC data-web-0', sublabel: 'needs one slot' },
     }),
     lane('wPodSched', W_POD_SCHED),
     lane('wSchedPod', W_SCHED_POD),
@@ -255,7 +259,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'cap',
-    duration: 2800,
+    duration: 3400,
     narration: 'The ceiling is not a Kubernetes setting. It is reported by the CSI node plugin as max_volumes_per_node in its NodeGetInfo answer, then written by the Kubelet into the CSINode object for that Node as allocatable.count. Real drivers report anything from a handful on a small VM to a hundred and twenty seven on GCE.',
     chipsCued: chips('4 of 24', 'not created', 'nothing'),
     ...stage(),
@@ -272,7 +276,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'fill',
-    duration: 2600,
+    duration: 3000,
     // Packet-less and Pod-less, and it does not need the sanctioned block flash: the slots filling IS
     // the motion, and it is the only step on the card where the gauge moves on its own.
     narration: 'Now the cluster fills. More Pods with claims are provisioned, more disks attach, and every Node walks up to its own ceiling: eight of eight on all three, twenty four of twenty four across the cluster. No alarm fires, because a Node sitting exactly at its ceiling is a healthy Node.',
@@ -304,14 +308,15 @@ export const STEPS_SPEC = [
       F.fade({ target: 'podNew', from: 0, to: 1, dur: FADE.in, delay: 150, fill: 'forwards', easing: 'ease-out' }),
       F.pulse({ pod: 'podNew', delay: 250 }),
       F.route({ points: W_POD_SCHED, delay: 250 + BEAT.afterPulse, name: 'req' }),
-      F.tag({ text: 'schedule web-0', points: W_POD_SCHED, delay: 250 + BEAT.afterPulse }),
+      // The tag starts on the Pod sublabel, so it emerges once the ball is clear of the floor, as `rd` does.
+      F.tag({ text: 'schedule web-0', points: W_POD_SCHED, delay: 250 + BEAT.afterPulse, fn: emergeTag, emerge: READ_TAG_EMERGE }),
       F.light({ targets: ['sched'], at: 'req' }),
     ],
   },
   {
     id: 'filter',
     duration: 3200,
-    narration: 'The filter reads allocatable.count out of each CSINode and compares it with what that Node already owes: the volumes of the Pods assigned to it, plus every VolumeAttachment still live on it. Eight against a ceiling of eight, so all three are rejected before scoring runs at all.',
+    narration: 'The filter reads allocatable.count out of each CSINode and compares it with what that Node already owes: the volumes of the Pods assigned to it, plus every VolumeAttachment still live on it. Eight plus the one web-0 needs is over a ceiling of eight, so all three are rejected before scoring runs.',
     chipsCued: chips('24 of 24', 'Pending', 'max volume count'),
     ...stage({ podOp: 1, podSub: 'Pending', linkPod: 1, linkRead: 1 }),
     ...gauge([8, 8, 8]),
@@ -346,8 +351,8 @@ export const STEPS_SPEC = [
     // The senior edge, and the reason this is not simply a capacity-planning card. A slot is held by
     // an ATTACHMENT, not by a Pod, so the two are not freed at the same moment.
     narration: 'What clears it is a detach completing. The slot is held by the VolumeAttachment, not by the Pod, so deleting a Pod frees nothing until that object is gone, and a detach takes seconds to tens of seconds. One finishes on Node-3, the count drops to seven, and web-0 is placed there at once.',
-    chipsCued: chips('24 of 24', 'Running on node-3', 'nothing'),
-    ...stage({ podOp: 1, podSub: 'Running on node-3', pvcSub: 'attached on node-3', linkPod: 1, linkBack: 1, linkRead: 1 }),
+    chipsCued: chips('24 of 24', 'placed on node-3', 'nothing'),
+    ...stage({ podOp: 1, podSub: 'placed on node-3', pvcSub: 'attaching to node-3', linkPod: 1, linkBack: 1, linkRead: 1 }),
     ...gauge([8, 8, { used: 8, fresh: true }]),
     lit: ['cnt2'],
     // web-0 is Pending until the freed slot is taken, so the chip and both sublabels hold what the
@@ -362,9 +367,9 @@ export const STEPS_SPEC = [
       F.pulse({ pod: 'podNew', delay: PLACE_MS }),
       F.set({
         delay: PLACE_MS,
-        chipsCued: { podChip: 'Running on node-3' },
-        podSublabels: { podShell: 'Running on node-3' },
-        sublabels: { podBox: 'attached on node-3' },
+        chipsCued: { podChip: 'placed on node-3' },
+        podSublabels: { podShell: 'placed on node-3' },
+        sublabels: { podBox: 'attaching to node-3' },
       }),
     ],
   },
@@ -372,8 +377,8 @@ export const STEPS_SPEC = [
     id: 'fix',
     duration: 3400,
     narration: 'Every lever here is about the ceiling and none is about CPU. Fewer volumes per Pod is the cheapest, since a Pod mounting four claims eats four slots wherever it lands. More Nodes buys more slots, and an instance type that reports a higher ceiling buys more per Node.',
-    chipsCued: chips('24 of 24', 'Running on node-3', 'nothing'),
-    ...stage({ podOp: 1, podSub: 'Running on node-3', pvcSub: 'attached on node-3', linkPod: 1, linkBack: 1, linkRead: 1 }),
+    chipsCued: chips('24 of 24', 'placed on node-3', 'nothing'),
+    ...stage({ podOp: 1, podSub: 'placed on node-3', pvcSub: 'attaching to node-3', linkPod: 1, linkBack: 1, linkRead: 1 }),
     ...gauge([8, 8, { used: 8, fresh: true }]),
     lit: ['csinode'],
   },

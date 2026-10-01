@@ -2,7 +2,7 @@
 // deadair.mjs: how long a step STANDS STILL after its own motion has ended, ranked against the
 // catalog.
 //
-//   cd scheme/test && node ../../.claude/skills/card-review/tools/deadair.mjs <card-id> [--base=URL]
+//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/deadair.mjs <card-id> [--base=URL]
 //
 // WHY THIS EXISTS. `M-19` and `render/duration.test.mjs` enforce `span <= duration`: a step must
 // OUTLAST its own motion. Nothing anywhere enforces or even prints the other side of that

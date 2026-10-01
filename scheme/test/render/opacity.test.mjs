@@ -23,15 +23,11 @@
 //   - CSS presentation shades (.scheme-pod-container, .scheme-grid-cell). They are presentation,
 //     the vocabulary is state (C-10). See the PHASE note below for how the scope is drawn.
 
-import { test, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census, floor, SUBSET, FULL_ONLY } from '../fixtures/catalog.mjs';
+import { cards, census, floor } from '../fixtures/catalog.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
-import {
-  DEFAULT_BASE,
-  launch, initPage, discoverIds, openCard, stepCount, enterStep, stepSpan, seekStep,
-  installOpacityHelpers,
-} from '../fixtures/render.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
 import { OPACITY } from '../../js/lib/tokens.js';
 
 // ---------------------------------------------------------------------------------------------
@@ -101,122 +97,18 @@ const ALLOWED = new Set([key(0), ...NAME.keys()]);
 //   carried in the finding text, so a reader sees both answers side by side.
 // ---------------------------------------------------------------------------------------------
 
-const probe = ({ terminated }) => {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  if (!svg) return null;
-
-  // How a finding names an element: its own text, else the text of the nearest block around it.
-  const label = (el) => {
-    const t = el.querySelector && el.querySelector('text');
-    const own = (t && t.textContent || '').trim();
-    if (own) return own.slice(0, 28);
-    const near = el.closest && el.closest('.scheme-box, .scheme-pod, .scheme-cylinder, .scheme-node');
-    const nt = near && near.querySelector('text');
-    return ((nt && nt.textContent) || el.tagName).trim().slice(0, 28) || el.tagName;
-  };
-  const isPod = (el) => !!(el.classList && el.classList.contains('scheme-pod')) ||
-    !!(el.querySelector && el.querySelector('.scheme-pod'));
-  const moving = (el) => !!(el.closest && el.closest('#packetLayer'));
-
-  // PHASE, source (a): every inline pin currently on the tree. The OWN declared value.
-  const found = [];
-  for (const el of svg.querySelectorAll('[style*="opacity"]')) {
-    const v = el.style.opacity;
-    if (v === '' || moving(el)) continue;
-    found.push({ kind: 'pin', v: parseFloat(v), label: label(el) });
-  }
-
-  // PHASE, source (b): every opacity keyframe of every animation on this diagram, plus the timing
-  // ORDER needs. One pass, because both rules are answers about the same animation list.
-  const fades = [], pulses = [], rises = [];
-  for (const a of document.getAnimations()) {
-    const tgt = a.effect && a.effect.target;
-    if (!tgt || !svg.contains(tgt)) continue;
-    const t = a.effect.getComputedTiming();
-    let frames = [];
-    try { frames = a.effect.getKeyframes(); } catch (_) { continue; }
-    const ops = frames.map(f => f.opacity).filter(o => o !== undefined && o !== null).map(Number);
-    // A pulse is the track carrying `filter`: brightness up and back. Collected even when it
-    // carries no opacity of its own, because a dim Pod's blink lifts opacity and an ordinary one
-    // does not, and ORDER has to see both.
-    if (frames.some(f => f.filter)) pulses.push({ el: tgt, delay: t.delay || 0, label: label(tgt) });
-    if (!ops.length || moving(tgt)) continue;
-    // A track that returns to where it started is a BLINK (pulsePodDim), so only its resting value
-    // is a phase: the peak is a pulse magnitude and lives in PULSE_POD, not in OPACITY (C-10).
-    const blink = ops.length > 2 && ops[0] === ops[ops.length - 1];
-    for (const o of (blink ? [ops[0]] : ops)) found.push({ kind: blink ? 'rest' : 'frame', v: o, label: label(tgt) });
-    if (ops[ops.length - 1] < ops[0]) {
-      fades.push({ el: tgt, delay: t.delay || 0, label: label(tgt), pod: isPod(tgt) });
-    } else if (ops[ops.length - 1] > ops[0]) {
-      rises.push({ el: tgt, delay: t.delay || 0 });
-    }
-  }
-
-  // ORDER: for every Pod that fades out, the earliest pulse ON THAT ELEMENT (or inside it).
-  // A pulse belongs to this fade only if the Pod has not come back up in between: a delete-then-
-  // recreate (workloads-replicaset, storage-volumeclaimtemplates) fades to 0 and pulses on the way
-  // back, and that pulse answers the RETURN, not the fade.
-  const order = [];
-  for (const f of fades) {
-    if (!f.pod) continue;
-    const mine = pulses
-      .filter(p => p.el === f.el || f.el.contains(p.el))
-      .filter(p => !rises.some(r => (r.el === f.el || f.el.contains(r.el)) && r.delay >= f.delay && r.delay <= p.delay));
-    if (!mine.length) continue;                    // no pulse of this fade: nothing to order
-    const first = Math.min(...mine.map(p => p.delay));
-    // 1ms of slack: a pulse and a fade issued in the same call are the same beat.
-    if (first > f.delay + 1) order.push({ label: f.label, pulse: Math.round(first), fade: Math.round(f.delay) });
-  }
-
-  // LIT: anything holding .highlight while it sits at the terminated shade, meaning anywhere in
-  // (0, terminated]. Two edges, and both were measured rather than guessed:
-  //   upper  at-or-below rather than equal-to, because under the PRODUCT reading a highlight
-  //          pinned terminated inside a dimmed group lands below 0.12 and is no less gone for it.
-  //          The original's equality could not see that case at all. Tolerance 0.001, as before.
-  //   lower  a declared 0 is excluded. 0 is not a phase, it is "not drawn" (C-04), and pinning 0
-  //          then revealing with a fade-in while the arrival lights the block is the standard
-  //          reveal idiom: cluster-resource-quota, cluster-node-allocatable, network-service-cidr,
-  //          storage-container-filesystem and storage-configmap-secret-mount all do it, and all
-  //          five composite to full strength at the moment the highlight is on them.
-  const lit = [];
-  for (const el of svg.querySelectorAll('.highlight')) {
-    // The product of the DECLARED pins on the chain, element included, root excluded: the same
-    // walk effectiveOpacity() makes, over el.style.opacity instead of getComputedStyle. An
-    // element with no pin of its own contributes 1, exactly as the original treated it.
-    let declared = 1;
-    for (let n = el; n && n !== svg; n = n.parentElement) {
-      const v = n.style && n.style.opacity;
-      if (v !== '' && v !== undefined && v !== null) {
-        const f = parseFloat(v);
-        if (Number.isFinite(f)) declared *= f;
-      }
-    }
-    declared = Math.round(declared * 1000) / 1000;
-    if (declared <= 0.001 || declared > terminated + 0.001) continue;
-    lit.push({ label: label(el), declared, composited: window.__opacity.effective(el, svg) });
-  }
-
-  return { found, order, lit };
-};
 
 const catalogued = await cards();
 
-const browser = await launch();
-// Registered on the line after the launch, before the page setup below: node:test runs an
-// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
-// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
-// then nobody's to close for the rest of the run.
-after(() => browser.close());
-
-const context = await browser.newContext();
-const page = await context.newPage();
-await page.addInitScript(initPage, 'expose');
-// Before the first navigation: an init script only runs on a document still to be created.
-await installOpacityHelpers(page);
-const ids = await discoverIds(page, DEFAULT_BASE);
+// THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` takes the played pass and freezes each
+// step at the END of its span, one millisecond past, which is where this file read. The probe moved
+// into fixtures/probes.mjs as `opacityProbe`, verbatim, and the walk hands it `OPACITY.terminated`
+// off tokens.js rather than a number typed anywhere.
+const snap = readSnapshot();
+const ids = snap.ids;
 
 test(`the grid renders the whole catalog (${catalogued.length} cards)`, () => {
-  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${DEFAULT_BASE}/scheme/ : posters or grid broken`);
+  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${snap.base}/scheme/ : posters or grid broken`);
   census('opacity grid', ids.length, catalogued.length);
 });
 
@@ -237,8 +129,8 @@ for (const id of ids) {
   test(id, async () => {
     walked++;                    // counted before the assertions, so this stays a census of
                                  // COVERAGE and a broken card is reported once, as itself.
-    await openCard(page, id);
-    const total = await stepCount(page);
+    const card = snap.cards[id];
+    const total = card.steps;
     assert.ok(total > 0, `stepCount is ${total}: no steps to walk`);
 
     const findings = [];
@@ -246,9 +138,7 @@ for (const id of ids) {
       // The played path, frozen at the END of the step: that is the state the step settles on, and
       // the keyframes are still readable while the animations are attached. Stepping statically
       // instead would run every enter() with ctx.reduced and never reach a single fade or pulse.
-      const live = await enterStep(page, i);
-      if (live) { const span = await stepSpan(page); await seekStep(page, span + 1); }
-      const r = await page.evaluate(probe, { terminated: OPACITY.terminated });
+      const r = card.played[i].opacity;
       if (!r) continue;
       sampled++;
 

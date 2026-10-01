@@ -57,9 +57,11 @@ const CONCURRENCY = 6;
 
 const UA = 'kube.how source check (scheme/test/report/sources.test.mjs)';
 
-// The recorded census, taken on a green tree at 115 cards. Printed for comparison so a
-// bibliography that shrinks by half is visible, never used to clamp anything.
-const RECORDED = { rows: 252, unique: 171, cards: 115 };
+// The recorded census, taken on a green tree at 131 cards. Printed for comparison so a
+// bibliography that shrinks by half is visible, never used to clamp anything. The 115-card reading
+// before it was 252 rows over 171 hrefs: the catalogue has grown by 16 cards since, and no card
+// dropped a source, which is the diff behind the move.
+const RECORDED = { rows: 332, unique: 219, cards: 131 };
 
 async function reachable(url, ms) {
   try {

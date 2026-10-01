@@ -208,6 +208,17 @@ export function flowLights(flow) {
   return out;
 }
 
+// A chip the static block CUED and `rewind` winds back reads its old value again, so its cue waits
+// for the arrival F.set that turns it over (P-09a). A chip the step names in `lit` keeps its light.
+function unlightRewound(s, spec) {
+  const back = spec.rewind.chips, cued = spec.chipsCued;
+  if (!back || !cued) return;
+  const kept = new Set([...(spec.lit || []), ...(spec.rewind.lit || [])]);
+  for (const k of Object.keys(back)) {
+    if (k in cued && !kept.has(k) && s.refs[k]) s.refs[k].classList.remove('highlight');
+  }
+}
+
 // ---- The generated enter(): static state on BOTH paths, the card escape, then the split. ----
 export function makeSteps(STEPS_SPEC, { resetStep, bind = {} } = {}) {
   return STEPS_SPEC.map((spec) => {
@@ -222,7 +233,10 @@ export function makeSteps(STEPS_SPEC, { resetStep, bind = {} } = {}) {
         light(s, spec.reducedLit);
         return;
       }
-      if (spec.rewind) writeStatics(s, spec.rewind);
+      if (spec.rewind) {
+        writeStatics(s, spec.rewind);
+        unlightRewound(s, spec);
+      }
       if (spec.flow) runFlow(s, ctx, spec.flow, bind);
       if (spec.motion) spec.motion(s, ctx);
     };

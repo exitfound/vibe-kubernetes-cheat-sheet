@@ -15,6 +15,7 @@
 //   - COORDINATES, not identity, decide OTHER-PART and ASSEMBLED: a route equal to an arrow, or
 //     covered by the union of several collinear drawn legs, is not something A-02 can ask to share.
 
+import { carriedMap } from './carried.mjs';
 import { pathRuns, walkParts } from './spec.mjs';
 
 export const DRAWN_KINDS = new Set(['lane', 'arrow', 'relation']);
@@ -134,50 +135,13 @@ function geometryTier(pts, drawn) {
   return on ? 'PARTIAL' : 'UNDRAWN';
 }
 
-export const A05_CARRIED = new Map([
-  ['storage-volume-mode [[690,375],[690,442]]',
-    'W_BLK_STAGE, and the record answers this with a NO: block mode has NO staging step, no mkfs and ' +
-    'no mount, which is the entire contrast the card is built on, so the lane exists to be visibly ' +
-    'empty beside the fs branch that uses its twin. Measured 2026-08-17: a dim storage lane renders ' +
-    'at stroke-opacity 1 WITH a marker while .scheme-arrow-relation pins 0.45 and drops it, so either ' +
-    'repair sinks ONE lane of a mirrored pair on a card whose whole claim is that the two columns are ' +
-    'identical and only the field differs. The ruling was in storage/CARDS.md as NOT A DEFECT before ' +
-    'this table existed and was simply never imported into it.'],
-  ['network-ebpf-dataplane [[660,312],[790,312],[790,442],[920,442]]',
-    'TO_PODY, the ALTERNATIVE backend of the map lookup. network/CARDS.md under this card: "TO_PODY ' +
-    'carries no ball. It is the ALTERNATIVE backend, drawn so the reader can see the map lookup ' +
-    'picked one of two, and the card says so in words. N destinations, N wires." NET.A-03.'],
-  ['network-headless-service [[290,485],[355,485],[355,520],[820,520],[820,472],[880,472]]',
-    'TO_W2, the third leg of the data fan. network/CARDS.md: "TO_W2 in the data fan rides nothing. ' +
-    'N destinations get N wires so the reader can see the client picked one of three." NET.A-03, ' +
-    'and the record two cards down names this one as the precedent for the nodeport fan.'],
-  ['network-nodeport-loadbalancer [[600,230],[600,320]]',
-    'TO_N2. network/CARDS.md: "TO_N2 and TO_N3 carry no ball on a given step. A NodePort opens the ' +
-    'SAME port on EVERY Node, which is the card whole first claim, so all three lanes have to exist ' +
-    'for the reader to see that any Node would have served the request." NET.A-03.'],
-  ['network-nodeport-loadbalancer [[600,230],[600,286],[970,286],[970,320]]',
-    'TO_N3, the other half of the same pair and the same record entry. Which of the three legs a ' +
-    'step takes is the arbitrary part, and drawing only the taken one would make the arbitrary look ' +
-    'like the only. NET.A-03.'],
-  ['network-traffic-distribution [[630,320],[700,320],[700,236],[820,236]]',
-    'FAN_A2. network/CARDS.md: "FAN_A2 carries no ball on its step. It is the endpoint the traffic ' +
-    'distribution did NOT pick, and the point of the card is that the choice was made among the ' +
-    'drawn candidates rather than forced." NET.A-03.'],
-  ['network-model [[990,172],[990,280]]',
-    'CNI_CONNECTOR, and this one is NOT a fan leg. network/CARDS.md: "CNI_CONNECTOR IS animated, ' +
-    'with the repeating MARCH dash offset rather than a ball: this card vocabulary for this is what ' +
-    'implements the model. No packet rides it because nothing DISCRETE travels, the plugin is not ' +
-    'sending a message, it is the thing that makes the flat space exist." An F.anim on the dash ' +
-    'offset is motion this file does not read as traffic, and should not.'],
-  ['storage-reclaim-policy [[712,336],[712,390]]',
-    'W_RET_WIPE, and the card says so at the declaration: "drawn, never travelled: that is Retain". ' +
-    'The whole subject of the card is that the Retain column HAS the lane the Delete column uses and ' +
-    'never sends anything down it, so removing the arrowhead would remove the comparison.'],
-  ['storage-volume-detach-on-node-loss [[578,282],[578,260],[496,260],[496,208]]',
-    'W_ATTACH_A, and the record answers this exact question with a NO: "W_ATTACH_A is reported as a ' +
-    'lane nobody rides, and converting it to a relationPath is DECLINED: sinking one half of a ' +
-    'deliberately symmetric pair makes the left lane the lesser arrow, which is the thing this card ' +
-    'goes out of its way not to do." The card says which half is live through OPACITY instead.'],
-]);
+// A-05 rulings a human has READ and decided to carry, keyed `<card id> <lane points as JSON>`.
+// THE ENTRIES THEMSELVES LIVE IN ./carried.mjs, the one store for a report finding somebody has
+// ruled on and kept: this is the axis view of it, under the name the two readers already import.
+// Add a ruling THERE, as `{ axis: 'A-05', card, where: [key(points)], why }`, and it appears here
+// with no other edit. ../unit/lane-shared.test.mjs still names this file, and this is where the
+// export is: the gate reads the same Map the report prints, so a lane cannot be carried in one and
+// red in the other.
+export const A05_CARRIED = carriedMap('A-05');
 
 export const TIERS = ['SHARED', 'COPIED', 'OTHER-PART', 'ASSEMBLED', 'PARTIAL', 'UNDRAWN'];

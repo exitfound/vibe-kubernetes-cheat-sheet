@@ -37,9 +37,9 @@ export const LAYOUT = Object.freeze({
   C: Object.freeze({ ladder: WL.COL_R, strip: Object.freeze({ two: 532, three: 350.7 }) }),
 });
 
-// `base` MUST equal the natural resting stroke: the non-persist pulse fills FORWARDS to `base`,
-// so a mismatch makes every pulse settle on a paler tone instead of returning to the pod colour.
-export const WORKLOADS_TINT = Object.freeze({ base: 'rgb(91, 184, 255)', bright: 'rgb(142, 198, 247)' });
+// Only the peak is named: the pulse ramps from and back to whatever the rect shows, so there is
+// no resting stroke here to drift from the CSS one.
+export const WORKLOADS_TINT = Object.freeze({ bright: 'rgb(142, 198, 247)' });
 
 export const { pulsePod, pulsePodDim } = makeTintedPulses(WORKLOADS_TINT);
 

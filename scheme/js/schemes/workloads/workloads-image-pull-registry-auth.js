@@ -1,0 +1,195 @@
+import { path } from '../../lib/svg.js';
+import { P, F, defineCard, ladder, strip, laneY, WL, LAYOUT, FADE, OPACITY } from './workloads-kit.js';
+
+// Design notes for this card: ./CARDS/workloads-image-pull-registry-auth.md
+
+// Layout C on the Workloads canon (WL): panel x<=397 y<=305 leaves no column under it, so the
+// pipeline keeps the right band and the chips form a two-across bottom strip.
+
+// The actor row of this section: two boxes of 232, the left centred on CX so the lane down to the
+// Node leaves its bottom midpoint (WL.L-07), the right closing on WL.R where the chip strip ends.
+const TOP1_W = 232, TOP1_X = WL.CX - TOP1_W / 2;         // 484..716, centred on CX for the spine
+const TOP2_W = 232, TOP2_X = WL.R - TOP2_W;              // 908..1140, right edge on the chip strip
+const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
+const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
+const WIRE_X = WL.CX;
+
+// The cloud is one hand-drawn path whose own centre is (685, 85). It is placed by transform so
+// it wraps the Registry instead of straddling both actor boxes.
+const CLOUD_CX = 685, CLOUD_CY = 85, CLOUD_SCALE = 1.05;
+const CLOUD_DX = (TOP2_X + TOP2_W / 2) - CLOUD_CX * CLOUD_SCALE;
+const CLOUD_DY = TOP_CY - CLOUD_CY * CLOUD_SCALE;
+
+// LAYOUT.C of the kit: the ladder takes the RIGHT column, because C has no free column at all.
+const LAD_X = LAYOUT.C.ladder.x, LAD_W = LAYOUT.C.ladder.w;    // 660..1140, the pipeline
+const LAD_Y = 176;                                       // 5 rows -> 176..376, clear of the cloud
+
+// Chips two across, 532 wide (LAYOUT.C.strip.two): four across was 258 and every name ran into
+// its own value. The strip spans WL.L..WL.R exactly, so the gap is fixed and the width derives.
+const CHIP_COLS = 2, CHIP_GAP = 16, CHIP_VGAP = 8;
+const CHIPS = strip({ from: WL.L, to: WL.R, count: CHIP_COLS, gap: CHIP_GAP });
+const CHIPS_Y = 548;                                     // 2 rows -> 548..582 / 590..624
+const CHIP_ROW = ladder({ y: CHIPS_Y, rowH: WL.CHIP_H, gap: CHIP_VGAP });
+const CHIP_X = i => CHIPS.x(i % CHIP_COLS);
+const CHIP_Y = i => CHIP_ROW(Math.floor(i / CHIP_COLS));
+
+const NODE_Y = 396, NODE_H = 136;                        // 396..532, clear of the panel
+const POD_W = 460, POD_X = WL.CX - 230;
+const POD_H = 90, POD_Y = NODE_Y + 34;                   // 430..520
+const CONT_W = 300, CONT_X = WL.CX - CONT_W / 2;
+const CONT_H = 48, CONT_Y = POD_Y + 26;                  // 456..504
+
+// WL.A-03: the lane ends on the Node FRAME face midpoint, never on a Pod inside it. NODE_Y is
+// the top of a full-width frame, so its midpoint is WL.CX and the corridor stays one segment.
+const SPINE = [[WL.CX, WL.TOP_BOTTOM], [WL.CX, NODE_Y]];
+
+// The registry cloud is a free glyph: no part kind draws an arbitrary <path>. It is scenery and
+// takes no key. Attribute order is serialised (R3), so it stays exactly as written here.
+const cloudGlyph = () => P.raw({
+  make: () => path({
+    d: 'M 555 80 Q 545 50, 580 50 Q 590 25, 630 30 Q 650 15, 690 25 Q 730 18, 750 35 Q 790 28, 810 60 Q 830 80, 815 105 Q 825 130, 790 138 Q 770 152, 730 142 Q 700 155, 670 145 Q 640 152, 610 142 Q 580 148, 565 125 Q 540 110, 555 80 Z',
+    class: 'scheme-cloud',
+    transform: `translate(${CLOUD_DX},${CLOUD_DY}) scale(${CLOUD_SCALE})`,
+    fill: 'rgba(255,255,255,0.03)',
+    stroke: 'var(--diag-stroke-soft)',
+    'stroke-width': '1.2',
+    'stroke-linejoin': 'round',
+  }),
+});
+
+// The list order IS the append order, so it is the z-order: the Node frame is a 70% opaque fill, so
+// the lane leg inside it and the ball that rides it follow it, and ladder / Pod / actors sit above.
+export const SCENE = {
+  'aria-label': 'Image pull policy and registry auth: Kubelet evaluates imagePullPolicy, resolves imagePullSecrets, checks the local layer store, pulls missing layers by digest, then creates and starts the container',
+  parts: [
+    P.defs(),
+    P.arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }),
+    P.arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }),
+    // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
+    P.wire({ key: 'req', x: WIRE_X, y: WL.TOP_Y - 12 }),
+    P.chip({ key: 'imageChip', x: CHIP_X(0), y: CHIP_Y(0), w: CHIPS.w, h: WL.CHIP_H, name: 'image', value: 'app:v2' }),
+    P.chip({ key: 'policyChip', x: CHIP_X(1), y: CHIP_Y(1), w: CHIPS.w, h: WL.CHIP_H, name: 'imagePullPolicy', value: 'not read yet' }),
+    P.chip({ key: 'layersChip', x: CHIP_X(2), y: CHIP_Y(2), w: CHIPS.w, h: WL.CHIP_H, name: 'layers cached', value: 'not probed' }),
+    P.chip({ key: 'statusChip', x: CHIP_X(3), y: CHIP_Y(3), w: CHIPS.w, h: WL.CHIP_H, name: 'container state', value: 'Waiting' }),
+    P.node({ key: 'nodeEl', x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' }),
+    P.lane({ key: 'connector', points: SPINE, dim: true, dashed: true, role: 'cluster' }),
+    P.packets(),
+    // Everything below is appended AFTER the packet layer, so the ball runs under it.
+    P.chain({
+      key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP, role: 'cluster',
+      items: [
+        '1. policy ·  Always | IfNotPresent | Never · default by tag',
+        '2. auth   ·  imagePullSecrets · Pod spec, or its ServiceAccount',
+        '3. cache  ·  CRI ImageStatus · is this image on the Node',
+        '4. pull   ·  GET /v2/{repo}/blobs/<digest> · reuse cached layers',
+        '5. start  ·  overlay rootfs · CreateContainer + Start',
+      ],
+    }),
+    P.pod({
+      key: 'podGroup', id: 'podGroup',
+      x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
+      // Born pending, so the poster frame reads `idle` before step 1 lights anything.
+      opacity: OPACITY.pending,
+      inner: { dx: CONT_X - POD_X, dy: CONT_Y - POD_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'container' },
+    }),
+    cloudGlyph(),
+    P.box({ key: 'registry', x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'Registry', sublabel: 'OCI Distribution · out-of-cluster', role: 'cluster' }),
+    P.box({ key: 'kubelet', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'image puller', role: 'cluster' }),
+  ],
+  reset: {
+    keys: ['kubelet', 'registry', 'nodeEl', 'imageChip', 'policyChip', 'layersChip', 'statusChip'],
+    pods: ['podGroup'],
+  },
+};
+
+// The four chips as FIELDS, so no step can state three of them and leave the fourth carrying the
+// previous step's value. Key order matches the chip row on screen, index 0 through 3.
+const chipRow = (image, policy, layers, status) =>
+  ({ imageChip: image, policyChip: policy, layersChip: layers, statusChip: status });
+
+// Values that recur across steps, named once so a four-key `chips` block stays one readable line.
+const IMAGE = 'app:v2', IFNOTPRESENT = 'IfNotPresent', CREATING = 'Waiting · ContainerCreating';
+
+export const STEPS_SPEC = [
+  {
+    id: 'idle',
+    duration: 1500,
+    chips: chipRow(IMAGE, 'not read yet', 'not probed', 'Waiting'),
+    opacity: { podGroup: OPACITY.pending },
+    chain: -1,
+  },
+  {
+    id: 'policy',
+    duration: 3400,
+    narration: 'Kubelet reads spec.containers[0].imagePullPolicy. Left unset, the default follows the image reference: :latest or no tag at all gives Always, which re-resolves the digest on every container start, and any other tag (v2 here) or a pinned digest gives IfNotPresent. The explicit value Never disables pulling, so the image has to be preloaded on the Node or the container fails with ErrImageNeverPull. Pull is per-container, not per-Pod.',
+    chips: chipRow(IMAGE, IFNOTPRESENT, 'not probed', CREATING),
+    wires: { req: 'imagePullPolicy=IfNotPresent (default for v2 tag)' },
+    opacity: { podGroup: OPACITY.pending },
+    // Policy resolution is a local Kubelet read, nothing travels: the resolved chips
+    // and Kubelet take the static highlight only, no flash (info blocks do not pulse).
+    lit: ['statusChip', 'kubelet', 'policyChip'],
+    chain: 0,
+  },
+  {
+    id: 'auth',
+    duration: 3400,
+    narration: 'A private registry needs credentials, so Kubelet reads Pod.spec.imagePullSecrets, which the ServiceAccount admission plugin fills from the Pod ServiceAccount when the Pod names none of its own. Each Secret of type kubernetes.io/dockerconfigjson holds a docker config, and Kubelet hands the matching entry to the runtime in the CRI PullImage request. For ECR, GCR and ACR a credential provider plugin mints credentials instead. Public images skip this step.',
+    chips: chipRow(IMAGE, IFNOTPRESENT, 'not probed', CREATING),
+    wires: { req: 'authConfig from Pod.spec.imagePullSecrets' },
+    opacity: { podGroup: OPACITY.pending },
+    // Credential lookup happens inside the Kubelet, nothing travels: the Kubelet
+    // takes the static highlight only, no flash (info blocks do not pulse).
+    lit: ['kubelet'],
+    chain: 1,
+  },
+  {
+    id: 'cache',
+    duration: 3400,
+    narration: 'Kubelet asks the runtime, through the CRI ImageStatus call, whether this exact image is already on the Node. The layer store behind it is content-addressable, keyed by sha256 digest and shared by every Pod on the Node. The app:v2 image is only partly there: 2 of its 4 layers went into the store with earlier images, so ImageStatus reports no image and the pull goes ahead.',
+    chips: chipRow(IMAGE, IFNOTPRESENT, '2 of 4', CREATING),
+    wires: { req: 'CRI ImageStatus · no image · the pull goes ahead' },
+    opacity: { podGroup: OPACITY.pending },
+    lit: ['kubelet', 'layersChip'],
+    chain: 2,
+    // NO Pod pulse, and that absence is the assertion: ImageStatus asks the Node about its own
+    // layer store, and nothing on this step reaches the Pod or its container.
+    flow: [
+      F.route({ points: SPINE, name: 'probe', lights: ['nodeEl'] }),
+    ],
+  },
+  {
+    id: 'pull',
+    duration: 3600,
+    narration: 'The runtime fetches the manifest first, then issues GET /v2/app/blobs/sha256:{digest} for each of the 2 missing layers, carrying the assembled Authorization header. The 2 layers already in the store are reused, so a partial cache hit shrinks the wire transfer. On error the container goes Waiting with reason ErrImagePull and Kubelet retries on an exponential backoff (10s, 20s, 40s, capped at 300s), which surfaces as ImagePullBackOff.',
+    chips: chipRow(IMAGE, IFNOTPRESENT, '4 of 4', CREATING),
+    wires: { req: 'GET /v2/app/blobs/sha256:... · 200 · 2 new layers' },
+    opacity: { podGroup: OPACITY.pending },
+    lit: ['kubelet', 'layersChip'],
+    chain: 3,
+    flow: [
+      // Blob GET reaches the registry, the 200 with the layers hops back after it lands. The
+      // registry lights on the GET landing: it answers the request, it does not open the step.
+      F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'get', lights: ['registry'] }),
+      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, after: 'get' }),
+    ],
+  },
+  {
+    id: 'start',
+    duration: 3400,
+    narration: 'All 4 layers are in the store. The container rootfs is assembled as an overlay filesystem: every layer mounts read-only under one top read-write layer that takes whatever the running container writes. Only that upper layer is per-container, so a second Pod on the same image shares the lower ones. Kubelet then calls CreateContainer to bind that rootfs and the mounts, and StartContainer to exec PID 1.',
+    chips: chipRow(IMAGE, IFNOTPRESENT, '4 of 4', 'Running'),
+    wires: { req: 'overlay rootfs · CreateContainer · StartContainer' },
+    // Container created and started: the whole Pod block lifts to full opacity.
+    opacity: { podGroup: 1 },
+    lit: ['kubelet', 'statusChip'],
+    chain: 4,
+    flow: [
+      F.route({ points: SPINE, name: 'start' }),
+      // Container created and started: the Pod lights up and pulses on arrival.
+      F.fade({ target: 'podGroup', from: OPACITY.pending, to: 1, dur: FADE.in, at: 'start', fill: 'both', easing: 'ease-out' }),
+      F.pulse({ pod: 'podGroup', at: 'start' }),
+    ],
+  },
+];
+
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

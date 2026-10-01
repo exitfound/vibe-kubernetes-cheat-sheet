@@ -1,176 +1,277 @@
-import { P, F, defineCard, BEAT, FADE, OPACITY } from './storage-kit.js';
-import { path } from '../../lib/svg.js';
-// Design notes for this card: ./CARDS.md#storage-volume-model
+import { P, F, defineCard, BEAT, OPACITY, FADE, makeRidingLabel } from './storage-kit.js';
+// Design notes for this card: ./CARDS/storage-volume-model.md
 
 
-const SPINE_X = 600;
+// Three zones: the Pod spec as a ladder left under the panel, the running Pod right of it, and a
+// lifetime timeline across the floor. Panel extent measured per viewport in the record.
+const POD_X = 432, POD_Y = 60, POD_W = 736;                       // 432..1168, centre 800
+const POD_CX = POD_X + POD_W / 2;
+// The container row: three 200 by 80 peers, sized by the shell (record SIZES).
+const BOX_W = 200, BOX_H = 80, BOX_GAP = 44, ROW_IN = 24;
+const ROW_Y = POD_Y + 44, ROW_B = ROW_Y + BOX_H;                  // 104..184
+const SEED_X = POD_X + ROW_IN;                                    // 456
+const APP_X = SEED_X + BOX_W + BOX_GAP;                           // 700
+const SHIP_X = APP_X + BOX_W + BOX_GAP;                           // 944, right edge 1144
+const SEED_CX = SEED_X + BOX_W / 2, APP_CX = APP_X + BOX_W / 2, SHIP_CX = SHIP_X + BOX_W / 2;
+// One wide disk under the whole row, so every mount drops straight into the same volume.
+const VOL_X = SEED_X + ROW_IN, VOL_W = SHIP_X + BOX_W - ROW_IN - VOL_X;   // 480..1120
+const VOL_Y = ROW_B + 100, VOL_H = 80, VOL_B = VOL_Y + VOL_H;     // 284..364
+const CAP_RY = 8;                                                 // cylinder() cap half-height
+// Where a vertical lane meets the top edge of the cap ellipse at x.
+const capTop = (x) => VOL_Y + CAP_RY - CAP_RY * Math.sqrt(1 - ((x - POD_CX) / (VOL_W / 2)) ** 2);
+// The two files sit inside the disk under the lane that writes each one.
+const FILE_W = 120, FILE_H = 28, FILE_Y = VOL_Y + 34;          // clear of a tag under the cap
+const POD_H = VOL_B + 36 - POD_Y;                                 // bottom 400, sublabel under disk
 
-const POD_X = 300, POD_Y = 150, POD_W = 600, POD_H = 170;  // 300..900, center 600
-const POD_BOTTOM = POD_Y + POD_H;                          // 320
+// The spec ladder, left of the Pod and under the deepest panel reading.
+const SPEC_X = 32, SPEC_W = 360, SPEC_Y = 278, SPEC_ROW = 28, SPEC_GAP = 6;
 
-const C_Y = 196, C_W = 190, C_H = 84;                      // container row
-const C_BOTTOM = C_Y + C_H;                                // 280
-const APP_X = 330,  APP_CX = APP_X + C_W / 2;              // 330..520, center 425
-const SIDE_X = 680, SIDE_CX = SIDE_X + C_W / 2;            // 680..870, center 775
+// The lifetime timeline: one row per object, one cell per phase, the same x for every row.
+const TL_LABEL_X = 40, CELL_X = 200, CELL_W = 188, CELL_GAP = 4, BAR_H = 16;
+const TL_Y = 448, TL_PITCH = 32;
+const cellX = (c) => CELL_X + c * (CELL_W + CELL_GAP);
+const rowY = (r) => TL_Y + r * TL_PITCH;
+const TL_END = cellX(4) + CELL_W;                                 // 1156
 
-const VOL_X = 470, VOL_Y = 452, VOL_W = 260, VOL_H = 104;  // 470..730, center 600
-const VOL_TOP = VOL_Y;                                     // 452
-const VOL_MY = VOL_Y + VOL_H / 2;                          // 504, where the lanes enter the sides
-const CHIPS_Y = 596;
+// The app pair sits LANE_DY either side of the app centre: up is the read, down the write.
+const LANE_DY = 12;
+const W_SEED = [[SEED_CX, ROW_B], [SEED_CX, capTop(SEED_CX)]];
+const W_READ = [[APP_CX - LANE_DY, capTop(APP_CX - LANE_DY)], [APP_CX - LANE_DY, ROW_B]];
+const W_WRITE = [[APP_CX + LANE_DY, ROW_B], [APP_CX + LANE_DY, capTop(APP_CX + LANE_DY)]];
+const W_SHIP = [[SHIP_CX, capTop(SHIP_CX)], [SHIP_CX, ROW_B]];
+const CAP_Y = (ROW_B + VOL_Y) / 2 + 4;                            // mountPath captions, mid-gap
 
-const LANE_DX = 10, LANE_DY = 10;
-const LANE_APP_UP    = [[VOL_X, VOL_MY - LANE_DY], [APP_CX + LANE_DX, VOL_MY - LANE_DY], [APP_CX + LANE_DX, C_BOTTOM]];
-const LANE_APP_DOWN  = [[APP_CX - LANE_DX, C_BOTTOM], [APP_CX - LANE_DX, VOL_MY + LANE_DY], [VOL_X, VOL_MY + LANE_DY]];
-const LANE_SIDE_UP   = [[VOL_X + VOL_W, VOL_MY - LANE_DY], [SIDE_CX - LANE_DX, VOL_MY - LANE_DY], [SIDE_CX - LANE_DX, C_BOTTOM]];
-const LANE_SIDE_DOWN = [[SIDE_CX + LANE_DX, C_BOTTOM], [SIDE_CX + LANE_DX, VOL_MY + LANE_DY], [VOL_X + VOL_W, VOL_MY + LANE_DY]];
+// The 100 unit lanes ride routeDur, on the 700ms floor, and each tag lives exactly as long as its
+// ball (M-30a), below it and on the side away from the mountPath caption: clear of the row at
+// departure, and past the cap front edge, over the disk face, on landing. Record: MOTION.
+const tagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
+const DOWN_TAG = { fn: tagFn, dy: 24 };
+const UP_TAG = { fn: tagFn, dy: 28 };
+// Every ball rides 20 percent faster than the 700ms floor routeDur puts these lanes on: 700 / 1.2.
+const LEG_DUR = 580;
+// The Pod pulse masks a lit sender until it ends, so a ball leaves at SEND, as on storage-emptydir.
+const SEND = BEAT.afterPulse + 500;
 
-// No part kind emits this: P.lane adds a marker and P.relation adds a relation class and a role,
-// where STO.A-01 needs the identity spine dashed, category-coloured, markerless and role-free.
-const spine = () => path({
-  class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-storage scheme-arrow-dim',
-  d: `M ${SPINE_X} ${POD_BOTTOM} L ${SPINE_X} ${VOL_TOP}`,
-  'stroke-dasharray': '5 5',
-  fill: 'none',
-});
+const cell = (key, c, r) => P.box({ key, x: cellX(c), y: rowY(r), w: CELL_W, h: BAR_H, rx: 3 });
+// Each row stands on a faint axis 3 under its bars, so an empty row still reads as a row.
+const track = (r) => P.relation({ points: [[CELL_X, rowY(r) + BAR_H + 3], [TL_END, rowY(r) + BAR_H + 3]] });
+const rowLabel = (r, text) => P.tag({ x: TL_LABEL_X, y: rowY(r) + 12, anchor: 'start', text });
+const PHASES = ['on a Node', 'init', 'start', 'share', 'restart'];
 
-// A container is a box inside a bare g so it can be highlighted and faded on its own. It lights as a
-// RECEIVER and is cleared by the reset, and is NEVER pulsed (STO.C-02): the Pod carries the pulse.
-const container = (key, x, label, sublabel) => P.group({
-  key: `${key}C`,
-  parts: [P.box({ key: `${key}Box`, x, y: C_Y, w: C_W, h: C_H, label, sublabel })],
-});
-
-// The list order IS the append order, which is the z-order: the Pod and the disk, then the spine
-// and the mount lanes and their caption above them, then the chip strip, then the packet layer.
+// Z-order (bottom -> top): the Pod group (shell, containers, disk, files) so the pulse takes it as
+// a unit, then the mount lanes and captions, the spec ladder, the timeline, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Pod volume model: a volume is declared once at Pod level under spec.volumes and each container mounts it at volumeMounts, possibly at a different path. The volume belongs to the Pod, so a write by one container is seen by the other, it survives a container crash and restart, and an ephemeral volume like this one is deleted only when the Pod itself is deleted.',
+  'aria-label': 'Pod volume model: the Pod spec declares one emptyDir volume named cache under spec.volumes, and each container reaches it only through a volumeMounts entry of its own. The init container seed mounts cache at /work, writes config.json and exits. The app mounts it at /data and reads that file, the log shipper mounts it read-only at /logs and reads the app.log the app writes. When the app crashes and restarts, the new container mounts the same volume and app.log is still there. A lifetime timeline shows the volume bar starting and running with the Pod bar while every container bar is shorter, because the volume belongs to the Pod, not to any container.',
   parts: [
     P.defs(),
     P.group({
       key: 'pod',
       parts: [
-        // No `inner`: the two containers are peers below, so the Pod part is the shell alone and
-        // the wrap it comes in IS shellWrap. The pulse takes `pod`, so they blink with it.
-        P.pod({ key: 'shellWrap', x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'spec.volumes: cache', containers: 0 }),
-        container('app', APP_X, 'app', 'mounts cache at /data'),
-        container('side', SIDE_X, 'Log-shipper', 'mounts cache at /backup'),
+        P.pod({ key: 'shellWrap', x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'status.phase: Pending', containers: 0 }),
+        P.box({ key: 'seedBox', x: SEED_X, y: ROW_Y, w: BOX_W, h: BOX_H, label: 'seed', sublabel: 'init, not started' }),
+        P.box({ key: 'appBox', x: APP_X, y: ROW_Y, w: BOX_W, h: BOX_H, label: 'app', sublabel: 'not started' }),
+        P.box({ key: 'shipBox', x: SHIP_X, y: ROW_Y, w: BOX_W, h: BOX_H, label: 'log-shipper', sublabel: 'not started' }),
+        P.cylinder({ key: 'volume', x: VOL_X, y: VOL_Y, w: VOL_W, h: VOL_H, label: 'Volume cache', labelY: VOL_H / 2 + 10 }),
+        P.box({ key: 'fConfig', x: SEED_CX - FILE_W / 2, y: FILE_Y, w: FILE_W, h: FILE_H, rx: 4, label: 'config.json' }),
+        P.box({ key: 'fLog', x: SHIP_CX - FILE_W / 2, y: FILE_Y, w: FILE_W, h: FILE_H, rx: 4, label: 'app.log' }),
       ],
     }),
-    // The primitive centers the label on the raw bbox, which reads high because the top cap
-    // ellipse is not part of the visible front face. Re-center on the face (below the cap).
-    P.cylinder({ key: 'volume', x: VOL_X, y: VOL_Y, w: VOL_W, h: VOL_H, label: 'Volume cache', labelY: VOL_H / 2 + 12 }),
-    P.raw({ key: 'spine', make: spine }),
-    // Two one-way lanes per side, each with an arrowhead for its direction, the pair centered on
-    // its container and entering / leaving the cylinder through its sides.
-    P.lane({ key: 'wAppUp', points: LANE_APP_UP, dashed: true, dim: true }),
-    P.lane({ key: 'wAppDown', points: LANE_APP_DOWN, dashed: true, dim: true }),
-    P.lane({ key: 'wSideUp', points: LANE_SIDE_UP, dashed: true, dim: true }),
-    // The sidecar READS, so the write half of its pair never carries anything: it is the mount drawn
-    // as a RELATIONSHIP. The app's write lane keeps its arrowhead, because a ball does ride that one.
-    P.relation({ key: 'wSideDown', points: LANE_SIDE_DOWN }),
-    // Permanent chrome, not a wire: the volume belongs to the Pod on every step, so it is filled
-    // once here and stays out of the per-step wire sweep that clearWires runs.
-    P.tag({ key: 'ownLbl', x: SPINE_X + 16, y: 374, anchor: 'start', text: 'belongs to Pod' }),
-    P.chip({ key: 'volChip', x: 110, y: CHIPS_Y, w: 250, h: 34, name: 'volume', value: 'declared' }),
-    P.chip({ key: 'mountChip', x: 380, y: CHIPS_Y, w: 430, h: 34, name: 'mounts', value: 'app /data  log /backup' }),
-    P.chip({ key: 'dataChip', x: 830, y: CHIPS_Y, w: 260, h: 34, name: 'data', value: 'empty' }),
+    P.lane({ key: 'wSeed', points: W_SEED, dashed: true, dim: true }),
+    P.lane({ key: 'wRead', points: W_READ, dashed: true, dim: true }),
+    P.lane({ key: 'wWrite', points: W_WRITE, dashed: true, dim: true }),
+    P.lane({ key: 'wShip', points: W_SHIP, dashed: true, dim: true }),
+    P.tag({ key: 'capSeed', x: SEED_CX - 8, y: CAP_Y, anchor: 'end', text: '/work' }),
+    P.tag({ key: 'capApp', x: APP_CX - LANE_DY - 8, y: CAP_Y, anchor: 'end', text: '/data' }),
+    P.tag({ key: 'capShip', x: SHIP_CX + 8, y: CAP_Y, anchor: 'start', text: '/logs, readOnly' }),
+    P.tag({ x: SPEC_X, y: SPEC_Y - 12, anchor: 'start', text: 'Pod spec' }),
+    P.chain({
+      key: 'chain', x: SPEC_X, y: SPEC_Y, w: SPEC_W, rowH: SPEC_ROW, gap: SPEC_GAP,
+      items: [
+        'volumes: cache, emptyDir: {}',
+        'seed volumeMounts: cache /work',
+        'app volumeMounts: cache /data',
+        'log-shipper volumeMounts: cache /logs readOnly',
+      ],
+    }),
+    ...PHASES.map((p, c) => P.tag({ x: cellX(c) + CELL_W / 2, y: TL_Y - 10, text: p })),
+    ...[0, 1, 2, 3, 4].map(track),
+    rowLabel(0, 'Pod web-0'), rowLabel(1, 'volume cache'), rowLabel(2, 'seed'), rowLabel(3, 'app'), rowLabel(4, 'log-shipper'),
+    cell('pod0', 0, 0), cell('pod1', 1, 0), cell('pod2', 2, 0), cell('pod3', 3, 0), cell('pod4', 4, 0),
+    cell('vol0', 0, 1), cell('vol1', 1, 1), cell('vol2', 2, 1), cell('vol3', 3, 1), cell('vol4', 4, 1),
+    cell('seed1', 1, 2),
+    cell('app2', 2, 3), cell('app3', 3, 3), cell('app4', 4, 3),
+    cell('ship2', 2, 4), cell('ship3', 3, 4), cell('ship4', 4, 4),
     P.packets(),
   ],
   reset: {
-    keys: ['appBox', 'sideBox', 'volume', 'volChip', 'mountChip', 'dataChip'],
-    pods: ['shellWrap', 'appC', 'sideC'],
+    keys: ['seedBox', 'appBox', 'shipBox', 'volume', 'pod0', 'pod1', 'pod2', 'pod3', 'pod4', 'vol0', 'vol1', 'vol2', 'vol3', 'vol4'],
+    pods: ['shellWrap'],
   },
 };
 
-const MOUNTS = 'app /data  log /backup';
+// STO.S-01 as a field: every element born mid-story, with its lanes and captions, pinned on every
+// step as a function of how far the story has got (n = the step index, idle 0).
+const CELLS = { pod: [0, 1, 2, 3, 4], vol: [0, 1, 2, 3, 4], seed: [1], app: [2, 3, 4], ship: [2, 3, 4] };
+function stage(n) {
+  const o = {
+    pod: 1,
+    volume: n >= 1 ? 1 : OPACITY.pending,
+    seedBox: n < 2 ? OPACITY.pending : OPACITY.terminated,
+    appBox: n < 3 ? OPACITY.pending : 1,
+    shipBox: n < 3 ? OPACITY.pending : 1,
+    fConfig: n >= 2 ? 1 : 0,
+    fLog: n >= 4 ? 1 : 0,
+  };
+  for (const k of ['wSeed', 'capSeed']) o[k] = n < 2 ? 0 : OPACITY.terminated;
+  for (const k of ['wRead', 'wWrite', 'wShip', 'capApp', 'capShip']) o[k] = n < 3 ? 0 : 1;
+  for (const row of Object.keys(CELLS)) for (const c of CELLS[row]) o[row + c] = n >= c + 1 ? 1 : 0;
+  return o;
+}
+// The cells a step opens, revealed from nothing at its start.
+const openCells = (keys, delay = 0) => keys.map((target) => F.reveal({ target, delay }));
+const hidden = (keys) => Object.fromEntries(keys.map((k) => [k, 0]));
 
-// STO.S-01 as a field: the delete step ghosts the whole stack, so every other step states the whole
-// stack at full. Nothing here is inherited from the step before it.
-const STACK_UP = {
-  pod: 1, appC: 1, sideC: 1, volume: 1,
-  spine: 1, wAppUp: 1, wAppDown: 1, wSideUp: 1, wSideDown: 1, ownLbl: 1,
-};
-const GONE = ['pod', 'volume', 'spine', 'wAppUp', 'wAppDown', 'wSideUp', 'wSideDown', 'ownLbl'];
+const NOT_STARTED = { seedBox: 'init, not started', appBox: 'not started', shipBox: 'not started' };
+const RUNNING = { seedBox: 'init, Completed', appBox: 'running', shipBox: 'running' };
+const PENDING = { shellWrap: 'status.phase: Pending' };
+const RUNNING_POD = { shellWrap: 'status.phase: Running' };
+const LIFETIME = ['pod0', 'pod1', 'pod2', 'pod3', 'pod4', 'vol0', 'vol1', 'vol2', 'vol3', 'vol4'];
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chipsCued: { volChip: 'declared', mountChip: MOUNTS, dataChip: 'empty' },
-    opacity: STACK_UP,
+    sublabels: NOT_STARTED,
+    podSublabels: PENDING,
+    opacity: stage(0),
+    chain: -1,
   },
   {
     id: 'declare',
-    duration: 2200,
-    narration: 'The declaration lives at Pod level. The spec.volumes list names the volume once, cache, and that one declaration is what every container in the Pod is allowed to reach. Where each container puts it is a separate decision, taken next, and the volume exists as part of the Pod either way.',
-    chipsCued: { volChip: 'declared', mountChip: MOUNTS, dataChip: 'empty' },
-    opacity: STACK_UP,
-    // The Pod is not acting on this step, so it does not pulse. Only the volume lights.
-    lit: ['volume'],
-  },
-  {
-    id: 'mount',
     duration: 2600,
-    narration: 'Each container opts in with its own volumeMounts entry and may choose its own path. The app sees the volume at /data and the log shipper sees the very same bytes at /backup. Two mounts, two paths, one underlying volume.',
-    chipsCued: { volChip: 'mounted x2', mountChip: MOUNTS, dataChip: 'empty' },
-    opacity: STACK_UP,
-    // Both containers mount the volume. Only the volume lights for the whole step: the two boxes are
-    // cued by their arrivals, which is what flowLights derives for the static path.
+    narration: 'The Pod spec names one emptyDir volume, cache, under spec.volumes. It belongs to the Pod, not to a container: it is created empty when the Pod is assigned to a Node, before any container starts. Its bar starts with the Pod bar.',
+    sublabels: NOT_STARTED,
+    podSublabels: PENDING,
+    opacity: stage(1),
+    chain: 0,
+    // The Pod is not acting yet, so it does not pulse. The disk and the first two cells appear.
     lit: ['volume'],
-    // The two mounts leave the volume sides and rise into the containers in lockstep (the lanes
-    // are mirror images, so routeDur gives them the same duration). Mounts ride the UP lanes.
+    rewind: { opacity: { volume: OPACITY.pending, ...hidden(['pod0', 'vol0']) } },
     flow: [
-      F.pulse({ pod: 'pod' }),
-      F.route({ points: LANE_APP_UP, lights: ['appBox'] }),
-      F.tag({ text: 'mount at /data', points: LANE_APP_UP }),
-      F.route({ points: LANE_SIDE_UP, lights: ['sideBox'] }),
-      F.tag({ text: 'mount at /backup', points: LANE_SIDE_UP }),
+      F.reveal({ target: 'volume', from: OPACITY.pending }),
+      ...openCells(['pod0', 'vol0']),
     ],
   },
   {
-    id: 'shared',
-    duration: 3400,
-    narration: 'Because both containers mount one volume, a write by one is immediately visible to the other. The app writes foo under /data and the log shipper reads it back under /backup. This is how a sidecar shares files with the main container.',
-    chipsCued: { volChip: 'mounted x2', mountChip: MOUNTS, dataChip: 'foo written' },
-    opacity: STACK_UP,
-    // The app container is the writer, so it is lit from entry. The volume takes the write before
-    // it can serve the read, so it lights when the ball lands on it, like the sidecar box below.
-    lit: ['appBox'],
-    // The app write descends its DOWN lane into the volume side, then the log shipper reads the same
-    // bytes back out of the far side and up its own UP lane.
+    id: 'init',
+    duration: 3800,
+    narration: 'The init container seed runs first, to completion. Its own volumeMounts entry puts cache at /work, where it writes config.json, then it exits. Its bar ends and its mount goes with it, but the file stays in the volume.',
+    sublabels: { ...NOT_STARTED, seedBox: 'init, Completed' },
+    podSublabels: PENDING,
+    opacity: stage(2),
+    chain: 1,
+    rewind: {
+      sublabels: { seedBox: 'init, running' },
+      opacity: { seedBox: OPACITY.pending, wSeed: 0, capSeed: 0, fConfig: 0, ...hidden(['pod1', 'vol1', 'seed1']) },
+      // seed sends the ball, so it is lit on the animated path only: its static end is Completed.
+      lit: ['seedBox'],
+    },
+    // seed mounts with its lane and caption, writes, and 300 after the landing all three go dim.
     flow: [
       F.pulse({ pod: 'pod' }),
-      F.route({ points: LANE_APP_DOWN, delay: BEAT.afterPulse, name: 'write' }),
-      F.tag({ text: 'write foo', points: LANE_APP_DOWN, delay: BEAT.afterPulse }),
-      F.light({ targets: ['volume'], at: 'write' }),
-      F.route({ points: LANE_SIDE_UP, after: 'write', lights: ['sideBox'] }),
-      F.tag({ text: 'read foo', points: LANE_SIDE_UP, after: 'write' }),
+      F.reveal({ target: 'seedBox', from: OPACITY.pending }),
+      F.reveal({ target: 'wSeed' }),
+      F.reveal({ target: 'capSeed' }),
+      ...openCells(['pod1', 'vol1', 'seed1']),
+      F.route({ points: W_SEED, delay: SEND, dur: LEG_DUR, name: 'write', lights: ['volume'] }),
+      F.tag({ text: 'write config.json', points: W_SEED, delay: SEND, dur: LEG_DUR, dx: 64, ...DOWN_TAG }),
+      F.reveal({ target: 'fConfig', at: 'write' }),
+      F.set({ after: 'write', plus: 300, sublabels: { seedBox: 'init, Completed' } }),
+      F.fade({ target: 'seedBox', to: OPACITY.terminated, dur: FADE.out, after: 'write', plus: 300, unlight: ['seedBox'] }),
+      F.fade({ target: 'wSeed', to: OPACITY.terminated, dur: FADE.out, after: 'write', plus: 300 }),
+      F.fade({ target: 'capSeed', to: OPACITY.terminated, dur: FADE.out, after: 'write', plus: 300 }),
+    ],
+  },
+  {
+    id: 'start',
+    duration: 3200,
+    narration: 'Now app and log-shipper start, and each lists cache in a volumeMounts entry of its own: app at /data, log-shipper at /logs with readOnly set. App opens /data/config.json and finds the file seed left, although seed no longer runs.',
+    sublabels: RUNNING,
+    podSublabels: RUNNING_POD,
+    opacity: stage(3),
+    chain: [2, 3],
+    lit: ['volume'],
+    rewind: {
+      sublabels: { appBox: NOT_STARTED.appBox, shipBox: NOT_STARTED.shipBox },
+      podSublabels: PENDING,
+      opacity: {
+        appBox: OPACITY.pending, shipBox: OPACITY.pending,
+        ...hidden(['wRead', 'wWrite', 'wShip', 'capApp', 'capShip', 'pod2', 'vol2', 'app2', 'ship2']),
+      },
+    },
+    flow: [
+      F.pulse({ pod: 'pod' }),
+      F.reveal({ target: 'appBox', from: OPACITY.pending }),
+      F.reveal({ target: 'shipBox', from: OPACITY.pending }),
+      ...['wRead', 'wWrite', 'wShip', 'capApp', 'capShip'].map((target) => F.reveal({ target })),
+      ...openCells(['pod2', 'vol2', 'app2', 'ship2']),
+      F.set({ delay: 300, sublabels: RUNNING, podSublabels: RUNNING_POD }),
+      F.route({ points: W_READ, delay: SEND, dur: LEG_DUR, lights: ['appBox'] }),
+      F.tag({ text: 'read config.json', points: W_READ, delay: SEND, dur: LEG_DUR, dx: 86, ...UP_TAG }),
+    ],
+  },
+  {
+    id: 'share',
+    duration: 3800,
+    narration: 'Both containers see the same bytes under different paths. App writes app.log into /data, and log-shipper reads that very file at /logs through a mount that cannot write. That is the usual way two containers of one Pod share files.',
+    sublabels: RUNNING,
+    podSublabels: RUNNING_POD,
+    opacity: stage(4),
+    chain: [2, 3],
+    lit: ['appBox'],
+    rewind: { opacity: { fLog: 0, ...hidden(['pod3', 'vol3', 'app3', 'ship3']) } },
+    flow: [
+      F.pulse({ pod: 'pod' }),
+      ...openCells(['pod3', 'vol3', 'app3', 'ship3']),
+      F.route({ points: W_WRITE, delay: SEND, dur: LEG_DUR, name: 'write', lights: ['volume'] }),
+      F.tag({ text: 'write app.log', points: W_WRITE, delay: SEND, dur: LEG_DUR, dx: 62, ...DOWN_TAG }),
+      F.reveal({ target: 'fLog', at: 'write' }),
+      F.route({ points: W_SHIP, after: 'write', dur: LEG_DUR, lights: ['shipBox'] }),
+      F.tag({ text: 'read app.log', points: W_SHIP, after: 'write', dur: LEG_DUR, dx: -62, ...UP_TAG }),
     ],
   },
   {
     id: 'restart',
-    duration: 2800,
-    narration: 'The volume outlives a container. When the app container crashes and Kubelet restarts it, the fresh container remounts the same volume and foo is still there. A container is disposable, the Pod volume is not.',
-    chipsCued: { volChip: 'survives restart', mountChip: MOUNTS, dataChip: 'foo intact' },
-    opacity: STACK_UP,
+    duration: 3200,
+    narration: 'App crashes, and restartPolicy Always, the default, restarts it in the same Pod, so its restart count goes to 1. The new container starts clean outside the volume, yet it mounts the same cache at /data and app.log is still there.',
+    sublabels: { ...RUNNING, appBox: 'restarted, count 1' },
+    podSublabels: RUNNING_POD,
+    opacity: stage(5),
+    chain: 2,
     lit: ['volume'],
-    // The fresh container re-reads foo from the untouched volume, up the app UP lane.
+    rewind: {
+      sublabels: { appBox: 'crashed' },
+      opacity: hidden(['pod4', 'vol4', 'app4', 'ship4']),
+    },
+    // DO NOT flicker the app box: the sublabel and the late app cell carry the crash.
     flow: [
       F.pulse({ pod: 'pod' }),
-      F.route({ points: LANE_APP_UP, delay: BEAT.afterPulse, lights: ['appBox'] }),
-      F.tag({ text: 'foo still here', points: LANE_APP_UP, delay: BEAT.afterPulse }),
+      ...openCells(['pod4', 'vol4', 'ship4']),
+      ...openCells(['app4'], 500),
+      F.set({ delay: 500, sublabels: { appBox: 'restarted, count 1' } }),
+      F.route({ points: W_READ, delay: SEND, dur: LEG_DUR, lights: ['appBox'] }),
+      F.tag({ text: 'app.log intact', points: W_READ, delay: SEND, dur: LEG_DUR, dx: 80, ...UP_TAG }),
     ],
   },
   {
-    id: 'delete',
-    duration: 2200,
-    narration: 'An ephemeral volume like cache is scoped to the Pod, so it dies with the Pod. Delete the Pod and the volume is gone for good along with everything written to it. To outlive a Pod you need persistent storage, which the rest of this category covers.',
-    chipsCued: { volChip: 'gone with Pod', mountChip: 'unmounted', dataChip: 'lost' },
-    // The containers keep their own full opacity and ghost with the Pod group that holds them.
-    opacity: { ...STACK_UP, ...Object.fromEntries(GONE.map(k => [k, OPACITY.terminated])) },
-    // fill is stated: F.fade defaults to 'both', and these fades take the WAAPI default of 'none'
-    // instead. The static opacity above is what holds the ghost, not the fill.
-    flow: GONE.map(target => F.fade({ target, to: OPACITY.terminated, dur: FADE.out, fill: 'none' })),
+    id: 'lifetime',
+    duration: 3000,
+    narration: 'No container bar spans the whole story, and none of them ever owned the volume. The cache bar is the Pod bar: this emptyDir lasts until the Pod leaves its Node, however many containers come and go inside it.',
+    sublabels: { ...RUNNING, appBox: 'restarted, count 1' },
+    podSublabels: RUNNING_POD,
+    opacity: stage(6),
+    chain: 0,
+    lit: ['volume', ...LIFETIME],
   },
 ];
 

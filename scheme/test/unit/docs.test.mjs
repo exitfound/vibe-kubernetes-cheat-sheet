@@ -22,6 +22,21 @@
 // cannot fail), ORPHAN (a test file no rule cites is a test whose subject is written down nowhere)
 // and NAME (the axis name has to occur in the file).
 //
+// TWO NAMESPACES SINCE 2026-09-09. A value's kind picks which map its file half is resolved in:
+// `test:` and `report:` name a file under `test/`, `skill:` names a tool under
+// `.claude/skills/*/tools/`. The second namespace was added because the column was understating
+// itself by eight rows: `poster-lint.mjs` mechanically decides eight rules of the `R` block and
+// every one of them read `review`, which says "no machine anywhere". The count was the smaller
+// half of the problem. The larger half is that NOTHING GUARDED THOSE CHECKS: a `test:` value's axis
+// cannot be renamed inside its test without this group going red, while `poster-lint.mjs` could
+// have dropped a whole branch in silence. `R-08a` is the standing proof that this is not
+// hypothetical: it tested `<polygon>` alone, walked past five of the six chevrons in the catalog,
+// and the comment beside it asserted the opposite until someone happened to look.
+//
+// The two namespaces COLLIDE and are meant to: `motion` is both `render/motion.test.mjs` and
+// `card-review/tools/motion.mjs`, and they are different machines about different things. That is
+// why the kind is a kind and not a path convention inside the existing one.
+//
 // WHAT A NAME IS, AND WHY OCCURRENCE IS THE RIGHT TEST. A test file names the rules it carries in
 // its own header, and it prints an axis label on every finding it reports. Those two are the same
 // vocabulary, so "the name occurs in the file" is the question, and it is deliberately not "the
@@ -80,8 +95,8 @@
 // NOTHING HERE SKIPS
 // ===========================================================================================
 // A walk that skips a record it cannot open (`if (!existsSync(md)) continue;`) stops checking that
-// record's anchors at exit 0, with no finding and no error: 61 anchors leaving the run take a
-// printed count from 185 to 124 and say nothing. That is the surviving lesson of S-46, and readDoc
+// record's anchors at exit 0, with no finding and no error: the anchors that leave the run take the
+// printed count down with them and say nothing. That is the surviving lesson of S-46, and readDoc
 // below is where this file obeys it: a record it cannot open is a failure, never a shorter run.
 
 import { test } from 'node:test';
@@ -105,21 +120,29 @@ const REPO = join(ROOT, '..');
 // a floor still catches is the failure that actually happened here twice: a walker that stops
 // finding its input, reports nothing and exits green.
 // --------------------------------------------------------------------------------------------
-const ANCHOR_FLOOR = { cluster: 15, workloads: 24, network: 41, storage: 44 };   // 124 total
+// NO anchor floor. A quota on anchors is a quota on DOCUMENTATION, and it made deleting a note
+// that had gone stale cost more than leaving it: the reason a constant holds its value now lives in
+// a comment ON that constant, where it cannot desync, and an anchor is what is left for a note that
+// genuinely spans several lines of code. What the floor was actually guarding, a walker that stops
+// finding its input and exits green, is guarded below on the RECORDS read, which is the input.
 const CATALOG_RULE_FLOOR = 235;                                                  // the L A M C T P D R S blocks
-const INDEX_ROWS = 40;                                                           // CLU 6, WL 12, NET 9, STO 13
-const CANON_ROW_FLOOR = CATALOG_RULE_FLOOR + INDEX_ROWS;                         // 274 rule rows in CANON.md
+const INDEX_ROWS = 47;                                                           // CLU 6, WL 15, NET 12, STO 14
+const CANON_ROW_FLOOR = CATALOG_RULE_FLOOR + INDEX_ROWS;                         // 275 rule rows in CANON.md
 const REF_FLOOR = 400;                                                           // measured 469 id-shaped tokens
 const LABEL_MAX_CHARS = 90;                                                      // measured max 73 (NET.C-01)
 const LABEL_MAX_OVERLAP = 55;                                                    // measured max 35 (WL.S-01)
 
-// Rule ROWS carrying at least one test: or report: value, as against `review` or `hook` alone.
-// A FLOOR, because draining `review` is the direction of travel and a DROP means rules quietly
-// went back to being a human's job, which is a change to make deliberately rather than discover.
+// Rule ROWS carrying at least one test:, report: or skill: value, as against `review` or `hook`
+// alone. A FLOOR, because draining `review` is the direction of travel and a DROP means rules
+// quietly went back to being a human's job, which is a change to make deliberately rather than
+// discover.
 // Measured 2026-08-15: 144 rows of 235 name a machine (a row may name two), against 95 `review`.
+// Measured 2026-09-09: 167 of 253, against 85 `review`. Nine of the twenty-three the count gained
+// are the `R` block finally saying out loud that `poster-lint.mjs` decides it, and four of those
+// nine keep a `review` value beside the `skill:` one because the tool sees half the rule.
 // The floor moves with the measurement, or a rule could go back to being a human's job with
 // nothing red.
-const MACHINE_ROW_FLOOR = 140;
+const MACHINE_ROW_FLOOR = 160;
 
 // Backticked PATH tokens across every Source cell. A FLOOR, and the reason is the failure this
 // group is built against: a parse that stops matching resolves nothing and reports nothing dead.
@@ -133,7 +156,7 @@ const SOURCE_SYMBOL_FLOOR = 38;
 // split is asserted rather than counted loosely, because "declared" and "merely cited" are the
 // distinction this whole group turns on, and a parser that stopped telling them apart would go
 // quiet, not red.
-const DECLARATION_SHAPES = { row: 28, heading: 10, bullet: 2 };
+const DECLARATION_SHAPES = { row: 35, heading: 10, bullet: 2 };
 
 const CATS = await categories();
 const { CATEGORY_LABEL } = await catalog();
@@ -422,8 +445,46 @@ for (const dir of [...MANDATORY_DIRS, ...REPORT_DIRS]) {
   }
 }
 
-// `test:geometry/DIAGONAL`, `report:overlay/L-02`, `test:palette`, `hook`, `review`.
-const VALUE = /^(test|report):([a-z][a-z0-9-]*)(?:\/([^\s,]+))?$/;
+// --------------------------------------------------------------------------------------------
+// The SKILL TOOLS, the second namespace a Check value can name. `.claude/skills/*/tools/*.mjs`,
+// read by SHAPE the way `skillDocs()` reads the `.md` beside them, so a tool written tomorrow is
+// covered the day it lands.
+//
+// WHY A SECOND MAP AND NOT AN ENTRY IN `TEST_FILES`. These are not test files and must never be
+// mistaken for one: `npm test` does not run them, they cannot go red, and the two namespaces
+// COLLIDE (`motion` is both `render/motion.test.mjs` and `card-review/tools/motion.mjs`). The kind
+// in front of the colon is what picks the map, which is the whole reason `skill:` is a kind rather
+// than a path convention inside the existing one.
+//
+// The basenames have to be unique among THEMSELVES for the same reason the test basenames do: a
+// value names a tool without a path. They are deliberately NOT required to be unique against the
+// test files.
+// --------------------------------------------------------------------------------------------
+const SKILL_TOOL_FLOOR = 8;                                  // 15 on disk 2026-09-09
+
+function skillTools() {
+  const out = new Map();
+  const dups = [];
+  for (const skill of readdirSync(SKILLS_DIR, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    if (!skill.isDirectory()) continue;
+    const dir = join(SKILLS_DIR, skill.name, 'tools');
+    if (!existsSync(dir)) continue;
+    for (const f of readdirSync(dir).sort()) {
+      if (!f.endsWith('.mjs')) continue;
+      const base = f.slice(0, -'.mjs'.length);
+      const rel = `.claude/skills/${skill.name}/tools/${f}`;
+      if (out.has(base)) { dups.push(`${base} is both ${out.get(base).rel} and ${rel}`); continue; }
+      out.set(base, { rel, src: readFileSync(join(dir, f), 'utf8') });
+    }
+  }
+  return { tools: out, dups };
+}
+
+const { tools: SKILL_TOOLS, dups: dupToolNames } = skillTools();
+
+// `test:geometry/DIAGONAL`, `report:overlay/L-02`, `skill:poster-lint/R-07`, `test:palette`,
+// `hook`, `review`.
+const VALUE = /^(test|report|skill):([a-z][a-z0-9-]*)(?:\/([^\s,]+))?$/;
 const parseCheck = (cell) => cell.split(',').map(s => s.trim()).filter(Boolean);
 
 // Whole word, where a word may contain `-` (CENTRE-LOW, L-05a, R2-ENTRY). Excluding `-` from both
@@ -437,19 +498,20 @@ const nameOccurs = (src, name) => {
 // GROUP A: the card records against the code.
 // --------------------------------------------------------------------------------------------
 
-test('A1 every card record is anchored, and no walk collapses to nothing', () => {
+test('A1 the record walk finds its input, and the anchors it finds are counted', (t) => {
   const per = {};
   let total = 0;
   for (const cat of CATS) {
     per[cat] = recordAnchors(cat).length;
     total += per[cat];
-    assert.ok(per[cat] >= ANCHOR_FLOOR[cat],
-      `the ${cat} record holds ${per[cat]} anchor(s) over ${CARDS_MD.get(cat).length} document(s), ` +
-      `floor is ${ANCHOR_FLOOR[cat]}. ` +
-      'An anchor is a measurement someone took with a browser: losing one is losing that.');
+    // The walk integrity check, and the only assertion here: a category that reads ZERO record
+    // documents is a broken reader reporting nothing and exiting green, which has happened twice.
+    // How many anchors those documents carry is not asserted, by design.
+    assert.ok(CARDS_MD.get(cat).length > 0,
+      `the ${cat} record walk read 0 document(s). A walker that stops finding its input reports ` +
+      'no finding and passes, which is the failure this line exists for');
   }
-  const floor = Object.values(ANCHOR_FLOOR).reduce((a, b) => a + b, 0);
-  assert.ok(total >= floor, `${total} anchors catalog-wide, floor is ${floor}: ${JSON.stringify(per)}`);
+  t.diagnostic(`ANCHORS: ${total} catalog-wide, ${JSON.stringify(per)}`);
 });
 
 test('A2 every anchor still occurs in the card it was taken from (an anchor is DATA, never reworded)', (t) => {
@@ -478,7 +540,8 @@ test('A2 every anchor still occurs in the card it was taken from (an anchor is D
   for (const [code, at] of dup) {
     t.diagnostic(`  ${String(at.length).padStart(2)}x  ${code.slice(0, 60).padEnd(60)}  ${at.slice(0, 4).join(', ')}${at.length > 4 ? ' ...' : ''}`);
   }
-  assert.ok(checked >= 124, `only ${checked} anchor(s) were resolved against a card source, expected at least 124`);
+  // No floor on `checked`: see the note beside A1. An anchor that EXISTS still has to resolve, and
+  // that is the assertion below. How many exist is the author's call, card by card.
   assert.deepEqual(stale, [], `${stale.length} of ${checked} anchor(s) point at a line that is gone:\n  ${stale.join('\n  ')}`);
 });
 
@@ -785,14 +848,21 @@ test('D1 every id a document cites resolves to a declared rule', () => {
 // over the axis inside the value. See the header for why the axis half is the one that rots.
 // --------------------------------------------------------------------------------------------
 
-test('E1 every Check value is one of the four shapes and names a test file that exists', () => {
+test('E1 every Check value is one of the five shapes and names a file that exists', () => {
   assert.deepEqual(dupBasenames, [],
     `${dupBasenames.length} test file basename(s) are not unique, so a Check value cannot name a ` +
     `file without a path:\n  ${dupBasenames.join('\n  ')}`);
+  assert.deepEqual(dupToolNames, [],
+    `${dupToolNames.length} skill tool basename(s) are not unique, so a skill: value cannot name a ` +
+    `tool without a path:\n  ${dupToolNames.join('\n  ')}`);
   assert.ok(MANDATORY_DIRS.length > 0 && REPORT_DIRS.length > 0,
     `read ${MANDATORY_DIRS.length} mandatory and ${REPORT_DIRS.length} report director(ies) out of ` +
     'test/package.json. The scripts changed shape and this whole group is now judging nothing.');
   assert.ok(TEST_FILES.size >= 22, `found ${TEST_FILES.size} test file(s), 22 at the last green run`);
+  assert.ok(SKILL_TOOLS.size >= SKILL_TOOL_FLOOR,
+    `found ${SKILL_TOOLS.size} skill tool(s) under .claude/skills/*/tools/, floor ${SKILL_TOOL_FLOOR}. ` +
+    'A walk that finds nothing resolves nothing and passes, which is the failure this group exists ' +
+    'against.');
 
   const bad = [];
   let machine = 0;
@@ -805,10 +875,19 @@ test('E1 every Check value is one of the four shapes and names a test file that 
       const m = VALUE.exec(v);
       if (!m) {
         bad.push(`CANON.md:${line}  ${id}  Check value "${v}" is none of test:<file>[/<name>], ` +
-          'report:<file>[/<name>], hook, review');
+          'report:<file>[/<name>], skill:<tool>[/<name>], hook, review');
         continue;
       }
       const [, kind, file] = m;
+      // TOOL, in the skill namespace. Same failure, different map: the kind picked the map, so a
+      // `skill:` value is never looked for among the test files and cannot resolve to one.
+      if (kind === 'skill') {
+        if (!SKILL_TOOLS.has(file)) {
+          bad.push(`TOOL      CANON.md:${line}  ${id}  cites skill:${file}, and no ${file}.mjs ` +
+            'exists under .claude/skills/*/tools/');
+        }
+        continue;
+      }
       const f = TEST_FILES.get(file);
       if (!f) {
         bad.push(`TOOL      CANON.md:${line}  ${id}  cites ${kind}:${file}, and no ${file}.test.mjs ` +
@@ -837,15 +916,15 @@ test('E2 every name a Check value carries occurs in the file it names', () => {
     for (const v of parseCheck(check)) {
       const m = VALUE.exec(v);
       if (!m) continue;                                   // already a finding in E1
-      const [, , file, name] = m;
-      const f = TEST_FILES.get(file);
+      const [, kind, file, name] = m;
+      const f = kind === 'skill' ? SKILL_TOOLS.get(file) : TEST_FILES.get(file);
       if (!f) continue;                                   // already a finding in E1
       if (!name) { bare++; continue; }                    // the whole file is the answer
       named++;
       if (!nameOccurs(f.src, name)) {
         bad.push(`NAME      CANON.md:${line}  ${id}  cites ${v}, and "${name}" does not occur in ` +
-          `${f.rel}. Either the axis was renamed inside the test, or the rule is pointing at a ` +
-          'file that says nothing about it.');
+          `${f.rel}. Either the axis was renamed inside the ${kind === 'skill' ? 'tool' : 'test'}, ` +
+          'or the rule is pointing at a file that says nothing about it.');
       }
     }
   }
@@ -858,11 +937,18 @@ test('E2 every name a Check value carries occurs in the file it names', () => {
 test('E3 every test file is cited by at least one rule', () => {
   // ORPHAN, and it means what it meant: a test nothing cites is a test whose subject is written
   // down nowhere, so a reader of the rulebook cannot find out that the rule has a machine.
+  // `skill:` values are excluded on purpose, and the asymmetry is the honest one. A TEST runs on
+  // every green run whether or not a rule cites it, so a test nothing cites is a machine whose
+  // subject is written down nowhere. A skill TOOL runs only when someone invokes it, and several
+  // exist to PRINT rather than to judge (`deadair`, `pace`, `timing`, `montage`), so requiring
+  // every tool to be cited would either force a `skill:` value onto a rule no tool decides, or
+  // force a tool to be deleted for saying nothing a rule can be pinned to. Neither is an
+  // improvement, so the ORPHAN axis stays a statement about `test/` alone.
   const cited = new Set();
   for (const { check } of CHECK_ROWS) {
     for (const v of parseCheck(check)) {
       const m = VALUE.exec(v);
-      if (m) cited.add(m[2]);
+      if (m && m[1] !== 'skill') cited.add(m[2]);
     }
   }
   const orphans = [...TEST_FILES.entries()]
@@ -943,4 +1029,243 @@ test('F2 no rule cell outgrows one line', (t) => {
   assert.deepEqual(over, [], `${over.length} rule cell(s) past the ceiling. The row keeps the RULE ` +
     'and the argument moves to a `### <id>` block in "The long form", where F1 will hold it to the ' +
     'rule it belongs to. Do not delete it to fit.\n  ' + over.join('\n  '));
+});
+
+// --------------------------------------------------------------------------------------------
+// GROUP G: the record FORM, where group A reads the record's CONTENT.
+//
+// Group A asks whether a section exists, sits in the right file and names a card that exists, and
+// whether the anchors it carries still resolve. What nothing asked until this group is whether the
+// section is SHAPED the way `scheme/CANON.md` says a record is shaped. That gap was measured rather
+// than guessed: a `### poster` block added to a clean cluster record passed the whole gate, and so
+// did an invented label, a duplicated label and a label out of order. Only a new `### before`
+// anchor failed, and only sideways, through the count `S-38` states in CANON.md and
+// `docs-census.test.mjs` compares against the tree.
+//
+// So the form was carried by four skill documents and two skill TOOLS, `card-poster`'s
+// `poster-lint.mjs` and `card-review`'s `statics.mjs`, and `npm test` runs neither. A rule whose
+// only reader is a tool the gate does not run is a rule a new card can break silently.
+//
+// WHAT A RECORD IS SHAPED LIKE. One `## <card id>` section, one `### layout` heading under it and
+// no other heading, one fenced block inside it, and inside that block a run of LABELS from the
+// vocabulary `CANON.md` states, `WHAT` first, in the canon's order, each used at most once.
+//
+// WHY THE VOCABULARY IS READ OFF CANON.md rather than copied here. It is the list the rulebook
+// prints under "The record vocabulary", in the order it prints them, and the order IS the rule
+// (`S-51`). A second copy in this file would be a second place for the list to be right or wrong,
+// which is the drift `S-47` exists against. The parse is asserted below before anything reads it.
+//
+// WHAT A LABEL IS, AND THE TWO TRAPS. A label sits at column 0 and its prose starts at column 9.
+// That single rule tells apart the two shapes that already cost this repository a pass:
+//   `WIRE LABELS` and `NOT A DEFECT` are longer than the 8 wide column, so they stand ALONE on
+//     their line and the prose starts on the next one. Padding them to column 9 is impossible, and
+//     a matcher that only looked for `<LABEL> + spaces` would miss both.
+//   A sentence inside a block may OPEN on a vocabulary word in capitals. `cluster-node-eviction-rate`
+//     carries `WHAT IS RATE LIMITED IS THE TAINT, NOT THE POD DELETE` inside its CONTENT block, and
+//     a matcher keyed on the first token alone reads that as a second `WHAT` label and reports a
+//     record that is correct. The column-9 test rejects it, because its prose starts at column 5.
+// Verified over all 129 records: the matcher finds `WHAT` exactly 129 times, one per card, and no
+// column-0 line inside a layout fence goes unrecognised.
+//
+// WHY storage IS A BASELINE AND NOT AN EXEMPTION. It has not been through the pass that put
+// cluster, workloads and network on this form, so 30 of its sections still carry a
+// `### poster` block and 28 of them still run their labels out of order. Turning the check on for
+// it today reddens the gate on 30 sections of work nobody has done yet. The baseline below is
+// therefore a CEILING that may only fall: cleaning a section is free, and a NEW card in that
+// category that arrives off the form pushes the count past the ceiling and fails. THE TARGET IS
+// ZERO on all four, and the two numbers come down as storage is cleaned. Cluster, workloads and
+// network sit at 0, so for them the ceiling and the rule are the same thing.
+//
+// A LABEL OUTSIDE THE VOCABULARY IS THE THIRD AXIS, AND IT IS HARD ON ALL FOUR. G2 reads the
+// ORDER of the labels it recognises, so a line that looks like a label and is in no vocabulary is
+// invisible to it: the remaining labels still run in order and the section passes. That is how
+// `COLOUR`, `QUEUES`, `SPINE` and `BASELINE` reached four workloads records. G3 is the other half,
+// a column-0 line whose prose starts at column 9 and whose word is not in the list. Measured over
+// all 129 records the count is ZERO in every category, storage included, so this one needs no
+// baseline and takes none: it is the one axis of the three where the last unconverted category is
+// already on the form.
+//
+// WHAT THIS GROUP IS BLIND TO. Whether a block says anything true, whether the right label was
+// chosen for a note, and whether the prose under a label is in the present tense (`S-48`). All
+// three read exactly the same to a parser and stay a reader's job.
+// --------------------------------------------------------------------------------------------
+
+// Sections in each category that are NOT yet on the form. A CEILING that may only fall, never a
+// permission: see the header. Measured over the tree, and both numbers are the whole of storage,
+// because it is the one category still unconverted.
+const RECORD_SHAPE_CEILING = { cluster: 0, workloads: 0, network: 0, storage: 0 };
+const RECORD_LABEL_CEILING = { cluster: 0, workloads: 0, network: 0, storage: 0 };
+
+// The column a label's prose starts on, which is what tells a label from a sentence in capitals.
+const LABEL_COL = 9;
+
+// The vocabulary, in the order `CANON.md` prints it under "The record vocabulary". The ORDER is the
+// rule, so the parse keeps it and never sorts.
+function recordVocabulary(md) {
+  const at = md.indexOf('\n## The record vocabulary\n');
+  assert.ok(at !== -1, 'CANON.md has no "## The record vocabulary" section: the label list every ' +
+    'record is held to lives there, and a walk that cannot find it checks nothing and passes');
+  const rest = md.slice(at);
+  const end = rest.indexOf('\nStructural rules for a record file');
+  assert.ok(end !== -1, 'CANON.md: "The record vocabulary" runs to the end of the file. The parse ' +
+    'stops at "Structural rules for a record file" and that heading is gone');
+  return [...rest.slice(0, end).matchAll(/^\| `([A-Z][A-Z ]*)` \|/gm)].map(m => m[1]);
+}
+
+const VOCAB = recordVocabulary(CANON);
+const VOCAB_RANK = new Map(VOCAB.map((v, i) => [v, i]));
+
+// A record section, with the body under its `## <id>` heading. Group A's `sections` returns the
+// heading alone, which is all it needs. This group reads what is under it.
+function sectionBodies(md, rel) {
+  const out = [];
+  let cur = null;
+  md.split('\n').forEach((line, i) => {
+    const h2 = /^## (.+)$/.exec(line);
+    if (h2) { if (cur) out.push(cur); cur = { id: h2[1].trim(), rel, line: i + 1, body: [] }; return; }
+    if (cur) cur.body.push(line);
+  });
+  if (cur) out.push(cur);
+  return out;
+}
+
+const recordBodies = (cat) =>
+  CARDS_MD.get(cat).flatMap(d => sectionBodies(d.md, d.rel));
+
+// The label a line carries, or null. The whole of the matcher, and the header says why it is this
+// and not the first token.
+function labelOn(line) {
+  for (const v of VOCAB) {
+    if (line === v) return v;                                // WIRE LABELS, NOT A DEFECT
+    if (!line.startsWith(v) || line[v.length] !== ' ') continue;
+    const prose = line.length - line.slice(v.length).replace(/^ +/, '').length;
+    if (prose === LABEL_COL) return v;
+  }
+  return null;
+}
+
+// The labels of one section's `### layout` block, in the order they are written, AND the column-0
+// lines the matcher did not recognise. Both halves are returned together because dropping the
+// second is what let an invented label through: `.filter(Boolean)` on its own is silent about
+// every line it discards.
+function layoutLabels(body) {
+  const m = /^### layout\n\n```\n([\s\S]*?)\n```/m.exec(body.join('\n'));
+  if (!m) return null;                                       // no layout block at all, G1 reports it
+  const lines = m[1].split('\n');
+  return {
+    labels: lines.map(labelOn).filter(Boolean),
+    strangers: lines.filter(l => l && !l.startsWith(' ') && labelOn(l) === null),
+  };
+}
+
+test('G0 the label vocabulary parses off CANON.md, in the order it is printed in', (t) => {
+  assert.ok(VOCAB.length >= 12,
+    `only ${VOCAB.length} label(s) parsed out of "The record vocabulary". A parse that stops ` +
+    'matching accepts every label as unknown and every order as wrong, which reads as a broken ' +
+    'record rather than as a broken parse');
+  assert.equal(VOCAB[0], 'WHAT', `the vocabulary opens on ${VOCAB[0]}, not WHAT`);
+  assert.equal(new Set(VOCAB).size, VOCAB.length, `the vocabulary lists a label twice: ${VOCAB.join(', ')}`);
+  t.diagnostic(`VOCABULARY: ${VOCAB.length} labels, ${VOCAB.join(' ')}`);
+});
+
+test('G1 a record section is ONE "### layout" heading and nothing else', (t) => {
+  const findings = [];
+  const per = {};
+  for (const cat of CATS) {
+    const bad = [];
+    for (const s of recordBodies(cat)) {
+      const heads = s.body.filter(l => l.startsWith('### ')).map(l => l.trim());
+      const layout = heads.filter(h => h === '### layout').length;
+      const other = heads.filter(h => h !== '### layout');
+      if (layout === 1 && !other.length) continue;
+      const why = layout !== 1
+        ? `${layout} "### layout" heading(s)`
+        : `${other.length} heading(s) that are not "### layout": ${[...new Set(other.map(h => h.split('`')[0].trim()))].join(', ')}`;
+      bad.push(`${s.rel}:${s.line}  ## ${s.id}  ${why}`);
+    }
+    per[cat] = bad.length;
+    if (bad.length > RECORD_SHAPE_CEILING[cat]) findings.push(...bad);
+  }
+  t.diagnostic(`RECORD SHAPE: sections off the form ${JSON.stringify(per)}, ` +
+    `ceiling ${JSON.stringify(RECORD_SHAPE_CEILING)}`);
+
+  const over = CATS.filter(c => per[c] > RECORD_SHAPE_CEILING[c])
+    .map(c => `${c} ${per[c]} against a ceiling of ${RECORD_SHAPE_CEILING[c]}`);
+  assert.deepEqual(over, [],
+    `${over.length} category(ies) past the record-shape ceiling: ${over.join(', ')}.\n  ` +
+    'A record is one "### layout" block: no poster note, no per-line anchor, no heading of its ' +
+    'own. Where a note used to take an anchor it goes under the label it belongs to.\n  ' +
+    findings.join('\n  '));
+
+  // The ceiling may only FALL, so a number that no longer matches the tree is a number to lower.
+  const stale = CATS.filter(c => per[c] < RECORD_SHAPE_CEILING[c])
+    .map(c => `${c} is at ${per[c]} against a recorded ${RECORD_SHAPE_CEILING[c]}`);
+  for (const s of stale) t.diagnostic(`  LOWER THE CEILING: ${s}`);
+});
+
+test('G2 the labels of a record run in the canon order, each once, and open on WHAT', (t) => {
+  const findings = [];
+  const per = {};
+  for (const cat of CATS) {
+    const bad = [];
+    for (const s of recordBodies(cat)) {
+      const read = layoutLabels(s.body);
+      if (read === null) continue;                           // G1 owns a section with no layout block
+      const labs = read.labels;
+      const at = `${s.rel}:${s.line}  ## ${s.id}`;
+      const why = [];
+      if (!labs.length) why.push('no label at all');
+      else if (labs[0] !== 'WHAT') why.push(`opens on ${labs[0]}, not WHAT`);
+      const twice = [...new Set(labs.filter((v, i) => labs.indexOf(v) !== i))];
+      if (twice.length) why.push(`uses ${twice.join(', ')} more than once`);
+      const rank = labs.map(v => VOCAB_RANK.get(v));
+      const jump = rank.findIndex((v, i) => i && v <= rank[i - 1]);
+      if (jump > 0) why.push(`runs ${labs[jump - 1]} before ${labs[jump]}, against the canon order`);
+      if (why.length) bad.push(`${at}  ${why.join('; ')}`);
+    }
+    per[cat] = bad.length;
+    if (bad.length > RECORD_LABEL_CEILING[cat]) findings.push(...bad);
+  }
+  t.diagnostic(`RECORD LABELS: sections off the vocabulary or the order ${JSON.stringify(per)}, ` +
+    `ceiling ${JSON.stringify(RECORD_LABEL_CEILING)}`);
+
+  const over = CATS.filter(c => per[c] > RECORD_LABEL_CEILING[c])
+    .map(c => `${c} ${per[c]} against a ceiling of ${RECORD_LABEL_CEILING[c]}`);
+  assert.deepEqual(over, [],
+    `${over.length} category(ies) past the record-label ceiling: ${over.join(', ')}.\n  ` +
+    `The vocabulary is ${VOCAB.join(' ')}, in that order, each label at most once, WHAT first. ` +
+    'A label outside it is not a label: a note that fits none of them fits NOTE.\n  ' +
+    findings.join('\n  '));
+
+  const stale = CATS.filter(c => per[c] < RECORD_LABEL_CEILING[c])
+    .map(c => `${c} is at ${per[c]} against a recorded ${RECORD_LABEL_CEILING[c]}`);
+  for (const s of stale) t.diagnostic(`  LOWER THE CEILING: ${s}`);
+});
+
+test('G3 a line in the label column carries a label from the vocabulary and no other word', (t) => {
+  const findings = [];
+  const per = {};
+  for (const cat of CATS) {
+    const bad = [];
+    for (const s of recordBodies(cat)) {
+      const read = layoutLabels(s.body);
+      if (read === null) continue;                           // G1 owns a section with no layout block
+      for (const line of read.strangers) {
+        bad.push(`${s.rel}:${s.line}  ## ${s.id}  ${JSON.stringify(line.slice(0, 60))}`);
+      }
+    }
+    per[cat] = bad.length;
+    findings.push(...bad);
+  }
+  t.diagnostic(`RECORD LABEL COLUMN: unrecognised column-0 line(s) ${JSON.stringify(per)}, on a ` +
+    'vocabulary of ' + VOCAB.length);
+
+  // No ceiling and no baseline: the tree stands at zero in all four categories, so an invented
+  // label is a finding wherever it lands. This is the axis `G2` cannot see, because a word it does
+  // not know is a word it does not rank.
+  assert.deepEqual(findings, [],
+    `${findings.length} line(s) sit in the label column carrying no label from the vocabulary.\n  ` +
+    `The vocabulary is ${VOCAB.join(' ')} and nothing else (S-52). A note that fits none of them ` +
+    'fits NOTE. If the line is prose rather than a label, indent it to the column at 9.\n  ' +
+    findings.join('\n  '));
 });

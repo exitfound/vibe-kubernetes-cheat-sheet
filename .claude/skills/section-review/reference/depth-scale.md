@@ -23,10 +23,10 @@ axis is wrong twice, which is the whole argument for carrying two. The worked pa
 
 | Band | The layer | Anchors that ship |
 |---|---|---|
-| L1 | the operator surface: what you type and what comes back | `cluster-architecture`, `network-model`, `storage-ephemeral-vs-persistent` |
+| L1 | the operator surface: what you type and what comes back | `cluster-architecture`, `network-model`, `storage-volume-data-homes` |
 | L2 | the object contract: fields, kinds, what the API promises | `storage-access-modes`, `workloads-pod-qos-classes`, `network-service-types` |
 | L3 | the control loop: who watches what and reacts in which order | `cluster-scheduler-decision`, `workloads-replicaset`, `network-endpointslice-reconcile` |
-| L4 | the Node-side mechanism the loop finally drives | `cluster-pod-sandbox-cri`, `storage-mount-path-chain`, `network-cni-invocation` |
+| L4 | the Node-side mechanism the loop finally drives | `cluster-pod-sandbox-cri`, `storage-csi-attach-mount`, `network-cni-invocation` |
 | L5 | the kernel and protocol floor under that mechanism | `network-netfilter-path`, `network-conntrack-nat`, `cluster-cpu-throttling` |
 
 ### L1, the operator surface
@@ -39,7 +39,8 @@ absence.
 promise", "these two volumes look the same and only one survives".
 
 **Anchors:** `cluster-architecture` draws six components and opens none of them.
-`storage-ephemeral-vs-persistent` puts two volumes side by side and asks which one you get to keep.
+`storage-volume-data-homes` maps five volumes of one Pod onto where their bytes live and asks which
+of them outlive the container, the Pod and the Node.
 
 **The trap:** L1 is not "easy". It is the band with the widest picture, and a bad L1 card is the
 one that draws twelve boxes and says nothing about why they are arranged that way.
@@ -78,10 +79,10 @@ object it reacts to (L2) or the thing it drives (L4).
 **Sits at:** the Kubelet, the runtime, the CSI driver, the CNI plugin, kube-proxy. Something on a
 Node is being made to happen, and the card follows the call rather than the object.
 
-**Reads like:** "what does the runtime actually DO when the Kubelet asks", "a container writes to
-/data, but where do the bytes go", "who actually plumbs a Pod onto the network".
+**Reads like:** "what does the runtime actually DO when the Kubelet asks", "a new claim is not a
+mounted disk, so what happens between the two", "who actually plumbs a Pod onto the network".
 
-**Anchors:** `cluster-pod-sandbox-cri`, `storage-mount-path-chain`, `network-cni-invocation`.
+**Anchors:** `cluster-pod-sandbox-cri`, `storage-csi-attach-mount`, `network-cni-invocation`.
 
 **The trap:** naming the Kubelet is not being an L4 card. Half the catalog names the Kubelet. The
 test is whether the Kubelet is the SUBJECT or a box the subject passes through.

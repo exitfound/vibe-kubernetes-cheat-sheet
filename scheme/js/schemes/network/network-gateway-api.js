@@ -1,158 +1,239 @@
-import { P, F, defineCard, midX } from './network-kit.js';
+import { P, F, defineCard, makeRidingLabel, laneY, ladder, BEAT, OPACITY } from './network-kit.js';
 
-// Design notes for this card: ./CARDS.md#network-gateway-api
+// Design notes for this card: ./CARDS/network-gateway-api.md
 
 
-// Panel right <= 397, bottom <= 330 (a long narration here). The Client is the only block left of
-// 397, so the whole request row hangs below that bottom.
-const FLOW_Y = 380;                          // Client + Gateway share this row: a request enters here
+// A ladder of consent on the right edge: GatewayClass, Gateway, HTTPRoute and Service, joined by the
+// reference fields that name each other. Every condition chip stands on the row of the object that
+// reports it, so the column left of the ladder reads as one table of state. The data rail runs along
+// the floor, Client to the proxy and the proxy to Pod web, which hangs under the Service it backs.
+const BOX_W = 232, BOX_H = 80;                    // NET.L-01, every block on the card
+const LAD_X = 928;                                // 928..1160
+const LAD_CX = LAD_X + BOX_W / 2;                 // 1044, the spine every reference runs on
+const rungY = ladder({ y: 40, rowH: BOX_H, gap: 24 });           // 40 / 144 / 248 / 352
+const rungCY = (i) => rungY(i) + BOX_H / 2;       // 80 / 184 / 288 / 392
+const rungB = (i) => rungY(i) + BOX_H;
+const seamCY = (i) => (rungB(i) + rungY(i + 1)) / 2;             // 132 / 236 / 340
 
-const CLIENT_X = 40, CLIENT_W = 260, CLIENT_H = 72;
-const CLIENT_Y = FLOW_Y - CLIENT_H / 2;        // 344, clear of the panel bottom above
-const CLIENT_RIGHT = CLIENT_X + CLIENT_W;      // 300
+// The chip column stands 28 left of the ladder and starts at the L-03 line. The HTTPRoute reports two
+// conditions, stacked inside its 80 rung at an 8 gap.
+const CHIP_W = 476, CHIP_H = 34, CHIP_GAP = 8;
+const CHIP_R = LAD_X - 28;                        // 900
+const CHIP_X = CHIP_R - CHIP_W;                   // 424
+const chipAt = (cy) => cy - CHIP_H / 2;
+const pairAt = (cy, k) => cy - CHIP_H - CHIP_GAP / 2 + k * (CHIP_H + CHIP_GAP);
+// The ReferenceGrant stands on the Service rung, centred under the chip column above it.
+const GRANT_X = CHIP_X + (CHIP_W - BOX_W) / 2;    // 546
 
-const STACK_X = 410, STACK_W = 260;
-const STACK_CX = STACK_X + STACK_W / 2;        // 540, the spine every stack wire runs on
-const STACK_RIGHT = STACK_X + STACK_W;         // 670
+// The data rail, 48 under the Service rung: Client, proxy and Pod web at two equal 212 gaps, the
+// proxy centred on 600 between the Client at 40 and Pod web under the ladder.
+const POD_H = 104, POD_Y = rungB(3) + 48;         // 480
+const DATA_Y = POD_Y + POD_H / 2;                 // 532
+const CLIENT_X = 40;
+const CLIENT_R = CLIENT_X + BOX_W;                // 272
+const PROXY_X = (CLIENT_R + LAD_X) / 2 - BOX_W / 2;              // 484
+const PROXY_R = PROXY_X + BOX_W;                  // 716
+const { out: REQ_Y, back: ANS_Y } = laneY(DATA_Y, 12);          // 520 request, 544 answer
 
-const GW_H = 86;                               // the GatewayClass shares this height, they are peers
-const CLASS_Y = 56, CLASS_H = GW_H;            // 56..142
-const CLASS_BOTTOM = CLASS_Y + CLASS_H;        // 142
-const GW_TOP = FLOW_Y - GW_H / 2;              // 337
-const GW_BOTTOM = GW_TOP + GW_H;               // 423
-const ROUTE_Y = 460, ROUTE_H = 84;             // 460..544
-const ROUTE_CY = ROUTE_Y + ROUTE_H / 2;        // 502, the row the backend hangs off
+const REQ = [[CLIENT_R, REQ_Y], [PROXY_X, REQ_Y]];
+const ANSWER = [[PROXY_X, ANS_Y], [CLIENT_R, ANS_Y]];
+const TO_POD = [[PROXY_R, DATA_Y], [LAD_X, DATA_Y]];
+const CLASS_REF = [[LAD_CX, rungY(1)], [LAD_CX, rungB(0)]];
+const PARENT_REF = [[LAD_CX, rungY(2)], [LAD_CX, rungB(1)]];
+const BACKEND_REF = [[LAD_CX, rungB(2)], [LAD_CX, rungY(3)]];
+const GRANT_REF = [[GRANT_X + BOX_W, rungCY(3)], [LAD_X, rungCY(3)]];
+const SELECTS = [[LAD_CX, rungB(3)], [LAD_CX, POD_Y]];
 
-const SVC_W = 160, SVC_H = 66, SVC_X = 730;
-const SVC_RIGHT = SVC_X + SVC_W;               // 890
-const POD_X = 950, POD_W = 210, POD_H = 114;
-const POD_RIGHT = POD_X + POD_W;               // 1160
+const WEB_IP = '10.244.1.5';
 
-const ROLE_X = 700;                            // ownership captions, left-anchored just right of the stack
-const CHIP_Y = 586;
+const box = (key, x, y, label, sublabel) => P.box({ key, x, y, w: BOX_W, h: BOX_H, label, sublabel });
+const pod = (key, x, label, ip) => P.pod({
+  key, innerKey: `${key}Box`, x, y: POD_Y, w: BOX_W, h: POD_H, label, sublabel: ip,
+  inner: { dx: 20, dy: 26, w: BOX_W - 40, h: 44, label: 'app', sublabel: 'eth0' },
+});
+const fieldTag = (i, text) => P.tag({ x: LAD_CX + 10, y: seamCY(i) + 4, anchor: 'start', text });
 
-const ENTRY = [[CLIENT_RIGHT, FLOW_Y], [STACK_X, FLOW_Y]];
-const CLASS_REF = [[STACK_CX, GW_TOP], [STACK_CX, CLASS_BOTTOM]];      // Gateway -> its GatewayClass
-const CONSULT = [[STACK_CX, GW_BOTTOM], [STACK_CX, ROUTE_Y]];          // Gateway -> the rules attached to it
-const BACKEND = [[STACK_RIGHT, ROUTE_CY], [SVC_X, ROUTE_CY]];          // HTTPRoute -> backendRef Service
-const DELIVER = [[SVC_RIGHT, ROUTE_CY], [POD_X, ROUTE_CY]];            // Service -> a Ready Pod
-
-// The list order IS the append order, which is the z-order: body blocks, then wires + labels above
-// them, then the chips, then the packet layer on top.
+// The list order IS the append order, which is the z-order: the ladder, the grant and the rail,
+// then relations and lanes, the captions, the chips, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Gateway API: a cluster-scoped GatewayClass names the controller implementation in controllerName, a Gateway owned by the cluster operator names that class in gatewayClassName and declares its listeners, and an HTTPRoute owned by the application team attaches to the Gateway through parentRefs, selects a hostname and matches a path, and forwards to a Service named in backendRefs. A client request enters on the Gateway listener, matches the route rule, and reaches a Ready backend Pod.',
+  'aria-label': 'Gateway API: a ladder of references on the right, with each condition beside the object that reports it. The cluster-scoped GatewayClass example names the controller that implements it in controllerName and reads Accepted True. Gateway shared-gw in namespace infra uses it and declares an HTTPS listener on 443 whose allowedRoutes admits only its own namespace by default. HTTPRoute web in namespace shop names the Gateway in parentRefs and is not Accepted, reason NotAllowedByListeners, until allowedRoutes selects shop. Its backendRef to Service web in namespace web then reports ResolvedRefs False, reason RefNotPermitted, and a client request matching the rule gets HTTP 500. ReferenceGrant from-shop in namespace web allows the reference, and the next request reaches the proxy, which here forwards it to Pod web by its endpoint',
   parts: [
     P.defs(),
-    P.box({ key: 'client', x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client', sublabel: 'browser · https' }),
-    // Each stack block carries the one field that makes it what it is. controllerName is a
-    // domain-prefixed path by spec, not a bare word, so it is shown in that form.
-    P.box({ key: 'gwClass', x: STACK_X, y: CLASS_Y, w: STACK_W, h: CLASS_H, label: 'GatewayClass: nginx', sublabel: 'controllerName: nginx.org/gw' }),
-    P.box({ key: 'gw', x: STACK_X, y: GW_TOP, w: STACK_W, h: GW_H, label: 'Gateway', sublabel: 'listener :443 HTTPS' }),
-    P.box({ key: 'route', x: STACK_X, y: ROUTE_Y, w: STACK_W, h: ROUTE_H, label: 'HTTPRoute', sublabel: 'parentRefs: Gateway' }),
-    P.box({ key: 'svc', x: SVC_X, y: ROUTE_CY - SVC_H / 2, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: '' }),
-    P.pod({
-      key: 'podW', innerKey: 'podWBox', x: POD_X, y: ROUTE_CY - POD_H / 2, w: POD_W, h: POD_H,
-      label: 'Pod web', sublabel: '10.244.1.5',
-      inner: { dx: 20, dy: 34, w: POD_W - 40, h: 52, label: 'app', sublabel: 'http :80' },
-    }),
-    P.arrow({ x1: ENTRY[0][0], y1: ENTRY[0][1], x2: ENTRY[1][0], y2: ENTRY[1][1], dashed: true, dim: true }),
-    // gatewayClassName: a reference, so the arrowhead points at the referent (the class), even though
-    // no data-plane traffic ever runs it.
-    P.arrow({ x1: CLASS_REF[0][0], y1: CLASS_REF[0][1], x2: CLASS_REF[1][0], y2: CLASS_REF[1][1], dashed: true, dim: true }),
-    P.arrow({ x1: CONSULT[0][0], y1: CONSULT[0][1], x2: CONSULT[1][0], y2: CONSULT[1][1], dashed: true, dim: true }),
-    P.arrow({ x1: BACKEND[0][0], y1: BACKEND[0][1], x2: BACKEND[1][0], y2: BACKEND[1][1], dashed: true, dim: true }),
-    P.arrow({ x1: DELIVER[0][0], y1: DELIVER[0][1], x2: DELIVER[1][0], y2: DELIVER[1][1], dashed: true, dim: true }),
-    // Static field names on the two stack wires: they say WHY the boxes are joined. Both sit beside
-    // the spine, never on it. The backendRef gap is only 60 wide, so that one is carried by its chip.
-    P.tag({ x: STACK_CX + 16, y: midX(CLASS_BOTTOM, GW_TOP) + 4, anchor: 'start', text: 'gatewayClassName' }),
-    P.tag({ x: STACK_CX + 16, y: midX(GW_BOTTOM, ROUTE_Y) + 4, anchor: 'start', text: 'match rules' }),
-    P.tag({ x: ROLE_X, y: CLASS_Y + CLASS_H / 2 + 4, anchor: 'start', text: 'owned by: infra provider' }),
-    P.tag({ x: ROLE_X, y: FLOW_Y + 4, anchor: 'start', text: 'owned by: cluster operator' }),
-    P.tag({ x: STACK_X - 24, y: ROUTE_CY + 4, anchor: 'end', text: 'owned by: app team' }),
-    // Blank at build, filled per step: the request line rides above the entry hop, and the backend Pod
-    // is tagged as the endpoint the route resolved to.
-    P.wire({ key: 'entry', x: midX(CLIENT_RIGHT, STACK_X), y: FLOW_Y - 12 }),
-    P.wire({ key: 'pod', x: POD_X + POD_W / 2, y: ROUTE_CY - POD_H / 2 - 11 }),
-    P.chip({ key: 'listenerChip', x: CLIENT_X, y: CHIP_Y, w: 200, h: 34, name: 'listener', value: ':443 HTTPS' }),
-    P.chip({ key: 'hostnamesChip', x: 260, y: CHIP_Y, w: 180, h: 34, name: 'hostnames', value: 'shop.io' }),
-    P.chip({ key: 'matchChip', x: 460, y: CHIP_Y, w: 200, h: 34, name: 'match', value: 'PathPrefix /' }),
-    P.chip({ key: 'backendChip', x: 680, y: CHIP_Y, w: 260, h: 34, name: 'backendRefs', value: 'Service web:80' }),
-    P.chip({ key: 'requestChip', x: 960, y: CHIP_Y, w: POD_RIGHT - 960, h: 34, name: 'request', value: 'none' }),
+    box('gwClass', LAD_X, rungY(0), 'GatewayClass example', 'example.com/gateway-controller'),
+    box('gw', LAD_X, rungY(1), 'Gateway shared-gw', 'namespace infra · HTTPS :443'),
+    box('route', LAD_X, rungY(2), 'HTTPRoute web', 'namespace shop · shop.io/'),
+    box('svc', LAD_X, rungY(3), 'Service web', 'namespace web'),
+    box('grant', GRANT_X, rungY(3), 'ReferenceGrant from-shop', 'not created yet'),
+    box('client', CLIENT_X, DATA_Y - BOX_H / 2, 'Client', 'https'),
+    pod('proxy', PROXY_X, 'Pod gateway-proxy', '10.244.0.9'),
+    pod('podWeb', LAD_X, 'Pod web', WEB_IP),
+    // References, which no ball ever rides: the fields that join the objects across namespaces.
+    P.relation({ points: CLASS_REF, dash: '5 5' }),
+    P.relation({ points: PARENT_REF, dash: '5 5' }),
+    P.relation({ points: BACKEND_REF, dash: '5 5' }),
+    P.relation({ points: GRANT_REF, dash: '5 5' }),
+    P.relation({ points: SELECTS, dash: '5 5' }),
+    P.arrow({ from: REQ[0], to: REQ[1], dashed: true, dim: true }),
+    P.arrow({ from: ANSWER[0], to: ANSWER[1], dashed: true, dim: true }),
+    P.arrow({ from: TO_POD[0], to: TO_POD[1], dashed: true, dim: true }),
+    P.tag({ x: LAD_X, y: rungY(0) - 10, anchor: 'start', text: 'cluster-scoped' }),
+    fieldTag(0, 'gatewayClassName'),
+    fieldTag(1, 'parentRefs'),
+    fieldTag(2, 'backendRefs'),
+    // The request lanes are a pair, so the request label stands over the Client that sends it.
+    P.wire({ key: 'req', x: CLIENT_X + BOX_W / 2, y: DATA_Y - BOX_H / 2 - 10 }),
+    P.chip({ key: 'classChip', x: CHIP_X, y: chipAt(rungCY(0)), w: CHIP_W, h: CHIP_H, name: 'GatewayClass Accepted', value: 'none' }),
+    P.chip({ key: 'allowChip', x: CHIP_X, y: chipAt(rungCY(1)), w: CHIP_W, h: CHIP_H, name: 'listener allowedRoutes', value: 'none' }),
+    P.chip({ key: 'acceptChip', x: CHIP_X, y: pairAt(rungCY(2), 0), w: CHIP_W, h: CHIP_H, name: 'HTTPRoute Accepted', value: 'none' }),
+    P.chip({ key: 'refsChip', x: CHIP_X, y: pairAt(rungCY(2), 1), w: CHIP_W, h: CHIP_H, name: 'HTTPRoute ResolvedRefs', value: 'none' }),
     P.packets(),
   ],
-  // podWBox is listed by key so the .highlight a reduced replay puts on the inner app box is cleared
-  // too: clearPodHighlight only resets inline strokes.
   reset: {
-    keys: ['client', 'gwClass', 'gw', 'route', 'svc', 'podWBox', 'listenerChip', 'hostnamesChip', 'matchChip', 'backendChip', 'requestChip'],
-    pods: ['podW'],
+    keys: ['client', 'gwClass', 'gw', 'route', 'svc', 'grant', 'classChip', 'allowChip', 'acceptChip', 'refsChip', 'proxyBox', 'podWebBox'],
+    pods: ['proxy', 'podWeb'],
   },
 };
 
-// The four field chips restate fields of objects the card draws from its first frame, and the
-// Gateway sublabel spells the listener already, so they are constants every step states.
-const SPEC = { listenerChip: ':443 HTTPS', hostnamesChip: 'shop.io', matchChip: 'PathPrefix /', backendChip: 'Service web:80' };
+// An object that does not exist yet stands at pending: the Gateway and its proxy until `platform`,
+// the route until `rejected`, the grant until `grant`. Every line stays at full on every step, and
+// a grant not yet there says so in its sublabel. Stated on every step, so no shade leaks.
+const stage = (n) => {
+  const gw = n >= 1 ? 1 : OPACITY.pending;
+  return {
+    opacity: {
+      gw, proxy: gw,
+      route: n >= 2 ? 1 : OPACITY.pending,
+      grant: n >= 5 ? 1 : OPACITY.pending,
+    },
+    sublabels: { grant: n >= 5 ? 'HTTPRoute in shop to Service' : 'not created yet' },
+  };
+};
+
+const SEL = 'from: Selector · shop';
+const REJECTED = 'False · NotAllowedByListeners';
+const NOT_PERMITTED = 'False · RefNotPermitted';
+const HTTPS = 'HTTPS shop.io/';
+
+// Both tagged legs ride LEG_DUR 1500 rather than the 700 floor, where a tag is gone before it can be
+// read (M-12, PACING). Each tag shows from departure and dissolves with its ball on arrival (M-30a),
+// over the 212 units of the answer and of the leg to Pod web.
+const LEG_DUR = 1500;
+const podLabel = makeRidingLabel({ role: 'network', easing: 'linear', inMs: 100, outMs: 100, hold: 0 });
+const answerLabel = makeRidingLabel({ role: 'network', easing: 'linear', inMs: 100, outMs: 100, hold: 0 });
+// The Service lights while the proxy is still pulsing, as the lookup that picks the endpoint.
+const LOOKUP_MS = 400;
+// A status condition turns over this long after the change that causes it, so cause reads first.
+const STATUS_MS = 800;
+// The Gateway appears this long after the class is taken, so the two read as two beats.
+const GW_AFTER_CLASS = 400;
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { requestChip: 'none', ...SPEC },
+    ...stage(0),
+    wires: { req: '' },
+    chips: { classChip: 'none', allowChip: 'none', acceptChip: 'none', refsChip: 'none' },
   },
   {
-    id: 'gatewayclass',
-    duration: 2100,
-    narration: 'At the base, a cluster-scoped GatewayClass names in controllerName which controller implementation will serve Gateways of this class, much like a StorageClass names a provisioner. It is installed by the infrastructure provider and rarely touched after that.',
-    chips: { requestChip: 'none', ...SPEC },
-    // Nothing references the class yet, so nothing moves: the block only lights. No flash, by design.
+    id: 'platform',
+    // Motion: the class turns over at 800, the Gateway reveals from 1200 to 1700, the proxy pulse 900.
+    duration: 3600,
+    narration: 'Gateway API is an add-on whose kinds are custom resources. The cluster-scoped GatewayClass example names the controller that implements it in controllerName, and reads Accepted True once that controller takes it. Gateway shared-gw in namespace infra uses that class and declares an HTTPS listener on 443 with its certificate in certificateRefs. Its allowedRoutes keeps the default, from Same, and here the implementation runs a proxy for the Gateway.',
+    ...stage(1),
+    wires: { req: '' },
+    chips: { classChip: 'True', allowChip: 'from: Same', acceptChip: 'none', refsChip: 'none' },
     lit: ['gwClass'],
-  },
-  {
-    id: 'gateway',
-    duration: 2200,
-    narration: 'A Gateway names that class in gatewayClassName and declares the actual listeners: which ports, protocols and TLS the cluster accepts traffic on, here HTTPS on 443. It is owned by the cluster operator, who controls the entry points and, through allowedRoutes on each listener, which namespaces may attach routes to them. What those routes actually match is not the operator decision.',
-    chips: { requestChip: 'none', ...SPEC },
-    lit: ['gw', 'listenerChip'],
-    // The Gateway resolves its class: the ball runs UP the reference wire, and the class lights when
-    // it lands. This is a reconcile-time lookup, not data-plane traffic, which is why it goes up.
+    reducedLit: ['proxyBox'],
+    rewind: { chips: { classChip: 'none', allowChip: 'none' } },
     flow: [
-      F.segment({ from: CLASS_REF[0], to: CLASS_REF[1], lights: ['gwClass'] }),
+      F.set({ delay: STATUS_MS, chips: { classChip: 'True' }, lights: ['classChip'], name: 'taken' }),
+      F.reveal({ target: 'gw', from: OPACITY.pending, at: 'taken', plus: GW_AFTER_CLASS, name: 'made' }),
+      F.reveal({ target: 'proxy', from: OPACITY.pending, at: 'taken', plus: GW_AFTER_CLASS }),
+      F.set({ at: 'made', chips: { allowChip: 'from: Same' }, lights: ['allowChip', 'gw'] }),
+      F.pulse({ pod: 'proxy', at: 'made' }),
     ],
   },
   {
-    id: 'httproute',
-    duration: 2200,
-    narration: 'An HTTPRoute attaches to the Gateway through parentRefs. A top-level hostnames list selects shop.io, and each rule matches on a path, here the default PathPrefix type, then forwards to a backendRef, which is a Service unless another kind is named. The route is owned by the application team, so developers manage their own routing without needing rights on the shared Gateway.',
-    chips: { requestChip: 'none', ...SPEC },
-    // The Gateway it attaches to lights with it: the two are now one parent-child pair, and the three
-    // fields the object owns are hostnames, the path match, and the backendRef.
-    lit: ['gw', 'route', 'hostnamesChip', 'matchChip', 'backendChip'],
-    // The route resolves the backendRef it names, and the Service lights as the ball lands. Nothing
-    // rides the parent wire here: that wire carries requests, and no request exists yet.
+    id: 'rejected',
+    duration: 3000,
+    narration: 'HTTPRoute web is created in namespace shop: parentRefs names shared-gw, and one rule sends shop.io/ to Service web in namespace web. The listener admits routes from infra alone, so the route reads Accepted False, reason NotAllowedByListeners.',
+    ...stage(2),
+    wires: { req: '' },
+    chips: { classChip: 'True', allowChip: 'from: Same', acceptChip: REJECTED, refsChip: 'none' },
+    lit: ['route'],
+    rewind: { chips: { acceptChip: 'none' } },
     flow: [
-      F.segment({ from: BACKEND[0], to: BACKEND[1], lights: ['svc'] }),
+      F.reveal({ target: 'route', from: OPACITY.pending, name: 'made' }),
+      F.set({ at: 'made', plus: STATUS_MS, chips: { acceptChip: REJECTED }, lights: ['acceptChip'] }),
+    ],
+  },
+  {
+    id: 'admitted',
+    duration: 3000,
+    narration: 'Gateway shared-gw is edited: allowedRoutes becomes from Selector, matching namespace shop, and the route turns Accepted True. Its backendRef points into namespace web, where no ReferenceGrant allows it, so ResolvedRefs reads False, reason RefNotPermitted, and the implementation configures no backend for the rule.',
+    ...stage(3),
+    wires: { req: '' },
+    chips: { classChip: 'True', allowChip: SEL, acceptChip: 'True', refsChip: NOT_PERMITTED },
+    lit: ['gw'],
+    // Cause, then its two consequences, a STATUS_MS apart: the edit, the admission, the refused ref.
+    rewind: { chips: { allowChip: 'from: Same', acceptChip: REJECTED, refsChip: 'none' } },
+    flow: [
+      F.set({ delay: BEAT.afterHop, chips: { allowChip: SEL }, lights: ['allowChip'], name: 'edit' }),
+      F.set({ at: 'edit', plus: STATUS_MS, chips: { acceptChip: 'True' }, lights: ['acceptChip'], name: 'ok' }),
+      F.set({ at: 'ok', plus: STATUS_MS, chips: { refsChip: NOT_PERMITTED }, lights: ['refsChip'] }),
+    ],
+  },
+  {
+    id: 'refused',
+    // Motion: lead 800, the request 700, the proxy pulse, the answer leaves at 2300 and rides
+    // LEG_DUR to 3800.
+    duration: 4800,
+    narration: 'A client sends HTTPS for shop.io/ to the Gateway address. The proxy terminates TLS and matches the accepted rule, but the only backendRef of that rule is invalid and the rule has no filters, so the request must get HTTP 500 instead of being forwarded.',
+    ...stage(4),
+    wires: { req: HTTPS },
+    chips: { classChip: 'True', allowChip: SEL, acceptChip: 'True', refsChip: NOT_PERMITTED },
+    lit: ['client'],
+    reducedLit: ['proxyBox'],
+    flow: [
+      F.segment({ from: REQ[0], to: REQ[1], delay: BEAT.lead, name: 'inb' }),
+      F.pulse({ pod: 'proxy', at: 'inb' }),
+      F.segment({ from: ANSWER[0], to: ANSWER[1], at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, lights: ['client'] }),
+      F.tag({ fn: answerLabel, text: 'HTTP 500', points: ANSWER, at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, dy: 18, easing: 'linear' }),
+    ],
+  },
+  {
+    id: 'grant',
+    duration: 3000,
+    narration: 'ReferenceGrant from-shop is created in namespace web, allowing HTTPRoutes in namespace shop to reference its Services. The backendRef resolves and ResolvedRefs turns True, so the rule now has a backend: Service web, which selects Pod web.',
+    ...stage(5),
+    wires: { req: '' },
+    chips: { classChip: 'True', allowChip: SEL, acceptChip: 'True', refsChip: 'True' },
+    lit: ['grant'],
+    rewind: { chips: { refsChip: NOT_PERMITTED } },
+    flow: [
+      F.reveal({ target: 'grant', from: OPACITY.pending, name: 'made' }),
+      F.set({ at: 'made', plus: STATUS_MS, chips: { refsChip: 'True' }, lights: ['refsChip', 'svc'] }),
     ],
   },
   {
     id: 'request',
-    // Four 700ms hops chained on BEAT.afterHop land the ball at 3100, and the Pod pulse (900) ends at
-    // 4000. The floor leaves a settle rather than snapping straight on to the next step.
-    duration: 4400,
-    narration: 'With all three objects in place a live request finally has a path. A client hits the Gateway listener, the Gateway matches the request against the HTTPRoute rule and follows the backendRef to the Service. The Service then resolves to a Ready endpoint read from the EndpointSlice. A backendRef in another namespace would need a ReferenceGrant, while a route from another namespace is admitted by the listener allowedRoutes instead.',
-    chips: { requestChip: 'GET shop.io/', ...SPEC },
-    wires: { entry: 'GET shop.io/', pod: 'Ready endpoint' },
-    // The whole chain is what serves this request, so every field the controller consults lights:
-    // the listener it arrived on, the hostname and path it matched, and the backend it resolved to.
-    lit: ['client', 'requestChip', 'listenerChip', 'hostnamesChip', 'matchChip', 'backendChip'],
-    // The animated path says the Pod was served by PULSING it, which no lights list can name.
-    reducedLit: ['podWBox'],
-    // Down-arrow the whole way: the Client is infrastructure and only lights, each block receives on
-    // arrival, and the ball re-emerges at the far edge of a block instead of sliding over it.
+    // Motion: lead 800, the request 700, the proxy pulse, the leg at LEG_DUR from 2300, the Pod
+    // pulse 900: 4700.
+    duration: 5500,
+    narration: 'The same request now matches Host and path against a configuration built from the Gateway and the HTTPRoute, and the rule has a backend. An implementation may send it to the Service IP or to the backing EndpointSlices, and here the proxy forwards straight to Pod web at 10.244.1.5.',
+    ...stage(6),
+    wires: { req: HTTPS },
+    chips: { classChip: 'True', allowChip: SEL, acceptChip: 'True', refsChip: 'True' },
+    lit: ['client'],
+    reducedLit: ['proxyBox', 'podWebBox'],
     flow: [
-      F.segment({ from: ENTRY[0], to: ENTRY[1], name: 'inb', lights: ['gw'] }),
-      F.segment({ from: CONSULT[0], to: CONSULT[1], after: 'inb', name: 'consult', lights: ['route'] }),
-      F.segment({ from: BACKEND[0], to: BACKEND[1], after: 'consult', name: 'toSvc', lights: ['svc'] }),
-      F.segment({ from: DELIVER[0], to: DELIVER[1], after: 'toSvc', name: 'toPod' }),
-      F.pulse({ pod: 'podW', at: 'toPod' }),
+      F.segment({ from: REQ[0], to: REQ[1], delay: BEAT.lead, name: 'inb' }),
+      F.pulse({ pod: 'proxy', at: 'inb' }),
+      F.light({ targets: ['svc'], at: 'inb', plus: LOOKUP_MS }),
+      F.segment({ from: TO_POD[0], to: TO_POD[1], at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, name: 'toPod' }),
+      F.tag({ fn: podLabel, text: `to ${WEB_IP}`, points: TO_POD, at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, easing: 'linear' }),
+      F.pulse({ pod: 'podWeb', at: 'toPod' }),
     ],
   },
 ];

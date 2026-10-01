@@ -86,7 +86,7 @@
 //     under it spans it end to end, so a route running down a spine and then out along a tap is
 //     ASSEMBLED even though three different parts drew what it rides. That union is not optional:
 //     reading one drawn segment at a time called four routes UNDRAWN that run down a spine straight
-//     into a tap, on `workloads-pod-qos-classes` and `workloads-statefulset-ordered-startup`, which
+//     into a tap, on `workloads-pod-qos-classes` and `workloads-statefulset-ordered-rollout`, which
 //     is a loud false finding in the tier that matters most.
 //   - OPACITY, AND THEREFORE WHETHER THE WIRE IS ON SCREEN AT ALL. A lane pinned at opacity 0 for
 //     every step counts as drawn here, and a ball riding a lane on a step where that lane is hidden
@@ -103,8 +103,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
+import { carriedBlock, shapeProblems, staleKeys } from '../fixtures/carried.mjs';
 import { importAll, stepTotal } from '../fixtures/module.mjs';
-import { walkParts } from '../fixtures/spec.mjs';
 
 // The recorded walk. Assertions, not notes: see the header.
 
@@ -141,7 +141,7 @@ const cardsOf = (rows) => new Set(rows.map(r => r.card)).size;
 
 // The walk itself now lives in ../fixtures/lane-traffic.mjs, shared with the gate file that
 // asserts the two tiers whose queues are empty. See that file's header for why.
-import { A05_CARRIED, readCard, tierOf, segTierOf, key, segsOf, covered, TIERS, DRAWN_KINDS, LANE_KIND, EPS } from '../fixtures/lane-traffic.mjs';
+import { A05_CARRIED, readCard, tierOf, segTierOf, key, segsOf, covered, TIERS, DRAWN_KINDS } from '../fixtures/lane-traffic.mjs';
 // The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
 // what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_CARDS = (await cards()).length;
@@ -329,9 +329,10 @@ test('A-05, a drawn lane nothing rides (report only, census is the assertion)', 
       (r.on ? `   (${r.on} of ${r.of} segments do carry something)` : '') +
       (r.raws || r.tunes ? `   [${r.raws} raw, ${r.tunes} tune on this card]` : ''));
   }
-  for (const r of held) out.push(`   CARRIED  ${r.carryKey}\n      WHY ${r.why}`);
-  const stale = [...A05_CARRIED.keys()].filter(k => ![...traversed, ...dead].some(r => r.carryKey === k));
-  if (stale.length) out.push(`   carried entries no longer reported (stale, remove them): ${stale.join(' | ')}`);
+  // One shape for a carried row across every report file: ../fixtures/carried.mjs owns it.
+  const stale = staleKeys('A-05', [...traversed, ...dead].map(r => r.carryKey));
+  for (const l of carriedBlock('A-05', held.map(r => ({ key: r.carryKey, why: r.why })), stale)) out.push(l);
+  for (const b of shapeProblems('A-05', new Set(catalogued.map(c => c.id)))) out.push(`   BROKEN RULING  ${b}`);
   out.push('   A-05 is about the ARROWHEAD: the repair it names is relationPath, not deleting the line.');
   out.push('   NET.A-03 says a fan leg nothing rides is correct, so most of the carried table is that.');
 

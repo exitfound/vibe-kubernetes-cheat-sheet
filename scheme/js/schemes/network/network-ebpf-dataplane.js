@@ -1,24 +1,27 @@
 import { P, F, defineCard, makeRidingLabel, BEAT, OPACITY } from './network-kit.js';
 
-// Design notes for this card: ./CARDS.md#network-ebpf-dataplane
+// Design notes for this card: ./CARDS/network-ebpf-dataplane.md
 
 
 // The composition spans CONTENT_L..CONTENT_R so it centres on 600. Panel right <= 397, bottom <= 205,
-// and every block sits clear of it.
+// and every block sits clear of it. The client Pod holds the left margin and the backend column the
+// right, so the three chips are one even row across the span. Stopping the backend at 1030 instead
+// leaves the whole card 50 units left of centre.
 const CONTENT_L = 70, CONTENT_R = 1130;
 const FLOW_Y = 312;                    // client <-> eBPF program lane
 const CLIENT_X = CONTENT_L, CLIENT_W = 200;
 const CLIENT_RIGHT = CLIENT_X + CLIENT_W;   // 270
-const HOOK_X = 440, HOOK_W = 220;      // eBPF program box
-const HOOK_Y = 276, HOOK_H = 72;
-const HOOK_RIGHT = HOOK_X + HOOK_W;    // 660: fan origin
+const HOOK_X = 440, HOOK_W = 232;      // eBPF program box, the catalog actor width
+const HOOK_H = 80;                     // and the catalog actor height, matching `network-model` Kubelet
+const HOOK_Y = FLOW_Y - HOOK_H / 2;    // 272: the box stays centred on the lane it answers
+const HOOK_RIGHT = HOOK_X + HOOK_W;    // 672: fan origin
 const POD_W = 210, POD_H = 114;
 const POD_X = CONTENT_R - POD_W;       // 920: backend Pod left edge
-const FAN_X = (HOOK_RIGHT + POD_X) / 2;// 790: fan turn, exactly midway between the program and the Pods
+const FAN_X = (HOOK_RIGHT + POD_X) / 2;// 796: fan turn, exactly midway between the program and the Pods
 const PODX_Y = 182;                    // chosen backend centre (symmetric about FLOW_Y)
 const PODY_Y = 442;                    // alternative backend centre (symmetric about FLOW_Y)
-const MAP_Y = 120, MAP_H = 72;         // BPF maps box, directly above the program
-const LOOKUP_X = HOOK_X + 110;         // 550: the map-lookup link, on its own vertical
+const MAP_Y = 120, MAP_H = 80;         // BPF maps box, directly above the program, same actor size
+const LOOKUP_X = HOOK_X + HOOK_W / 2;  // 556: the map-lookup link, on the shared centre line
 const DELIVER_DUR = 1200;              // slowed so the riding src-IP tag stays readable
 const CLIENT_IP = 'src 10.244.1.5';
 
@@ -69,15 +72,19 @@ export const SCENE = {
       label: 'Pod web', sublabel: '10.244.3.9:8080',
       inner: { dx: 20, dy: 34, w: POD_W - 40, h: 52, label: 'app', sublabel: 'eth0' },
     }),
-    // Five dim dashed wires, labels filled per step: connect, the map lookup pair, and the fan to
-    // the two backends. All five carry `role: ''` to keep the dim arrowhead, not the cyan one.
-    P.arrow({ from: CONNECT[0], to: CONNECT[1], dashed: true, dim: true, role: '' }),
-    P.arrow({ from: LOOKUP[0], to: LOOKUP[1], dashed: true, dim: true, role: '' }),
-    P.arrow({ from: LOOKUP_BACK[0], to: LOOKUP_BACK[1], dashed: true, dim: true, role: '' }),
-    P.lane({ points: TO_PODX, dashed: true, dim: true, role: '' }),
-    P.lane({ points: TO_PODY, dashed: true, dim: true, role: '' }),
-    // No connect-wire label: the connect target (ClusterIP) now lives on the client socket box.
-    P.wire({ key: 'lookup', x: LOOKUP_X + 15, y: 238, anchor: 'start' }),
+    // Five cyan dashed route wires, labels filled per step: connect, the map lookup pair, and the fan
+    // to the two backends. All five are traffic paths, so all five take the kit role and its cyan
+    // arrowhead, and `dim` is the resting stroke WEIGHT a ball rides over. The second fan leg is the
+    // backend the lookup did not pick, drawn so the choice reads as a choice (NET.A-03).
+    P.arrow({ from: CONNECT[0], to: CONNECT[1], dashed: true, dim: true }),
+    P.arrow({ from: LOOKUP[0], to: LOOKUP[1], dashed: true, dim: true }),
+    P.arrow({ from: LOOKUP_BACK[0], to: LOOKUP_BACK[1], dashed: true, dim: true }),
+    P.lane({ points: TO_PODX, dashed: true, dim: true }),
+    P.lane({ points: TO_PODY, dashed: true, dim: true }),
+    // No connect-wire label: the connect target (ClusterIP) is drawn on the client socket box.
+    // Offset past the RIGHT lane of the pair, not past LOOKUP_X: 15 from the centre line puts the
+    // first glyph 3 units off the return lane and under the ball riding it.
+    P.wire({ key: 'lookup', x: LOOKUP_X + LOOKUP_DX + 15, y: 238, anchor: 'start' }),
     P.wire({ key: 'deliver', x: (HOOK_RIGHT + FAN_X) / 2, y: FLOW_Y + 20 }),
     // Info chips: three equal widths spanning the diagram content exactly, from the client left edge
     // to the backend Pod right edge, so the strip lines up with the blocks above it.
@@ -106,7 +113,7 @@ export const STEPS_SPEC = [
   {
     id: 'attach',
     duration: 2300,
-    narration: 'Instead of installing iptables rules, the CNI agent attaches small eBPF programs directly to kernel hooks, at the socket layer and on the network interfaces. There are no Service rule chains to traverse at all.',
+    narration: 'Instead of installing iptables rules, the CNI agent attaches small eBPF programs directly to kernel hooks, at the socket layer and on the network interfaces. A connection that takes this path traverses no Service rule chain.',
     chips: { svcChip: 'pending', modeChip: 'per-packet DNAT', kpChip: 'present' },
     opacity: { w2: 1 },
     lit: ['hook'],
@@ -132,7 +139,11 @@ export const STEPS_SPEC = [
     chips: { svcChip: MAP_HIT, modeChip: 'connect-time', kpChip: 'present' },
     wires: { lookup: 'map lookup' },
     opacity: { w2: 1 },
-    lit: ['modeChip'],
+    lit: [],
+    // The mode is what the RETURNED address makes true, so the chip is wound back to the old world
+    // and turns over on that arrival: lit at entry it stated the payoff 3100ms before the picture
+    // drew it (P-03).
+    rewind: { chips: { modeChip: 'per-packet DNAT' } },
     // Up-arrow: the client pulses first, the connect call reaches the socket hook, which lights on
     // arrival. The map lights a beat later, as the program looks the address up.
     flow: [
@@ -141,13 +152,15 @@ export const STEPS_SPEC = [
       // The lookup the sentence names: question up to the map, the map lights when it lands, address
       // back down the paired lane. The rewrite the sentence ends on happens once it is back.
       F.segment({ from: LOOKUP[0], to: LOOKUP[1], after: 'send', name: 'ask', lights: ['bpfmap'] }),
-      F.segment({ from: LOOKUP_BACK[0], to: LOOKUP_BACK[1], after: 'ask' }),
+      F.segment({ from: LOOKUP_BACK[0], to: LOOKUP_BACK[1], after: 'ask', name: 'answer' }),
+      F.set({ chips: { modeChip: 'connect-time' }, at: 'answer' }),
+      F.light({ targets: ['modeChip'], at: 'answer' }),
     ],
   },
   {
     id: 'deliver',
     duration: 2500,
-    narration: 'The connection then goes straight to the Pod address, 10.244.2.7, and the client source IP arrives unchanged because nothing was NATed. The destination was chosen at the socket, so this in-cluster connection needs no connection-tracking reversal on the way back.',
+    narration: 'The connection then goes straight to the Pod address, 10.244.2.7, carrying the client source IP unchanged. Because the socket was already connected to that backend, the packet needs no DNAT on the way out and no connection-tracking reversal on the way back.',
     chips: { svcChip: MAP_HIT, modeChip: 'connect-time', kpChip: 'present' },
     wires: { deliver: 'to .2.7' },
     opacity: { w2: OPACITY.notready },
@@ -165,7 +178,7 @@ export const STEPS_SPEC = [
   {
     id: 'no-kube-proxy',
     duration: 2400,
-    narration: 'Because the whole dataplane is eBPF programs plus maps, kube-proxy and its iptables chains can be removed entirely. Lookups stay constant-time as the cluster grows to thousands of Services, which is the main reason large clusters adopt this mode.',
+    narration: 'Because the whole dataplane is eBPF programs plus maps, kube-proxy and its iptables chains can be removed entirely, which Cilium and Calico both offer in eBPF mode. Lookups stay constant-time as the cluster grows to thousands of Services.',
     chips: { svcChip: MAP_HIT, modeChip: 'connect-time', kpChip: 'not needed' },
     opacity: { w2: 1 },
     lit: ['hook', 'bpfmap', 'kpChip'],

@@ -282,7 +282,7 @@ describe('kit parity', () => {
       else {
         const tint = ns[tintKey];
         if (!Object.isFrozen(tint)) findings.push(`${cat}: ${tintKey} is not frozen`);
-        for (const k of ['base', 'bright']) {
+        for (const k of ['bright']) {
           if (typeof tint?.[k] !== 'string') findings.push(`${cat}: ${tintKey}.${k} is ${typeof tint?.[k]}, expected a colour string`);
         }
       }

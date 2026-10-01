@@ -1,14 +1,18 @@
 import { P, F, defineCard, ladder, laneY, midX, strip, WL, LAYOUT } from './workloads-kit.js';
 import { box } from '../../lib/primitives.js';
 
-// Design notes for this card: ./CARDS.md#workloads-init-containers-and-sidecars
+// Design notes for this card: ./CARDS/workloads-init-containers-and-sidecars.md
 
-// Layout B of the Workloads canon (WL): chips left, pipeline right, spine into the Pod.
-// Panel worst case x<=397, y<=255; a longer narration invalidates that measurement.
-const PANEL_B = 255;
-const TOP1_X = 420, TOP1_W = 220;
-const TOP_GAP = 60;
-const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = 220;
+// Layout B of the Workloads canon (WL): chips left, pipeline right, spine into the Node.
+// Panel worst case x<=396.5, y<=254.7 over the three viewports, and the chip column below is what
+// spends that clearance. A longer narration invalidates the measurement.
+
+// Both actor boxes take the 232 that workloads-pod-startup-conditions draws its pair at, and the
+// same arrangement: the Kubelet centred on CX, which is what WL.L-07 needs for a straight spine,
+// and the Runtime right-aligned on WL.R. extents.mjs at 1100x800 reads `container orchestrator` at
+// 135 and `containerd · CRI` at 98.2, so 232 leaves 48.5 and 66.9 a side.
+const TOP1_W = 232, TOP1_X = WL.CX - TOP1_W / 2;         // 484..716, centred on CX for the spine
+const TOP2_W = 232, TOP2_X = WL.R - TOP2_W;              // 908..1140, right edge on WL.R
 const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
 const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
 const WIRE_X = midX(TOP1_X + TOP1_W, TOP2_X);
@@ -19,14 +23,18 @@ const WIRE_Y = WL.TOP_Y - 12;                            // above the actor row,
 const LAD_X = LAYOUT.B.ladder.x, LAD_W = LAYOUT.B.ladder.w;    // 660..1140, the pipeline
 const LAD_Y = 160;                                       // 5 rows -> 160..360
 
-// Chips as a column in the left band, which only opens below the panel.
-const CHIP_GAP = 8;
-const CHIPS_TOP = PANEL_B + 20;                          // 275
-const CHIP_X = LAYOUT.B.chips.x, CHIP_W = LAYOUT.B.chips.w;    // 60..540
-const CHIP_Y = ladder({ y: CHIPS_TOP, rowH: WL.CHIP_H, gap: CHIP_GAP });   // 275..435
-
 const NODE_H = 140, CANVAS_B = 624;
 const NODE_Y = CANVAS_B - NODE_H;                        // 484..624, the frame rests on the floor
+
+// Chips as a column in the left band, BOTTOM-anchored 20 over the Node frame rather than 20 under
+// the panel. Every chip names a container drawn inside that frame, so the column reads as a caption
+// on the Pod below it instead of a band floating mid-canvas. 4 x 34 + 3 x 8 = 160 tall, and the 304
+// top clears the 254.7 panel bottom by 49.3.
+const CHIP_GAP = 8;
+const CHIPS_H = 4 * WL.CHIP_H + 3 * CHIP_GAP;            // 160
+const CHIPS_TOP = NODE_Y - 20 - CHIPS_H;                 // 304
+const CHIP_X = LAYOUT.B.chips.x, CHIP_W = LAYOUT.B.chips.w;    // 60..540
+const CHIP_Y = ladder({ y: CHIPS_TOP, rowH: WL.CHIP_H, gap: CHIP_GAP });   // 304..464
 
 // Pod shell and its four containers, solved once so the row stays centred in the Node frame.
 const POD_W = 828, POD_H = 106;
@@ -38,11 +46,10 @@ const C_PAD = 10, C_GAP = 16, C_H = 52;
 const CONT = strip({ from: POD_X + C_PAD, to: POD_X + POD_W - C_PAD, count: 4, gap: C_GAP });
 const C_Y = POD_Y + 28;                                     // the family inner-box offset
 
-// The spine steps into the central corridor between the two columns and reaches the Pod itself,
-// not the frame edge above it.
-const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
-const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
-const SPINE = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, POD_Y]];
+// WL.A-03: one straight drop down the 540..660 corridor, from the Kubelet bottom midpoint to the
+// Node frame TOP FACE. It stops on the outline rather than reaching through it to the Pod, which is
+// what draws the Kubelet acting on the Node instead of piercing it.
+const SPINE = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, NODE_Y]];
 
 // Z-order: the two top lanes, the wire label and the chip column, then the spine and the packet
 // layer, then chain / Node / Pod / actor row above the ball.
@@ -60,7 +67,7 @@ export const SCENE = {
     P.chip({ key: 'migrateChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'migrate-schema', value: 'Waiting' }),
     P.chip({ key: 'sidecarChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'sidecar', value: 'Waiting' }),
     P.chip({ key: 'mainChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'main', value: 'Waiting' }),
-    // Connector from the Kubelet box into the Pod, down the central corridor.
+    // Connector from the Kubelet box to the Node frame face, straight down the central corridor.
     P.lane({ key: 'connector', points: SPINE, dim: true, dashed: true, role: 'cluster' }),
     P.packets(),
     // Everything below is appended AFTER the packet layer, so the ball runs under it.
@@ -71,7 +78,7 @@ export const SCENE = {
         '2. migrate-schema ·  next init, after #1 succeeds',
         '3. sidecar        ·  Always-restart initC, gates main',
         '4. main           ·  starts when sidecar reports Started',
-        '5. running        ·  sidecar + main in parallel until term',
+        '5. running        ·  sidecar + main in parallel until termination',
       ],
     }),
     P.node({ key: 'nodeEl', x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' }),
@@ -91,7 +98,7 @@ export const SCENE = {
       },
     }),
     P.box({ key: 'runtime', x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'Runtime', sublabel: 'containerd · CRI', role: 'cluster' }),
-    P.box({ key: 'kubelet', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'container orchestrator', role: 'cluster' }),
+    P.box({ key: 'kubelet', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'sequences the init list', role: 'cluster' }),
   ],
   reset: {
     keys: ['kubelet', 'runtime', 'waitDbChip', 'migrateChip', 'sidecarChip', 'mainChip',
@@ -114,7 +121,7 @@ export const STEPS_SPEC = [
   {
     id: 'wait-for-db',
     duration: 2600,
-    narration: 'Kubelet asks the runtime to Create and Start wait-for-db via CRI. Init containers run strictly sequentially: each one must exit with code 0 before the next can start. A non-zero exit keeps the Pod in Init:0/3 with a Kubelet restart-backoff (respecting Pod.spec.restartPolicy).',
+    narration: 'Kubelet asks the runtime to Create and Start wait-for-db via CRI. Init containers run strictly sequentially: a regular one must exit with code 0 before the next can start. A non-zero exit keeps the Pod in Init:0/3 with a Kubelet restart-backoff (respecting Pod.spec.restartPolicy).',
     chips: { waitDbChip: RUNNING, migrateChip: WAITING, sidecarChip: WAITING, mainChip: WAITING },
     wires: { req: 'CreateContainer · StartContainer · wait-for-db' },
     lit: ['kubelet', 'waitDbChip'],
@@ -147,7 +154,7 @@ export const STEPS_SPEC = [
     // Motion: the runtime's report comes back (700), then StartContainer goes out and the
     // container lands on the node, ending at 3162.
     duration: 3400,
-    narration: 'Both regular init containers exited 0. The sidecar (declared as an initContainer with restartPolicy=Always since 1.29) is started next, allowed to run for the full lifetime of the Pod. Once it reports Started (its startupProbe succeeded, or immediately if no probe is set), Kubelet treats the bootstrap phase as complete and unblocks the main container.',
+    narration: 'Both regular init containers exited 0. The sidecar (declared as an initContainer with restartPolicy=Always, beta in 1.29 and GA in 1.33) is started next, allowed to run for the full lifetime of the Pod. Once it reports Started (its startupProbe succeeded, or a running process where no probe is set), Kubelet starts the next entry in the init list, which here is the main container.',
     chips: { waitDbChip: DONE, migrateChip: DONE, sidecarChip: 'Started', mainChip: WAITING },
     wires: { req: 'migrate-schema exit 0 · StartContainer · sidecar' },
     // Kubelet RECEIVES the exit report before it sends the next call, so it is dark at entry: R3
@@ -183,8 +190,12 @@ export const STEPS_SPEC = [
   },
   {
     id: 'running',
-    duration: 2000,
-    narration: 'Pod is Running. The sidecar handles cross-cutting concerns (proxy, log shipping, credential rotation) alongside main. Kubelet restarts the sidecar independently if it crashes (because restartPolicy=Always on the init slot). On Pod termination the order reverses: regular containers terminate first, then sidecars, so cleanup paths can still talk through the proxy.',
+    // 269 characters over the shortest motion on the card, a 900ms pulse, so 2700 is the catalog
+    // reading pace of 10 ms per character and 1800ms of it is still dead air (M-19a). The three
+    // steps above hold 3400 because their SPAN is 2969 and M-19 gives them no choice, so matching
+    // them here would buy rhythm with 2500ms in which nothing moves and nothing is left to read.
+    duration: 2700,
+    narration: 'Pod is Running. The sidecar handles cross-cutting concerns (proxy, log shipping, credential rotation) alongside main. Kubelet restarts the sidecar independently if it crashes (because restartPolicy=Always on the init slot). On Pod termination that order runs backwards.',
     chips: { waitDbChip: DONE, migrateChip: DONE, sidecarChip: RUNNING, mainChip: RUNNING },
     wires: { req: 'Pod Running · sidecar + main in parallel' },
     lit: ['sidecarChip', 'mainChip', 'containerSidecar', 'containerMain'],

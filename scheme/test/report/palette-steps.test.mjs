@@ -27,11 +27,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards } from '../fixtures/catalog.mjs';
-import { PAINTED, classify, probePaint } from '../fixtures/palette.mjs';
-import {
-  DEFAULT_BASE, launch, initPage, discoverIds, openCard, stepCount, gotoStep, enterStep,
-} from '../fixtures/render.mjs';
+import { cards, SUBSET } from '../fixtures/catalog.mjs';
+import { classify } from '../fixtures/palette.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
 
 // The numbers render/palette.test.mjs asserts, restated here so the delta is readable without
 // running the other file. If these two ever disagree, the mandatory test is the truth.
@@ -73,34 +71,32 @@ test('palette across every step (report only, never fails)', async () => {
   const union = makeScope('union');
 
   const notes = [];
-  let browser;
   let sampledCards = 0;
   let steps = 0;
   let playedSteps = 0;
 
   try {
-    browser = await launch();
-    // Same environment as the mandatory test: reducedMotion so a pulse mid-flight is not read back
-    // as a resting stroke. The played pass overrides it per step through enterStep's reduced:false,
-    // which is the same route smoke.test.mjs takes.
-    const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, reducedMotion: 'reduce' });
-    const page = await context.newPage();
-    await page.addInitScript(initPage, 'expose');
-    const ids = await discoverIds(page, DEFAULT_BASE);
+    // THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` takes all three readings in its
+    // reduced-motion pass, in the same environment this file set and for the reason it gave:
+    // reducedMotion so a pulse mid-flight is not read back as a resting stroke, with the played
+    // rows overriding it per step through enterStep's reduced:false. render/palette reads the
+    // `open` row of the same pass, which is what made the two files one walk.
+    const snap = readSnapshot();
+    const ids = snap.ids;
 
     for (const id of ids) {
       try {
-        await openCard(page, id);
-        const atOpen = await page.evaluate(probePaint, PAINTED);
+        const card = snap.cards[id];
+        if (card.paintError) { notes.push(`${id}: ${card.paintError}`); continue; }
+        const atOpen = card.paint && card.paint.open;
         if (!atOpen) { notes.push(`${id}: no diagram`); continue; }
         fold(open, id, 'open', atOpen);
         fold(union, id, 'open', atOpen);
 
-        const total = await stepCount(page);
+        const total = card.steps;
 
         for (let i = 0; i < total; i++) {
-          await gotoStep(page, i);
-          const rows = await page.evaluate(probePaint, PAINTED);
+          const rows = card.paint.static[i];
           if (!rows) continue;
           steps++;
           fold(stat, id, `static#${i}`, rows);
@@ -109,8 +105,7 @@ test('palette across every step (report only, never fails)', async () => {
 
         // Step 0 is the static poster and has no play path of its own.
         for (let i = 1; i < total; i++) {
-          await enterStep(page, i);
-          const rows = await page.evaluate(probePaint, PAINTED);
+          const rows = card.paint.played[i];
           if (!rows) continue;
           playedSteps++;
           fold(play, id, `played#${i}`, rows);
@@ -124,8 +119,6 @@ test('palette across every step (report only, never fails)', async () => {
     }
   } catch (err) {
     notes.push(`harness: ${err.message.split('\n')[0]}`);
-  } finally {
-    if (browser) await browser.close();
   }
 
   const conflicts = (scope) => [...scope.tuples.entries()].filter(([, byColour]) => byColour.size > 1);
@@ -136,7 +129,13 @@ test('palette across every step (report only, never fails)', async () => {
   out.push('===== palette across every step, REPORT ONLY =====');
   out.push(`  cards sampled ${sampledCards} of ${catalogued.length} in the catalog`);
   out.push(`  steps walked  ${steps} static, ${playedSteps} played`);
-  if (sampledCards !== catalogued.length) {
+  if (SUBSET) {
+    out.push(`  SUBSET: SCHEME_IDS restricted the walk to ${sampledCards} card(s), so the card census is NOT`);
+    out.push('  asked. The per-combination rows are as true as on a full run, because a tuple is a colour');
+    out.push('  a card actually paints. The TOTALS, the NEW-combination list and the conflict count are');
+    out.push('  only the walked cards: a combination this run calls new may be one a sibling has painted');
+    out.push('  for months. A full run is what says what the catalog holds.');
+  } else if (sampledCards !== catalogued.length) {
     out.push(`  REPORT INCOMPLETE: ${catalogued.length - sampledCards} card(s) were not sampled, the numbers below undercount`);
   }
   out.push('');
@@ -160,8 +159,8 @@ test('palette across every step (report only, never fails)', async () => {
   const bad = conflicts(union);
   // A conflict whose SECOND and later colours come only from played samples is the sampling
   // artefact the original avoided by running under reducedMotion: the kit pulse animates the stroke
-  // from tint.base to tint.bright with fill forwards, enterStep freezes it at its first keyframe, so
-  // a lit element reads back as resting. Separating the two is the difference between a card
+  // from the rect's own stroke to tint.bright, enterStep freezes it at its first keyframe, so a lit
+  // element reads back as resting. Separating the two is the difference between a card
   // finding and a note about this file.
   const playedOnly = bad.filter(([, byColour]) =>
     [...byColour.values()].slice(1).every(sites => sites.every(s => s.includes('@played'))));
@@ -193,9 +192,17 @@ test('palette across every step (report only, never fails)', async () => {
   // a card that threw on every open leaves `notes` full, prints REPORT INCOMPLETE into a page of
   // output nobody has to read, and exits 0. That is the failure the rest of the harness is built
   // against (`S-46`), and it is the one thing a report may go red on.
-  assert.equal(sampledCards, catalogued.length,
-    `sampled ${sampledCards} of ${catalogued.length} card(s). A report that scans nothing reports ` +
-    'nothing, and every number above undercounts by whatever it missed.');
+  //
+  // The card census is NOT ASKED under SCHEME_IDS, and skipped rather than failed: a deliberately
+  // narrowed run is not a run that went wrong, and the rest of the suite says so with `floor()` and
+  // `FULL_ONLY` rather than with a red line. The banner above says what the filtered numbers do and
+  // do not mean. What is NOT skipped is the second assertion: sampling zero steps means this file
+  // measured nothing whatever the walk was narrowed to, and that is the failure named above.
+  if (!SUBSET) {
+    assert.equal(sampledCards, catalogued.length,
+      `sampled ${sampledCards} of ${catalogued.length} card(s). A report that scans nothing reports ` +
+      'nothing, and every number above undercounts by whatever it missed.');
+  }
   assert.ok(steps > 0 && playedSteps > 0,
     `walked ${steps} static and ${playedSteps} played step(s): a run that samples neither has ` +
     'measured no palette at all.');

@@ -135,7 +135,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'proposal',
-    // Sized by the 332 characters below rather than by the 1260ms of motion: 8.13ms per character.
+    // Sized by the 331 characters below rather than by the 1260ms of motion: 8.16ms per character.
     duration: 2700,
     narration: 'The API issues a write for a new Pod, and it should be the only component reaching ETCD at all. Every write is funneled through the Leader so the cluster has a single point that orders all changes. A write that lands on a Follower is not served there but forwarded to the Leader, so a linearizable read never observes a split view.',
     chips: { ...ROLES, l1: '8 / 8', l2: '8 / 8', l3: '8 / 8', termChip: TERM, acksChip: 'idle', quorumChip: QUORUM },
@@ -146,7 +146,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'append-log',
-    // No motion at all, so the hold IS the reading time: 298 characters at 8.05ms each.
+    // No motion at all, so the hold IS the reading time: 312 characters at 7.69ms each.
     duration: 2400,
     narration: 'The Leader appends the write as entry 9 in its own log, right after the 8 entries already stored. For now the entry lives on a single replica and stays uncommitted, so commitIndex is still 8 and the new Pod is invisible to readers. Nothing becomes durable until a majority holds it, and the Leader counts as one.',
     chips: { ...ROLES, l1: '9 / 8', l2: '8 / 8', l3: '8 / 8', termChip: TERM, acksChip: '0 of 2', quorumChip: QUORUM },
@@ -199,18 +199,25 @@ export const STEPS_SPEC = [
   },
   {
     id: 'apply',
-    // Motion: the commitIndex heartbeat to both Followers, the far one over the arc: 2071ms.
+    // Motion: the commitIndex heartbeat to both Followers, the far one over the arc: 2124ms.
     duration: 2500,
     narration: 'On the next heartbeat the Leader carries the new commitIndex to the Followers, signalling that entry 9 is safe to apply. Each Follower applies entry 9 to its state machine, the key-value view that clients actually read from. All three replicas now hold the Pod at index 9, and a linearizable read returns it from any member.',
     chips: { ...ROLES, l1: '9 / 9', l2: '9 / 9', l3: '9 / 9', termChip: TERM, acksChip: '2 of 2', quorumChip: QUORUM_MET },
     wires: { replicate: 'commit index 9 · heartbeat' },
     opacity: LIVE,
     lit: ['e1', 'l1', 'l2', 'l3'],
+    // A Follower commit index is what the heartbeat DELIVERS, so each chip starts on the 9 / 8 the
+    // quorum step left and turns over when that Follower's own packet lands. Same shape as replicate.
+    rewind: { chips: { l2: '9 / 8', l3: '9 / 8' } },
     // Both Followers RECEIVE the heartbeat, so they are dark at step entry and light when it lands:
     // a block that receives must be dark at entry (check-arrival R3). Same two outbound lanes replicate uses.
     flow: [
-      F.segment({ from: E1_TO_E2[0], to: E1_TO_E2[1], lights: ['e2'] }),
-      F.route({ points: REPLICATE, lights: ['e3'] }),
+      F.segment({ from: E1_TO_E2[0], to: E1_TO_E2[1], name: 'toE2', lights: ['e2'] }),
+      F.route({ points: REPLICATE, name: 'toE3', lights: ['e3'] }),
+      // The heartbeat lands at 700 and 1564, so neither commit index stands before the packet
+      // carrying it.
+      F.set({ at: 'toE2', chips: { l2: '9 / 9' } }),
+      F.set({ at: 'toE3', chips: { l3: '9 / 9' } }),
     ],
   },
   {

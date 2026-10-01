@@ -19,6 +19,15 @@
 // Read the census line at the top of the output first. A report that scanned nothing also prints
 // no findings, and that is the only way this file can lie.
 //
+// CARRIED FINDINGS. A row somebody has read and decided to keep is filed in ../fixtures/carried.mjs
+// against its rule, and this file then prints it marked CARRIED with the reason attached, counts it
+// apart from the rows left to work, and keeps it out of the per-card list and the by-category
+// tally. Nothing is hidden: the TOTAL still counts every finding these three rules produced. Every
+// entry here belongs to the `L-16` population, where the rule can only be satisfied by making the
+// picture worse, and the reason on each is the measurement that says so. Two guards come with the
+// store and both print: a ruling with no reason is BROKEN, and a ruling that matched no finding on
+// this walk is stale, which means the card moved under it.
+//
 // VIEWPORTS, and which rule uses which. The standard set is L-06: 1600x1000, 1280x860, 1100x800.
 // Only the narration panel moves with the viewport, and it moves NON-MONOTONICALLY (L-05): the
 // panel is HTML at a fraction of the dialog width while the diagram is an SVG that scales with it,
@@ -60,7 +69,7 @@
 //                   label wider than the rect around it, so the content span does not move at all.
 //   panel bottom    SHORTER by 17.5 units, one text line, on 3 of 6 cards sampled
 //                   (cluster-cascading-deletion 194.9 -> 177.4, network-ipam-pod-cidr 177.4 -> 160,
-//                   workloads-pod-phase-machine 317 -> 299.5). The panel right edge does not move.
+//                   workloads-pod-lifecycle-phases 317 -> 299.5). The panel right edge does not move.
 // So the exposure is entirely on the two rules that read the panel: a run without fonts gets a
 // SHORTER panel, which hides occluded area and moves the line CENTRE-LOW counts blocks below. Both
 // under-report, quietly, at exit 0. That is the shape of the risk L-21 describes, and without the
@@ -74,11 +83,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
+import { carriedBlock, carriedMap, carryKey, shapeProblems, staleKeys } from '../fixtures/carried.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
-import {
-  DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, DIAGRAM_FACES, launch, initPage, discoverIds,
-  openCard, stepCount, gotoStep, fallbackFaces, installGeometryHelpers, overlayProbe,
-} from '../fixtures/render.mjs';
+import { DIAGRAM_FACES } from '../fixtures/render.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
+
+// THE BROWSER IS NOT DRIVEN HERE ANY MORE. Every reading this file asserts over is taken by
+// `tools/walk.mjs`, which opens each card once and hands the same three-viewport walk to this file
+// and to report/overlay.test.mjs. The two used to drive a Chromium each and walk the SAME two extra
+// viewports with the SAME panel probe: 1500 duplicated step probes, 246 duplicated viewport
+// resizes, and 84 of the report tier's 135 seconds. `npm run report` runs the walk first, every
+// time, so nothing here is ever read from a snapshot of a tree that has since changed.
+//
+// What did NOT change: every finding, every threshold, every printed line and the order of all of
+// them. The probe that used to live in this file moved into the walk verbatim.
 
 // Tolerances, carried over from check-geometry.mjs unchanged.
 const TOL = 6;              // chip-strip centre slack, in viewBox units
@@ -103,63 +121,6 @@ const VIEWPORTS = [
 // empty by construction, a lane pair declined), so the two populations OVERLAP and never coincide,
 // and a stale copy in this slot would have a reader comparing the report against a figure nobody
 // recounted. See the closing note the report prints.
-
-// Runs IN THE PAGE. No free variables: page.evaluate serialises it. The root-space mapping it uses
-// is shared with render/geometry.test.mjs and report/arrival.test.mjs (fixtures/render.mjs
-// rootBBox), and reaches the page as window.__toRoot through installGeometryHelpers(). The probe
-// itself stays local: the three files read different halves of one picture.
-const probe = () => {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  if (!svg) return null;
-
-  const toRoot = (el, b) => window.__toRoot(el, svg, b);
-
-  const blocks = [];
-  for (const sel of ['.scheme-box', '.scheme-pod', '.scheme-cylinder', '.scheme-node']) {
-    const isFrame = sel === '.scheme-node';
-    for (const el of svg.querySelectorAll(sel)) {
-      if (el.closest('#packetLayer')) continue;
-      const cs = getComputedStyle(el);
-      if (cs.opacity === '0' || cs.display === 'none') continue;
-      const b = toRoot(el, el.getBBox());
-      const label = (el.querySelector('text') || {}).textContent || sel;
-      blocks.push({ label: label.trim().slice(0, 28), x: b.x, y: b.y, w: b.w, h: b.h, isFrame });
-    }
-  }
-
-  // Content extent, TWICE. `content` is the original's: every block, frames included, which is the
-  // number CENTRE judges. `contentNoFrames` is the same span with frames dropped, the way
-  // CENTRE-LOW counts, and it exists only so the report can show both sides of L-17.
-  let cx0 = Infinity, cx1 = -Infinity, fx0 = Infinity, fx1 = -Infinity;
-  for (const b of blocks) {
-    cx0 = Math.min(cx0, b.x); cx1 = Math.max(cx1, b.x + b.w);
-    if (!b.isFrame) { fx0 = Math.min(fx0, b.x); fx1 = Math.max(fx1, b.x + b.w); }
-  }
-
-  // Chip strip extent. No packet-layer filter and no opacity filter, as in the original: a chip
-  // parked at opacity 0 still holds its slot in the strip.
-  let px0 = Infinity, px1 = -Infinity;
-  for (const el of svg.querySelectorAll('.scheme-chip')) {
-    const b = toRoot(el, el.getBBox());
-    px0 = Math.min(px0, b.x); px1 = Math.max(px1, b.x + b.w);
-  }
-
-  // The panel's REAL extent in viewBox units. The blanket safe-zone (x<=380, y<=300) is a catalog
-  // worst case, so a card is judged against its own panel, mapped through xMidYMid meet.
-  let overlay = null;
-  const ov = document.querySelector('.narration-overlay');
-  if (ov) {
-    const sb = svg.getBoundingClientRect();
-    const ob = ov.getBoundingClientRect();
-    const vb = svg.viewBox.baseVal;
-    const scale = Math.min(sb.width / vb.width, sb.height / vb.height);
-    const offX = sb.left + (sb.width - vb.width * scale) / 2;
-    const offY = sb.top + (sb.height - vb.height * scale) / 2;
-    overlay = { right: (ob.right - offX) / scale + vb.x, bottom: (ob.bottom - offY) / scale + vb.y };
-  }
-
-  return { blocks, content: [cx0, cx1], contentNoFrames: [fx0, fx1], chips: [px0, px1], overlay };
-};
 
 // The extra viewport passes consume ONLY the panel extent (check-geometry.mjs:262-273 pushes
 // nothing else), so they run fixtures/render.mjs overlayProbe instead of the full probe above.
@@ -194,18 +155,6 @@ function centreLow(blockSeen, ovBottom) {
   return { n: low.length, lo, hi, centre: lc };
 }
 
-// One probe, with one retry when the diagram is momentarily absent. Scene.build() empties the host
-// and appends a NEW <svg.diagram>, so a step change has an instant with no diagram in the dialog and
-// a probe landing in it returns null. Measured: without the retry this walk came back one step short
-// of what the mandatory file, doing the same walk, sampled. One unsampled step is one step of a
-// composition nobody looked at, and in a file that never fails it would have gone unnoticed.
-async function probeStep(page) {
-  let data = await page.evaluate(probe);
-  if (data) return data;
-  await page.waitForSelector(DIAGRAM, { timeout: SELECTOR_TIMEOUT_MS });
-  return page.evaluate(probe);
-}
-
 // The step census of a green run of the whole catalog. Printed, never asserted.
 // The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
 // what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
@@ -214,34 +163,59 @@ const EXPECTED_STEPS = await stepTotal();
 const catalogued = await cards();
 const fx = n => Number.isFinite(n) ? n.toFixed(0) : 'n/a';
 
+// GEOMETRY_IDS=a,b restricts the walk to those cards, the way OVERLAY_IDS already restricts the
+// panel report, and for the same workflow: a card whose geometry just moved needs THESE three rules
+// re-read, and paying a full catalog walk to learn about one card is what makes a detail change
+// cost minutes instead of seconds.
+//
+// The three rules are per-card and per-block, so a subset row is as true as a full-run row: unlike
+// the L-04 range next door, nothing here is an extreme over the catalog. What a subset cannot say
+// is anything about the POPULATION, so the totals, the by-category tally and the queue length are
+// announced as a SUBSET rather than left to read as the catalog's.
+//
+// SCHEME_IDS is answered too, for the reviewer who set it for the gate and would otherwise get a
+// full walk they did not ask for. GEOMETRY_IDS wins where both are set, being the narrower name.
+const ONLY_VAR = process.env.GEOMETRY_IDS ? 'GEOMETRY_IDS' : 'SCHEME_IDS';
+const ONLY = (process.env.GEOMETRY_IDS || process.env.SCHEME_IDS || '')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
 test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails)', async () => {
   const findings = { CENTRE: [], 'CENTRE-LOW': [], OCCLUDED: [] };
+  // The rulings a person has read and kept, one axis view per rule. See ../fixtures/carried.mjs.
+  const CARRIED = { CENTRE: carriedMap('CENTRE'), 'CENTRE-LOW': carriedMap('CENTRE-LOW'), OCCLUDED: carriedMap('OCCLUDED') };
   const perCard = new Map();
   const lowDelta = [];          // what a worst-of-three panel bottom would add or drop
   const fellBack = new Set();
   const notes = [];
-  let browser;
   let sampledCards = 0, steps = 0, extraSteps = 0;
 
-  const record = (rule, id, line) => {
-    findings[rule].push({ id, line });
+  // `where` pins the exact row a ruling in ../fixtures/carried.mjs carries. CENTRE and CENTRE-LOW
+  // fire at most once per card, so their key is the card id alone; OCCLUDED fires once per block,
+  // so it takes the block label. A carried row is kept in `findings` (it still prints, marked
+  // CARRIED) and out of `perCard`, which is the list of what is left to work.
+  const record = (rule, id, line, where = []) => {
+    const carry = carryKey(id, where);
+    const why = CARRIED[rule].get(carry);
+    findings[rule].push({ id, line, carryKey: carry, why });
+    if (why) return;
     if (!perCard.has(id)) perCard.set(id, []);
     perCard.get(id).push(`${rule.padEnd(10)} ${line}`);
   };
 
   try {
-    browser = await launch();
-    const context = await browser.newContext({ viewport: VIEWPORTS[0] });
-    const page = await context.newPage();
-    await page.addInitScript(initPage, 'expose');
-    await installGeometryHelpers(page);
-    const ids = await discoverIds(page, DEFAULT_BASE);
+    const snap = readSnapshot();
+    const all = snap.ids;
+    const ids = ONLY.length ? all.filter(i => ONLY.includes(i)) : all;
+    for (const want of ONLY) {
+      if (!all.includes(want)) notes.push(`${ONLY_VAR} names ${want}, which the grid does not render`);
+    }
+    const vp0 = `${VIEWPORTS[0].width}x${VIEWPORTS[0].height}`;
 
     for (const id of ids) {
       try {
-        await openCard(page, id);
-        for (const f of await fallbackFaces(page)) fellBack.add(f);
-        const total = await stepCount(page);
+        const card = snap.cards[id];
+        for (const f of card.fellBack) fellBack.add(f);
+        const total = card.steps;
         if (!total) { notes.push(`${id}: stepCount 0, nothing walked`); continue; }
 
         // Pooled over every step: a block that only appears mid-story still has to sit where it
@@ -252,8 +226,11 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
         let ovRight = 0, ovBottom = 0;
 
         for (let i = 0; i < total; i++) {
-          await gotoStep(page, i);
-          const data = await probeStep(page);
+          const row = card.byVp[vp0][i];
+          // The walk stores the two panel readings apart: `panelSoft` is the two-edge one this file
+          // has always used, under this file's guards. `panel` is the shared four-edge probe
+          // report/overlay.test.mjs reads. Neither consumer's behaviour moved.
+          const data = row.geom && { ...row.geom, overlay: row.panelSoft };
           if (!data) { notes.push(`${id}: step ${i} had no diagram, not sampled`); continue; }
           steps++;
           for (const b of data.blocks) {
@@ -272,16 +249,12 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
           strip[0] = Math.min(strip[0], data.chips[0]); strip[1] = Math.max(strip[1], data.chips[1]);
         }
 
-        // OCCLUDED's extra viewports. Panel only.
+        // OCCLUDED's extra viewports. Panel only, and the same rows report/overlay.test.mjs reads.
         for (const vp of VIEWPORTS.slice(1)) {
-          await page.setViewportSize(vp);
-          for (let i = 0; i < total; i++) {
-            await gotoStep(page, i);
-            const o = await page.evaluate(overlayProbe);
-            if (o) { ovRects.push(o); extraSteps++; }
+          for (const row of card.byVp[`${vp.width}x${vp.height}`]) {
+            if (row.panel) { ovRects.push(row.panel); extraSteps++; }
           }
         }
-        await page.setViewportSize(VIEWPORTS[0]);
 
         // CENTRE. Both readings printed, the original's judged. A card with no chips leaves the
         // strip at [Infinity, -Infinity] and its centre is NaN, so the comparison is false and no
@@ -327,7 +300,7 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
               record('OCCLUDED', id,
                 `"${b.label}" [${fx(b.x)}..${fx(b.x + b.w)} x ${fx(b.y)}..${fx(b.y + b.h)}] is ` +
                 `${(100 * worst).toFixed(0)}% under the narration panel at its worst ` +
-                `(x<=${fx(at.right)}, y<=${fx(at.bottom)})`);
+                `(x<=${fx(at.right)}, y<=${fx(at.bottom)})`, [b.label]);
             }
           }
         }
@@ -339,8 +312,6 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
     }
   } catch (err) {
     notes.push(`harness: ${err.message.split('\n')[0]}`);
-  } finally {
-    if (browser) await browser.close();
   }
 
   const total = findings.CENTRE.length + findings['CENTRE-LOW'].length + findings.OCCLUDED.length;
@@ -365,28 +336,61 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
   out.push(`  cards sampled ${sampledCards} of ${catalogued.length} in the catalog`);
   out.push(`  steps walked  ${steps} at ${VIEWPORTS[0].width}x${VIEWPORTS[0].height}, ` +
     `${extraSteps} more for the panel at ${VIEWPORTS.slice(1).map(v => `${v.width}x${v.height}`).join(' and ')}`);
-  if (sampledCards !== catalogued.length) {
+  if (ONLY.length) {
+    out.push(`  SUBSET: ${ONLY_VAR} restricted this walk to ${ONLY.length} card(s) (${ONLY.join(', ')}).`);
+    out.push('  Every per-card and per-block row below is as true as it is on a full run: these three');
+    out.push('  rules measure one card against the canvas and never against the catalog. The TOTAL, the');
+    out.push('  by-category tally and the queue length are only the walked cards. A full run is what');
+    out.push('  says how many findings the catalog holds.');
+  } else if (sampledCards !== catalogued.length) {
     out.push(`  REPORT INCOMPLETE: ${catalogued.length - sampledCards} card(s) were not sampled, ` +
       'every number below undercounts. A report that scans nothing reports nothing.');
   }
-  if (steps < EXPECTED_STEPS) {
+  if (!ONLY.length && steps < EXPECTED_STEPS) {
     out.push(`  REPORT INCOMPLETE: ${EXPECTED_STEPS - steps} step(s) short of the ${EXPECTED_STEPS} ` +
       'a green run of this catalog walks. Every missing step is a composition nobody looked at.');
   }
   out.push('');
-  out.push('  findings by rule');
+  out.push('  findings by rule, and how many of each a person has read and carried');
+  let heldTotal = 0;
   for (const rule of ['CENTRE', 'CENTRE-LOW', 'OCCLUDED']) {
     const rows = findings[rule];
-    const cardsHit = new Set(rows.map(r => r.id));
-    out.push(`    ${rule.padEnd(11)} ${String(rows.length).padStart(3)} finding(s) on ${cardsHit.size} card(s)`);
+    const held = rows.filter(r => r.why);
+    heldTotal += held.length;
+    const cardsHit = new Set(rows.filter(r => !r.why).map(r => r.id));
+    out.push(`    ${rule.padEnd(11)} ${String(rows.length).padStart(3)} finding(s), ` +
+      `${held.length} carried with a reason, ${rows.length - held.length} left to work on ${cardsHit.size} card(s)`);
   }
-  out.push(`    ${'TOTAL'.padEnd(11)} ${String(total).padStart(3)} finding(s) on ${perCard.size} card(s)`);
-  out.push(`    by category: ${[...byCategory.entries()].sort().map(([c, n]) => `${c} ${n}`).join(', ') || 'none'}`);
+  out.push(`    ${'TOTAL'.padEnd(11)} ${String(total).padStart(3)} finding(s), ${heldTotal} carried, ` +
+    `${total - heldTotal} left to work on ${perCard.size} card(s)`);
+  out.push(`    left to work by category: ${[...byCategory.entries()].sort().map(([c, n]) => `${c} ${n}`).join(', ') || 'none'}`);
   out.push('');
 
   for (const [id, lines] of [...perCard.entries()].sort()) {
     out.push(`  ${id}`);
     for (const l of lines) out.push(`    ${l}`);
+  }
+  out.push('');
+
+  // The carried rows, still printed and still counted, one block per rule. `L-16` is the population
+  // they belong to: the rule can only be satisfied by making the picture worse, and the reason on
+  // each is the measurement that says so.
+  // A carried ruling reads as STALE when this walk no longer reports it, and on a SUBSET that is
+  // true of every card the walk did not open. Narrowing it to the walked cards keeps the signal
+  // where it is real (a ruling on the card in hand that its own change just invalidated) and stops
+  // a one-card run from declaring the rest of the store rotten.
+  const walked = (key) => !ONLY.length || ONLY.includes(key.split(' ')[0]);
+  for (const rule of ['CENTRE', 'CENTRE-LOW', 'OCCLUDED']) {
+    const rows = findings[rule];
+    const held = rows.filter(r => r.why);
+    const stale = staleKeys(rule, rows.map(r => r.carryKey)).filter(walked);
+    if (!held.length && !stale.length) continue;
+    out.push(`  ${rule}, read and carried:`);
+    for (const l of carriedBlock(rule, held.map(r => ({ key: r.carryKey, why: r.why })), stale, '    ')) out.push(l);
+  }
+  if (ONLY.length) {
+    out.push('  The carried store was read for the walked card(s) only: on a subset every other');
+    out.push('  entry would read as stale for the trivial reason that nothing opened its card.');
   }
   out.push('');
 
@@ -409,6 +413,14 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
     out.push(`  cards that could not be sampled: ${notes.length}`);
     notes.slice(0, 20).forEach(l => out.push(`    ${l}`));
   }
+  // The store's own shape, printed rather than asserted: this file fails on nothing at all.
+  const ids = new Set(catalogued.map(c => c.id));
+  const broken = ['CENTRE', 'CENTRE-LOW', 'OCCLUDED'].flatMap(a => shapeProblems(a, ids));
+  if (broken.length) {
+    out.push('');
+    out.push(`  BROKEN RULINGS in fixtures/carried.mjs: ${broken.length}`);
+    for (const b of broken) out.push('    ' + b);
+  }
   out.push('===== end of report =====');
 
   console.log(out.join('\n'));
@@ -419,10 +431,16 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
   // a card that threw on every open leaves `notes` full, prints REPORT INCOMPLETE into a page of
   // output nobody has to read, and exits 0. That is the failure the rest of the harness is built
   // against (`S-46`), and it is the one thing a report may go red on.
-  assert.equal(sampledCards, catalogued.length,
-    `sampled ${sampledCards} of ${catalogued.length} card(s). A report that scans nothing reports ` +
+  //
+  // A filter is the legitimate way to walk fewer, so the expected size is what the filter asked for
+  // and not the catalog. The STEP baseline is a statement about a full walk and collapses with it,
+  // the same way `floor()` in ../fixtures/catalog.mjs collapses a catalog-scale floor under a
+  // subset: comparing a one-card walk against the catalog's step total would fail on a correct run.
+  const wanted = ONLY.length ? ONLY.length : catalogued.length;
+  assert.equal(sampledCards, wanted,
+    `sampled ${sampledCards} of ${wanted} card(s) asked for. A report that scans nothing reports ` +
     'nothing, and every number above undercounts by whatever it missed.');
-  assert.ok(steps >= EXPECTED_STEPS,
-    `walked ${steps} step(s), the specs declare ${EXPECTED_STEPS}. Every missing step is a ` +
-    'composition nobody looked at.');
+  assert.ok(ONLY.length ? steps > 0 : steps >= EXPECTED_STEPS,
+    `walked ${steps} step(s), the specs declare ${ONLY.length ? 'more than zero for a subset' : EXPECTED_STEPS}. ` +
+    'Every missing step is a composition nobody looked at.');
 });

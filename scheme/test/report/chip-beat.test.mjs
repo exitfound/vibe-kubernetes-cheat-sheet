@@ -43,7 +43,11 @@
 //                + rewind) differs from the previous step's SETTLED value, and no F.set with a
 //                positive delay turns that key over in this step. The naive form.
 //   FORM-B       FORM-A, and the step names that chip in `lit`, so the CARD ITSELF declares the
-//                value to be the news of this step. Printed in full, ranked by lead.
+//                value to be the news of this step. Printed in full, ranked by lead. A row a human
+//                has read and kept is filed in ../fixtures/carried.mjs under axis FORM-B and prints
+//                marked CARRIED with its reason, out of the lead bands and out of the by-card tally
+//                but never out of the total. A record that is ALSO FORM-E is never carried here:
+//                section 3 is the narrower reading of the same record and owns it.
 //   FORM-B-LEAD  FORM-B with a first arrival at or past LEAD_CUT_MS.
 //   FORM-E       FORM-B, and ANOTHER chip on the SAME step IS turned over on a beat (an F.set with
 //                a delay). The card knows the technique and applies it to a neighbour, so this is
@@ -134,6 +138,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
+import { carriedBlock, shapeProblems } from '../fixtures/carried.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
 import { chipBeat } from '../fixtures/chip-beat.mjs';
 
@@ -154,9 +159,9 @@ const pad = (n) => String(n).padStart(4);
 const countsOf = (recs) => [recs.length, new Set(recs.map(r => r.step)).size, new Set(recs.map(r => r.card)).size];
 const fmt = ([a, b, c]) => `${a} record(s) / ${b} step(s) / ${c} card(s)`;
 
-test('P-03, a chip that runs ahead of the ball (report only, census is the assertion)', (t) => {
+test('P-03, a chip that runs ahead of the ball (report only, census is the assertion)', async (t) => {
   const {
-    A, B, bLead, E, eOpen, eHeld, divergent, notes, stale,
+    A, B, bLead, bOpen, bHeld, bStale, E, eOpen, eHeld, divergent, notes, stale,
     walked, steps, candidateSteps, compared, unresolved, catalogSize,
   } = FORMS;
 
@@ -181,22 +186,27 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
   out.push('   would bury FORM-B.');
 
   out.push('');
-  out.push(`2. FORM-B, the queue, ranked by how long the value stands on screen before the first ball lands: ${B.length}`);
+  out.push(`2. FORM-B, the queue, ranked by how long the value stands on screen before the first ball lands: ${B.length} finding(s), ` +
+    `${bHeld.length} carried with a reason, ${bOpen.length} left to work`);
   out.push('   lead bands:');
   for (const [lo, hi] of LEAD_BANDS) {
-    const n = B.filter(r => r.lead >= lo && r.lead < hi).length;
+    const n = bOpen.filter(r => r.lead >= lo && r.lead < hi).length;
     if (n) out.push(`   ${pad(n)}  ${hi === Infinity ? `${lo}ms and up` : `${lo} to ${hi}ms`}`);
   }
-  for (const r of [...B].sort((a, b) => b.lead - a.lead || (a.card < b.card ? -1 : 1))) {
+  for (const r of [...bOpen].sort((a, b) => b.lead - a.lead || (a.card < b.card ? -1 : 1))) {
     out.push(`   ${pad(r.lead)}ms  ${r.card} step ${r.i} '${r.stepId}'  chip "${r.key}" already reads ` +
       `${JSON.stringify(r.to)} (was ${JSON.stringify(r.from)}) and is lit at entry`);
   }
   const byCard = new Map();
-  for (const r of B) byCard.set(r.card, (byCard.get(r.card) || 0) + 1);
+  for (const r of bOpen) byCard.set(r.card, (byCard.get(r.card) || 0) + 1);
   if (byCard.size) {
     out.push('   by card:');
     for (const [id, n] of [...byCard.entries()].sort((a, b) => b[1] - a[1])) out.push(`   ${pad(n)}  ${id}`);
   }
+  // A carried FORM-B row is out of the bands and out of the by-card tally above, and printed here
+  // with the reason instead. An E record is never counted here: FORM-E is the narrower reading of
+  // the same record and section 3 owns it.
+  for (const l of carriedBlock('FORM-B', bHeld.map(r => ({ key: r.carryKey, why: r.bWhy })), bStale)) out.push(l);
 
   out.push('');
   out.push(`3. FORM-E, THE STRONGEST CLASS THE DATA CAN NAME: ${E.length} finding(s), ` +
@@ -209,8 +219,7 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
       `${r.lead}ms before the first arrival, while [${r.neighbours.join(', ')}] on this same step ` +
       'wait for their beat');
   }
-  for (const r of eHeld) out.push(`   CARRIED  ${r.carryKey}\n      WHY ${r.why}`);
-  if (stale.length) out.push(`   carried entries no longer reported (stale, remove them): ${stale.join(' | ')}`);
+  for (const l of carriedBlock('FORM-E', eHeld.map(r => ({ key: r.carryKey, why: r.why })), stale)) out.push(l);
 
   out.push('');
   out.push(`4. THE HOLE A FIX CAN OPEN: ${divergent.length} step/chip pair(s) on ` +
@@ -220,6 +229,16 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
   out.push('   flow, so an F.set is the animated path only. render/reduced.test.mjs compares opacity,');
   out.push('   wire text and highlight, and a chip VALUE is on none of them. Repair a FORM-B or FORM-E finding');
   out.push('   with the rewind form, or write the end value into `chips` too: see the header.');
+
+  // The store's own shape, printed rather than asserted: a suppression with no reason or naming no
+  // catalogued card is a broken RULING, and this file fails on the census alone.
+  const ids = new Set((await cards()).map(c => c.id));
+  const broken = ['FORM-B', 'FORM-E'].flatMap(a => shapeProblems(a, ids));
+  if (broken.length) {
+    out.push('');
+    out.push(`BROKEN RULINGS in fixtures/carried.mjs: ${broken.length}`);
+    for (const b of broken) out.push('   ' + b);
+  }
 
   if (notes.length) {
     out.push('');
@@ -244,6 +263,6 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
   assert.ok(compared > 0,
     'not one chip slot was compared against the previous step, so every form above measured an ' +
     'empty set. Either the chip resolution has gone blind or no step carries a ball.');
-  t.diagnostic(`P-03: ${walked} cards, ${steps} steps, A ${A.length}, B ${B.length}, ` +
+  t.diagnostic(`P-03: ${walked} cards, ${steps} steps, A ${A.length}, B ${B.length} (${bOpen.length} unread), ` +
     `B+lead ${bLead.length}, E ${E.length} (${eOpen.length} unread), path divergence ${divergent.length}`);
 });

@@ -22,6 +22,10 @@ const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
 // The control plane stands in web-0's column, so its NoExecute drop is a straight vertical on the
 // card's centre axis. The refused Pod stands in web-1's column, outside the frame it never enters.
 const CP_X = POD_X(1), CP_W = POD_W;                     // 450..750, mid 600
+// GHOST_Y 190 spends both gaps: 70 under the actor's bottom face and 44 over the frame. Higher,
+// and the 110 unit drop the NoSchedule lane needs falls under the 24 unit clamp routeDur reads
+// as a length. Past 296 the Pod touches the frame it is drawn OUTSIDE of, which is the one
+// thing its position has to say. The x comes off POD_X(2), so it moves with the row below it.
 const GHOST_X = POD_X(2), GHOST_Y = 190;                 // 816..1116, 190..296
 
 // THE WHOLE CARD IS THESE TWO LANES, and both leave the block that writes a taint. A taint is a

@@ -1,54 +1,64 @@
-import { P, F, defineCard, BEAT, FADE, OPACITY, chipStrip, packetArrival } from './storage-kit.js';
-// Design notes for this card: ./CARDS.md#storage-multi-attach-error
+import { P, F, defineCard, BEAT, FADE, OPACITY, chipStrip, packetArrival, makeRidingLabel } from './storage-kit.js';
+// Design notes for this card: ./CARDS/storage-multi-attach-error.md
 
 
+// The panel wall, read as an L: above y=344 nothing may sit left of it, below that the full width is
+// free. The two upper tiers obey it, the VolumeAttachment row at y=356 does not have to.
 const LEFT_X = 400;
 
-const NODE_H = 156, BAND_H = 76, VA_H = 76, DK_H = 86, CHIP_H = 34;
+// The controller and both VolumeAttachments are the catalog actor block, 232 by 80 (NET.L-01).
+const BLOCK_W = 232, BLOCK_H = 80;
+const NODE_H = 150, BAND_H = BLOCK_H, VA_H = BLOCK_H, DK_H = 86, CHIP_H = 34;
+// Heights and gaps are declared once, summed, and the leftover split evenly, so the whole card
+// re-centres by changing one number. Typing each tier y instead leaves the node row 30 units of air
+// while the three lower tiers pack at 52.
 const G_NODE_BAND = 56, G_BAND_VA = 56, G_VA_DK = 48, G_DK_CHIPS = 22;
 
 const STACK_H = NODE_H + G_NODE_BAND + BAND_H + G_BAND_VA + VA_H + G_VA_DK + DK_H + G_DK_CHIPS + CHIP_H;
-const STACK_TOP = (640 - STACK_H) / 2;                   // 18, and the bottom margin matches it
+const STACK_TOP = (640 - STACK_H) / 2;                   // 14, and the bottom margin matches it
 
 const NODE_W = 180, NODE_GAP = 40, NODE_PAD = 16;
-const NODE_Y = STACK_TOP;                                // 18
-const NODE_BOTTOM = NODE_Y + NODE_H;                     // 174
+const NODE_Y = STACK_TOP;                                // 14
+const NODE_BOTTOM = NODE_Y + NODE_H;                     // 164
 const NODE_A_X = LEFT_X;                                 // 400
 const NODE_B_X = LEFT_X + NODE_W + NODE_GAP;             // 620
 const CONTENT_W = NODE_W * 2 + NODE_GAP;                 // 400
 const CONTENT_CX = LEFT_X + CONTENT_W / 2;               // 600: canvas center, every tier uses it
 const CX_B = NODE_B_X + NODE_W / 2;                      // 710, and (490 + 710) / 2 == CONTENT_CX
 
+// The Pods are the catalog 104 tall around a 44 tall app box 26 under the Pod label, but only as wide
+// as the node frame leaves: two 232 Pods in two frames from the panel wall would centre the card on
+// 676. The app box keeps the catalog 20 unit side pads.
 const POD_W = NODE_W - NODE_PAD * 2;                     // 148
-const POD_Y = NODE_Y + 28, POD_H = 102;                  // 46
+const POD_Y = NODE_Y + 28, POD_H = 104;                  // 42..146, 18 above the frame floor
 const POD_A_X = NODE_A_X + NODE_PAD;                     // 416
 const POD_B_X = NODE_B_X + NODE_PAD;                     // 636
 
-const APP_DY = 30, APP_H = 44;
+const APP_DY = 26, APP_H = 44, APP_W = POD_W - 40;       // 108 wide
 
-const BAND_W = 300;
-const BAND_X = CONTENT_CX - BAND_W / 2;                  // 450..750
-const BAND_Y = NODE_BOTTOM + G_NODE_BAND;                // 227
-const BAND_TOP = BAND_Y, BAND_BOTTOM = BAND_Y + BAND_H;  // 227 / 303
-const BAND_MID_Y = BAND_Y + BAND_H / 2;                  // 265: where both output lanes leave
-const BAND_LEFT = BAND_X, BAND_RIGHT = BAND_X + BAND_W;  // 450 / 750
+const BAND_W = BLOCK_W;
+const BAND_X = CONTENT_CX - BAND_W / 2;                  // 484..716
+const BAND_Y = NODE_BOTTOM + G_NODE_BAND;                // 220
+const BAND_TOP = BAND_Y, BAND_BOTTOM = BAND_Y + BAND_H;  // 220 / 300
+const BAND_MID_Y = BAND_Y + BAND_H / 2;                  // 260: where both output lanes leave
+const BAND_LEFT = BAND_X, BAND_RIGHT = BAND_X + BAND_W;  // 484 / 716
 
-const VA_W = 232;                                        // storage family box width, from csi-architecture
-const VA_Y = BAND_BOTTOM + G_BAND_VA;                    // 359
-const VA_TOP = VA_Y, VA_BOTTOM = VA_Y + VA_H;            // 359 / 435
+const VA_W = BLOCK_W;
+const VA_Y = BAND_BOTTOM + G_BAND_VA;                    // 356
+const VA_TOP = VA_Y, VA_BOTTOM = VA_Y + VA_H;            // 356 / 436
 const VA_A_CX = 420;
 const VA_B_CX = 2 * CONTENT_CX - VA_A_CX;                // 780, so the pair centers on CONTENT_CX
 const VA_A_X = VA_A_CX - VA_W / 2;                       // 304..536
 const VA_B_X = VA_B_CX - VA_W / 2;                       // 664..896
 
 const DK_W = 240;
-const DK_Y = VA_BOTTOM + G_VA_DK;                        // 483
+const DK_Y = VA_BOTTOM + G_VA_DK;                        // 484
 const DK_X = CONTENT_CX - DK_W / 2;                      // 480
-const DK_SIDE_Y = DK_Y + DK_H / 2;                       // 526
+const DK_SIDE_Y = DK_Y + DK_H / 2;                       // 527
 const DK_LEFT = DK_X, DK_RIGHT = DK_X + DK_W;            // 480 / 720
 
-const BAND_LBL_Y = 337;
-const CHIPS_Y = DK_Y + DK_H + G_DK_CHIPS;                // 588
+const BAND_LBL_Y = BAND_BOTTOM + 34;                     // 334, 22 above the VolumeAttachment row
+const CHIPS_Y = DK_Y + DK_H + G_DK_CHIPS;                // 592
 
 const CHIP_W = 232;
 const CHIP_GAP = 16;
@@ -56,7 +66,7 @@ const CHIP_COUNT = 4;                  // accessModes / attached to / new Pod / 
 // Fix the width and the gap, derive the 976 unit span, centre it on CONTENT_CX: 112..1088.
 const CHIPS = chipStrip({ cx: CONTENT_CX, w: CHIP_W, gap: CHIP_GAP, count: CHIP_COUNT });
 
-const NODE_BAND_TURN_Y = (NODE_BOTTOM + BAND_TOP) / 2;             // 199
+const NODE_BAND_TURN_Y = (NODE_BOTTOM + BAND_TOP) / 2;             // 192
 const W_NODE_BAND = [[CX_B, NODE_BOTTOM], [CX_B, NODE_BAND_TURN_Y], [CONTENT_CX, NODE_BAND_TURN_Y], [CONTENT_CX, BAND_TOP]];
 const W_BAND_VA_A = [[BAND_LEFT, BAND_MID_Y], [VA_A_CX, BAND_MID_Y], [VA_A_CX, VA_TOP]];
 const W_BAND_VA_B = [[BAND_RIGHT, BAND_MID_Y], [VA_B_CX, BAND_MID_Y], [VA_B_CX, VA_TOP]];
@@ -66,6 +76,11 @@ const W_VAB_DISK  = [[VA_B_CX, VA_BOTTOM], [VA_B_CX, DK_SIDE_Y], [DK_RIGHT, DK_S
 // The write leaves the controller's right face, so centred on the lane the tag straddles that edge
 // for 500 ms. +32 is the least that clears all four viewports: 30 clears 1600x1000 alone.
 const WRITE_TAG_DX = 32;
+
+// `detach` and `attach` leave a VolumeAttachment floor, so riding above the ball they start inside that box
+// under its state line. They fade in once the ball is 32 units clear of the floor: 150 ms of a 700 ms leg.
+const emergeTag = makeRidingLabel({ role: 'storage', emergeMode: true });
+const TAG_EMERGE = 150;
 
 // The two arrivals the detach step chains on, off the same geometry runFlow reads, for the one call
 // that cannot be a flow entry: the unlight note on that step says why it needs a number.
@@ -86,7 +101,7 @@ const titleNode = (el) => { const l = el.querySelector('.scheme-node-label'); if
 
 const pod = (key, innerKey, x, label, sublabel) => P.pod({
   key, innerKey, x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0,
-  inner: { dx: 14, dy: APP_DY, w: POD_W - 28, h: APP_H, label: 'app', sublabel: 'uses PV web' },
+  inner: { dx: (POD_W - APP_W) / 2, dy: APP_DY, w: APP_W, h: APP_H, label: 'app', sublabel: 'uses PV web' },
 });
 
 const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
@@ -182,7 +197,7 @@ export const STEPS_SPEC = [
   {
     id: 'wantattach',
     duration: 3200,
-    narration: 'The attach and detach controller tries to attach the volume to Node-2, which means writing a second VolumeAttachment. The request reaches the controller and stops. PV web is ReadWriteOnce and the first attachment is still live, so the refusal comes before anything is written and va-2 stays a want rather than an object.',
+    narration: 'The attach and detach controller now has to attach the volume to Node-2, which means writing a second VolumeAttachment. The request stops at the controller: PV web is ReadWriteOnce and the first attachment is still live, so it refuses before writing anything, and va-2 stays a want.',
     chipsCued: chips('Node-1', 'ContainerCreating', 'va-1 on Node-1'),
     wires: { band: 'RWO: cannot attach twice' },
     ...stage({ nodeB: 1, newOp: 1, linkNew: 1, vaBOp: OPACITY.pending }),
@@ -221,7 +236,7 @@ export const STEPS_SPEC = [
   {
     id: 'wait',
     duration: 2800,
-    narration: 'What clears it is the old attachment going away, and nothing else will. The controller will not delete va-1 while the old Pod runs, and the rollout will not delete that Pod until the new one is ready. Each side waits on the other, which is why this reads as a hang.',
+    narration: 'Only the old attachment going away clears it. The controller will not delete va-1 while the old Pod runs, and with one replica the default maxUnavailable rounds down to zero, so the rollout keeps that Pod until the new one is ready. Each side waits on the other.',
     chipsCued: chips('Node-1', 'Multi-Attach error', 'old Pod running'),
     wires: { band: 'each side waits for the other' },
     ...stage({
@@ -233,7 +248,7 @@ export const STEPS_SPEC = [
   {
     id: 'detach',
     duration: 3400,
-    narration: 'Nothing inside the rollout can break the deadlock, so it takes a hand from outside: the old Pod is deleted. The controller removes va-1, the volume detaches, and for a moment it belongs to nobody. On a healthy Node this takes seconds, because Node-1 can be asked to unmount and it answers.',
+    narration: 'Nothing inside the rollout breaks the deadlock, so a hand from outside deletes the old Pod. The controller deletes va-1, the volume detaches, the object goes with it, and for a moment the volume belongs to nobody. On a healthy Node that takes seconds: Node-1 is asked to unmount and answers.',
     chipsCued: chips('nothing', 'Multi-Attach error', 'nothing'),
     wires: { band: 'delete va-1, then detach' },
     // Static end state: va-1 and its lanes are gone, the old Pod with them, the disk is free.
@@ -261,9 +276,9 @@ export const STEPS_SPEC = [
       F.tag({ text: 'delete va-1', points: W_BAND_VA_A, delay: BEAT.lead }),
       // va-1's cue is an F.set, not `lights`, because the reduced path must not show it: the
       // unlight below takes it off again before the step settles. Its state line turns over with it.
-      F.set({ on: 'vaA', lit: ['vaA'], at: 'del', sublabels: { vaA: 'deleted' } }),
+      F.set({ on: 'vaA', lit: ['vaA'], at: 'del', sublabels: { vaA: 'marked for deletion' } }),
       F.route({ points: W_VAA_DISK, after: 'del', name: 'det' }),
-      F.tag({ text: 'detach', points: W_VAA_DISK, after: 'del' }),
+      F.tag({ text: 'detach', points: W_VAA_DISK, after: 'del', fn: emergeTag, emerge: TAG_EMERGE }),
       F.light({ targets: ['disk'], at: 'det' }),
       ...['vaA', 'wBandVaA', 'wVaADisk'].map(target => F.fade({
         target, from: 1, to: OPACITY.terminated, dur: FADE.out, at: 'det', fill: 'forwards', easing: 'ease-in',
@@ -273,7 +288,7 @@ export const STEPS_SPEC = [
       F.run({ fn: (s, ctx) => unlightAt(s.refs.vaA, ctx, DET_LANDS + FADE.out) }),
       // Both chips turn on the detach landing (2300), not at entry: until that ball reaches the disk
       // the volume is still attached to Node-1 and va-1 is still what blocks the new Pod.
-      F.set({ at: 'det', chipsCued: { attChip: 'nothing', blockChip: 'nothing' } }),
+      F.set({ at: 'det', chipsCued: { attChip: 'nothing', blockChip: 'nothing' }, sublabels: { vaA: 'deleted' } }),
     ],
   },
   {
@@ -309,7 +324,7 @@ export const STEPS_SPEC = [
       // shape storage-volumeattachment is built on: the object first, the field after the attach.
       F.set({ at: 'wr', sublabels: { vaB: 'Node-2, attached: false' } }),
       F.route({ points: W_VAB_DISK, after: 'wr', name: 'att' }),
-      F.tag({ text: 'attach', points: W_VAB_DISK, after: 'wr' }),
+      F.tag({ text: 'attach', points: W_VAB_DISK, after: 'wr', fn: emergeTag, emerge: TAG_EMERGE }),
       F.light({ targets: ['disk'], at: 'att' }),
       F.set({ at: 'att', chipsCued: { attChip: 'Node-2' }, sublabels: { vaB: 'Node-2, attached: true' } }),
       F.pulse({ pod: 'podNew', after: 'att' }),
@@ -321,7 +336,7 @@ export const STEPS_SPEC = [
   {
     id: 'fix',
     duration: 3400,
-    narration: 'This is why a Deployment on ReadWriteOnce storage stalls whenever the replacement Pod lands on another Node. RollingUpdate creates the new Pod before deleting the old one, so both want one single-node volume and the new one is refused. Set it to Recreate, which deletes the old Pod before making the new one, the way a StatefulSet handles an ordinal.',
+    narration: 'So a Deployment on ReadWriteOnce storage stalls whenever the replacement lands on another Node: RollingUpdate creates the new Pod before deleting the old one. Set the strategy to Recreate, which deletes the old Pod first, the way a StatefulSet handles an ordinal.',
     chipsCued: chips('Node-2', 'Running', 'nothing'),
     wires: { band: 'Recreate, not RollingUpdate' },
     ...stage({

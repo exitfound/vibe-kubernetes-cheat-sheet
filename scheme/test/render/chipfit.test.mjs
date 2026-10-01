@@ -42,14 +42,16 @@
 //   - only the FIRST and LAST text of a chip are compared, as the original did. A chip with three
 //     texts has its middle one unjudged.
 
-import { test, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census, floor, SUBSET } from '../fixtures/catalog.mjs';
+import { cards, census, floor } from '../fixtures/catalog.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
-import {
-  DEFAULT_BASE, discoverIds, FACE_MONO, fallbackFaces, gotoStep, launch, openCard, initPage,
-  stepCount,
-} from '../fixtures/render.mjs';
+import { FACE_MONO } from '../fixtures/render.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
+import { STACK_TOL, vpName, VIEWPORTS } from '../tools/walk.mjs';
+
+// The viewport the walk takes this reading at, named rather than retyped.
+const VP = vpName(VIEWPORTS[0]);
 
 // ---------------------------------------------------------------------------------------------
 // The two numbers of the rule, both taken from the original tool and not from any prose about it.
@@ -61,8 +63,9 @@ import {
 const MIN_GAP = 4;
 
 // Two texts whose vertical centres differ by more than this are STACKED, not a pair.
-// check-chipfit.mjs:35. Same unit, same value, and the coincidence is not meaningful.
-const STACK_TOL = 4;
+// check-chipfit.mjs:35. Same unit, same value, and the coincidence is not meaningful. It is
+// declared in tools/walk.mjs, where the reading that applies it is taken, and imported here:
+// a threshold typed in two places is two thresholds.
 
 // The font the chip strings are actually drawn in: .scheme-chip-text is 11px 'JetBrains Mono'
 // (css/diagrams.css:203-207), which is fixtures/render.mjs FACE_MONO. Measured, not assumed,
@@ -95,44 +98,19 @@ const EXPECTED_PAIRS = floor(1080);    // measured 1143 on 2026-08-17
 // Runs IN THE PAGE, serialised across the CDP boundary, so it closes over nothing. Returns EVERY
 // name/value pair it measured, not only the failing ones: the passing ones are the coverage census
 // and the tightest-margin report, and a check that only returns findings cannot prove it looked.
-const probe = ({ stackTol }) => {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  if (!svg) return null;
-  const out = [];
-  for (const c of svg.querySelectorAll('.scheme-chip')) {
-    if (c.closest('.scheme-chain')) continue;        // ladder rows carry one string, not a pair
-    const ts = [...c.querySelectorAll('text')];
-    if (ts.length < 2) continue;
-    const [n, v] = [ts[0], ts[ts.length - 1]];
-    const nb = n.getBBox(), vb = v.getBBox();
-    // Stacked texts (a heading over a sub-line) are not a name/value pair.
-    if (Math.abs((nb.y + nb.height / 2) - (vb.y + vb.height / 2)) > stackTol) continue;
-    out.push({
-      n: (n.textContent || '').trim(),
-      v: (v.textContent || '').trim(),
-      gap: Math.round(vb.x - (nb.x + nb.width)),
-    });
-  }
-  return out;
-};
 
 const catalogued = await cards();
 
-const browser = await launch();
-// Registered on the line after the launch, before the page setup below: node:test runs an
-// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
-// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
-// then nobody's to close for the rest of the run.
-after(() => browser.close());
-
-// 1600x1000, as the original set on its page. getBBox reports viewBox units, so the window size is
-// not load-bearing for the measurement, but it is what the numbers below were measured under.
-const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
-await page.addInitScript(initPage, 'expose');
-const ids = await discoverIds(page, DEFAULT_BASE);
+// THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` opens each card once for the whole
+// suite and takes this reading with the rest; the probe that used to sit above moved into
+// fixtures/probes.mjs as `chipProbe`, verbatim, and the walk calls it at 1600x1000, which is the
+// viewport these numbers were measured under. getBBox reports viewBox units so the window size is
+// not load-bearing, but it is what they were measured under and nothing about that moved.
+const snap = readSnapshot();
+const ids = snap.ids;
 
 test(`the grid renders the whole catalog (${catalogued.length} cards)`, () => {
-  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${DEFAULT_BASE}/scheme/ : posters or grid broken`);
+  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${snap.base}/scheme/ : posters or grid broken`);
   census('chipfit grid', ids.length, catalogued.length);
 });
 
@@ -143,24 +121,23 @@ for (const id of ids) {
   test(id, async () => {
     walked++;                    // counted before the assertions, so this stays a census of
                                  // COVERAGE and a broken card is reported once, as itself.
-    await openCard(page, id);
+    const card = snap.cards[id];
 
-    const fellBack = await fallbackFaces(page, CHIP_FACES);
+    const fellBack = card.fellBackMono;
     assert.deepEqual(fellBack, [],
       `${FACE_MONO.spec} is NOT what this page paints with:\n  ${fellBack.join('\n  ')}\n` +
       'Every width below would be the fallback face, roughly 20 percent narrower, so every chip ' +
       'would look like it fits (L-21). This run needs the Google Fonts network ' +
       '(fonts.googleapis.com and fonts.gstatic.com), it is not a finding about the card.');
 
-    const total = await stepCount(page);
+    const total = card.steps;
     assert.ok(total > 0, `stepCount is ${total}: no steps to walk`);
 
     // Pooled over every step, keeping the TIGHTEST reading of each name/value pair: the same chip
     // is remeasured on every step it survives, and the smallest gap is the one that decides.
     const mine = new Map();
     for (let i = 0; i < total; i++) {
-      await gotoStep(page, i);
-      const rows = await page.evaluate(probe, { stackTol: STACK_TOL });
+      const rows = card.byVp[VP][i].chips;
       assert.ok(rows, `step ${i}: no svg.diagram, the dialog never opened`);
       stepped++;
       for (const r of rows) {
