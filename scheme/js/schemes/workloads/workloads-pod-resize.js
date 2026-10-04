@@ -1,4 +1,4 @@
-import { P, F, defineCard, laneY, ladder, strip, midX, shade, WL, FADE, OPACITY } from './workloads-kit.js';
+import { P, F, defineCard, laneY, ladder, strip, midX, shade, WL, FADE, BEAT, OPACITY } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS/workloads-pod-resize.md
 
@@ -189,12 +189,13 @@ export const STEPS_SPEC = [
     wires: { spec: 'spec.containers[].resources', branch: 'if the Kubelet cannot allocate it now' },
     sublabels: { containerBox: CG_OLD },
     opacity: { podGroup: 1, ...branchAt(1) },
-    lit: ['deferredBox', 'infeasibleBox', 'condChip'],
+    // The API ACTS FIRST, streaming the watch, so it is lit and the event waits BEAT.lead (M-18a).
+    lit: ['apiserver', 'deferredBox', 'infeasibleBox', 'condChip'],
     // The verdict pair is the aside this step argues, so it comes to full with the watch event that
     // reaches the Kubelet, and the condition is only set once the Kubelet has read the spec.
     rewind: { chips: { condChip: 'none' } },
     flow: [
-      F.route({ points: API_TO_KUBELET, name: 'watch', lights: ['kubelet'] }),
+      F.route({ points: API_TO_KUBELET, delay: BEAT.lead, name: 'watch', lights: ['kubelet'] }),
       ...BRANCH_KEYS.map(k => F.fade({ target: k, from: ASIDE, to: 1, dur: FADE.in, at: 'watch', fill: 'both', easing: 'ease-out' })),
       F.set({ at: 'watch', chips: { condChip: PENDING } }),
     ],

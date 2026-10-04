@@ -87,14 +87,14 @@
 // ../unit/chip-beat-e.test.mjs, where a table that has gone soft can go red.
 //
 // ===========================================================================================
-// THE TRAP: THE TWO EXEMPLARS DO IT RIGHT IN TWO DIFFERENT WAYS, AND ONE OF THEM OPENS A SECOND HOLE
+// THE TRAP: P-03 HAS TWO CORRECT FORMS, AND ONE OF THEM OPENS A SECOND HOLE
 // ===========================================================================================
 // Both of these are correct P-03 and they are not the same edit:
 //
-//   cluster-etcd-raft `quorum-lost`  states the END value in `chips` (r1: Leader) and winds it BACK
-//                                    with `rewind`, then an F.set turns it over at 1500ms.
-//   workloads-daemonset `place`      states the START value in `chips` (currentChip: 0) and raises
-//                                    it with an F.set on the beat.
+//   the REWIND form   states the END value in `chips` and winds it BACK with `rewind`, then an
+//                     F.set turns it over on the beat. cluster-etcd-raft `quorum-lost` (r1: Leader,
+//                     at 1500ms) and workloads-daemonset `place` (currentChip 3) are both on it.
+//   the F.set form    states the START value in `chips` and raises it with an F.set alone.
 //
 // The difference matters to a fixer, because the STATIC path reads `chips` and never runs the flow.
 // So with the rewind form both paths end on the same text, and with the F.set form the static path
@@ -187,7 +187,7 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
 
   out.push('');
   out.push(`2. FORM-B, the queue, ranked by how long the value stands on screen before the first ball lands: ${B.length} finding(s), ` +
-    `${bHeld.length} carried with a reason, ${bOpen.length} left to work`);
+    `${bHeld.length} carried with a reason, ${E.length} owned by FORM-E below, ${bOpen.length} left to work`);
   out.push('   lead bands:');
   for (const [lo, hi] of LEAD_BANDS) {
     const n = bOpen.filter(r => r.lead >= lo && r.lead < hi).length;

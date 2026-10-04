@@ -5,7 +5,7 @@
 ```
 WHAT     A clone is an ordinary PVC plus one field, dataSource naming an existing claim, and the
          storage system duplicates the volume only when the new claim fits its source row by row.
-         Once made, the clone shares nothing with the source.
+         Once made, nothing links the clone to the source.
 LAYOUT   Two spec listings level with each other across a fit test, the way a diff is read. The
          source claim heads the left column and the clone the right, mirrored about CX, each head
          over five field chips (namespace, phase, volumeMode, storage, storageClassName). Between them,
@@ -13,17 +13,19 @@ LAYOUT   Two spec listings level with each other across a fit test, the way a di
          compares, and the External-provisioner above it, because it runs the test: its check drops
          straight down the axis into the first gate, between the two heads. Under the last gate the
          call drops into a full-width backend frame holding one disk under each column.
-         The subject wanted this rather than the section defaults (4 of 5 siblings draw a wide chip
-         strip, and a mirror of claims over disks reads as provisioning): the part of cloning
+         The subject wanted this rather than the section defaults (3 of the 4 siblings draw a wide
+         chip strip, and a mirror of claims over disks reads as provisioning): the part of cloning
          a reader gets wrong is WHICH fields have to agree and which may differ, and only a
          row-aligned pair of listings shows that as geometry. It also keeps the card apart from
          storage-volume-snapshot beside it, which draws the volume as blocks in a pool over time.
          No chip strip: the field chips ARE the chips, two columns of five.
 PANEL    `OVERLAY_IDS=storage-pvc-clone node --test report/overlay.test.mjs` from `scheme/test/`.
-         Deepest at 1100x800, 205.0 on `request`, `check` and `copy` alike, all three narrations
-         wrapping to the same depth there. The column heads start at HEAD_Y 220, 15 under it. The
-         provisioner and the request lane sit right of the panel (x from 484), so only the head row
-         is pinned by the panel. A narration one line longer on any of the three eats that 15.
+         Deepest at 1100x800, 205.0 on `request`, `check`, `copy` and `independent` alike, all four
+         narrations wrapping to the same depth there. The column heads start at HEAD_Y 220, 15 under
+         it. The provisioner and the request lane sit right of the panel (x from 484), so only the
+         head row is pinned by the panel. A narration one line longer on any of the four eats that
+         15: `independent` at 1100x800 reads 229.8 with `seeded the new volume` in place of `seeded
+         the volume`, which is why the shorter form ships.
 SIZES    Every block is the catalog actor block, 232 by 80 (NET.L-01): the provisioner and both
          claim heads. The field chips and the gate boxes are the family chip height, STO.CHIP_H 34,
          232 wide, at a pitch of 40, each gate level with the pair of fields it compares and as wide
@@ -52,9 +54,11 @@ MOTION   Nothing pulses: there is no Pod. On `check` the ball lands on the first
          `bound` opens on BEAT.lead like the other steps, so the claim link draws after the
          narration has started, and holds 2800. Spans against durations: request 2060 of 3200,
          check 3301 of 4400, copy 3360 of 4600, bound 1401 of 2800, independent 1500 of 3400, read
-         by `deadair.mjs`, which puts every step at or under 56 percent still. The gate lights and
-         the phase turnover are `at()` callbacks, so a SEEKED frame shows none of them (M-35):
-         open the card for real to see the scan.
+         by `deadair.mjs`, which puts every step at or under 56 percent still. The gate lights, the
+         clone phase turnover on `bound` and the caption writes are `at()` callbacks, so a SEEKED
+         frame shows none of them (M-35): open the card for real to see the scan.
+         On `independent` the deletion is one beat at BEAT.lead: the source column, disk, link and
+         copy lane start to fade, the head sublabel turns to `deleted` and the copy caption clears.
          The clone column and disk default to OPACITY.pending, never 0, so the mirror has no hole
          on the idle step. A lane is full only when both its ends exist.
 WIRE LABELS
@@ -62,11 +66,13 @@ WIRE LABELS
          departure and of the provisioner right face on arrival. `fit test` leaves the provisioner
          floor, so it fades in once clear and stops above the first gate. `CreateVolume` is a
          standing wire beside `wCall`, centred in its 38 unit gap: the hop is shorter than any tag
-         and its travel.
+         and its travel. On `copy` it is wound back blank and written as the call leaves, on
+         BEAT.lead, so it never names a call that has not been made.
          `exact duplicate` stands 10 above the copy lane between the disks, where a riding tag would
          print into a disk wall at both ends of the hop. On `copy` it is wound back blank and written
          as the copy leaves, so it never names a duplicate over a lane that is not drawn yet, and the
-         static path still ends on it (T-30).
+         static path still ends on it (T-30). It stands through `bound`, and on `independent` it is
+         wound back in and cleared on the deletion beat, so it never leaves its lane standing bare.
 CONTENT  Claims read against Kubernetes 1.35, the external-provisioner and ceph-csi sources.
          Quoted from kubernetes.io CSI Volume Cloning, the page `sources` cites:
            `You can only clone a PVC when it exists in the same namespace as the destination PVC`
@@ -97,13 +103,55 @@ CONTENT  Claims read against Kubernetes 1.35, the external-provisioner and ceph-
          is rejected: CreateVolume leaves the copy to the driver, and a driver may move the bytes
          through a node. A size above the source (20Gi from 10Gi) relies on the driver expanding after
          the clone, which kubernetes-csi Volume Cloning makes the plugin responsibility, and ceph-csi
-         resizes.
+         resizes (internal/rbd/controllerserver.go: `expand the image if the requested size is
+         greater than the current size`).
          The field chip is `storageClassName`, the real field, and `storageClass` is rejected as a
-         name the API does not have. The driver is `rbd.csi.ceph.com`, which implements CLONE_VOLUME.
-         The two classes differ by name only, `rbd` and `rbd-retain`, the realistic reason to clone
-         into another class, and `rbd` reclaiming with Delete is the StorageClass default.
+         name the API does not have. The driver is `rbd.csi.ceph.com`, which implements CLONE_VOLUME
+         (`ControllerServiceCapability_RPC_CLONE_VOLUME` in internal/rbd/driver/driver.go).
+         The two classes name the same driver, `rbd` and `rbd-retain`. `rbd` reclaiming with Delete
+         is the StorageClass default (Storage Classes: `If no reclaimPolicy is specified when a
+         StorageClass object is created, it will default to Delete`), and `rbd-retain` reads by its
+         name as the class that retains, the realistic reason to clone into another class with the
+         same driver. No step states its policy, and none needs to: only the source is deleted, and
+         `independent` names the source class policy, the one that decides what goes with it. That
+         sentence follows Persistent Volumes: `deletion removes both the PersistentVolume object
+         from Kubernetes, as well as the associated storage asset` and dynamically provisioned
+         volumes `inherit the reclaim policy of their StorageClass`.
+         The `storage` chips are the two requests: `getPVCSource` compares the new claim
+         `spec.resources.requests.storage` with the source claim request, not with its capacity.
+         It also refuses a source whose deletion has started (`the PVC DataSource ... is currently
+         being deleted`), which no row draws and nothing on the card contradicts.
          CreateVolume is a call into the DRIVER that produces a volume, so its ball lands on the
-         backend, never on the clone claim.
+         backend, never on the clone claim. `calls CreateVolume on the driver` ships with the ball
+         landing on the `Storage backend` frame: CreateVolume is an RPC of the CSI controller
+         service, so `on the driver` is exact, and the driver is the one narrated actor with no
+         block, named on the provisioner sublabel it serves. storage-dynamic-provisioning narrates
+         the same call the same way (`calls CreateVolume on the driver, which asks the storage
+         backend`). `through the driver` is rejected because it makes the backend the callee.
+         `nothing links the clone to its source` ships in the desc, the page word (`not linked in
+         any way`), and `shares nothing with its source` is rejected: on Ceph RBD the clone is a
+         layered image, cloned from a snapshot of a temporary clone of the source with `rbd clone
+         --rbd-default-clone-format 2`, and is flattened only past a depth limit (ceph-csi design
+         doc rbd-snap-clone.md), so it can share unwritten blocks with the source inside the pool.
+         Nothing links them in what one does to the other, which is what the page states and the
+         card claims. The clone keeps `dataSource: data-src` in its spec, and the head sublabel draws
+         it through `independent`, so that step opens `Nothing links the two afterwards: dataSource
+         only seeded the volume`, the API reference role of the field (`it will create a new volume
+         based on the contents of the specified data source`). The bare `Nothing links the two
+         afterwards` is rejected because it stands beside a drawn dataSource naming the source.
+         The source `phase` chip keeps Bound on `independent`. PersistentVolumeClaimPhase is
+         exactly `Pending`, `Bound` and `Lost` (k8s.io/api core/v1 types.go), and a deletion only
+         sets deletionTimestamp: `Terminating` is what kubectl describe prints in place of the phase
+         while it is set (`if pvc.ObjectMeta.DeletionTimestamp != nil` in describe.go), never a
+         phase value.
+         `Delete data-src` on `independent` carries no finalizer qualifier. external-provisioner
+         puts `provisioner.storage.kubernetes.io/cloning-protection` on the source, and its
+         CloningProtectionController removes it unless a claim naming that source in dataSource is
+         still `Pending` (`cloning in progress`). clone-1 is Bound on `bound`, the step before, so
+         the finalizer holds nothing back, and the source is not in use, so pvc-protection does not
+         either.
+         The aria-label spells `external-provisioner` with the hyphen, as the narration and the
+         block do, and `external provisioner` is rejected as a second spelling of one sidecar.
 NAMING   External-provisioner, capitalised like every other CSI sidecar block in the family. The
          narration keeps it lowercase mid-sentence. The gate labels open on a capital, as every box
          label does (T-09), and carry no verb: each names the condition, not the action.
@@ -116,6 +164,9 @@ DO NOT   Land the CreateVolume ball on the clone claim: that is neither where th
          crossed by the check, which is why dataSource is the clone head sublabel instead.
          Light the field chips during the scan: a lit chip is the cue for a value that changed
          (P-05), and nothing changes on `check`.
+         Write `deleted` into the source `phase` chip on `independent`: phase is Pending, Bound or
+         Lost, and a deleted claim has none to report (P-02). The chip keeps Bound, its last value,
+         and the terminated column with its `deleted` sublabel carries the deletion.
 NOT A DEFECT
          `report/arrival.test.mjs` R4 prints `Source volume` on `copy`, and R2-ENTRY prints the clone
          `phase` on `independent`, both CARRIED in `test/fixtures/carried.mjs` with the reason.

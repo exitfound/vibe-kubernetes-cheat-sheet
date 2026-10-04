@@ -20,6 +20,11 @@
   --accent-glow:    rgba(224, 205, 255, 0.16);
   --accent-border:  rgba(224, 205, 255, 0.28);
 
+  /* Starred: sky cyan, the same token /cli/ uses for its own stars. */
+  --starred-color:  #5cd9ff;
+  --starred-glow:   rgba(92, 217, 255, 0.13);
+  --starred-border: rgba(92, 217, 255, 0.30);
+
   /* Copy confirmation. The only green on the page. */
   --success-color:  #5cb85c;
   --toast-bg:       #1e1438;

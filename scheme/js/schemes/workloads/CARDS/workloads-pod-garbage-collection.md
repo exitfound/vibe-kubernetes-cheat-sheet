@@ -80,29 +80,30 @@ MOTION   The shade rule is one card-local `stage()` factory returning the whole 
          Every fade is animated from LIVE below the guard with its end value pinned above it (A-15),
          so a lane is at full weight for the whole flight of the ball it carries and only then goes.
          Reading pace per step, ms per character: remains 9.22, threshold 12.59, beyond 10.56,
-         orphan 12.46, unscheduled 11.82, out-of-service 12.46, against a catalog median of 10.11.
+         orphan 12.46, unscheduled 14.06, out-of-service 14.16, against a catalog median of 10.11.
          Every ball on the trunk runs at the canon 0.450 units per ms and none is floor-bound. The
          two top-row hops sit on the 700ms floor at 192 units, which 13 other cards also run.
          `remains` stands still for the whole of its 2700 and carries no `flow` at all. It is a
          packet-less, pod-less beat, so M-27 gives it `.highlight` alone and F.flash is explicitly
          not a second option. A ball here would be traffic no step names (`M-10`), and the Pod blink
          belongs to the arrival rather than to this step, which the paragraph below states.
-         The blink belongs to the ARRIVAL, on every step that has one. `threshold` and `orphan` both
-         send a write down to a Pod, so both pulse it at `at: 'gc'` and fade it at `plus:
-         BEAT.afterPulse` behind the pulse, which is M-16 for a down-arrow and M-08 for a Pod that
-         pulses and fades in one step. `threshold` carried its blink one step EARLIER, on `remains`,
-         where nothing had reached the Pod yet: a Pod that blinks before anything arrives teaches
-         the reader that the blink is not the write, and the two steps then disagreed about what a
-         blink means.
+         The blink belongs to the ARRIVAL, on every step that has one. `threshold`, `orphan`,
+         `unscheduled` and `out-of-service` all send a write down to a live Pod, so all four pulse
+         it at `at: 'gc'` and fade it at `plus: BEAT.afterPulse` behind the pulse, which is M-16 for
+         a down-arrow and M-08 for a Pod that pulses and fades in one step. `threshold` carried its
+         blink one step EARLIER, on `remains`, where nothing had reached the Pod yet: a Pod that
+         blinks before anything arrives teaches the reader that the blink is not the write, and the
+         two steps then disagreed about what a blink means.
          `threshold` runs 5000 and not 4200 because of that move. The pulse plus the fade behind it
          put the span at 4856, and M-19 raises the duration to cover the motion rather than cutting
-         the motion to fit. Three steps turn a Pod state over at an arrival, and a string written by
-         the animated path alone shows the ORIGINAL value on prev and on reset while the narration
-         names the phase PodGC just wrote (T-30). Stating all four on every step is the `P-01`
-         discipline applied to a field that has no machine of its own: the turnover is `ST()` above
-         the guard and `rewind: born(i)` below it, and the steps AFTER the turnover restate the new
-         value so a forward replay cannot lose it either. `ST()` returns BOTH writers, `labels` and
-         `sublabels`, and is spread into the step rather than assigned to one field, because the
+         the motion to fit. `unscheduled` runs 4400 on a span of 4242 and `out-of-service` 5000 on
+         4856 for the same reason. Three steps turn a Pod state over at an arrival, and a string
+         written by the animated path alone shows the ORIGINAL value on prev and on reset while the
+         narration names the phase PodGC just wrote (T-30). Stating all four on every step is the
+         `P-01` discipline applied to a field that has no machine of its own: the turnover is `ST()`
+         above the guard and `rewind: born(i)` below it, and the steps AFTER the turnover restate the
+         new value so a forward replay cannot lose it either. `ST()` returns BOTH writers, `labels`
+         and `sublabels`, and is spread into the step rather than assigned to one field, because the
          state block is one thing said in two slots: the word the Pod is in, and the reason beside
          it. Splitting them at the comma the string already carried is what let the text move inside
          a box without shrinking: neither half is a new sentence, and `terminating` stays lower case
@@ -161,15 +162,6 @@ NOTE     Three of the six narrations name a Node that is not on the canvas: a No
          of the three rules say.
 DO NOT   Do not shade a bus segment by the nearest Pod. See MOTION: it is green under every check
          and fades a run that is still carrying a ball.
-OPEN     `unscheduled` and `out-of-service` take no pulse, and after that move it is no longer a
-         rule the card keeps. Both write a phase patch at the arrival: their wire labels read `PATCH
-         status - Failed - then DELETE` and their `F.set` turns the state block over to Failed,
-         which is the same two-write shape `orphan` blinks for. Their Pods stand at LIVE when the
-         ball lands, not at HELD, so a pulse would be seen. The card therefore blinks on two of the
-         four arrivals that carry a patch and not on the other two.
-         Left open rather than closed in passing. The fix is one `F.pulse` and one `plus:
-         BEAT.afterPulse` per step plus the two durations that would then have to rise, and the
-         request that moved the first blink named Pod web-1 alone.
 ```
 
 ---

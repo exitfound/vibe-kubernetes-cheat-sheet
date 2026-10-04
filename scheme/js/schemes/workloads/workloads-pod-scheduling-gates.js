@@ -166,6 +166,8 @@ export const STEPS_SPEC = [
     // The chip that moved is cued in the same step it moves (P-03): workloads is bound to `chips`
     // and not `chipsCued` (P-09), so the cue is a name in `lit` rather than an automatic one.
     lit: ['ownerEl', 'gatesChip'],
+    // The entry is gone when the write lands on it, so the count and its sublabel wait for that.
+    rewind: { chips: { gatesChip: '2 entries' }, sublabels: { gateB: HOLDS } },
     flow: [
       // The PATCH leaves the controller and the API lights on arrival, then the write drops. The
       // entry it lands on is cued like any other arrival (A-06), the same way step 1 cues the two
@@ -174,7 +176,7 @@ export const STEPS_SPEC = [
       // where the fade below never runs to take it back, and prev would settle on a marked ghost.
       request(),
       F.route({ points: DROP_B, after: 'req', name: 'write' }),
-      F.set({ lit: ['gateB'], at: 'write' }),
+      F.set({ lit: ['gateB'], at: 'write', chips: { gatesChip: '1 entry' }, sublabels: { gateB: REMOVED } }),
       // The fade waits a BEAT after the cue instead of starting on the same frame: at `at: 'write'`
       // the highlight arrived and dissolved together, so the entry was never lit while it was
       // still there. Now the beat reads ball, then THIS entry, then gone.
@@ -210,10 +212,11 @@ export const STEPS_SPEC = [
     opacity: { ...route(false), ...gates(0) },
     sublabels: { apiEl: 'accepts the removal', ownerEl: 'done with example.com/foo', schedEl: 'never enqueued this Pod', gateA: REMOVED, gateB: REMOVED },
     lit: ['ownerEl', 'gatesChip'],
+    rewind: { chips: { gatesChip: '1 entry' }, sublabels: { gateA: HOLDS } },
     flow: [
       request(),
       F.route({ points: DROP_A, after: 'req', name: 'write' }),
-      F.set({ lit: ['gateA'], at: 'write' }),
+      F.set({ lit: ['gateA'], at: 'write', chips: { gatesChip: 'empty' }, sublabels: { gateA: REMOVED } }),
       F.fade({ target: 'gateA', at: 'write', plus: BEAT.lead, to: OPACITY.terminated, dur: FADE.out, unlight: ['gateA'] }),
       F.fade({ target: 'dropA', at: 'write', plus: BEAT.lead, to: OPACITY.terminated, dur: FADE.out }),
     ],

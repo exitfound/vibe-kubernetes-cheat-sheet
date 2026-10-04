@@ -69,15 +69,13 @@ MOTION   Spans, spec: match 2060, place 3429, node-join 2060, label 4929, update
          units of lane arrive at 1916ms twice over, 778 units at 2529ms once. The rank each landing
          writes is a literal, and NOTHING in the suite can see it: swapping two ranks leaves every
          check green. Opening the mid-count frame is the only guard there is. The three calls sit in
-         NODE order, 0 then 1 then 2, and that order is pinned by a test rather than by the picture.
-         Live, last writer wins by millisecond and any call order ends on 3. `settledChips` in
-         `fixtures/spec.mjs` walks the flow in SOURCE order instead, so it reads the step as ending
-         on 2, and this is the ONLY step in the catalog whose settled chips differ from its static
-         ones. Two readers rule on that fact in opposite directions: `unit/spec-steps.test.mjs`
-         asserts at least one such step EXISTS, or its three-stage resolver is untested, and section
-         4 of `report/chip-beat.test.mjs` prints the same step as a path divergence. Writing the
-         creates in arrival order silences the report row and turns the unit assertion RED, so the
-         order stays here until one of those two files is ruled on. Neither counter is read from
+         NODE order, 0 then 1 then 2. Live, the last writer by millisecond wins, so any call order
+         ends on 3: the real-time frame at 3073ms and `tools/settled-dump.mjs` both read 3 on both
+         counters, the value `chips` states, so the static and the played path agree.
+         `settledChips` in `fixtures/spec.mjs` applies the F.sets in the order they FIRE, by delay
+         and then by flow order, which is how the runtime applies them, so neither
+         `report/chip-beat.test.mjs` section 4 nor `unit/spec-steps.test.mjs` reads this step as a
+         divergence. Neither counter is read from
          step entry. The step says the controller creates a Pod on each matching Node, and the Pods
          do not fade in until their creates land 1.9 to 2.5s later, so a counter reading `3` at
          entry contradicts the narration it accompanies. `numberReady` is the worse half.

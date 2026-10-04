@@ -1,0 +1,41 @@
+// "New since your last visit". A copy lives in cli/js/lib/fresh.js, duplicated like sidebar.js so
+// each path prefix stays self-contained, and the hub reads the same storage to count what is new.
+//
+// Storage holds { key: firstSeenMs } for every item this browser has seen. The FIRST visit records
+// everything as 0, a baseline that is never new, so a newcomer sees no badges at all. An item that
+// turns up on a later visit is stamped with that visit's time and reads NEW for FRESH_DAYS, until
+// the reader opens or copies it. Keys that left the catalog are dropped on every load.
+
+export const FRESH_DAYS = 14;
+const DAY_MS = 864e5;
+
+export function readSeen(storageKey) {
+  try {
+    const v = JSON.parse(localStorage.getItem(storageKey) || 'null');
+    return v && typeof v === 'object' ? v : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+export const isFreshStamp = (stamp, now = Date.now()) => stamp > 0 && now - stamp < FRESH_DAYS * DAY_MS;
+
+export function trackFresh(storageKey, keys) {
+  const seen = readSeen(storageKey);
+  const now = Date.now();
+  const map = {};
+  for (const k of keys) map[k] = !seen ? 0 : (k in seen ? seen[k] : now);
+  const save = () => { try { localStorage.setItem(storageKey, JSON.stringify(map)); } catch (_) {} };
+  save();
+  return {
+    isNew: (k) => isFreshStamp(map[k], now),
+    clear: (k) => { if (map[k] > 0) { map[k] = 0; save(); } },
+  };
+}
+
+// A short stable key for a long string (a whole command), so the map stays small.
+export function hashKey(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}

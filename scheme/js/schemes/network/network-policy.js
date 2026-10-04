@@ -149,6 +149,9 @@ const gates = ({ egress = 0, ingress = 0, policies = 0, plugin = 1 }) => ({
 const NONE = 'no boundary';
 const FROM_WEB = 'from role=web';
 const TO_DB = 'to role=db';
+// What the verdict reads while the call is still travelling: the rule chips are the premise and
+// stand from entry, and the verdict turns over on the arrival or the drop that decides it (P-03).
+const PENDING = { chips: { vChip: 'in flight' } };
 
 export const STEPS_SPEC = [
   {
@@ -182,10 +185,12 @@ export const STEPS_SPEC = [
     // The bar is lit from entry rather than cued on arrival: it exists from the moment the policy
     // selects the Pod, and the ball demonstrates what it does rather than revealing that it is there.
     lit: ['npIngress', 'barIngress', 'inChip', 'vChip'],
+    rewind: PENDING,
     flow: [
       F.pulse({ pod: 'src' }),
       F.route({ points: LANE_DB_REFUSED, delay: BEAT.afterPulse, name: 'send' }),
       F.tag({ text: FROM_WEB, points: LANE_DB_REFUSED, delay: BEAT.afterPulse }),
+      F.set({ at: 'send', chips: { vChip: 'dropped at db-1' } }),
     ],
   },
   {
@@ -195,11 +200,13 @@ export const STEPS_SPEC = [
     chips: { egChip: NONE, inChip: FROM_WEB, vChip: 'allowed' },
     ...gates({ ingress: 1, policies: 1 }),
     lit: ['npIngress', 'barIngress', 'inChip', 'vChip'],
+    rewind: PENDING,
     flow: [
       F.pulse({ pod: 'src' }),
       F.route({ points: LANE_DB, delay: BEAT.afterPulse, name: 'send' }),
       F.tag({ text: FROM_WEB, points: LANE_DB, delay: BEAT.afterPulse }),
       F.pulse({ pod: 'db', at: 'send' }),
+      F.set({ at: 'send', chips: { vChip: 'allowed' } }),
     ],
     reducedLit: ['dbBox'],
   },
@@ -210,11 +217,13 @@ export const STEPS_SPEC = [
     chips: { egChip: TO_DB, inChip: FROM_WEB, vChip: 'allowed at both ends' },
     ...gates({ egress: 1, ingress: 1, policies: 2 }),
     lit: ['npEgress', 'barEgress', 'barIngress', 'egChip', 'vChip'],
+    rewind: PENDING,
     flow: [
       F.pulse({ pod: 'src' }),
       F.route({ points: LANE_DB, delay: BEAT.afterPulse, name: 'send' }),
       F.tag({ text: FROM_WEB, points: LANE_DB, delay: BEAT.afterPulse }),
       F.pulse({ pod: 'db', at: 'send' }),
+      F.set({ at: 'send', chips: { vChip: 'allowed at both ends' } }),
     ],
     reducedLit: ['dbBox'],
   },
@@ -225,11 +234,13 @@ export const STEPS_SPEC = [
     chips: { egChip: TO_DB, inChip: FROM_WEB, vChip: 'to cache-1 · dropped at web-1' },
     ...gates({ egress: 1, ingress: 1, policies: 2 }),
     lit: ['barEgress', 'egChip', 'vChip'],
+    rewind: PENDING,
     // No riding tag: this ball travels 122 units, and a tag centred on it would rest across the
     // caption of the bar that is refusing it. What the bar is judging is the chip beside it.
     flow: [
       F.pulse({ pod: 'src' }),
       F.route({ points: LANE_CACHE_REFUSED, delay: BEAT.afterPulse, name: 'stop' }),
+      F.set({ at: 'stop', chips: { vChip: 'to cache-1 · dropped at web-1' } }),
     ],
   },
   {

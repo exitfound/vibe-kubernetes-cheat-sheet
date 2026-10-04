@@ -126,8 +126,8 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
 .side-btn,
 .side-toggle {
   position: relative;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border: none;
@@ -148,12 +148,13 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
   color: var(--accent);
   background: var(--accent-glow);
 }
+.side-btn svg { width: 20px; height: 20px; }
 .side-btn.active::before {
   content: '';
   position: absolute;
-  left: -4px;
-  top: 6px;
-  bottom: 6px;
+  left: -3px;
+  top: 7px;
+  bottom: 7px;
   width: 2px;
   border-radius: 0 2px 2px 0;
   background: var(--accent);
@@ -163,7 +164,24 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-.side-toggle { margin-top: auto; color: var(--text-muted); }
+/* The hide button is drawn like the .side-expand tab that replaces it, and ends 8px above the
+   viewport bottom like the tab does, so hiding leaves the tab right under the cursor. */
+.side-toggle {
+  margin-top: auto;
+  margin-bottom: 4px;
+  width: 30px;
+  height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(28, 22, 56, 0.97);
+  color: var(--text-nav);
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.side-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: rgba(38, 30, 76, 0.98);
+}
 
 .side-btn[data-tooltip]::after,
 .side-toggle[data-tooltip]::after,
@@ -194,31 +212,71 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
 .side-expand:hover::after,
 .side-expand:focus-visible::after { opacity: 1; }
 
-/* Expand handle: tiny tab on left edge, only visible when sidebar is collapsed */
+/* Expand handle: a tab on the left edge, shown only while the sidebar is hidden. It sits where the
+   hide button was, so it turns up right where the visitor just clicked, and it is drawn bright
+   enough to be found again later. */
 .side-expand {
   position: fixed;
   left: 0;
   bottom: 8px;
-  width: 22px;
-  height: 38px;
+  width: 26px;
+  height: 46px;
   z-index: 110;
   display: none;
   place-items: center;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   border-left: none;
-  border-radius: 0 8px 8px 0;
-  background: rgba(17, 15, 31, 0.95);
+  border-radius: 0 9px 9px 0;
+  background: rgba(28, 22, 56, 0.97);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  color: var(--text-muted);
+  box-shadow: 2px 0 14px rgba(0, 0, 0, 0.35);
+  color: var(--text-nav);
   cursor: pointer;
-  transition: color 0.12s, background 0.12s;
+  transition: width 0.12s, color 0.12s, background 0.12s, border-color 0.12s;
 }
-.side-expand:hover {
-  color: var(--text-bright);
-  background: rgba(28, 22, 56, 0.97);
+.side-expand:hover,
+.side-expand:focus-visible {
+  width: 32px;
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: rgba(38, 30, 76, 0.98);
 }
+.side-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 body.sidebar-collapsed .side-expand { display: grid; }
+
+/* Thin rule between Home and the sections, so the list reads as "site root, then sections". */
+.side-sep {
+  flex-shrink: 0;
+  width: 20px;
+  height: 1px;
+  margin: 3px 0;
+  background: rgba(221, 202, 250, 0.3);
+}
+
+/* Phones: tooltips never show on touch and the rail costs a tenth of the width, so it starts
+   hidden here. A visitor who taps the tab gets body.sidebar-shown from sidebar.js, remembered
+   like the desktop choice. Same breakpoint as PHONE_QUERY in sidebar.js. */
+@media (max-width: 680px) {
+  body:not(.sidebar-shown) { padding-left: 0; }
+  body:not(.sidebar-shown) .sidebar { transform: translateX(-100%); }
+  body:not(.sidebar-shown) .side-expand { display: grid; }
+  /* The page gutter is 14px here, so a 26px tab sat on the cards and the footer text. The tab
+     narrows to fit inside the gutter, and an invisible strip keeps the tap target finger-wide. */
+  .side-expand,
+  .side-expand:hover,
+  .side-expand:focus-visible { width: 12px; }
+  .side-expand { border-radius: 0 7px 7px 0; }
+  .side-expand svg { width: 11px; height: 11px; }
+  .side-expand::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    left: 0;
+    width: 30px;
+  }
+}
 
 /* ===== HEADER ===== */
 .header {
@@ -452,6 +510,34 @@ body.sidebar-collapsed .side-expand { display: grid; }
   max-width: calc(100% - 480px);
 }
 
+/* A page-centred search only fits a wide header. Narrower, the centred box runs into the title
+   on the left and the GitHub button on the right, so it joins the row between them instead.
+   Measured on the header, not the viewport, because the sidebar takes 38px of it when shown. */
+.header-inner { container-type: inline-size; }
+@media (min-width: 901px) {
+  @container (max-width: 1180px) {
+    .logo { margin-right: 16px; }
+    .search-container + .header-actions { margin-left: 16px; }
+    .search-container {
+      position: relative;
+      left: auto;
+      top: auto;
+      transform: none;
+      flex: 1 1 auto;
+      width: auto;
+      max-width: 464px;
+      min-width: 0;
+      margin: 10px auto 0;
+    }
+  }
+  /* Tighter still, the action buttons drop their labels, the same way they do below 900px. */
+  @container (max-width: 1010px) {
+    .search-container ~ .header-actions { gap: 4px; }
+    .search-container ~ .header-actions .action-btn-label { display: none; }
+    .search-container ~ .header-actions .action-btn { padding: 0 9px; gap: 0; }
+  }
+}
+
 .search-icon {
   position: absolute;
   left: 11px;
@@ -600,12 +686,15 @@ body.sidebar-collapsed .side-expand { display: grid; }
 
 /* Sub row: section chips, readable and slightly subdued vs. category buttons */
 .sec-btn { height: 24px; padding: 0 10px; font-size: 14px; font-weight: 500; border-radius: 6px; letter-spacing: 0.1px; opacity: 0.75; color: var(--text-nav); }
-.sec-btn:hover { opacity: 1; color: #fff; background: rgba(255,255,255,0.05); }
+.sec-btn:hover { opacity: 1; color: var(--accent); border-color: var(--accent-border); background: var(--accent-glow); }
 .sec-btn.active { opacity: 1; }
 
+/* Hover reads like the header action buttons (GitHub, Contacts): lavender until clicked, and the
+   active rules below, which come later or are more specific, keep a clicked button in its own colour. */
 .nav-btn:hover {
-  color: #fff;
-  background: rgba(255,255,255,0.07);
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-glow);
 }
 
 .nav-btn:focus-visible {
@@ -757,9 +846,58 @@ body.sidebar-collapsed .side-expand { display: grid; }
   margin-left: 2px;
 }
 
+/* Copy-link, docs and report buttons beside the section title: always shown, in the muted text
+   colour, so a reader finds them without having to hover the header first */
+.section-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+}
+
+.section-action {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.1s, border-color 0.1s, background 0.1s;
+}
+
+.section-action:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: rgba(224, 205, 255, 0.08);
+}
+
+.section-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Version label + command counter, pushed together to the far right of the header */
+.section-meta {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Tool version the section was checked against, as quiet as the k8s label on scheme cards */
+.section-version {
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
 /* Section command counter, pushed to the far right of the header */
 .section-count {
-  margin-left: auto;
   flex-shrink: 0;
   padding: 3px 10px;
   font-size: 13px;
@@ -902,8 +1040,16 @@ body.starred-mode .nav-sub { display: none !important; }
   font-family: 'JetBrains Mono', monospace;
   font-size: 15px;
   line-height: 1.55;
-  word-break: break-all;
+  /* Flags and short tokens are unbreakable .tok boxes (hl() in app.js), long URLs and paths wrap
+     after a "/". `break-all` cut mid-word, "kubernet|es.io", and a plain wrap still split "-|-token"
+     at a hyphen. */
+  overflow-wrap: anywhere;
   color: var(--text);
+}
+
+.cmd-code .tok {
+  display: inline-block;
+  max-width: 100%;
 }
 
 .cmd-desc {
@@ -928,7 +1074,7 @@ body.starred-mode .nav-sub { display: none !important; }
   border-radius: 5px;
   color: var(--text-muted);
   cursor: pointer;
-  opacity: 0.4;
+  opacity: 0.7;
   transition: opacity 0.1s, color 0.1s, border-color 0.1s, background 0.1s;
   flex-shrink: 0;
 }
@@ -968,9 +1114,9 @@ body.starred-mode .nav-sub { display: none !important; }
   background: transparent;
   border: 1px solid transparent;
   border-radius: 5px;
-  color: rgba(255, 255, 255, 0.32);
+  color: rgba(255, 255, 255, 0.45);
   cursor: pointer;
-  opacity: 0.55;
+  opacity: 0.8;
   transition: opacity 0.1s, color 0.1s, border-color 0.1s, background 0.1s, filter 0.15s;
   flex-shrink: 0;
 }
@@ -1131,6 +1277,162 @@ mark {
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 * { scrollbar-width: thin; scrollbar-color: #3a3260 #110f1f; }
 
+/* ===== KEYBOARD SHORTCUTS ===== */
+/* The sheet opened by `?` or the sidebar keyboard button (js/lib/keys.js), and the `/` hint in the
+   search field. Duplicated in cli/css/styles.css and scheme/css/styles.css, like the sidebar. */
+.side-keys { margin-top: auto; }
+.side-keys + .side-toggle { margin-top: 6px; }
+
+.keys-dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-width: none;
+  margin: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+}
+.keys-dialog::backdrop {
+  background: rgba(8, 6, 16, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.keys-inner {
+  padding: 16px 20px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.keys-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.keys-head h2 {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+.keys-close {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.keys-close:hover {
+  color: var(--accent);
+  background: var(--accent-glow);
+  border-color: var(--accent-border);
+}
+.keys-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.keys-group { margin-top: 12px; }
+.keys-group h3 {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.keys-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 14px;
+}
+.keys-row dd {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.keys-plus,
+.keys-or {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.keys-or { margin: 0 3px; }
+.keys-dialog kbd,
+.search-kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  color: var(--text-bright);
+}
+
+.search-kbd {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.search-input:focus ~ .search-kbd,
+.search-input:not(:placeholder-shown) ~ .search-kbd { display: none; }
+@media (hover: none) {
+  .search-kbd,
+  .side-keys { display: none; }
+  .side-keys + .side-toggle { margin-top: auto; }
+}
+
+/* The narrowest phones: an empty field shows no clear button and no `/` hint, so the room kept for
+   them on the right goes to the placeholder, which otherwise ends cut off. */
+@media (max-width: 400px) {
+  .search-input:placeholder-shown { padding-right: 12px; }
+  .search-kbd { display: none; }
+}
+
+/* ===== NEW SINCE LAST VISIT ===== */
+/* js/lib/fresh.js decides what is new for THIS browser. The pill is a filled lavender, distinct from
+   the cyan star and from every category colour. */
+.new-pill,
+.cmd-item.is-new .cmd-desc::after,
+.section-new {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #1a1530;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 16px;
+  vertical-align: 1px;
+}
+.cmd-item.is-new .cmd-desc::after {
+  content: 'NEW';
+  margin-left: 8px;
+}
+.section-new {
+  padding: 2px 8px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
@@ -1184,6 +1486,10 @@ mark {
 }
 
 @media (max-width: 680px) {
+  /* A long title plus its category label and the action buttons can outgrow a phone row: let the
+     version and count drop to a second line (still right-aligned by their margin-left: auto)
+     instead of being clipped */
+  .section-header { flex-wrap: wrap; row-gap: 6px; }
   .main { padding: 18px 14px 80px; }
   .cards-grid { grid-template-columns: 1fr; }
   html { background-attachment: scroll; }
@@ -1191,6 +1497,7 @@ mark {
 
 @media (hover: none) {
   .copy-btn { opacity: 0.7; min-width: 44px; min-height: 44px; }
+  .section-action { min-width: 36px; min-height: 36px; }
   .star-btn { opacity: 0.85; min-width: 44px; min-height: 44px; right: 50px; }
   .cmd-item { padding-right: 96px; }
   /* Touch screens: per-element minimums so context row doesn't overflow */
@@ -1215,7 +1522,7 @@ mark {
   html { background: white; }
   body { color: #111; }
 
-  .header, .nav, .scroll-top-btn, .toast, .copy-btn, .star-btn { display: none !important; }
+  .header, .nav, .scroll-top-btn, .toast, .copy-btn, .star-btn, .section-actions { display: none !important; }
 
   .main { padding: 0; max-width: 100%; min-height: 0; }
   .section { margin-bottom: 24px; }

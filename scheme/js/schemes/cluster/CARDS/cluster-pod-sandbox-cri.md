@@ -76,19 +76,17 @@ MOTION   On `cni` the CNI return and the `conf` route down to the sandbox BOTH l
          (`returns a container id`), `sandbox` does not, and P-06 puts a value chip outside the
          arrival rule so it owes no ball. Adding the clause to `sandbox` costs a panel line, and
          229.82 is already the card worst case against a ladder at 245.
-         `render/motion.test.mjs` reports PULSE-TOGETHER (`M-03`) twice here, on `create` and on
-         `start`: the app container blinks and the Pod holding it does not. Both are deliberate and
-         this is the only card in the catalogue that does it, which is why the check carries an
-         explicit ceiling of 2 for this id rather than staying silent.
-         The card draws TWO groups inside one shell. `sandboxGroup` is the Pod (shell plus the pause
-         container) and it pulses on its own beats, `run` and `conf`. `appGroup` is a second inner
-         box the `tune` hook adds INSIDE that shell so the workload container can fade and blink on
-         a beat of its own, which is what those last two steps are about: CreateContainer
-         materialises it at `pending`, StartContainer takes it to full. The sandbox does not change
-         on either step. `sandboxGroup` is NOT pulsed on those two steps. The whole Pod would blink
-         for an event that happens to ONE container inside it, at the exact moment the eye is meant
-         to be on that container coming up out of nothing, and the card would then say the sandbox
-         is re-created per container, which is the misreading the pause container exists to prevent.
+         An inner box never blinks inside a Pod without the Pod itself, the outer frame: that is
+         the user's ruling for this card and it is M-03. On `create` and `start` the pulse lands on
+         `sandboxGroup`, so the shell, the pause container and the app container blink as one, on
+         the arrival of the route down to the Node at 1942, the same anchor as the `run` and `conf`
+         pulses. `appGroup` is a second inner box the `tune` hook adds INSIDE that shell so the
+         workload container can FADE on a beat of its own, from the same arrival: CreateContainer
+         materialises it at `pending`, StartContainer takes it to full. The fade tells which
+         container came up, the blink belongs to the Pod. It is the plain pulse and not the dim one:
+         the Pod stands at full shade on both steps, only the app box is pending, and `pulsePodDim`
+         would flash the opacity of the whole sandbox. The app box is in no `lit` on either step, so
+         nothing it shows outlives the blink.
 CONTENT  Every claim here carries a quote from one of the cited documents except one, which is
          UNVERIFIED and named below, and three that need no network because they are internal
          consistency. They are read against the release `k8sVersion` states, which is what dates

@@ -173,7 +173,12 @@ export const STEPS_SPEC = [
     opacity: shades(),
     lit: ['leaseChip'],
     chain: 0,
-    flow: [F.route({ points: HEARTBEAT_CONNECTOR, lights: ['lease'] })],
+    // The renewal is the Lease record moving, so it turns over when the heartbeat lands on it.
+    rewind: { chips: { leaseChip: FRESH.leaseChip } },
+    flow: [
+      F.route({ points: HEARTBEAT_CONNECTOR, name: 'hb', lights: ['lease'] }),
+      F.set({ at: 'hb', chips: { leaseChip: '2s · Fresh · renewed' } }),
+    ],
   },
   {
     id: 'kubelet-stops',
@@ -230,10 +235,13 @@ export const STEPS_SPEC = [
     opacity: shades({ podA: DYING }),
     lit: ['leaseChip', 'evictChip', 'ctrl'],
     chain: 4,
+    // The toleration has run out at entry. Terminating is the DELETE landing, so it waits for `del`.
+    rewind: { chips: { evictChip: '0s · Expired' } },
     // The DELETE travels from the controller down the left margin onto the Node-1
     // frame; the Pod flinches and sinks to Terminating when the packet lands.
     flow: [
       F.route({ points: WRITE_CONNECTOR, name: 'del' }),
+      F.set({ at: 'del', chips: { evictChip: '0s · Terminating' } }),
       F.pulse({ pod: 'podA', at: 'del' }),
       F.fade({ target: 'podA', to: DYING, dur: FADE.out, at: 'del' }),
     ],
@@ -251,6 +259,8 @@ export const STEPS_SPEC = [
     // Lease age reached the 50s plus 300s the narration adds up one step ago, with the toleration.
     lit: ['evictChip', 'ctrl'],
     chain: 5,
+    // The Node-2 reading describes the replacement, which exists only once the bind lands.
+    rewind: { chips: { evictChip: '0s · Terminating' } },
     // Nothing moves from the dying Pod: the controller CREATES a replacement, so the ball leaves
     // the controller and the new Pod materialises and pulses only when it arrives on Node-2.
     flow: [
@@ -262,6 +272,7 @@ export const STEPS_SPEC = [
       // Beat two: the bind. The delay carries the 200 the ball spends fading in at its origin
       // (`packetAlong` fadeMs), so it is not even VISIBLE until the Node-1 side is down.
       F.route({ points: RESCHED_CONNECTOR, name: 'bind', delay: HANDOVER_MS + 200 }),
+      F.set({ at: 'bind', chips: { evictChip: 'none · Node-2 has no taint' } }),
       F.fade({ target: 'podB', from: 0, to: 1, dur: FADE.in, at: 'bind', easing: 'ease-out' }),
       F.pulse({ pod: 'podB', at: 'bind' }),
     ],

@@ -4,7 +4,7 @@ A fast, searchable web reference for everyone who works with Kubernetes day to d
 
 **Live at [kube.how](https://kube.how/)**
 
-![preview](images/og-image.png)
+![kube.how](images/og-hub.png)
 
 ---
 
@@ -14,21 +14,23 @@ One static site made of three path-based sub-apps that share the same visual chr
 
 | Path | Sub-app | What it is |
 |---|---|---|
-| `/` | **Hub** | One-viewport landing page: two entry panels over an aurora background and a canvas packet graph |
-| `/cli/` | **Commands** | Searchable `kubectl` / Helm / Kustomize / K9s cheat sheet, 890 commands, copy + star |
+| `/` | **Hub** | One-viewport landing page: two entry panels with live counts over an aurora background and a canvas packet graph |
+| `/cli/` | **Commands** | Searchable `kubectl` / Helm / Kustomize / K9s cheat sheet, 886 commands, copy + star |
 | `/scheme/` | **Schemes** | Grid of 143 animated SVG diagrams: click a card and a step-by-step animation explains the mechanism |
 
 ---
 
 ## Commands (`/cli/`)
 
-890 commands across eight categories, each with a short plain-English description, a one-click copy button, and a star to save personal favourites. Every section header shows its total command count.
+886 commands across eight categories, each with a short plain-English description, a one-click copy button, and a star to save personal favourites. Every section header shows its total command count.
+
+![Commands](images/og-image.png)
 
 | Category | Commands | Sections |
 |---|---|---|
-| **Installation** | 144 | Kubeadm, k3s, k3d, KinD, Minikube |
+| **Installation** | 143 | Kubeadm, k3s, k3d, KinD, Minikube |
 | **Cluster** | 88 | Cluster Health, Nodes, Custom Resources, Contexts |
-| **Workloads** | 325 | Pods, Deployments, StatefulSets, DaemonSets, Services, ConfigMaps & Secrets, Jobs & CronJobs, Volumes, Networking, RBAC, Namespaces |
+| **Workloads** | 322 | Pods, Deployments, StatefulSets, DaemonSets, Services, ConfigMaps & Secrets, Jobs & CronJobs, Volumes, Networking, RBAC, Namespaces |
 | **Helm** | 60 | Releases, Charts |
 | **Kustomize** | 34 | Manage, Edit |
 | **K9s** | 75 | CLI & Launch, UI Shortcuts |
@@ -39,8 +41,10 @@ One static site made of three path-based sub-apps that share the same visual chr
 
 - **Click any command** to copy it to the clipboard instantly.
 - **Star a command** with the icon left of the copy button to save it to your personal Starred view (top-right of the nav). Stars persist across reloads in your browser only: nothing leaves the page.
+- **New commands** since your last visit carry a `NEW` badge, and each section shows how many it has. Copying a command clears its badge.
+- **Section buttons** next to every section title: copy a link to the section, open its official documentation, or report a wrong flag or a stale command (opens a prefilled GitHub issue).
 - **Top navigation** switches between groups. Mid- and sub-navigation narrow it down to a specific category and section.
-- **Search** filters across all commands and descriptions at once. `Esc` clears the field. Search keeps working inside the Starred view, narrowing the favourites list further.
+- **Search** filters across all commands and descriptions at once. `/` jumps to the field, `Esc` clears it, `?` lists every keyboard shortcut. Search keeps working inside the Starred view, narrowing the favourites list further.
 - **Deep links** work: the URL updates as you navigate, so you can bookmark or share a specific section directly (e.g. `kube.how/cli/#helm` or `kube.how/cli/#starred`).
 
 ---
@@ -48,6 +52,8 @@ One static site made of three path-based sub-apps that share the same visual chr
 ## Schemes (`/scheme/`)
 
 143 animated diagrams of how Kubernetes actually works internally. Each card opens a dialog that plays the mechanism step by step, with a narration panel explaining what moves and why.
+
+![Schemes](images/og-scheme.png)
 
 | Category | Cards | Subcategories |
 |---|---|---|
@@ -61,9 +67,14 @@ Every category carries its own accent colour, so the palette tells you where you
 **How to use it**
 
 - **Click a card** to open its diagram. It starts on a static poster, then auto-plays the first step.
-- **Playback controls**: `Space` play/pause, `←` / `→` previous and next step, `R` reset, `Esc` close. Speed is adjustable.
+- **Playback controls**: `Space` play/pause, `←` / `→` previous and next step, `R` restart, `L` loop, `F` fullscreen, `Esc` close. Speed is adjustable. `?` lists every shortcut, and they work on a Russian keyboard layout too.
+- **Flip between diagrams** without closing the dialog: the side arrows or `Shift` + `←` / `→`.
+- **Star a diagram** from its card or from inside the open diagram, to collect it in the Starred view, the same way as commands.
+- **Report a problem** from inside a diagram: the flag button opens a GitHub issue that already names the card and the step you are on.
 - **Search and filter** by category, or search across titles and descriptions.
-- **Deep links** work here too: `kube.how/scheme/#scheme=<id>` opens a specific diagram, and the browser Back button closes it.
+- **Two grid views**: detailed cards with the full description, or compact tiles (poster and title) that fit about three times as many on a screen. The switch sits at the right end of the category row and is remembered.
+- **New diagrams** since your last visit carry a `NEW` badge until you open them.
+- **Deep links** work here too: `kube.how/scheme/#scheme=<id>` opens a specific diagram, and the browser Back button closes it. The link icon beside each section title copies a link to that section (`kube.how/scheme/#at=<section>`).
 - **Reduced motion** is respected: with `prefers-reduced-motion` each step snaps straight to its end state instead of animating.
 
 Diagrams are hand-built SVG driven by the Web Animations API inside a native `<dialog>`. No diagram library, no canvas, no WebGL.
@@ -101,7 +112,7 @@ scheme/                  schemes sub-app
   js/schemes/<category>/ one folder per category: its cards, kit, catalogue, posters, design record
   css/                   tokens, layout, SVG diagram classes
   test/                  dev-only test suite, not shipped
-images/                  og image
+images/                  social preview images: hub, commands, schemes
 configs/nginx.conf       Docker-only nginx config
 ```
 

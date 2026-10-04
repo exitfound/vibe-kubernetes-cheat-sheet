@@ -45,6 +45,11 @@ MOTION   `first-crash` is the one step where both lanes carry a ball: pulse, exi
          bars from AHEAD (OPACITY.terminating) to 1 through revealAt, 400 apart, and the reset step
          raises the ghost only to OPACITY.pending because that crash has not happened. Every bar is
          pinned in `opacity` on every step, all nine.
+         Every chip turns over on the arrival that earns it, through a `rewind` and one F.set: the
+         three on `first-crash` on the restart, the four on `backoff-named` on the exit report, and
+         the backoff on `reset` on the healthy report. On `backoff-named` the Pod dims on that same
+         exit arrival rather than with the crash blink, so it never goes dark under a state still
+         reading Running.
 WIRE LABELS
          `out` above the restart lane at 496 and `in` below the exit lane at 550, both centred on
          509, the gap midpoint. `next`, the T-35 counterfactual of the reset step, sits UNDER the
@@ -56,6 +61,20 @@ CONTENT  The FIRST restart is immediate and only the ones after it wait, which t
          restartCount reads 8 on `reset`, not 7. `cap` leaves it at 7 with the container Waiting,
          and `reset` narrates a NEW container running stably, so the counter has to have moved with
          it, and the step lights it for the same reason the other three chips it changes are lit.
+         restartCount reads 2 on `backoff-named`, not 1, and the narration counts both restarts out
+         loud. The step holds a 20s wait (`delayChip` `20s · doubled`, bars 0s / 10s / 20s raised),
+         and a 20s wait only exists once the 10s one has run out and restarted the container: the
+         doc ladder is "Initial crash: Kubernetes attempts an immediate restart" and then
+         "exponential backoff delay (10s, 20s, 40s, …)" (pod-lifecycle, `#container-restarts` and
+         `#restart-policy`), and `restartCount` "holds the number of times the container has been
+         restarted" (core/v1 types). So two restarts are done and the third is held. `1` is
+         rejected because it contradicts the 20s on the same frame: it is only true while the 10s
+         wait is held, which this card never draws as a frame of its own. `This restart is the one
+         that waits, and each further crash doubles the delay` is rejected because it never says the
+         10s restart HAPPENED, so a reader counting restarts in the panel reaches 1 against a chip
+         reading 2. The narration says `This second restart is the one that waits 10s, and the next
+         crash doubles the delay to 20s` and `holds off the third restart`, at 284 characters, the
+         length it replaced.
          The 300s ceiling is a per-node DEFAULT, not a constant, and `cap` says so in five words ("a
          per-node default since 1.35"). KubeletCrashLoopBackOffMax is beta and enabled by default at
          this card's declared 1.35: "With the feature gate KubeletCrashLoopBackOffMax enabled, you

@@ -70,7 +70,7 @@ const column = (side, cx, head, sub, values) => P.group({
 // The list order IS the append order, which is the z-order: the frame, the blocks, the two columns
 // and the disks, then the relationships and lanes and their captions, then the packets.
 export const SCENE = {
-  'aria-label': 'Cloning a PVC: a new PersistentVolumeClaim clone-1 whose dataSource names the existing claim data-src is picked up by the external provisioner, which holds it against its source row by row, the same namespace, the source Bound and not in use, the same volumeMode and at least the source size, while the StorageClass may differ if it names the same driver, then calls CreateVolume so the storage backend makes an exact duplicate server-side with no VolumeSnapshot object in between, after which clone-1 binds and keeps its copy when data-src is deleted',
+  'aria-label': 'Cloning a PVC: a new PersistentVolumeClaim clone-1 whose dataSource names the existing claim data-src is picked up by the external-provisioner, which holds it against its source row by row, the same namespace, the source Bound and not in use, the same volumeMode and at least the source size, while the StorageClass may differ if it names the same driver, then calls CreateVolume so the storage backend makes an exact duplicate server-side with no VolumeSnapshot object in between, after which clone-1 binds and keeps its copy when data-src is deleted',
   parts: [
     P.defs(),
     P.node({ key: 'frame', x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'Storage backend' }),
@@ -101,11 +101,12 @@ export const SCENE = {
   },
 };
 
-// Every step writes EVERY chip (P-01): the two values that move are the phase of each claim.
-const chips = (srcPhase, clonePhase) => {
+// Every step writes EVERY chip (P-01): the one value that moves is the clone phase. A deleted claim
+// has no phase to report, so the source keeps its last one, Bound, and the head sublabel says deleted.
+const chips = (clonePhase) => {
   const out = {};
   for (const r of ROWS) {
-    out[`src${r.key}`] = r.key === 'Phase' ? srcPhase : SRC[r.key];
+    out[`src${r.key}`] = SRC[r.key];
     out[`clone${r.key}`] = r.key === 'Phase' ? clonePhase : CLONE[r.key];
   }
   return out;
@@ -126,7 +127,7 @@ export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chipsCued: chips('Bound', 'Pending'),
+    chipsCued: chips('Pending'),
     sublabels: { srcHead: 'the source claim' },
     opacity: stage(),
   },
@@ -134,7 +135,7 @@ export const STEPS_SPEC = [
     id: 'request',
     duration: 3200,
     narration: 'You create clone-1, an ordinary claim with one extra field: its dataSource names the existing claim data-src, of kind PersistentVolumeClaim. The external-provisioner for the driver picks the new claim up and reads that field as a clone request, not as a call for an empty volume.',
-    chipsCued: chips('Bound', 'Pending'),
+    chipsCued: chips('Pending'),
     sublabels: { srcHead: 'the source claim' },
     opacity: stage({ clone: 1 }),
     lit: ['cloneHead'],
@@ -151,7 +152,7 @@ export const STEPS_SPEC = [
     id: 'check',
     duration: 4400,
     narration: 'The new claim must fit its source row by row: the same namespace, as dataSource carries no namespace, the source Bound and not in use, the same volumeMode, and at least the source size. The class may differ but must name the same driver. A size, mode or driver misfit leaves clone-1 Pending.',
-    chipsCued: chips('Bound', 'Pending'),
+    chipsCued: chips('Pending'),
     sublabels: { srcHead: 'the source claim' },
     opacity: stage({ clone: 1 }),
     // The provisioner sends the check, so it is lit at entry. Each gate lights as the scan reaches it.
@@ -166,17 +167,19 @@ export const STEPS_SPEC = [
     id: 'copy',
     duration: 4600,
     narration: 'Every row passes, so the provisioner calls CreateVolume on the driver with the source volume as its content. The storage system makes an exact duplicate of it, server-side. No VolumeSnapshot object is created on the way, and on Ceph RBD none of the data travels through the cluster.',
-    chipsCued: chips('Bound', 'Pending'),
+    chipsCued: chips('Pending'),
     sublabels: { srcHead: 'the source claim' },
     wires: { callCap: 'CreateVolume', copyCap: 'exact duplicate' },
     opacity: stage({ clone: 1, cloneDisk: 1 }),
     // The provisioner makes the call and the passed test is the state it starts from, so both are lit
     // at entry, and the call leaves the last gate.
     lit: ['prov', ...GATES],
-    // The new volume is MADE on this step, so the animated path starts with it still pending.
-    rewind: { opacity: stage({ clone: 1 }), wires: { copyCap: '' } },
+    // The new volume is MADE on this step, so the animated path starts with it still pending, and
+    // each caption is wound back blank until its exchange starts.
+    rewind: { opacity: stage({ clone: 1 }), wires: { callCap: '', copyCap: '' } },
     flow: [
       F.route({ points: W_CALL, delay: BEAT.lead, name: 'call' }),
+      F.set({ delay: BEAT.lead, wires: { callCap: 'CreateVolume' } }),
       F.reveal({ target: 'cloneDisk', from: OPACITY.pending, at: 'call', name: 'made' }),
       F.fade({ target: 'wCopy', from: 0, to: 1, dur: REVEAL_MS, fill: 'forwards', easing: 'ease-out', at: 'call' }),
       // The source is the SENDER of the copy, so it lights when the call lands, REVEAL_MS before its
@@ -191,7 +194,7 @@ export const STEPS_SPEC = [
     id: 'bound',
     duration: 2800,
     narration: 'A PV is created for the new volume and clone-1 binds to it, in its own StorageClass rbd-retain. From here it is an independent object: it can be used, snapshotted, cloned again or deleted without touching data-src.',
-    chipsCued: chips('Bound', 'Bound'),
+    chipsCued: chips('Bound'),
     sublabels: { srcHead: 'the source claim' },
     wires: { copyCap: 'exact duplicate' },
     opacity: stage({ clone: 1, cloneDisk: 1, cloneRel: 1 }),
@@ -206,20 +209,20 @@ export const STEPS_SPEC = [
   {
     id: 'independent',
     duration: 3400,
-    narration: 'Nothing links the two afterwards. Delete data-src, and since its class reclaims with Delete its volume goes too, yet clone-1 keeps its copy untouched. That is the line against a snapshot restore: no VolumeSnapshot stays between them to restore from again.',
-    chipsCued: chips('deleted', 'Bound'),
+    narration: 'Nothing links the two afterwards: dataSource only seeded the volume. Delete data-src, and since its class reclaims with Delete its volume goes too, yet clone-1 keeps its copy untouched. That is the line against a snapshot restore: no VolumeSnapshot stays between them to restore from again.',
+    chipsCued: chips('Bound'),
     sublabels: { srcHead: 'deleted' },
     opacity: stage({ clone: 1, cloneDisk: 1, cloneRel: 1, src: OPACITY.terminated }),
     lit: ['cloneHead', 'cloneDisk'],
     rewind: {
       opacity: stage({ clone: 1, cloneDisk: 1, cloneRel: 1 }),
-      chips: { srcPhase: 'Bound' },
       sublabels: { srcHead: 'the source claim' },
+      wires: { copyCap: 'exact duplicate' },
     },
     flow: [
       ...['srcCol', 'srcDisk'].map(target => F.fade({ target, to: OPACITY.terminated, dur: FADE.out, delay: BEAT.lead, fill: 'forwards' })),
       ...['srcRel', 'wCopy'].map(target => F.fade({ target, to: 0, dur: FADE.out, delay: BEAT.lead, fill: 'forwards' })),
-      F.set({ delay: BEAT.lead, chipsCued: { srcPhase: 'deleted' }, sublabels: { srcHead: 'deleted' } }),
+      F.set({ delay: BEAT.lead, sublabels: { srcHead: 'deleted' }, wires: { copyCap: '' } }),
     ],
   },
 ];

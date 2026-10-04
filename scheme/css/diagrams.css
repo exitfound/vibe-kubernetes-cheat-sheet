@@ -105,6 +105,12 @@ svg.diagram {
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
+/* Highlight a Node frame: the dashed stroke lifts and thickens, with no glow, so the frame still
+   reads as a container around the blocks it holds rather than as one more block. */
+.scheme-node.highlight .scheme-node-rect {
+  stroke: var(--diag-stroke);
+  stroke-width: 1.8;
+}
 
 /* Cylinder (etcd, PV, volume) */
 .scheme-cylinder-body {

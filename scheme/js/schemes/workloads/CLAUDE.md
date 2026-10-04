@@ -232,7 +232,7 @@ question is actually asked.
 of this folder, the deviation is named HERE and in its own record, beside the shape a copy takes
 instead.** Naming it is not a licence to leave it: it is what stops the next card inheriting it.
 
-`workloads-pod-startup-conditions.js`, 242 lines and fully declarative. **New cards go in this
+`workloads-pod-startup-conditions.js`, 256 lines and fully declarative. **New cards go in this
 form.** Copy its shape rather than inventing one:
 
 - One import line from `./workloads-kit.js`, plus `lib/svg.js` and `lib/primitives.js` where a `raw`

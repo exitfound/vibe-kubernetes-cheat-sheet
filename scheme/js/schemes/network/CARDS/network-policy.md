@@ -50,6 +50,10 @@ MOTION   Two of the six steps end with the receiver NOT pulsing, and that absenc
          pixel under the two objects that stayed bright, which is the whole claim of the step.
          `either-side` runs 2060ms of motion inside a 3400ms hold, and the run-up is what buys the
          refusal a journey long enough to read.
+         On `isolate`, `allow`, `both-ends` and `either-side` the verdict reads `in flight` from
+         entry and turns over with one `F.set` on the arrival or the drop that decides it: `send`
+         on the first three, `stop` on the fourth. The rule chips stand from entry, because the
+         policy object is applied before the call leaves and the bar is drawn from entry too.
 CONTENT  Every claim here is read against k8s 1.35 and the two pages the catalog entry cites.
          `db-ingress` is the upstream default-deny example, `podSelector: {}` with Ingress in
          policyTypes and no ingress rules, narrowed here to role=db so one Pod is isolated and its
@@ -86,10 +90,10 @@ WHY NOT  A verdict drawn INSIDE the Pod face, as a 10 unit labelless sliver at e
          under the ball diameter, so at true size neither sliver reads as a thing the traffic meets,
          and the card loses the one event its title names. The bar on the road is 44 x 100 for that
          reason.
-         A `rewind` on any step, which is what the category exemplar does with a verdict. A rewound
-         verdict stands beside an ingress chip that has ALREADY flipped, so on `isolate` the strip
-         would read `allows nothing` and `allowed` at once for the 2.2 seconds the ball is in
-         flight. Every chip here states its own step value from entry and the ball demonstrates it.
+         A `rewind` that holds the PREVIOUS verdict, which is what the category exemplar does. It
+         stands beside a rule chip that changed at entry, so on `isolate` the strip would read
+         `allows nothing` and `allowed` at once for the 2.2 seconds the ball travels. `in flight`
+         is the neutral value that contradicts no rule chip while the call is still on the road.
          A string inside a bar. The road runs through the middle of it and `box()` centres its label
          and sublabel there, so any string would be cut by the lane. Moving the road off centre
          needs a 170 tall bar to clear the ink, which collides with the bottom band.
@@ -108,7 +112,8 @@ OPEN     R3 fires twice, on `isolate` and `either-side`, and both are filed in
          `test/fixtures/carried.mjs`. A bar is lit on all four steps it is drawn on, including
          the two where a packet passes through it and nothing lands. R3 sees only the two where a
          route ENDS at it, and going dark on exactly those would dim the subject at the one
-         moment it acts. P-03 FORM-B carries 10 rows on this card, which is the no-rewind decision
-         under WHY NOT and the same band its siblings sit in on the queue `report/chip-beat.test.mjs`
-         prints.
+         moment it acts. P-03 lists six rows on this card in `report/chip-beat.test.mjs`, all
+         carried in `test/fixtures/carried.mjs`: the three absences on `implementer` under FORM-B,
+         and the three rule chips on `isolate`, `allow` and `both-ends` under FORM-E, since each
+         stands at entry beside the verdict that waits for its arrival.
 ```

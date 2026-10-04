@@ -1,4 +1,4 @@
-import { P, F, defineCard, ladder, laneY, midX, strip, WL, LAYOUT } from './workloads-kit.js';
+import { P, F, defineCard, ladder, laneY, midX, strip, WL, LAYOUT, BEAT } from './workloads-kit.js';
 import { box } from '../../lib/primitives.js';
 
 // Design notes for this card: ./CARDS/workloads-init-containers-and-sidecars.md
@@ -126,74 +126,85 @@ export const STEPS_SPEC = [
     wires: { req: 'CreateContainer · StartContainer · wait-for-db' },
     lit: ['kubelet', 'waitDbChip'],
     chain: 0,
+    // Running is earned where the create lands on the container box, so the chip waits for it.
+    rewind: { chips: { waitDbChip: WAITING } },
     // CRI request hits the runtime (top hop), then the create travels down to
     // the node and the container box lights up on arrival.
     flow: [
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['runtime'] }),
-      F.route({ points: SPINE, after: 'req', fadeIn: true, lights: ['containerWaitDb'] }),
+      F.route({ points: SPINE, after: 'req', fadeIn: true, name: 'create', lights: ['containerWaitDb'] }),
+      F.set({ at: 'create', chips: { waitDbChip: RUNNING } }),
     ],
   },
   {
     id: 'migrate-schema',
-    duration: 3400,
+    duration: 3800,
     narration: 'The wait-for-db container exits 0. Kubelet observes the exit via PLEG (Pod Lifecycle Event Generator) and immediately creates migrate-schema. The same rule applies, it must exit 0 before any later container can start. Each init container image is pulled lazily, just before that container is created, per its imagePullPolicy.',
     chips: { waitDbChip: DONE, migrateChip: RUNNING, sidecarChip: WAITING, mainChip: WAITING },
     wires: { req: 'wait-for-db exit 0 (PLEG) · StartContainer · migrate-schema' },
-    lit: ['waitDbChip', 'migrateChip'],
+    // The runtime ACTS FIRST with the exit report, so it is lit at entry and the report waits
+    // BEAT.lead (M-18a). The new container state waits for the create that earns it.
+    lit: ['runtime', 'waitDbChip', 'migrateChip'],
     chain: 1,
+    rewind: { chips: { migrateChip: WAITING } },
     // PLEG callback, then the next CRI request, then the create down to the node, each hop chained
-    // on the previous arrival. Both boxes RECEIVE here, so each lights on its own arrival.
+    // on the previous arrival. Kubelet RECEIVES here, so it lights on its own arrival.
     flow: [
-      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, name: 'pleg', lights: ['kubelet'] }),
+      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: BEAT.lead, name: 'pleg', lights: ['kubelet'] }),
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, after: 'pleg', name: 'req', lights: ['runtime'] }),
-      F.route({ points: SPINE, after: 'req', fadeIn: true, lights: ['containerMigrate'] }),
+      F.route({ points: SPINE, after: 'req', fadeIn: true, name: 'create', lights: ['containerMigrate'] }),
+      F.set({ at: 'create', chips: { migrateChip: RUNNING } }),
     ],
   },
   {
     id: 'sidecar-start',
-    // Motion: the runtime's report comes back (700), then StartContainer goes out and the
-    // container lands on the node, ending at 3162.
-    duration: 3400,
+    // Motion: the report waits BEAT.lead, comes back (700), then StartContainer goes out and the
+    // container lands on the node.
+    duration: 3800,
     narration: 'Both regular init containers exited 0. The sidecar (declared as an initContainer with restartPolicy=Always, beta in 1.29 and GA in 1.33) is started next, allowed to run for the full lifetime of the Pod. Once it reports Started (its startupProbe succeeded, or a running process where no probe is set), Kubelet starts the next entry in the init list, which here is the main container.',
     chips: { waitDbChip: DONE, migrateChip: DONE, sidecarChip: 'Started', mainChip: WAITING },
     wires: { req: 'migrate-schema exit 0 · StartContainer · sidecar' },
     // Kubelet RECEIVES the exit report before it sends the next call, so it is dark at entry: R3
-    // exempts a source only if it sends no later than it receives.
-    lit: ['migrateChip', 'sidecarChip'],
+    // exempts a source only if it sends no later than it receives. The runtime sends first (M-18a).
+    lit: ['runtime', 'migrateChip', 'sidecarChip'],
     chain: 2,
+    rewind: { chips: { sidecarChip: WAITING } },
     // The wire label opens with the runtime REPORTING the init container finished, so that report
     // comes back first on the answer lane and only then does the next StartContainer go out.
     flow: [
-      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, name: 'done', lights: ['kubelet'] }),
+      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: BEAT.lead, name: 'done', lights: ['kubelet'] }),
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, after: 'done', name: 'req', lights: ['runtime'] }),
-      F.route({ points: SPINE, after: 'req', fadeIn: true, lights: ['containerSidecar'] }),
+      F.route({ points: SPINE, after: 'req', fadeIn: true, name: 'create', lights: ['containerSidecar'] }),
+      F.set({ at: 'create', chips: { sidecarChip: 'Started' } }),
     ],
   },
   {
     id: 'main-start',
-    // Motion: the runtime's report comes back (700), then StartContainer goes out and the
-    // container lands on the node, ending at 3162.
-    duration: 3400,
+    // Motion: the report waits BEAT.lead, comes back (700), then StartContainer goes out and the
+    // container lands on the node.
+    duration: 3800,
     narration: 'As soon as the sidecar Started flag flips true, Kubelet creates and starts the main container. From here both run in parallel. Pod phase flips from Pending to Running once the main container has started.',
     chips: { waitDbChip: DONE, migrateChip: DONE, sidecarChip: RUNNING, mainChip: 'Starting' },
     wires: { req: 'sidecar Started · StartContainer · main' },
     // Same as the step above: the report arrives before the call goes out, so Kubelet lights on it.
-    lit: ['sidecarChip', 'mainChip'],
+    lit: ['runtime', 'sidecarChip', 'mainChip'],
     chain: 3,
+    rewind: { chips: { mainChip: WAITING } },
     // The wire label opens with `sidecar Started`, the runtime reporting the sidecar up. It arrives
     // first on the answer lane, and the StartContainer for the main container follows it.
     flow: [
-      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, name: 'done', lights: ['kubelet'] }),
+      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: BEAT.lead, name: 'done', lights: ['kubelet'] }),
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, after: 'done', name: 'req', lights: ['runtime'] }),
-      F.route({ points: SPINE, after: 'req', fadeIn: true, lights: ['containerMain'] }),
+      F.route({ points: SPINE, after: 'req', fadeIn: true, name: 'create', lights: ['containerMain'] }),
+      F.set({ at: 'create', chips: { mainChip: 'Starting' } }),
     ],
   },
   {
     id: 'running',
     // 269 characters over the shortest motion on the card, a 900ms pulse, so 2700 is the catalog
     // reading pace of 10 ms per character and 1800ms of it is still dead air (M-19a). The three
-    // steps above hold 3400 because their SPAN is 2969 and M-19 gives them no choice, so matching
-    // them here would buy rhythm with 2500ms in which nothing moves and nothing is left to read.
+    // steps above hold 3800 because their SPAN is 3769 and M-19 gives them no choice, so matching
+    // them here would buy rhythm with 2900ms in which nothing moves and nothing is left to read.
     duration: 2700,
     narration: 'Pod is Running. The sidecar handles cross-cutting concerns (proxy, log shipping, credential rotation) alongside main. Kubelet restarts the sidecar independently if it crashes (because restartPolicy=Always on the init slot). On Pod termination that order runs backwards.',
     chips: { waitDbChip: DONE, migrateChip: DONE, sidecarChip: RUNNING, mainChip: RUNNING },

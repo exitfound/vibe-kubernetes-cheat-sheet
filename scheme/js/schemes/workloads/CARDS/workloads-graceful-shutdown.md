@@ -13,8 +13,8 @@ LAYOUT   A FORK out of one actor into two zones, and no A / B / C preset: the ca
                       WL.L-07), ETCD cylinder 1000..1140 x 30..130, the overhang
                       cluster-cascading-deletion gives the same block
            bus        y=300, from x=300 to x=900, off the spine at 600
-           left zone  EndpointSlice controller 184..416 x 330..390, kube-proxy 184..416 x
-                      434..494, both 232 wide, the actor width
+           left zone  EndpointSlice controller 120..480 x 330..390, kube-proxy 120..480 x
+                      434..494, both 360 wide and centred on the tap at 300
            chips      60..540, two rows 510..544 and 552..586, under the left zone
            right zone Node frame 660..1140 x 330..598 with the Kubelet INSIDE it at 780..1020 x
                       358..410 and the Pod at 700..1100 x 452..574, inner box 750..1050 x 482..546
@@ -33,6 +33,11 @@ LAYOUT   A FORK out of one actor into two zones, and no A / B / C preset: the ca
          one box, so the traffic lane has a source that is on every Node.
          Signature box4 pod1 node1 chip2 cyl1 chain0 raw0, unique in the section. Six body bands
          (30, 40, 330, 358, 434, 452), which kin.mjs reads as deep.
+         THE LEFT BOXES ARE 360 AND NOT THE 232 ACTOR WIDTH because the content bbox is what centres
+         the card. `L-17` drops chips, so the column under the left zone is invisible to it, and at
+         232 the bodies span 184..1140 on 662, past the 600 +-40 window. At 360 they span
+         120..1140 on 630 and the five low blocks 120..1100 on 610, so neither CENTRE nor CENTRE-LOW
+         reads the content as leaning, and the boxes stand inside the 480 chip column under them.
 PANEL    x<=397 catalog-wide (`L-02`). Bottom per viewport: `OVERLAY_IDS=workloads-graceful-shutdown
          node --test report/overlay.test.mjs`. Deepest on step 0 at 1100x800, the poster frame
          previewing the 384 character delete narration, and the swing across the set is 102.07
@@ -42,15 +47,19 @@ PANEL    x<=397 catalog-wide (`L-02`). Bottom per viewport: `OVERLAY_IDS=workloa
          the one number the panel pins. Both zones hang 30 under it and every left-zone y follows
          from it, so a narration that pushes the panel past 280 moves the whole picture down by the
          same amount, and the chips, ending at 586, have 38 of floor to give.
-SIZES    Left boxes 232 x 60, the actor width and the shortest height a label plus sublabel pair
-         takes in this category. Kubelet 240 x 52. Pod 400 x 122 with a 300 x 64 inner box, the
+SIZES    Left boxes 360 x 60, the width LAYOUT gives the reason for, and the shortest height a
+         label plus sublabel pair takes in this category. Kubelet 240 x 52. Pod 400 x 122 with a 300 x 64 inner box, the
          sublabel baseline 12 under it. Frame 480 x 268: the frame label row, the Kubelet, a 42 unit
          signal lane, the Pod and 24 of foot. It is the second tallest node() frame in the category
          after workloads-termination-order at 244 plus what a Kubelet inside it costs. Chips 480
          wide. The widest pair is `endpoint 10.244.1.7` against `terminating · ready=false` at
          172.3, measured at 1600x1000, the WIDER reading.
          Wire strings, at 1600x1000: `slice: terminating, ready=false` 213.6 inking 312..525.6,
-         which crosses the column gap and stands 14.6 above the kube-proxy top edge at 434.
+         past the box wall at 480, in the gap between the two boxes and 14.6 above the kube-proxy
+         top edge at 434. The traffic captions sit in the 180 unit corridor between the kube-proxy
+         wall at 480 and the frame at 660, and the widest, `established flows only`, inks 151.6 on
+         494.2..645.8, 14.2 clear of each wall, the binding clearance: a left box any wider runs
+         into it.
          `if alive at 0s: SIGKILL` 158.5 inking 912..1070.5, 69.5 short of the frame wall. The
          longer form `if still alive at 0s: SIGKILL, every process` inked to 1181.9 at 1100x800,
          past the frame and 18 short of the canvas edge, so the caption is the short one and the
@@ -68,7 +77,7 @@ LANES    Seven. WRITE is a single lane on TOP_CY from the API right face to the 
          LINK, 44 units from the controller bottom to the kube-proxy top, carries the slice change.
          It COMPRESSES the round trip through the API that the change really takes, the controller
          writing the slice and kube-proxy reading it on its own watch, and the narration states that
-         trip in words. TRAFFIC, 244 units on the frame centre line 464 from the kube-proxy right
+         trip in words. TRAFFIC, 180 units on the frame centre line 464 from the kube-proxy right
          face to the frame left face, is why kube-proxy is centred on the frame centre and not on
          the controller.
          SIGNAL, 42 units from the Kubelet bottom to the Pod top, is the one lane inside the frame,
@@ -85,7 +94,8 @@ MOTION   Spans against durations: delete 3293/4600, deregister 2200/3400, presto
          The fork balls run 510 units at 0.45 u/ms, 1133ms, the canon speed. The write is 284,
          floored to 700 at 0.406, which workloads-pod-qos-classes also runs. LINK and SIGNAL are 44 and 42, floored to 700 at 0.06, the length
          network-ipam-pod-cidr, network-pod-ip-and-veth and storage-csi-capacity-tracking also run.
-         TRAFFIC is 244, floored at 0.349, and no other card runs that length.
+         TRAFFIC is 180, floored to 700 at 0.257, the length cluster-etcd-raft,
+         storage-csi-ephemeral-volume and storage-volume-snapshot also run.
          Down-arrow on every signal: the ball lands, then the Pod blinks (M-16). On expiry the blink
          comes first and the Pod, the traffic lane and the signal lane fade to OPACITY.terminated
          together one beat later (M-08, A-13), and the same shades are pinned in the static block
@@ -245,4 +255,14 @@ NOT A DEFECT
          1600x1000 the left half of it stands empty under a panel that ends at 177. That is the band
          the panel gives back at a wide viewport and cannot be filled (scheme/CLAUDE.md): the bus is
          pinned by the 279.51 the same panel reaches at 1100x800.
+OPEN     `CENTRE` on the chip strip: the two chips span 60..540, centre 300, against a want of 600
+         +-6 (`L-13`). It stays open because the strip has nowhere to go that keeps the fork. The
+         Node frame owns 660..1140 x 330..598, so a strip straddling 600 at the chip rows 510..586
+         runs into it, and under the frame there are 32 units of canvas for a 34 unit chip. The band
+         above the bus is the only free width, and there the trunk runs down x 600 from 120 to 300,
+         so a strip on 600 is crossed by it (`L-10`), and two chips either side of the trunk get at
+         most 199 units each between the 396.55 panel and the trunk, where the endpoint pair inks
+         172.3 plus 24 of chip padding and the 4 chipfit asks for. The
+         column is the left zone of the fork, two control-plane boxes over their readouts, and
+         moving it is a composition change. The content bbox centres and is not reported.
 ```

@@ -44,6 +44,8 @@ const ICONS = {
 const COPY_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
 const CHECK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
 const STAR_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+const LINK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+const DOCS_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>`;
 const CONTACT_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
 const SPONSOR_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
 
@@ -51,15 +53,16 @@ const SPONSOR_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none
 const SECTIONS = [
   // ── INSTALLATION - KUBEADM ──────────────────────────────────
   {
-    id: 'install-kubeadm', title: 'Kubeadm', icon: ICONS.kubeadm, sub: 'Installation',
+    id: 'install-kubeadm', title: 'Kubeadm', icon: ICONS.kubeadm, sub: 'Installation', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/reference/setup-tools/kubeadm/',
     groups: [
       {
         title: 'Install',
         desc: 'Install kubeadm, kubelet, and kubectl on each node. These steps are required before initializing or joining a cluster.',
         cmds: [
-          { cmd: 'apt-get update && apt-get install -y apt-transport-https ca-certificates curl', desc: 'Install prerequisites on Debian/Ubuntu' },
-          { cmd: 'curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg', desc: 'Add the Kubernetes apt repository signing key' },
-          { cmd: 'echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list', desc: 'Add the Kubernetes apt repository' },
+          { cmd: 'apt-get update && apt-get install -y apt-transport-https ca-certificates curl gpg', desc: 'Install prerequisites on Debian/Ubuntu' },
+          { cmd: 'curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.35/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg', desc: 'Add the Kubernetes apt repository signing key' },
+          { cmd: 'echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.35/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list', desc: 'Add the Kubernetes apt repository' },
           { cmd: 'apt-get update && apt-get install -y kubelet kubeadm kubectl',  desc: 'Install kubelet, kubeadm, and kubectl' },
           { cmd: 'apt-mark hold kubelet kubeadm kubectl',                              desc: 'Prevent automatic upgrades of Kubernetes packages' },
           { cmd: 'systemctl enable --now kubelet',                                      desc: 'Enable and start the kubelet service' },
@@ -72,7 +75,7 @@ const SECTIONS = [
           { cmd: 'kubeadm init --pod-network-cidr=<cidr>',                            desc: 'Initialize the control plane with a pod network CIDR' },
           { cmd: 'kubeadm init --control-plane-endpoint=<endpoint>',                  desc: 'Initialize with a shared load-balancer endpoint (HA)' },
           { cmd: 'kubeadm init --kubernetes-version=<version>',                       desc: 'Initialize with a specific Kubernetes version' },
-          { cmd: 'kubeadm init --cri-socket /run/containerd/containerd.sock',         desc: 'Initialize with a specific CRI socket' },
+          { cmd: 'kubeadm init --cri-socket unix:///var/run/containerd/containerd.sock', desc: 'Initialize with a specific CRI socket' },
           { cmd: 'kubeadm token create --print-join-command',                               desc: 'Generate a new join command for worker nodes' },
           { cmd: 'kubeadm join <control-plane-endpoint> --token <token> --discovery-token-ca-cert-hash sha256:<hash>', desc: 'Join a worker node to the cluster' },
           { cmd: 'kubeadm join <control-plane-endpoint> --token <token> --discovery-token-ca-cert-hash sha256:<hash> --control-plane --certificate-key <key>', desc: 'Join a secondary control plane node (HA)' },
@@ -110,7 +113,8 @@ const SECTIONS = [
 
   // ── INSTALLATION - K3S ──────────────────────────────────────
   {
-    id: 'install-k3s', title: 'k3s', icon: ICONS.k3s, sub: 'Installation',
+    id: 'install-k3s', title: 'k3s', icon: ICONS.k3s, sub: 'Installation', version: 'k8s 1.35',
+    docs: 'https://docs.k3s.io/',
     groups: [
       {
         title: 'Install',
@@ -121,7 +125,6 @@ const SECTIONS = [
           { cmd: 'curl -sfL https://get.k3s.io | K3S_URL=https://<server>:6443 K3S_TOKEN=<token> sh -', desc: 'Install k3s agent and join an existing server' },
           { cmd: 'curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --cluster-init" sh -', desc: 'Install server in HA mode with embedded etcd' },
           { cmd: 'curl -sfL https://get.k3s.io | INSTALL_K3S_SKIP_START=true sh -',         desc: 'Install binary without starting the service' },
-          { cmd: 'brew install k3s',                                                          desc: 'Install k3s via Homebrew (macOS/Linux)' },
         ]
       },
       {
@@ -135,7 +138,7 @@ const SECTIONS = [
           { cmd: 'systemctl disable k3s',                                               desc: 'Disable k3s from starting on boot' },
           { cmd: '/usr/local/bin/k3s kubectl get nodes',                                     desc: 'Use the embedded kubectl binary' },
           { cmd: 'k3s server --disable traefik',                                        desc: 'Start server with specific components disabled' },
-          { cmd: 'k3s server --disable-agent',                                          desc: 'Run as control plane only (no workloads on this node)' },
+          { cmd: 'k3s server --disable-agent',                                          desc: 'Run a control plane with no kubelet (experimental, node is not registered)' },
           { cmd: '/usr/local/bin/k3s-uninstall.sh',                                          desc: 'Uninstall k3s server and all data' },
           { cmd: '/usr/local/bin/k3s-agent-uninstall.sh',                                    desc: 'Uninstall k3s agent' },
         ]
@@ -166,7 +169,8 @@ const SECTIONS = [
 
   // ── INSTALLATION - K3D ──────────────────────────────────────
   {
-    id: 'install-k3d', title: 'k3d', icon: ICONS.k3d, sub: 'Installation',
+    id: 'install-k3d', title: 'k3d', icon: ICONS.k3d, sub: 'Installation', version: 'k3d 5.9',
+    docs: 'https://k3d.io/',
     groups: [
       {
         title: 'Install',
@@ -222,7 +226,7 @@ const SECTIONS = [
           { cmd: 'k3d cluster list',                                                           desc: 'List all k3d clusters' },
           { cmd: 'k3d node list',                                                             desc: 'List all k3d nodes' },
           { cmd: 'k3d kubeconfig get <name>',                                                 desc: 'Get kubeconfig for a cluster' },
-          { cmd: 'k3d kubeconfig merge <name> --switch-context',                              desc: 'Merge kubeconfig and switch context' },
+          { cmd: 'k3d kubeconfig merge <name> --kubeconfig-switch-context',                   desc: 'Merge kubeconfig and switch context' },
         ]
       },
     ]
@@ -230,14 +234,15 @@ const SECTIONS = [
 
   // ── INSTALLATION - KIND ─────────────────────────────────────
   {
-    id: 'install-kind', title: 'KinD', icon: ICONS.kind, sub: 'Installation',
+    id: 'install-kind', title: 'KinD', icon: ICONS.kind, sub: 'Installation', version: 'kind 0.33',
+    docs: 'https://kind.sigs.k8s.io/docs/user/quick-start/',
     groups: [
       {
         title: 'Install',
         desc: 'Install kind (Kubernetes IN Docker), a tool for running local Kubernetes clusters using Docker containers as nodes.',
         cmds: [
           { cmd: 'brew install kind',                                                          desc: 'Install kind via Homebrew' },
-          { cmd: 'curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64 && chmod +x ./kind && sudo mv ./kind /usr/local/bin/', desc: 'Install kind binary on Linux amd64' },
+          { cmd: 'curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64 && chmod +x ./kind && sudo mv ./kind /usr/local/bin/', desc: 'Install kind binary on Linux amd64' },
           { cmd: 'kind version',                                                              desc: 'Print kind version' },
         ]
       },
@@ -262,7 +267,7 @@ const SECTIONS = [
           { cmd: 'kind load image-archive <tar> --name <name>',                              desc: 'Load an image from a tar archive' },
           { cmd: 'kind build node-image --image <tag>',                                      desc: 'Build a custom node image' },
           { cmd: 'kind export logs --name <name>',                                           desc: 'Export cluster logs to a local directory' },
-          { cmd: 'kind export logs --name <name> --outdir <dir>',                            desc: 'Export logs to a specific directory' },
+          { cmd: 'kind export logs <dir> --name <name>',                                     desc: 'Export logs to a specific directory' },
         ]
       },
       {
@@ -280,14 +285,15 @@ const SECTIONS = [
 
   // ── INSTALLATION - MINIKUBE ─────────────────────────────────
   {
-    id: 'install-minikube', title: 'Minikube', icon: ICONS.minikube, sub: 'Installation',
+    id: 'install-minikube', title: 'Minikube', icon: ICONS.minikube, sub: 'Installation', version: 'minikube 1.39',
+    docs: 'https://minikube.sigs.k8s.io/docs/start/',
     groups: [
       {
         title: 'Install',
         desc: 'Install minikube, a tool that runs a single-node Kubernetes cluster locally using a VM or container runtime.',
         cmds: [
           { cmd: 'brew install minikube',                                                      desc: 'Install minikube via Homebrew' },
-          { cmd: 'curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && sudo install minikube-linux-amd64 /usr/local/bin/minikube', desc: 'Install minikube binary on Linux amd64' },
+          { cmd: 'curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64 && sudo install minikube-linux-amd64 /usr/local/bin/minikube', desc: 'Install minikube binary on Linux amd64' },
           { cmd: 'minikube version',                                                          desc: 'Print minikube version' },
         ]
       },
@@ -298,18 +304,18 @@ const SECTIONS = [
           { cmd: 'minikube start --driver docker',                                            desc: 'Start a cluster with the Docker driver' },
           { cmd: 'minikube start --driver podman',                                            desc: 'Start a cluster with the Podman driver' },
           { cmd: 'minikube start --driver virtualbox',                                        desc: 'Start a cluster with the VirtualBox driver' },
-          { cmd: 'minikube start --driver qemu2',                                             desc: 'Start a cluster with the QEMU driver (Linux)' },
-          { cmd: 'minikube start --driver hyperkit',                                          desc: 'Start a cluster with the HyperKit driver (macOS)' },
+          { cmd: 'minikube start --driver qemu2',                                             desc: 'Start a cluster with the QEMU driver (Linux, macOS)' },
+          { cmd: 'minikube start --driver vfkit',                                             desc: 'Start a cluster with the vfkit driver (macOS)' },
           { cmd: 'minikube start --kubernetes-version <version>',                             desc: 'Start with a specific Kubernetes version' },
           { cmd: 'minikube start -p <profile>',                                               desc: 'Start a named profile (multi-cluster)' },
           { cmd: 'minikube start --nodes <n>',                                                desc: 'Start a multi-node cluster' },
           { cmd: 'minikube start --cpus <n> --memory <mb>',                                   desc: 'Start with custom CPU and memory' },
-          { cmd: 'minikube start --container-runtime containerd',                             desc: 'Start with containerd runtime' },
+          { cmd: 'minikube start --container-runtime cri-o',                                  desc: 'Start with the CRI-O runtime (containerd is the default)' },
           { cmd: 'minikube stop',                                                              desc: 'Stop the current minikube cluster' },
           { cmd: 'minikube stop -p <profile>',                                                desc: 'Stop a specific profile' },
           { cmd: 'minikube delete',                                                            desc: 'Delete the current minikube cluster' },
           { cmd: 'minikube delete -p <profile>',                                              desc: 'Delete a specific profile' },
-          { cmd: 'minikube delete --all',                                                     desc: 'Delete all profiles and purge config' },
+          { cmd: 'minikube delete --all',                                                     desc: 'Delete all profiles' },
         ]
       },
       {
@@ -335,7 +341,7 @@ const SECTIONS = [
         desc: 'Load local images into minikube, SSH into the node, copy files, and build images inside the cluster.',
         cmds: [
           { cmd: 'minikube image load <image>',                                               desc: 'Load a local image into minikube' },
-          { cmd: 'minikube image load <image> --overwrite',                                   desc: 'Load image, overwriting if it exists' },
+          { cmd: 'minikube image load <image> --overwrite',                                   desc: 'Load image, overwriting if it exists (the default)' },
           { cmd: 'minikube image list',                                                       desc: 'List images in the minikube container runtime' },
           { cmd: 'minikube image build -t <tag> <dir>',                                      desc: 'Build an image inside minikube' },
           { cmd: 'minikube ssh',                                                              desc: 'SSH into the minikube node' },
@@ -363,7 +369,8 @@ const SECTIONS = [
 
   // ── CLUSTER HEALTH ────────────────────────────────────────
   {
-    id: 'cluster-health', title: 'Cluster Health', icon: ICONS['cluster-health'], sub: 'Cluster',
+    id: 'cluster-health', title: 'Cluster Health', icon: ICONS['cluster-health'], sub: 'Cluster', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/reference/kubectl/quick-reference/',
     groups: [
       {
         title: 'API Discovery',
@@ -416,7 +423,8 @@ const SECTIONS = [
 
   // ── NODES ─────────────────────────────────────────────────
   {
-    id: 'node', title: 'Nodes', icon: ICONS.node, sub: 'Cluster',
+    id: 'node', title: 'Nodes', icon: ICONS.node, sub: 'Cluster', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/architecture/nodes/',
     groups: [
       {
         title: 'Resource Usage',
@@ -475,7 +483,8 @@ const SECTIONS = [
 
   // ── CUSTOM RESOURCES ──────────────────────────────────────
   {
-    id: 'crd', title: 'Custom Resources', icon: ICONS.crd, sub: 'Cluster',
+    id: 'crd', title: 'Custom Resources', icon: ICONS.crd, sub: 'Cluster', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/',
     groups: [
       {
         title: 'Manage',
@@ -517,7 +526,8 @@ const SECTIONS = [
 
   // ── CONTEXTS ──────────────────────────────────────────────
   {
-    id: 'context', title: 'Contexts', icon: ICONS.context, sub: 'Cluster',
+    id: 'context', title: 'Contexts', icon: ICONS.context, sub: 'Cluster', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/',
     groups: [
       {
         title: 'Manage Contexts',
@@ -552,7 +562,7 @@ const SECTIONS = [
           { cmd: 'kubectl config get-clusters',                                    desc: 'List all clusters in kubeconfig' },
           { cmd: 'kubectl config get-contexts',                                    desc: 'List all kubeconfig contexts' },
           { cmd: 'kubectl config get-users',                                       desc: 'List all users in kubeconfig' },
-          { cmd: 'kubectl config view --flatten',                                  desc: 'Flatten kubeconfig (useful for sharing)' },
+          { cmd: 'kubectl config view --flatten',                                  desc: 'Self-contained kubeconfig with certs and tokens inlined (contains secrets)' },
           { cmd: 'kubectl config view --minify',                                   desc: 'View current context config only' },
           { cmd: 'kubectl config view --raw',                                      desc: 'Full kubeconfig including credentials (for backup/migration)' },
           { cmd: 'kubectl config view',                                            desc: 'View full kubeconfig' },
@@ -563,7 +573,8 @@ const SECTIONS = [
 
   // ── PODS ──────────────────────────────────────────────────
   {
-    id: 'pod', title: 'Pods', icon: ICONS.pod, sub: 'Workloads',
+    id: 'pod', title: 'Pods', icon: ICONS.pod, sub: 'Workloads', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/workloads/pods/',
     groups: [
       {
         title: 'Manage',
@@ -599,7 +610,7 @@ const SECTIONS = [
         title: 'Logs',
         desc: 'Stream, filter, and retrieve logs from pod containers including previous instances.',
         cmds: [
-          { cmd: 'kubectl logs -l app=<name> --all-containers=true',               desc: 'Logs from all pods matching label' },
+          { cmd: 'kubectl logs -l app=<name> --all-containers=true',               desc: 'Last 10 lines from each pod matching label (add --tail=-1 for all)' },
           { cmd: 'kubectl logs <pod> --since=1h',                                  desc: 'Logs from the last hour' },
           { cmd: 'kubectl logs <pod> --tail=100',                                  desc: 'Print last 100 lines' },
           { cmd: 'kubectl logs <pod> -c <container>',                              desc: 'Logs from a specific container' },
@@ -641,7 +652,8 @@ const SECTIONS = [
 
   // ── DEPLOYMENTS ───────────────────────────────────────────
   {
-    id: 'deployment', title: 'Deployments', icon: ICONS.deployment, sub: 'Workloads',
+    id: 'deployment', title: 'Deployments', icon: ICONS.deployment, sub: 'Workloads', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/workloads/controllers/deployment/',
     groups: [
       {
         title: 'Manage',
@@ -666,7 +678,7 @@ const SECTIONS = [
         title: 'Scale',
         desc: 'Adjust replica count manually or automatically with a Horizontal Pod Autoscaler.',
         cmds: [
-          { cmd: 'kubectl autoscale deploy/<name> --min=2 --max=10 --cpu-percent=80', desc: 'Create Horizontal Pod Autoscaler' },
+          { cmd: 'kubectl autoscale deploy/<name> --min=2 --max=10 --cpu=80%',        desc: 'Create Horizontal Pod Autoscaler' },
           { cmd: 'kubectl delete hpa <name>',                                      desc: 'Delete an autoscaler' },
           { cmd: 'kubectl get hpa',                                                desc: 'List Horizontal Pod Autoscalers' },
           { cmd: 'kubectl scale deploy/<name> --replicas=<n>',                     desc: 'Scale deployment to N replicas' },
@@ -704,7 +716,8 @@ const SECTIONS = [
 
   // ── STATEFULSETS ──────────────────────────────────────────
   {
-    id: 'statefulset', title: 'StatefulSets', icon: ICONS.statefulset, sub: 'Workloads',
+    id: 'statefulset', title: 'StatefulSets', icon: ICONS.statefulset, sub: 'Workloads', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/',
     groups: [
       {
         title: 'Manage',
@@ -744,7 +757,8 @@ const SECTIONS = [
 
   // ── DAEMONSETS ────────────────────────────────────────────
   {
-    id: 'daemonset', title: 'DaemonSets', icon: ICONS.daemonset, sub: 'Workloads',
+    id: 'daemonset', title: 'DaemonSets', icon: ICONS.daemonset, sub: 'Workloads', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/',
     groups: [
       {
         title: 'Manage',
@@ -783,7 +797,8 @@ const SECTIONS = [
 
   // ── SERVICES ──────────────────────────────────────────────
   {
-    id: 'service', title: 'Services', icon: ICONS.service, sub: 'Workloads',
+    id: 'service', title: 'Services', icon: ICONS.service, sub: 'Workloads', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/services-networking/service/',
     groups: [
       {
         title: 'Manage',
@@ -815,13 +830,13 @@ const SECTIONS = [
         desc: 'View services, their type, cluster IP, ports, and resolved endpoints.',
         cmds: [
           { cmd: 'kubectl describe svc <name>',                                    desc: 'Service details, selectors, endpoints' },
-          { cmd: 'kubectl get endpoints <name>',                                   desc: 'View resolved endpoints for service' },
-          { cmd: 'kubectl get endpointslices',                                     desc: 'Modern alternative to endpoints (EndpointSlice API)' },
-          { cmd: 'kubectl get ep',                                                 desc: 'Short alias for get endpoints' },
+          { cmd: 'kubectl get endpointslices -l kubernetes.io/service-name=<name>', desc: 'View EndpointSlices backing a service' },
+          { cmd: 'kubectl get endpointslices',                                     desc: 'EndpointSlice API, replaces the deprecated Endpoints' },
+          { cmd: 'kubectl get ep',                                                 desc: 'Short alias for get endpoints (API deprecated since v1.33)' },
           { cmd: 'kubectl get services',                                           desc: 'List services in current namespace' },
           { cmd: 'kubectl get svc -A',                                             desc: 'All services across namespaces' },
           { cmd: 'kubectl get svc -n <namespace>',                                 desc: 'Services in a specific namespace' },
-          { cmd: 'kubectl get svc -o wide',                                        desc: 'Show selector and external IP' },
+          { cmd: 'kubectl get svc -o wide',                                        desc: 'Services plus the Selector column' },
           { cmd: 'kubectl get svc <name> -o yaml',                                 desc: 'Get service manifest as YAML' },
         ]
       },
@@ -830,7 +845,8 @@ const SECTIONS = [
 
   // ── CONFIGMAPS & SECRETS ─────────────────────────────────
   {
-    id: 'config', title: 'ConfigMaps & Secrets', icon: ICONS.config, sub: 'Workloads',
+    id: 'config', title: 'ConfigMaps & Secrets', icon: ICONS.config, sub: 'Workloads', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/configuration/configmap/',
     groups: [
       {
         title: 'Manage',
@@ -883,7 +899,8 @@ const SECTIONS = [
 
   // ── JOBS & CRONJOBS ───────────────────────────────────────
   {
-    id: 'job', title: 'Jobs & CronJobs', icon: ICONS.job, sub: 'Workloads',
+    id: 'job', title: 'Jobs & CronJobs', icon: ICONS.job, sub: 'Workloads', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/workloads/controllers/job/',
     groups: [
       {
         title: 'Jobs Manage',
@@ -902,7 +919,7 @@ const SECTIONS = [
         cmds: [
           { cmd: 'kubectl apply -f cronjob.yaml',                                  desc: 'Apply CronJob from manifest' },
           { cmd: "kubectl create cronjob <name> --image=<image> --schedule='*/5 * * * *'", desc: 'Create a CronJob imperatively' },
-          { cmd: 'kubectl delete cronjob <name>',                                  desc: 'Delete CronJob (running jobs are unaffected)' },
+          { cmd: 'kubectl delete cronjob <name>',                                  desc: 'Delete CronJob and the Jobs and pods it created' },
           { cmd: 'kubectl delete cronjobs --all -n <namespace>',                   desc: 'Delete all CronJobs in a namespace' },
           { cmd: 'kubectl edit cronjob <name>',                                    desc: 'Edit CronJob in $EDITOR' },
           { cmd: "kubectl patch cronjob <name> -p '{\"spec\":{\"suspend\":false}}'", desc: 'Resume a suspended CronJob' },
@@ -919,7 +936,7 @@ const SECTIONS = [
           { cmd: 'kubectl get jobs -A',                                            desc: 'List all jobs across all namespaces' },
           { cmd: 'kubectl get jobs -n <namespace>',                                desc: 'Jobs in a specific namespace' },
           { cmd: 'kubectl get pods --selector=job-name=<name>',                   desc: 'Find all pods created by a job' },
-          { cmd: 'kubectl logs -l job-name=<name>',                               desc: 'Logs from all pods of a job by label' },
+          { cmd: 'kubectl logs -l job-name=<name>',                               desc: 'Last 10 lines from each pod of a job (add --tail=-1 for all)' },
           { cmd: 'kubectl wait --for=condition=Complete job/<name> --timeout=120s', desc: 'Wait until job completes successfully' },
           { cmd: 'kubectl wait --for=condition=Failed job/<name>',                desc: 'Wait until job fails (useful in CI to catch errors)' },
         ]
@@ -941,7 +958,8 @@ const SECTIONS = [
 
   // ── VOLUMES ───────────────────────────────────────────────
   {
-    id: 'volume', title: 'Volumes', icon: ICONS.volume, sub: 'Workloads',
+    id: 'volume', title: 'Volumes', icon: ICONS.volume, sub: 'Workloads', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/storage/volumes/',
     groups: [
       {
         title: 'PersistentVolumes',
@@ -951,7 +969,7 @@ const SECTIONS = [
           { cmd: 'kubectl delete pv <name>',                                       desc: 'Delete a PersistentVolume' },
           { cmd: 'kubectl describe pv <name>',                                     desc: 'PV details, capacity, claim, and status' },
           { cmd: 'kubectl edit pv <name>',                                         desc: 'Edit PV in-place' },
-          { cmd: 'kubectl get pv -o wide',                                         desc: 'PVs with capacity, access modes, claim' },
+          { cmd: 'kubectl get pv -o wide',                                         desc: 'PVs plus the VolumeMode column' },
           { cmd: 'kubectl get pv <name> -o yaml',                                  desc: 'Get PV manifest as YAML' },
           { cmd: 'kubectl get pv',                                                 desc: 'List all PersistentVolumes' },
           { cmd: 'kubectl patch pv <name> -p \'{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}\'', desc: 'Change reclaim policy to Retain' },
@@ -971,20 +989,19 @@ const SECTIONS = [
           { cmd: 'kubectl get pvc <name> -o yaml',                                 desc: 'Get PVC manifest as YAML' },
           { cmd: 'kubectl get pvc',                                                desc: 'List PVCs in current namespace' },
           { cmd: 'kubectl patch pvc <name> -p \'{"metadata":{"finalizers":null}}\'', desc: 'Remove finalizers to unblock stuck Terminating PVC' },
-          { cmd: 'kubectl patch pvc <name> -p \'{"spec":{"resources":{"requests":{"storage":"10Gi"}}}}\'', desc: 'Resize PVC to a new storage size' },
+          { cmd: 'kubectl patch pvc <name> -p \'{"spec":{"resources":{"requests":{"storage":"10Gi"}}}}\'', desc: 'Expand PVC to a larger size (needs allowVolumeExpansion)' },
         ]
       },
       {
         title: 'StorageClass',
         desc: 'Define dynamic storage provisioners. Set or change the default StorageClass for the cluster.',
         cmds: [
-          { cmd: 'kubectl annotate sc <name> storageclass.kubernetes.io/is-default-class=true', desc: 'Mark StorageClass as default' },
+          { cmd: 'kubectl annotate sc <name> storageclass.kubernetes.io/is-default-class=true --overwrite', desc: 'Mark StorageClass as default' },
           { cmd: 'kubectl apply -f storageclass.yaml',                             desc: 'Create or update a StorageClass' },
           { cmd: 'kubectl delete sc <name>',                                       desc: 'Delete a StorageClass (short alias)' },
           { cmd: 'kubectl delete storageclass <name>',                             desc: 'Delete a StorageClass' },
           { cmd: 'kubectl describe storageclass <name>',                           desc: 'StorageClass details and provisioner' },
           { cmd: 'kubectl edit storageclass <name>',                               desc: 'Edit StorageClass in $EDITOR' },
-          { cmd: 'kubectl get sc -o wide',                                         desc: 'StorageClasses with extra columns' },
           { cmd: 'kubectl get sc <name> -o yaml',                                  desc: 'Get StorageClass manifest as YAML' },
           { cmd: 'kubectl get sc',                                                 desc: 'Short alias for get storageclass' },
           { cmd: 'kubectl get storageclass',                                       desc: 'List all StorageClasses' },
@@ -995,7 +1012,8 @@ const SECTIONS = [
 
   // ── NETWORKING ────────────────────────────────────────────
   {
-    id: 'network', title: 'Networking', icon: ICONS.network, sub: 'Workloads',
+    id: 'network', title: 'Networking', icon: ICONS.network, sub: 'Workloads', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/services-networking/',
     groups: [
       {
         title: 'GatewayClass',
@@ -1004,7 +1022,7 @@ const SECTIONS = [
           { cmd: 'kubectl delete gatewayclass <name>',                                          desc: 'Delete a GatewayClass' },
           { cmd: 'kubectl describe gatewayclass <name>',                                        desc: 'GatewayClass details and controller' },
           { cmd: 'kubectl get gatewayclass',                                                    desc: 'List all GatewayClasses (cluster-wide)' },
-          { cmd: 'kubectl get gatewayclass -o wide',                                            desc: 'List with controller and status columns' },
+          { cmd: 'kubectl get gatewayclass -o wide',                                            desc: 'Adds the Description column' },
           { cmd: 'kubectl get gatewayclass <name> -o yaml',                                     desc: 'Get GatewayClass manifest as YAML' },
           { cmd: 'kubectl get gatewayclass <name> -o jsonpath=\'{.status.conditions}\'',        desc: 'Show acceptance conditions' },
           { cmd: 'kubectl annotate gatewayclass <name> <key>=<value>',                          desc: 'Add or update an annotation' },
@@ -1020,7 +1038,7 @@ const SECTIONS = [
           { cmd: 'kubectl edit gateway <name> -n <namespace>',                                  desc: 'Edit Gateway in $EDITOR' },
           { cmd: 'kubectl get gateways -A',                                                     desc: 'All Gateways across namespaces' },
           { cmd: 'kubectl get gateways -n <namespace>',                                         desc: 'Gateways in a namespace' },
-          { cmd: 'kubectl get gateways -o wide',                                                desc: 'List with class and address columns' },
+          { cmd: 'kubectl get gateways',                                                        desc: 'List Gateways with class, address and programmed status' },
           { cmd: 'kubectl get gateway <name> -n <namespace> -o yaml',                           desc: 'Get Gateway manifest as YAML' },
           { cmd: 'kubectl get gateway <name> -n <namespace> -o jsonpath=\'{.status.addresses}\'', desc: 'Show assigned addresses' },
           { cmd: 'kubectl annotate gateway <name> -n <namespace> <key>=<value>',                desc: 'Add or update an annotation' },
@@ -1039,7 +1057,7 @@ const SECTIONS = [
           { cmd: 'kubectl edit httproute <name> -n <namespace>',                                desc: 'Edit HTTPRoute in $EDITOR' },
           { cmd: 'kubectl get httproutes -A',                                                   desc: 'All HTTPRoutes across namespaces' },
           { cmd: 'kubectl get httproutes -n <namespace>',                                       desc: 'HTTPRoutes in a namespace' },
-          { cmd: 'kubectl get httproutes -o wide',                                              desc: 'List with hostnames and parent refs columns' },
+          { cmd: 'kubectl get httproutes',                                                      desc: 'List HTTPRoutes with hostnames' },
           { cmd: 'kubectl get httproute <name> -n <namespace> -o yaml',                         desc: 'Get HTTPRoute manifest as YAML' },
           { cmd: 'kubectl get httproute <name> -n <namespace> -o jsonpath=\'{.spec.rules}\'',   desc: 'Show routing rules as JSON' },
           { cmd: 'kubectl get referencegrants -n <namespace>',                                  desc: 'ReferenceGrants for cross-namespace routing' },
@@ -1059,7 +1077,6 @@ const SECTIONS = [
           { cmd: 'kubectl get ing -A',                                                                       desc: 'All Ingresses across namespaces' },
           { cmd: 'kubectl get ingress',                                                                      desc: 'List Ingresses in current namespace' },
           { cmd: 'kubectl get ingress -n <namespace>',                                                       desc: 'Ingresses in a specific namespace' },
-          { cmd: 'kubectl get ingress -o wide',                                                              desc: 'List with hosts and address columns' },
           { cmd: 'kubectl get ingress <name> -o yaml',                                                       desc: 'Get Ingress manifest as YAML' },
           { cmd: 'kubectl get ingress <name> -o jsonpath=\'{.spec.rules}\'',                                 desc: 'Show routing rules as JSON' },
           { cmd: 'kubectl patch ingress <name> --type=merge -p \'{"spec":{"ingressClassName":"<class>"}}\'', desc: 'Set IngressClass on an existing Ingress' },
@@ -1072,9 +1089,8 @@ const SECTIONS = [
           { cmd: 'kubectl delete ingressclass <name>',                                                                          desc: 'Delete an IngressClass' },
           { cmd: 'kubectl describe ingressclass <name>',                                                                        desc: 'IngressClass details and controller' },
           { cmd: 'kubectl get ingressclass',                                                                                    desc: 'List all IngressClasses' },
-          { cmd: 'kubectl get ingressclass -o wide',                                                                            desc: 'List with controller column' },
           { cmd: 'kubectl get ingressclass <name> -o yaml',                                                                     desc: 'Get IngressClass manifest as YAML' },
-          { cmd: 'kubectl annotate ingressclass <name> ingressclass.kubernetes.io/is-default-class=true',                       desc: 'Mark IngressClass as cluster default' },
+          { cmd: 'kubectl annotate ingressclass <name> ingressclass.kubernetes.io/is-default-class=true --overwrite',           desc: 'Mark IngressClass as cluster default' },
           { cmd: 'kubectl annotate ingressclass <name> ingressclass.kubernetes.io/is-default-class-',                           desc: 'Remove default-class annotation' },
         ]
       },
@@ -1097,7 +1113,8 @@ const SECTIONS = [
 
   // ── RBAC ──────────────────────────────────────────────────
   {
-    id: 'rbac', title: 'RBAC', icon: ICONS.rbac, sub: 'Workloads',
+    id: 'rbac', title: 'RBAC', icon: ICONS.rbac, sub: 'Workloads', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/reference/access-authn-authz/rbac/',
     groups: [
       {
         title: 'Manage Roles & Bindings',
@@ -1123,7 +1140,7 @@ const SECTIONS = [
           { cmd: 'kubectl create serviceaccount <name>',                           desc: 'Create a ServiceAccount' },
           { cmd: 'kubectl create serviceaccount <name> -n <namespace>',            desc: 'Create a ServiceAccount in a namespace' },
           { cmd: 'kubectl delete serviceaccount <name>',                           desc: 'Delete a ServiceAccount' },
-          { cmd: 'kubectl describe sa <name>',                                     desc: 'ServiceAccount details and secrets' },
+          { cmd: 'kubectl describe sa <name>',                                     desc: 'ServiceAccount details, image pull secrets, tokens' },
           { cmd: 'kubectl edit serviceaccount <name>',                             desc: 'Edit ServiceAccount in $EDITOR' },
           { cmd: 'kubectl get sa -A',                                              desc: 'All ServiceAccounts across namespaces' },
           { cmd: 'kubectl get sa -n <namespace>',                                  desc: 'ServiceAccounts in a namespace' },
@@ -1144,7 +1161,7 @@ const SECTIONS = [
           { cmd: 'kubectl auth can-i <verb> <resource> --as=<user>',               desc: 'Check permission as another user' },
           { cmd: 'kubectl auth can-i <verb> <resource> -n <namespace>',            desc: 'Check permission in a specific namespace' },
           { cmd: 'kubectl auth can-i <verb> <resource>',                           desc: 'Check your own permission' },
-          { cmd: 'kubectl auth can-i get pods/log --as=<user>',                   desc: 'Check subresource permission' },
+          { cmd: 'kubectl auth can-i get pods --subresource=log --as=<user>',     desc: 'Check subresource permission' },
           { cmd: 'kubectl auth can-i create pods --as=system:serviceaccount:<ns>:<sa>', desc: 'Check ServiceAccount permission' },
           { cmd: 'kubectl auth whoami',                                             desc: 'Show current user identity (k8s 1.28+)' },
         ]
@@ -1172,7 +1189,8 @@ const SECTIONS = [
 
   // ── NAMESPACES ────────────────────────────────────────────
   {
-    id: 'namespace', title: 'Namespaces', icon: ICONS.namespace, sub: 'Workloads',
+    id: 'namespace', title: 'Namespaces', icon: ICONS.namespace, sub: 'Workloads', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/',
     groups: [
       {
         title: 'Manage',
@@ -1191,8 +1209,8 @@ const SECTIONS = [
         cmds: [
           { cmd: 'kubectl describe namespace <name>',                              desc: 'Namespace details and resource quotas' },
           { cmd: 'kubectl describe resourcequota -n <namespace>',                  desc: 'Current quota usage vs limits' },
-          { cmd: 'kubectl get all -A',                                              desc: 'All resources across all namespaces' },
-          { cmd: 'kubectl get all -n <namespace>',                                 desc: 'All resources in a namespace' },
+          { cmd: 'kubectl get all -A',                                              desc: 'Common workload resources across all namespaces (not ConfigMaps, Secrets, PVCs)' },
+          { cmd: 'kubectl get all -n <namespace>',                                 desc: 'Common workload resources in a namespace (not ConfigMaps, Secrets, PVCs)' },
           { cmd: 'kubectl get limitrange -n <namespace>',                          desc: 'Default CPU/memory limits for namespace' },
           { cmd: 'kubectl get namespace <name> -o yaml',                           desc: 'Get namespace manifest as YAML' },
           { cmd: 'kubectl get namespaces',                                         desc: 'List all namespaces' },
@@ -1205,14 +1223,15 @@ const SECTIONS = [
 
   // ── HELM - RELEASES ───────────────────────────────────────
   {
-    id: 'helm-releases', title: 'Releases', icon: ICONS['helm-releases'], sub: 'Helm',
+    id: 'helm-releases', title: 'Releases', icon: ICONS['helm-releases'], sub: 'Helm', version: 'Helm 4.3',
+    docs: 'https://helm.sh/docs/helm/helm/',
     groups: [
       {
         title: 'Install Helm',
         desc: 'Helm is the Kubernetes package manager. Install the CLI via Homebrew or the official script, then verify with helm version.',
         cmds: [
           { cmd: 'brew install helm',                                                                              desc: 'Install via Homebrew (macOS / Linux with brew)' },
-          { cmd: 'curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash',              desc: 'Install via official script (Linux / macOS)' },
+          { cmd: 'curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash',              desc: 'Install via official script (Linux / macOS)' },
           { cmd: 'helm version',                                                                                  desc: 'Verify installation and show build info' },
         ]
       },
@@ -1221,12 +1240,12 @@ const SECTIONS = [
         desc: 'Deploy, remove, and modify Helm releases using install and uninstall commands with common flags.',
         cmds: [
           { cmd: 'helm install <release> <chart> --create-namespace -n <namespace>', desc: 'Install and create namespace if missing' },
-          { cmd: 'helm install <release> <chart> --dry-run',                        desc: 'Simulate install without applying resources' },
+          { cmd: 'helm install <release> <chart> --dry-run=client',                 desc: 'Simulate install without applying resources' },
           { cmd: 'helm install <release> <chart> --set <key>=<value>',             desc: 'Install with inline value override' },
           { cmd: 'helm install <release> <chart> --version <ver>',                 desc: 'Install a specific chart version' },
           { cmd: 'helm install <release> <chart> -f values.yaml',                  desc: 'Install with custom values file' },
           { cmd: 'helm install <release> <chart> -n <namespace>',                  desc: 'Install into a specific namespace' },
-          { cmd: 'helm install <release> <chart> --atomic',                         desc: 'Install with automatic rollback on failure' },
+          { cmd: 'helm install <release> <chart> --rollback-on-failure',            desc: 'Install with automatic rollback on failure (was --atomic)' },
           { cmd: 'helm install <release> <chart> -f values1.yaml -f values2.yaml', desc: 'Install with multiple values files (last wins)' },
           { cmd: 'helm install <release> <chart>',                                 desc: 'Install a chart' },
           { cmd: 'helm uninstall <release> --keep-history',                        desc: 'Uninstall but keep release history' },
@@ -1240,7 +1259,7 @@ const SECTIONS = [
           { cmd: 'helm rollback <release> 0',                                      desc: 'Rollback to previous revision' },
           { cmd: 'helm rollback <release> <revision>',                             desc: 'Rollback to a specific revision' },
           { cmd: 'helm upgrade --install <release> <chart>',                       desc: 'Upgrade or install if not present' },
-          { cmd: 'helm upgrade <release> <chart> --atomic',                        desc: 'Upgrade with automatic rollback on failure' },
+          { cmd: 'helm upgrade <release> <chart> --rollback-on-failure',           desc: 'Upgrade with automatic rollback on failure (was --atomic)' },
           { cmd: 'helm upgrade <release> <chart> --cleanup-on-fail',               desc: 'Delete new resources if upgrade fails' },
           { cmd: 'helm upgrade <release> <chart> --reset-values',                  desc: 'Reset values to chart defaults' },
           { cmd: 'helm upgrade <release> <chart> --reuse-values',                  desc: 'Reuse last release values, merge new ones' },
@@ -1267,7 +1286,8 @@ const SECTIONS = [
 
   // ── HELM - CHARTS ─────────────────────────────────────────
   {
-    id: 'helm-charts', title: 'Charts', icon: ICONS['helm-charts'], sub: 'Helm',
+    id: 'helm-charts', title: 'Charts', icon: ICONS['helm-charts'], sub: 'Helm', version: 'Helm 4.3',
+    docs: 'https://helm.sh/docs/topics/charts/',
     groups: [
       {
         title: 'Repositories',
@@ -1312,7 +1332,7 @@ const SECTIONS = [
         title: 'OCI & Plugins',
         desc: 'Push charts to OCI registries and manage Helm plugins that extend CLI functionality.',
         cmds: [
-          { cmd: 'helm plugin install <url>',                                      desc: 'Install a plugin from a URL or path' },
+          { cmd: 'helm plugin install <url> --verify=false',                       desc: 'Install an unsigned plugin from a Git URL (Helm 4 verifies signatures by default)' },
           { cmd: 'helm plugin list',                                               desc: 'List installed plugins' },
           { cmd: 'helm plugin uninstall <name>',                                   desc: 'Remove an installed plugin' },
           { cmd: 'helm plugin update <name>',                                      desc: 'Update an installed plugin' },
@@ -1327,14 +1347,15 @@ const SECTIONS = [
 
   // ── KUSTOMIZE - BUILD & APPLY ─────────────────────────────
   {
-    id: 'kustomize-manage', title: 'Manage', icon: ICONS['kustomize-manage'], sub: 'Kustomize',
+    id: 'kustomize-manage', title: 'Manage', icon: ICONS['kustomize-manage'], sub: 'Kustomize', version: 'Kustomize 5.8',
+    docs: 'https://kubectl.docs.kubernetes.io/references/kustomize/',
     groups: [
       {
         title: 'Install Kustomize',
         desc: 'Kustomize customizes raw Kubernetes YAML without templates. It is built into kubectl (apply -k) and available as a standalone CLI.',
         cmds: [
           { cmd: 'brew install kustomize',                                                                                                     desc: 'Install via Homebrew (macOS / Linux with brew)' },
-          { cmd: 'curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash',              desc: 'Install via official script (Linux / macOS)' },
+          { cmd: 'curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash',              desc: 'Install via official script into the current directory (Linux / macOS)' },
           { cmd: 'kustomize version',                                                                                                          desc: 'Verify installation and show build info' },
         ]
       },
@@ -1355,7 +1376,7 @@ const SECTIONS = [
       },
       {
         title: 'List & Inspect',
-        desc: 'Inspect rendered output, diff against the live cluster, and list resources managed by an overlay.',
+        desc: 'Render an overlay locally to inspect the output without applying it.',
         cmds: [
           { cmd: 'kubectl kustomize <dir>',                                            desc: 'Render overlay with kubectl built-in (no apply)' },
         ]
@@ -1365,17 +1386,18 @@ const SECTIONS = [
 
   // ── KUSTOMIZE - EDIT ──────────────────────────────────────
   {
-    id: 'kustomize-edit', title: 'Edit', icon: ICONS['kustomize-edit'], sub: 'Kustomize',
+    id: 'kustomize-edit', title: 'Edit', icon: ICONS['kustomize-edit'], sub: 'Kustomize', version: 'Kustomize 5.8',
+    docs: 'https://kubectl.docs.kubernetes.io/references/kustomize/cmd/edit/',
     groups: [
       {
         title: 'Resources & Patches',
-        desc: 'Add or remove resource files and strategic merge patches directly in kustomization.yaml.',
+        desc: 'Add or remove resource files and patches directly in kustomization.yaml.',
         cmds: [
           { cmd: 'kustomize edit add resource <file.yaml>',                            desc: 'Add a resource file to kustomization' },
           { cmd: 'kustomize edit remove resource <file.yaml>',                         desc: 'Remove a resource from kustomization' },
-          { cmd: 'kustomize edit add patch --path <patch.yaml>',                       desc: 'Add a strategic merge patch' },
+          { cmd: 'kustomize edit add patch --path <patch.yaml>',                       desc: 'Add a patch file (strategic merge or JSON 6902) to the patches field' },
           { cmd: 'kustomize edit add patch --path <patch.yaml> --kind <Kind>',         desc: 'Add a patch scoped to a specific resource kind' },
-          { cmd: 'kustomize edit remove patch --path <patch.yaml>',                    desc: 'Remove a patch from kustomization' },
+          { cmd: 'kustomize edit remove patch --path <patch.yaml>',                    desc: 'Remove a patch (pass the same target flags used to add it)' },
         ]
       },
       {
@@ -1387,9 +1409,9 @@ const SECTIONS = [
           { cmd: 'kustomize edit set image <name>:<tag>',                              desc: 'Override only the tag of an image' },
           { cmd: 'kustomize edit set namespace <ns>',                                  desc: 'Set namespace for all resources' },
           { cmd: 'kustomize edit set nameprefix <prefix>-',                            desc: 'Add prefix to all resource names' },
-          { cmd: 'kustomize edit set namesuffix -<suffix>',                            desc: 'Add suffix to all resource names' },
+          { cmd: 'kustomize edit set namesuffix -- -<suffix>',                         desc: 'Add suffix to all resource names' },
           { cmd: 'kustomize edit set replicas <name>=<count>',                         desc: 'Override replica count for a resource' },
-          { cmd: 'kustomize edit add label <key>:<value>',                             desc: 'Add a common label to all resources' },
+          { cmd: 'kustomize edit add label <key>:<value> --without-selector',          desc: 'Add a label to all resources (labels field, selectors untouched)' },
           { cmd: 'kustomize edit add annotation <key>:<value>',                        desc: 'Add a common annotation to all resources' },
         ]
       },
@@ -1411,7 +1433,8 @@ const SECTIONS = [
 
   // ── K9S - CLI & LAUNCH ───────────────────────────────────
   {
-    id: 'k9s-cli', title: 'CLI & Launch', icon: ICONS['k9s-cli'], sub: 'K9s',
+    id: 'k9s-cli', title: 'CLI & Launch', icon: ICONS['k9s-cli'], sub: 'K9s', version: 'K9s 0.51',
+    docs: 'https://k9scli.io/topics/commands/',
     groups: [
       {
         title: 'Install K9s',
@@ -1444,7 +1467,8 @@ const SECTIONS = [
 
   // ── K9S - UI SHORTCUTS ───────────────────────────────────
   {
-    id: 'k9s-ui', title: 'UI Shortcuts', icon: ICONS['k9s-ui'], sub: 'K9s',
+    id: 'k9s-ui', title: 'UI Shortcuts', icon: ICONS['k9s-ui'], sub: 'K9s', version: 'K9s 0.51',
+    docs: 'https://k9scli.io/topics/commands/',
     groups: [
       {
         title: 'Global Shortcuts',
@@ -1471,13 +1495,13 @@ const SECTIONS = [
           { cmd: 'j',                                                            desc: 'Move cursor down one row' },
           { cmd: 'k',                                                            desc: 'Move cursor up one row' },
           { cmd: 'h',                                                            desc: 'Scroll table left' },
-          { cmd: 'l',                                                            desc: 'Scroll table right' },
+          { cmd: 'l',                                                            desc: 'Scroll table right (opens logs instead in pod views)' },
           { cmd: 'g',                                                            desc: 'Jump to the top of the list' },
           { cmd: 'Shift+g',                                                      desc: 'Jump to the bottom of the list' },
           { cmd: 'Ctrl+f',                                                       desc: 'Page down' },
           { cmd: 'Ctrl+b',                                                       desc: 'Page up' },
-          { cmd: 'Tab',                                                          desc: 'Move to the next column / field' },
-          { cmd: 'Backtab',                                                      desc: 'Move to the previous column / field' },
+          { cmd: 'Tab',                                                          desc: 'Accept the command-mode suggestion, or move to the next dialog button' },
+          { cmd: 'Backtab',                                                      desc: 'Move to the previous dialog button' },
           { cmd: 'Space',                                                        desc: 'Mark the selected resource' },
           { cmd: 'Ctrl+Space',                                                   desc: 'Mark a range of resources' },
           { cmd: 'Ctrl+\\',                                                      desc: 'Clear all marks' },
@@ -1498,7 +1522,7 @@ const SECTIONS = [
           { cmd: ':namespaces',                                                  desc: 'Namespaces view, switch active namespace' },
           { cmd: ':nodes',                                                       desc: 'Nodes view' },
           { cmd: ':pods',                                                        desc: 'Pods view' },
-          { cmd: ':pvcs',                                                        desc: 'PersistentVolumeClaims view' },
+          { cmd: ':pvc',                                                         desc: 'PersistentVolumeClaims view' },
           { cmd: ':secrets',                                                     desc: 'Secrets view' },
           { cmd: ':services',                                                    desc: 'Services view' },
         ]
@@ -1509,12 +1533,12 @@ const SECTIONS = [
         cmds: [
           { cmd: 'c',                                                            desc: 'Copy resource name to clipboard' },
           { cmd: 'd',                                                            desc: 'Describe the selected resource' },
-          { cmd: 'e',                                                            desc: 'Edit resource YAML in the built-in editor' },
+          { cmd: 'e',                                                            desc: 'Edit resource YAML in your editor (K9S_EDITOR, KUBE_EDITOR or EDITOR)' },
           { cmd: 'Enter',                                                        desc: 'Drill into / open the selected resource' },
           { cmd: 'y',                                                            desc: 'View the full resource YAML' },
-          { cmd: 'Shift+a',                                                      desc: 'Sort table by API group' },
-          { cmd: 'Shift+c',                                                      desc: 'Sort table by command / name' },
-          { cmd: 'Shift+r',                                                      desc: 'Sort table by resource type' },
+          { cmd: 'Shift+a',                                                      desc: 'Sort table by age' },
+          { cmd: 'Shift+n',                                                      desc: 'Sort table by name' },
+          { cmd: 'Shift+s',                                                      desc: 'Sort table by status' },
         ]
       },
       {
@@ -1522,24 +1546,24 @@ const SECTIONS = [
         desc: 'Extra keys available when a pod row is selected in the pods view.',
         cmds: [
           { cmd: 'a',                                                            desc: 'Attach to a running container' },
-          { cmd: 'f',                                                            desc: 'Port-forward from the selected pod' },
-          { cmd: 'k',                                                            desc: 'Kill (delete) the selected pod' },
+          { cmd: 'Shift+f',                                                      desc: 'Port-forward from the selected pod' },
+          { cmd: 'Ctrl+k',                                                       desc: 'Kill the selected pod immediately, no confirmation (like kubectl delete --now)' },
           { cmd: 'l',                                                            desc: 'Open log viewer for the selected pod' },
           { cmd: 's',                                                            desc: 'Shell into a container (exec -it)' },
-          { cmd: 'Shift+f',                                                      desc: 'Show active port-forward sessions' },
-          { cmd: 'Shift+k',                                                      desc: 'Force-kill pod with no grace period' },
+          { cmd: 'f',                                                            desc: 'Show active port-forward sessions' },
+          { cmd: 'Ctrl+d',                                                       desc: 'Delete the selected resource (confirmation dialog)' },
+          { cmd: 'p',                                                            desc: 'Open previous (terminated) container logs' },
         ]
       },
       {
         title: 'Log View',
         desc: 'Shortcuts inside the log viewer. Open with l on a pod.',
         cmds: [
-          { cmd: '0',                                                            desc: 'Show merged logs from all containers' },
-          { cmd: '1-9',                                                          desc: 'Switch to a specific container by index' },
-          { cmd: 'f',                                                            desc: 'Toggle follow mode (auto-scroll to tail)' },
-          { cmd: 'p',                                                            desc: 'Toggle previous (terminated) container logs' },
-          { cmd: 's',                                                            desc: 'Save current logs to a file' },
-          { cmd: 'Shift+f',                                                      desc: 'Toggle full-screen log view' },
+          { cmd: 'a',                                                            desc: 'Toggle logs from all containers' },
+          { cmd: '0-6',                                                          desc: 'Set the log time window (0 tail, 1 head, 2 1m, 3 5m, 4 15m, 5 30m, 6 1h)' },
+          { cmd: 'f',                                                            desc: 'Toggle full-screen log view' },
+          { cmd: 's',                                                            desc: 'Toggle auto-scroll (follow new lines)' },
+          { cmd: 'Ctrl+s',                                                       desc: 'Save current logs to a file' },
           { cmd: 'w',                                                            desc: 'Toggle word wrap' },
         ]
       },
@@ -1548,7 +1572,8 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - INSTALLATION ──────────────────────────
   {
-    id: 'troubleshooting-installation', title: 'Installation', icon: ICONS['troubleshooting-installation'], sub: 'Debug K8s',
+    id: 'troubleshooting-installation', title: 'Installation', icon: ICONS['troubleshooting-installation'], sub: 'Debug K8s', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/',
     groups: [
       {
         title: 'Kubeadm',
@@ -1558,7 +1583,7 @@ const SECTIONS = [
           { cmd: 'journalctl -u kubelet -f',                                                      desc: 'Stream kubelet logs (primary source for join and startup failures)' },
           { cmd: 'journalctl -u kubelet --since "10 minutes ago" | grep -i error',               desc: 'Recent kubelet errors' },
           { cmd: 'kubectl describe node <node>',                                                  desc: 'Node conditions, taints, and event history' },
-          { cmd: "kubectl get events -n kube-system --sort-by='.lastTimestamp'",                  desc: 'Recent control plane events sorted by time' },
+          { cmd: "kubectl get events -n kube-system --sort-by='.metadata.creationTimestamp'",     desc: 'Recent control plane events sorted by time' },
           { cmd: 'kubectl logs -n kube-system <pod>',                                             desc: 'Logs from a control plane component' },
           { cmd: 'kubectl logs -n kube-system <pod> --previous',                                  desc: 'Logs from a crashed control plane container' },
           { cmd: 'crictl ps -a',                                                                  desc: 'All containers via CRI (works when kubectl is unreachable)' },
@@ -1575,7 +1600,7 @@ const SECTIONS = [
           { cmd: 'journalctl -u k3s-agent --since "5 minutes ago" | grep -i error',              desc: 'Recent k3s agent errors' },
           { cmd: 'k3s check-config',                                                              desc: 'Validate host kernel modules and cgroups required by k3s' },
           { cmd: 'k3s kubectl get pods -n kube-system',                                           desc: 'System pod status via embedded kubectl' },
-          { cmd: "k3s kubectl get events -n kube-system --sort-by='.lastTimestamp'",              desc: 'Recent system events sorted by time' },
+          { cmd: "k3s kubectl get events -n kube-system --sort-by='.metadata.creationTimestamp'", desc: 'Recent system events sorted by time' },
         ]
       },
       {
@@ -1587,7 +1612,7 @@ const SECTIONS = [
           { cmd: 'docker logs k3d-<cluster>-agent-0',                                             desc: 'Logs from a k3s agent container' },
           { cmd: 'docker inspect k3d-<cluster>-server-0',                                         desc: 'Full container inspect: network, mounts, and env' },
           { cmd: 'kubectl get nodes',                                                              desc: 'Node status after setting kubeconfig' },
-          { cmd: "kubectl get events -n kube-system --sort-by='.lastTimestamp'",                  desc: 'Recent system events' },
+          { cmd: "kubectl get events -n kube-system --sort-by='.metadata.creationTimestamp'",     desc: 'Recent system events' },
         ]
       },
       {
@@ -1601,7 +1626,7 @@ const SECTIONS = [
           { cmd: 'kubectl get nodes',                                                              desc: 'Node status' },
           { cmd: 'kubectl describe node <node>',                                                  desc: 'Node conditions and event history' },
           { cmd: 'kubectl get pods -n kube-system',                                               desc: 'System pod status' },
-          { cmd: "kubectl get events --sort-by='.lastTimestamp'",                                 desc: 'Cluster events sorted by time' },
+          { cmd: "kubectl get events --sort-by='.metadata.creationTimestamp'",                    desc: 'Cluster events sorted by time' },
         ]
       },
       {
@@ -1610,11 +1635,11 @@ const SECTIONS = [
         cmds: [
           { cmd: 'minikube logs',                                                                  desc: 'Print all minikube logs' },
           { cmd: 'minikube logs | grep -i error',                                                  desc: 'Filter error lines from minikube logs' },
-          { cmd: 'minikube ssh -- journalctl -u kubelet -f',                                       desc: 'Stream kubelet logs from inside the minikube node' },
-          { cmd: 'minikube ssh -- crictl ps -a',                                                   desc: 'All container states inside the minikube node' },
+          { cmd: 'minikube ssh -- sudo journalctl -u kubelet -f',                                  desc: 'Stream kubelet logs from inside the minikube node' },
+          { cmd: 'minikube ssh -- sudo crictl ps -a',                                              desc: 'All container states inside the minikube node' },
           { cmd: 'minikube ssh -- df -h',                                                          desc: 'Disk usage inside the minikube node' },
           { cmd: 'minikube kubectl -- get pods -n kube-system',                                    desc: 'System pod status using bundled kubectl' },
-          { cmd: "minikube kubectl -- get events --sort-by='.lastTimestamp'",                      desc: 'Cluster events using bundled kubectl' },
+          { cmd: "minikube kubectl -- get events --sort-by='.metadata.creationTimestamp'",         desc: 'Cluster events using bundled kubectl' },
         ]
       },
     ]
@@ -1622,17 +1647,18 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - CLUSTER ─────────────────────────────
   {
-    id: 'troubleshooting-cluster', title: 'Cluster', icon: ICONS['troubleshooting-cluster'], sub: 'Debug K8s',
+    id: 'troubleshooting-cluster', title: 'Cluster', icon: ICONS['troubleshooting-cluster'], sub: 'Debug K8s', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/tasks/debug/debug-cluster/',
     groups: [
       {
         title: 'Events',
         desc: 'Inspect cluster events to understand what happened to resources: warnings, restarts, scheduling failures.',
         cmds: [
-          { cmd: 'kubectl events --watch --types=Warning',                         desc: 'Stream warning events live (kubectl 1.27+)' },
+          { cmd: 'kubectl events --watch --types=Warning',                         desc: 'Stream warning events live' },
           { cmd: 'kubectl events -n <namespace> --types=Warning',                  desc: 'Modern events CLI: filter by Warning type' },
           { cmd: 'kubectl get events --field-selector=involvedObject.name=<name>', desc: 'Events for a specific object' },
           { cmd: 'kubectl get events --field-selector=type=Warning',               desc: 'Only Warning events' },
-          { cmd: "kubectl get events -A --sort-by='.lastTimestamp'",               desc: 'All events sorted by time' },
+          { cmd: "kubectl get events -A --sort-by='.metadata.creationTimestamp'",  desc: 'All events sorted by time' },
           { cmd: 'kubectl get events -n <namespace> --watch',                      desc: 'Stream events in real time' },
           { cmd: 'kubectl get events -n <namespace>',                              desc: 'Events in a namespace' },
         ]
@@ -1641,14 +1667,14 @@ const SECTIONS = [
         title: 'Live Debug',
         desc: 'Spawn ephemeral containers, debug copies of pods, or get a privileged shell on a node without modifying the original workload.',
         cmds: [
-          { cmd: 'kubectl debug <pod> -it --image=busybox --copy-to=<debug-pod> --share-processes', desc: 'Debug copy with shared PID namespace between debug and target containers' },
-          { cmd: 'kubectl debug <pod> -it --image=busybox --copy-to=<debug-pod>', desc: 'Debug copy of a pod (when ephemeral containers are not supported)' },
-          { cmd: 'kubectl debug -it <pod> --image=alpine --profile=baseline',     desc: 'Default safe profile (no extra capabilities)' },
-          { cmd: 'kubectl debug -it <pod> --image=alpine --profile=netadmin',     desc: 'Debug with NET_ADMIN capability profile' },
-          { cmd: 'kubectl debug -it <pod> --image=alpine --profile=restricted',   desc: 'Most restrictive profile' },
-          { cmd: 'kubectl debug -it <pod> --image=alpine --profile=sysadmin',     desc: 'Debug with SYS_ADMIN capability profile' },
-          { cmd: 'kubectl debug -it <pod> --image=nicolaka/netshoot --target=<container>', desc: 'Ephemeral sidecar sharing target PID and net namespace, ideal for distroless images' },
-          { cmd: 'kubectl debug node/<node> -it --image=busybox',                 desc: 'Interactive shell on a node via privileged pod' },
+          { cmd: 'kubectl debug <pod> -it --image=busybox --copy-to=<debug-pod> --share-processes --profile=general', desc: 'Debug copy with shared PID namespace between debug and target containers' },
+          { cmd: 'kubectl debug <pod> -it --image=busybox --copy-to=<debug-pod> --profile=general', desc: 'Debug copy of a pod, the original keeps running untouched' },
+          { cmd: 'kubectl debug -it <pod> --image=alpine --profile=baseline',     desc: 'Profile compatible with the baseline Pod Security Standard' },
+          { cmd: 'kubectl debug -it <pod> --image=alpine --profile=netadmin',     desc: 'Debug with NET_ADMIN and NET_RAW capabilities' },
+          { cmd: 'kubectl debug -it <pod> --image=<nonroot-image> --profile=restricted', desc: 'Restricted PSS profile (non-root, all caps dropped), needs an image that runs as non-root' },
+          { cmd: 'kubectl debug -it <pod> --image=alpine --profile=sysadmin',     desc: 'Privileged debug container (sysadmin profile)' },
+          { cmd: 'kubectl debug -it <pod> --image=nicolaka/netshoot --target=<container> --profile=general', desc: 'Ephemeral container sharing the target process namespace, ideal for distroless images' },
+          { cmd: 'kubectl debug node/<node> -it --image=busybox --profile=sysadmin', desc: 'Privileged shell on a node in host namespaces, host root mounted at /host' },
         ]
       },
       {
@@ -1661,7 +1687,7 @@ const SECTIONS = [
           { cmd: "kubectl get --raw='/livez?verbose'",                             desc: 'API server liveness probe with per-check breakdown' },
           { cmd: "kubectl get --raw='/readyz?verbose'",                            desc: 'API server readiness probe with per-check breakdown' },
           { cmd: 'kubectl get pods -A | grep -v Running',                          desc: 'Show all non-Running pods cluster-wide' },
-          { cmd: "kubectl get pods -A --sort-by='.metadata.creationTimestamp'",    desc: 'All pods sorted by creation time' },
+          { cmd: "kubectl get pods -A --sort-by='.metadata.creationTimestamp'", desc: 'All pods sorted by creation time' },
           { cmd: 'kubectl get pods -n kube-system',                                desc: 'Status of all control plane component pods' },
           { cmd: 'kubectl logs -n kube-system <pod> --previous',                   desc: 'Logs from a crashed control plane container' },
           { cmd: 'kubectl logs -n kube-system <pod>',                              desc: 'Logs of a control plane component (apiserver, scheduler…)' },
@@ -1686,7 +1712,8 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - NETWORK ─────────────────────────────
   {
-    id: 'troubleshooting-network', title: 'Network', icon: ICONS['troubleshooting-network'], sub: 'Debug K8s',
+    id: 'troubleshooting-network', title: 'Network', icon: ICONS['troubleshooting-network'], sub: 'Debug K8s', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/tasks/debug/debug-application/debug-service/',
     groups: [
       {
         title: 'DNS Resolution',
@@ -1712,14 +1739,14 @@ const SECTIONS = [
           { cmd: 'kubectl exec -it <pod> -- wget -qO- http://<service>',           desc: 'HTTP request with wget from pod (alpine images)' },
           { cmd: 'kubectl get endpointslices -l kubernetes.io/service-name=<service>', desc: 'Modern endpoint slices, replaces the Endpoints API' },
           { cmd: "kubectl get service <name> -o jsonpath='{.spec.selector}'",      desc: 'Service selector (must match pod labels for endpoints to populate)' },
-          { cmd: 'kubectl logs -n ingress-nginx -l app.kubernetes.io/component=controller --tail=100', desc: 'Recent ingress-nginx controller logs' },
+          { cmd: 'kubectl logs -n ingress-nginx -l app.kubernetes.io/component=controller --tail=100', desc: 'Recent ingress-nginx controller logs (project retired March 2026)' },
         ]
       },
       {
         title: 'Live Capture',
         desc: 'Spawn a debug pod or attach an ephemeral container that shares the target pod network namespace, then capture or inspect traffic.',
         cmds: [
-          { cmd: 'kubectl debug -it <pod> --image=nicolaka/netshoot --target=<container>', desc: 'Ephemeral container in the target net namespace, lets netshoot tcpdump/ss/curl see traffic from the pods perspective' },
+          { cmd: 'kubectl debug -it <pod> --image=nicolaka/netshoot --target=<container> --profile=general', desc: 'Ephemeral container in the target net namespace, lets netshoot tcpdump/ss/curl see traffic from the pods perspective' },
           { cmd: 'kubectl exec -it <pod> -- netstat -tlnp',                        desc: 'Listening TCP ports inside the container' },
           { cmd: 'kubectl exec -it <pod> -- ss -tlnp',                             desc: 'Socket stats as a modern alternative to netstat' },
           { cmd: 'kubectl run netshoot --rm -it --image=nicolaka/netshoot -- bash', desc: 'Standalone debug pod with full network toolset (curl, dig, nc, ss, tcpdump…)' },
@@ -1731,14 +1758,15 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - STORAGE ─────────────────────────────
   {
-    id: 'troubleshooting-storage', title: 'Storage', icon: ICONS['troubleshooting-storage'], sub: 'Debug K8s',
+    id: 'troubleshooting-storage', title: 'Storage', icon: ICONS['troubleshooting-storage'], sub: 'Debug K8s', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/storage/persistent-volumes/',
     groups: [
       {
         title: 'PV and PVC State',
         desc: 'Find PVCs stuck Pending/Lost and trace how PVs map to claims and StorageClasses.',
         cmds: [
           { cmd: 'kubectl get pvc -A | grep -v Bound',                             desc: 'Find non-Bound PVCs across the cluster' },
-          { cmd: 'kubectl get pv -o jsonpath=\'{range .items[*]}{.metadata.name}{"\\t"}{.status.phase}{"\\t"}{.spec.claimRef.name}{"\\n"}{end}\'', desc: 'Tab-separated mapping PV → claim → phase' },
+          { cmd: 'kubectl get pv -o jsonpath=\'{range .items[*]}{.metadata.name}{"\\t"}{.status.phase}{"\\t"}{.spec.claimRef.name}{"\\n"}{end}\'', desc: 'Tab-separated mapping PV → phase → claim' },
           { cmd: 'kubectl get pods -o jsonpath=\'{range .items[*]}{.metadata.name}{":"}{.spec.volumes[*].persistentVolumeClaim.claimName}{"\\n"}{end}\'', desc: 'Map every pod to the PVCs it mounts' },
           { cmd: 'kubectl get storageclass -o jsonpath=\'{.items[?(@.metadata.annotations.storageclass\\.kubernetes\\.io/is-default-class=="true")].metadata.name}\'', desc: 'Find the default StorageClass name' },
         ]
@@ -1752,7 +1780,7 @@ const SECTIONS = [
           { cmd: 'kubectl exec -it <pod> -- ls -la <mount-path>',                  desc: 'List mount path contents and permissions' },
           { cmd: 'kubectl exec -it <pod> -- mount | grep <vol>',                   desc: 'Verify a specific volume is mounted' },
           { cmd: 'kubectl exec -it <pod> -- stat <mount-path>',                    desc: 'Inode and ownership details for a path' },
-          { cmd: 'kubectl exec -it <pod> -- touch <mount-path>/.write-test && rm <mount-path>/.write-test', desc: 'Verify write permission to a mounted volume' },
+          { cmd: 'kubectl exec <pod> -- sh -c "touch <mount-path>/.write-test && rm <mount-path>/.write-test"', desc: 'Verify write permission to a mounted volume' },
         ]
       },
       {
@@ -1769,7 +1797,8 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - RESOURCES ───────────────────────────
   {
-    id: 'troubleshooting-resources', title: 'Resources', icon: ICONS['troubleshooting-resources'], sub: 'Debug K8s',
+    id: 'troubleshooting-resources', title: 'Resources', icon: ICONS['troubleshooting-resources'], sub: 'Debug K8s', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/',
     groups: [
       {
         title: 'Crash Forensics',
@@ -1799,10 +1828,10 @@ const SECTIONS = [
         title: 'Container Limits',
         desc: 'Verify the actual cgroup limits set on a container vs what the spec declared.',
         cmds: [
-          { cmd: 'kubectl exec -it <pod> -- cat /proc/meminfo',                    desc: 'Detailed memory stats from inside the container' },
+          { cmd: 'kubectl exec -it <pod> -- cat /proc/meminfo',                    desc: 'Node-wide memory stats (meminfo ignores the container cgroup limit)' },
           { cmd: 'kubectl exec -it <pod> -- cat /sys/fs/cgroup/memory.max',        desc: 'Memory limit on cgroup v2' },
-          { cmd: 'kubectl exec -it <pod> -- cat /sys/fs/cgroup/memory/memory.limit_in_bytes', desc: 'Memory limit on cgroup v1' },
-          { cmd: 'kubectl exec -it <pod> -- cat /sys/fs/cgroup/memory/memory.usage_in_bytes', desc: 'Current memory usage on cgroup v1' },
+          { cmd: 'kubectl exec -it <pod> -- cat /sys/fs/cgroup/cpu.max',                      desc: 'CPU quota and period on cgroup v2' },
+          { cmd: 'kubectl exec -it <pod> -- cat /sys/fs/cgroup/memory.current',               desc: 'Current memory usage on cgroup v2' },
           { cmd: "kubectl get pod <name> -o jsonpath='{.spec.containers[*].resources}'", desc: 'Declared requests and limits from the pod spec' },
         ]
       },
@@ -1811,7 +1840,7 @@ const SECTIONS = [
         desc: 'Find evicted pods and node pressure conditions that caused them.',
         cmds: [
           { cmd: 'kubectl get events --field-selector=reason=Evicted -A',          desc: 'All eviction events cluster-wide' },
-          { cmd: 'kubectl get events --field-selector=reason=FailedToCreatePodSandbox', desc: 'Pod sandbox creation failures' },
+          { cmd: 'kubectl get events --field-selector=reason=FailedCreatePodSandBox',   desc: 'Pod sandbox creation failures' },
           { cmd: 'kubectl get nodes -o jsonpath=\'{range .items[*]}{.metadata.name}{"\\t"}{.status.conditions[?(@.type=="MemoryPressure")].status}{"\\n"}{end}\'', desc: 'MemoryPressure condition per node' },
           { cmd: 'kubectl get pods -A --field-selector=status.phase=Failed -o wide | grep Evicted', desc: 'List evicted pods across the cluster' },
         ]
@@ -1821,13 +1850,14 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - SCHEDULING ──────────────────────────
   {
-    id: 'troubleshooting-scheduling', title: 'Scheduling', icon: ICONS['troubleshooting-scheduling'], sub: 'Debug K8s',
+    id: 'troubleshooting-scheduling', title: 'Scheduling', icon: ICONS['troubleshooting-scheduling'], sub: 'Debug K8s', version: 'k8s 1.35',
+    docs: 'https://kubernetes.io/docs/concepts/scheduling-eviction/',
     groups: [
       {
         title: 'Pending Pods',
         desc: 'Find pods stuck Pending and read scheduler events that explain why they cannot be placed.',
         cmds: [
-          { cmd: "kubectl get events --field-selector=reason=FailedScheduling -A --sort-by='.lastTimestamp'", desc: 'Recent scheduling failures cluster-wide' },
+          { cmd: "kubectl get events --field-selector=reason=FailedScheduling -A --sort-by='.metadata.creationTimestamp'", desc: 'Recent scheduling failures cluster-wide' },
           { cmd: 'kubectl get events --field-selector=reason=FailedScheduling',    desc: 'Scheduling failure events in current namespace' },
           { cmd: 'kubectl get pods --field-selector=status.phase=Pending -A',      desc: 'Pending pods across all namespaces' },
           { cmd: 'kubectl get pods --field-selector=status.phase=Pending',         desc: 'Find Pending pods in current namespace' },
@@ -1857,14 +1887,15 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - HELM ────────────────────────────────
   {
-    id: 'troubleshooting-helm', title: 'Helm', icon: ICONS['troubleshooting-helm'], sub: 'Debug Tools',
+    id: 'troubleshooting-helm', title: 'Helm', icon: ICONS['troubleshooting-helm'], sub: 'Debug Tools', version: 'Helm 4.3',
+    docs: 'https://helm.sh/docs/faq/troubleshooting/',
     groups: [
       {
         title: 'Failed Releases',
         desc: 'List and inspect failed or stuck Helm releases to understand the cause before attempting a rollback or reinstall.',
         cmds: [
           { cmd: 'helm history <release>',                                         desc: 'Full revision history to spot failures' },
-          { cmd: 'helm list --all -A',                                             desc: 'All releases including failed/uninstalled' },
+          { cmd: 'helm list --pending -A',                                         desc: 'Releases stuck in pending-install, pending-upgrade or pending-rollback' },
           { cmd: 'helm list --failed -A',                                          desc: 'Failed releases across all namespaces' },
           { cmd: 'helm list --failed',                                             desc: 'List failed releases in current namespace' },
           { cmd: 'helm status <release>',                                          desc: 'Release status and last deploy info' },
@@ -1878,7 +1909,7 @@ const SECTIONS = [
           { cmd: 'helm get hooks <release>',                                       desc: 'List hooks defined in the release' },
           { cmd: 'helm get manifest <release>',                                    desc: 'Rendered Kubernetes manifests of release' },
           { cmd: 'helm get notes <release>',                                       desc: 'Show NOTES.txt output of release' },
-          { cmd: 'helm install <release> <chart> --dry-run --debug',               desc: 'Simulate install and show debug output' },
+          { cmd: 'helm install <release> <chart> --dry-run=client --debug',        desc: 'Simulate install and show debug output' },
           { cmd: 'helm lint <chart-dir>',                                          desc: 'Check chart for errors and warnings' },
           { cmd: 'helm template <release> <chart> --debug',                        desc: 'Render templates with debug output' },
           { cmd: 'helm test <release>',                                            desc: 'Run chart test suite' },
@@ -1889,7 +1920,8 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - KUSTOMIZE ──────────────────────────
   {
-    id: 'troubleshooting-kustomize', title: 'Kustomize', icon: ICONS['troubleshooting-kustomize'], sub: 'Debug Tools',
+    id: 'troubleshooting-kustomize', title: 'Kustomize', icon: ICONS['troubleshooting-kustomize'], sub: 'Debug Tools', version: 'Kustomize 5.8',
+    docs: 'https://kubectl.docs.kubernetes.io/references/kustomize/',
     groups: [
       {
         title: 'Debug Build',
@@ -1897,8 +1929,8 @@ const SECTIONS = [
         cmds: [
           { cmd: 'kustomize build <dir>',                                              desc: 'Render overlay to see full output or error message' },
           { cmd: 'kustomize build --load-restrictor=LoadRestrictionsNone <dir>',       desc: 'Allow files outside the kustomization root (common path error)' },
-          { cmd: 'kustomize build --enable-alpha-plugins <dir>',                       desc: 'Enable exec and KRM function plugins if they fail to load' },
-          { cmd: 'kubectl apply -k <dir> --dry-run=client',                            desc: 'Validate rendered manifests against local schema' },
+          { cmd: 'kustomize build --enable-alpha-plugins --enable-exec <dir>',         desc: 'Enable plugins and KRM functions, including exec functions (trusted configs only)' },
+          { cmd: 'kubectl apply -k <dir> --dry-run=client',                            desc: 'Preview the apply without persisting anything (client-side, still needs cluster access)' },
           { cmd: 'kubectl apply -k <dir> --dry-run=server',                            desc: 'Server-side dry-run for admission webhook checks' },
         ]
       },
@@ -1918,24 +1950,25 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - K9S ─────────────────────────────────
   {
-    id: 'troubleshooting-k9s', title: 'K9s', icon: ICONS['troubleshooting-k9s'], sub: 'Debug Tools',
+    id: 'troubleshooting-k9s', title: 'K9s', icon: ICONS['troubleshooting-k9s'], sub: 'Debug Tools', version: 'K9s 0.51',
+    docs: 'https://k9scli.io/topics/config/',
     groups: [
       {
         title: 'Diagnose K9s',
         desc: 'Print K9s runtime paths and version, or enable debug logging to identify startup and connection issues.',
         cmds: [
-          { cmd: 'k9s info',                                                         desc: 'Print config file path, log path, screen dump dir, and plugin dir' },
+          { cmd: 'k9s info',                                                         desc: 'Print config, log, screen dump, skins, plugins and aliases paths' },
           { cmd: 'k9s --logLevel debug',                                             desc: 'Start K9s with debug logging enabled' },
         ]
       },
       {
         title: 'K9s Logs',
-        desc: 'Tail the K9s log file to inspect errors, panics, and connection traces. The path depends on your OS.',
+        desc: 'Tail the K9s log file to inspect errors, panics, and connection traces. The path depends on your OS, run k9s info for the exact one.',
         cmds: [
-          { cmd: 'tail -f ~/.local/share/k9s/k9s.log',                              desc: 'Follow K9s log on Linux' },
-          { cmd: 'tail -f ~/Library/Logs/k9s/k9s.log',                              desc: 'Follow K9s log on macOS' },
-          { cmd: 'cat ~/.local/share/k9s/k9s.log | grep -i error',                  desc: 'Filter error lines from K9s log on Linux' },
-          { cmd: 'cat ~/Library/Logs/k9s/k9s.log | grep -i error',                  desc: 'Filter error lines from K9s log on macOS' },
+          { cmd: 'tail -f ~/.local/state/k9s/k9s.log',                              desc: 'Follow K9s log on Linux' },
+          { cmd: 'tail -f "$HOME/Library/Application Support/k9s/k9s.log"',         desc: 'Follow K9s log on macOS' },
+          { cmd: 'grep -i error ~/.local/state/k9s/k9s.log',                        desc: 'Filter error lines from K9s log on Linux' },
+          { cmd: 'grep -i error "$HOME/Library/Application Support/k9s/k9s.log"',   desc: 'Filter error lines from K9s log on macOS' },
         ]
       },
     ]
@@ -1943,4 +1976,4 @@ const SECTIONS = [
 
 ];
 
-export { COPY_ICON, CHECK_ICON, STAR_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS };
+export { COPY_ICON, CHECK_ICON, STAR_ICON, LINK_ICON, DOCS_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS };

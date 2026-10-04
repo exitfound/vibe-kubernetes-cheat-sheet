@@ -182,8 +182,8 @@ export const STEPS_SPEC = [
     rewind: { chips: { currentChip: '0', readyChip: '0' } },
     flow: [
       F.top({ from: DS_X, to: API_EDGE, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
-      // In NODE order and not in arrival order, which unit/spec-steps.test.mjs depends on: this
-      // is the catalog's one step whose settled chips differ from its static ones.
+      // In NODE order. Each count lands with its own create, so the two at 1916 write 1 then 2
+      // and the long tap writes 3 at 2529: the played path ends where `chips` says, on 3.
       ...create(0, '3'),
       ...create(1, '1'),
       ...create(2, '2'),

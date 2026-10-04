@@ -470,7 +470,10 @@ function describeSpread(spread) {
 // 2799: storage-volume-snapshot redesigned (+18), 22 to 40 counted off the walk: a Pod as shell
 // plus inner box, two API objects, three row headers, eighteen block cells, six pointer relations,
 // five lanes and four chips, where it had five boxes, three disks, one relation, nine lanes, four chips.
-const EXPECTED_PAINTED = 2799;
+// 2817: +18 over two redesigns that landed after 2799 was written, attributed by walking the older
+// module of each alone in the same run: storage-pvc-clone 15 to 26 (+11) and
+// storage-pvc-retention-policy 26 to 33 (+7), storage 806.
+const EXPECTED_PAINTED = 2817;
 // 29: no card draws a `workloads|scheme-arrow|workloads|` combination, because every lane in that
 // category carries `role: 'cluster'`. A role-less lane does not paint the category blue: there is
 // no `.scheme-arrow-workloads` rule in diagrams.css, so it falls to the generic dim token at

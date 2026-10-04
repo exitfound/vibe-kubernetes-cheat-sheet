@@ -95,6 +95,17 @@ MOTION   Step 1 has no packet and no Pod, so its beat is a static highlight alon
          unlit and turns over when the ball lands (A-06). Step 2 rewinds all three to `no status
          yet` and cues init-1, step 4 rewinds to CrashLoopBackOff / PodInitializing /
          PodInitializing and cues the app, step 5 rewinds the app to PodInitializing and cues it.
+         THE ROW CELLS AND THE POD LINE THE BALL EARNS RIDE THE SAME F.set, wound back in the same
+         `rewind`: STATUS and the Pod sublabel on all three steps, `who is holding it` on steps 4
+         and 5, and RESTARTS on step 4, so the row never says init is done while a wound-back box
+         still reads CrashLoopBackOff. On step 2 NODE turns at ENTRY, because it states the bind,
+         which no ball draws, and the Node-1 frame comes up full beside it (carried under FORM-E).
+         The holder turns at entry WITH it, to `the Kubelet, starting init 1`, and turns again to
+         `the Kubelet, running init 1` on the arrival with STATUS: bound to a Node, the Kubelet owns
+         the Pod at once, but the init-containers page has it run them only once networking and
+         storage are ready, so `running` beside three `no status yet` boxes says a container is up
+         that no status reports. The Pod line is blank for that wait, because its step 1 reading
+         `not on a Node yet` would contradict NODE for the whole of it.
          Lit at entry, step 5 read Running before the runtime had reported, which a viewer saw. THE
          KUBELET IS LIT AT ENTRY ON THOSE THREE STEPS, because it is the sender and a ball leaving
          an unlit box has no visible source (M-15 from the sender side). Step 3 is the up-arrow and

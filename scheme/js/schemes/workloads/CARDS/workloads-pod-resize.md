@@ -87,7 +87,8 @@ MOTION   Two deferred turnovers. `patch` holds the spec chip at the old reading 
          together until the actuation lands: pinning them at entry puts cpu.max 80000 100000 on a
          container the same frame still calls unresized. `admit` is the third, and it lifts the
          verdict pair from OPACITY.notready to full on the watch arrival rather than at entry, so
-         the branch appears when the Kubelet has something to decide about.
+         the branch appears when the Kubelet has something to decide about. The API streams that
+         watch on its own, so it is lit at entry and the event waits BEAT.lead (M-18a).
          `policy` registers no animation at all. It is a spec field being read, so nothing travels
          and nothing pulses, and M-27 names that the shape such a step takes.
          EVERY DURATION IS SET FROM THE CHARACTER COUNT, at the catalog median ms per character

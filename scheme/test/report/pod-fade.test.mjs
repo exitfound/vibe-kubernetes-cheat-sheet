@@ -108,6 +108,10 @@ const RULED = new Map([
   ['workloads-rolling-update repeat pod1',
     'CORRECT. A second fade on a Pod that already pulsed on the previous step, where the delete ' +
     'ball reached it, so the beat is spent. This is that termination finishing.'],
+  ...['pod1', 'pod2', 'pod3'].map(pod => [`workloads-job-parallelism refill ${pod}`,
+    'CORRECT. A wave 1 tombstone at OPACITY.terminated vacating the running window: the Pod ' +
+    'already pulsed on its own exit step, `succeed` for worker-1 and worker-2 and `fail` for ' +
+    'worker-3, and nothing on `refill` is addressed to it, so the beat is spent.']),
   ['cluster-cascading-deletion purge placedPod',
     'CORRECT. A second fade on a Pod that already pulsed earlier in the card, so the beat is spent.'],
   ['network-headless-service not-ready w2',

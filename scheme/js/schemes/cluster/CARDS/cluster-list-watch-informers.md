@@ -48,16 +48,24 @@ MOTION   The list step draws FOUR balls in TWO INDEPENDENT chains. Answer chain:
          so the coda puts the informer back into the steady state `event` left it in. Without that
          the coda runs under `410 Gone . re-listing`, the previous step leaking into a summary about
          CRDs.
-         Three event slots standing under `cache size 4` for 2993 of the `event` step's 3800 ms. The
-         `list` step teaches the reader a mapping it never promised, three ADDED slots beside a
-         cache of 3, so the fourth slot arriving late reads as an arithmetic error. It is not one:
-         the slots are captioned `watch event stream`, which is the wire and not the cache, and the
-         fourth appears on `toCache`, the arrival that earns it. The repair would be binding
-         cacheChip to that same arrival, and it is DECLINED twice over. `P-04` forbids doing it to
-         one chip of a trio, so rvChip and watchChip would have to move with it, and all three
-         lighting at entry is the catalogue's ordinary shape rather than this card's habit, which
-         the FORM-A queue in `report/chip-beat.test.mjs` counts in the hundreds. Rebinding three
-         chips here buys a deviation and closes nothing a rule can see.
+         The three chips state what the INFORMER holds, so on `list`, `event` and `relist-on-410`
+         each one turns over on the arrival that earns it, through `rewind` plus one `F.set` per
+         event, and stays in `lit` from entry. On `list`, rvChip `842` and cacheChip `3` wait for
+         `toCache` at 1500, where the set lands in the Indexer and the three slots fade in, which is
+         the narration's `lands in the Indexer at rv=842`. On `event`, watchChip `open · streaming`
+         turns over on `stream` at 2193, when the ADDED event reaches the informer over the watch,
+         and rvChip `843` with cacheChip `4` on `toCache` at 2993, beside the fourth slot fading in.
+         So three slots never stand under a cache of 4, and the fourth never reads as an arithmetic
+         error. On `relist-on-410` all three turn over on the 410 arrival at 700, together with the
+         `req` register `re-LIST · fresh rv`, which is wound back blank: until the 410 lands the
+         informer is still streaming at 843 and has asked for nothing. The event row and its
+         caption stay on screen through that wait and fade out on the same arrival, so the stream
+         never vanishes under a watch chip still reading streaming, and that step's `enter` writes
+         all four slot texts for the fade to carry. `watch` keeps watchChip at entry: the informer
+         opens the connection and the one ball of that step is the stream riding it, which
+         `carried.mjs` FORM-B states. The `list` rewind costs two R2-ENTRY rows on `watch`
+         (resourceVersion, cache size), the frozen t=0 sample first seeing the turnover there, and
+         `carried.mjs` carries both. DO NOT light those chips on `watch`, where neither moves.
 WIRE LABELS
          Four registers carry a string, and the `watch` one has a HARD CEILING nothing checks. It
          anchors `end` on 580 and the Client riser is a vertical at x=412 running y=100..430, so the

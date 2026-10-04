@@ -541,7 +541,7 @@ export const CARDS = [
     title: 'Cloning a PVC',
     category: 'storage',
     subcategory: 'stateful-data',
-    desc: 'What has to match before Kubernetes will clone a volume? A clone is an ordinary PVC whose dataSource names an existing claim, made only when the two fit: the same namespace and volumeMode, a size at least the source, and a source that is Bound and not in use, while the class may differ if its driver is the same. The storage system duplicates the volume server-side with no VolumeSnapshot in between, and afterwards the clone shares nothing with its source.',
+    desc: 'What has to match before Kubernetes will clone a volume? A clone is an ordinary PVC whose dataSource names an existing claim, made only when the two fit: the same namespace and volumeMode, a size at least the source, and a source that is Bound and not in use, while the class may differ if its driver is the same. The storage system duplicates the volume server-side with no VolumeSnapshot in between, and afterwards nothing links the clone to its source.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

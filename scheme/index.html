@@ -17,12 +17,14 @@
   <meta property="og:url" content="https://kube.how/scheme/">
   <meta property="og:title" content="Kubernetes Schemes | Animated Architecture Reference">
   <meta property="og:description" content="Interactive animated diagrams of Kubernetes architecture: networking, control plane flow, storage and more.">
+  <meta property="og:image" content="https://kube.how/images/og-scheme.png">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Kubernetes Schemes | Animated Architecture Reference">
   <meta name="twitter:description" content="Interactive animated diagrams of Kubernetes architecture: networking, control plane flow, storage and more.">
+  <meta name="twitter:image" content="https://kube.how/images/og-scheme.png">
 
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="/scheme/favicon.svg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,15 +47,19 @@
 </head>
 <body>
   <aside class="sidebar" aria-label="Site switcher">
-    <a class="side-btn" id="sideHome" data-tooltip="K8s Home" aria-label="K8s Home" href="/">
+    <a class="side-btn" id="sideHome" data-tooltip="Home" aria-label="Home" href="/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.2 12 4l9 7.2"/><path d="M5.5 9.8V19a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9.8"/></svg>
     </a>
-    <a class="side-btn" id="sideCli" data-tooltip="K8s Commands" aria-label="K8s Commands" href="/cli/">
+    <span class="side-sep" aria-hidden="true"></span>
+    <a class="side-btn" id="sideCli" data-tooltip="Commands" aria-label="Commands" href="/cli/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
     </a>
-    <a class="side-btn active" id="sideScheme" data-tooltip="K8s Schemes" aria-label="K8s Schemes" aria-current="page" href="./">
+    <a class="side-btn active" id="sideScheme" data-tooltip="Schemes" aria-label="Schemes" aria-current="page" href="/scheme/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="7" height="6" rx="1.2"/><rect x="15" y="12" width="7" height="6" rx="1.2"/><line x1="9" y1="9" x2="15" y2="15"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
     </a>
+    <button class="side-btn side-keys" id="sideKeys" type="button" data-tooltip="Shortcuts (?)" aria-label="Keyboard shortcuts">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="7" y1="14" x2="17" y2="14"/></svg>
+    </button>
     <button class="side-toggle" id="sideToggle" type="button" data-tooltip="Hide sidebar" aria-label="Hide sidebar">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
@@ -64,7 +70,7 @@
 
   <header class="header">
     <div class="header-inner">
-      <a class="logo" href="./" aria-label="Go to homepage">
+      <a class="logo" href="/" aria-label="Go to homepage">
         <div class="logo-icon">
           <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Scheme network logo">
             <defs>
@@ -90,7 +96,8 @@
           <circle cx="11" cy="11" r="8"/>
           <path d="m21 21-4.35-4.35"/>
         </svg>
-        <input type="text" id="searchInput" class="search-input" placeholder="Search schemes by title, category, description..." aria-label="Search schemes" autocomplete="off" spellcheck="false">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search schemes..." aria-label="Search schemes" autocomplete="off" spellcheck="false">
+        <kbd class="search-kbd" aria-hidden="true">/</kbd>
         <button class="search-clear" id="searchClear" aria-label="Clear search">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/>
@@ -110,6 +117,20 @@
   <nav class="cat-nav cat-nav-sub" id="catNavSub" aria-label="Sub-category navigation" hidden>
     <div class="cat-nav-inner" id="catNavSubInner"></div>
   </nav>
+
+  <!-- Shown INSTEAD of the grid on phones and small touch tablets: the diagrams are not adapted
+       to a narrow screen yet. The query that shows it lives in css/styles.css and js/app.js. -->
+  <section class="mobile-stub" id="mobileStub" aria-labelledby="mobileStubTitle">
+    <div class="mobile-stub-icon" aria-hidden="true">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    </div>
+    <h1 class="mobile-stub-title" id="mobileStubTitle">Schemes are desktop-only for now</h1>
+    <p class="mobile-stub-text">The animated diagrams need a wide screen and are not adapted for phones yet. Please open this page on a computer to explore them.</p>
+    <div class="mobile-stub-actions">
+      <button class="mobile-stub-btn primary" id="mobileStubCopy" type="button">Copy link</button>
+      <a class="mobile-stub-btn" href="/cli/">Browse commands</a>
+    </div>
+  </section>
 
   <main class="main" id="main">
     <div class="grid" id="grid"></div>

@@ -1,5 +1,7 @@
-import { COPY_ICON, CHECK_ICON, STAR_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS } from './data.js';
+import { COPY_ICON, CHECK_ICON, STAR_ICON, LINK_ICON, DOCS_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS } from './data.js';
 import { setupSidebar } from './lib/sidebar.js';
+import { setupKeysHelp, isSlash } from './lib/keys.js';
+import { trackFresh, hashKey } from './lib/fresh.js';
 
 setupSidebar();
 
@@ -15,12 +17,70 @@ const TOAST_DURATION   = 2000;
 const COPY_RESET_DELAY = 1500;
 const SEARCH_DEBOUNCE  = 80;
 const STARRED_KEY      = 'kube-how:starred:v1';
+const ISSUES_URL       = 'https://github.com/exitfound/vibe-kubernetes-cheat-sheet/issues/new';
+const REPORT_ICON      = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4.5L17 13H4"/></svg>`;
 
 // ── Starred commands (persisted) ─────────────────────────────
+// Command strings rewritten in the Kubernetes 1.35 / Helm 4 refresh (2026-10). A star saved
+// under the old string follows its command instead of silently disappearing.
+const STAR_RENAMES = {
+  "apt-get update && apt-get install -y apt-transport-https ca-certificates curl": "apt-get update && apt-get install -y apt-transport-https ca-certificates curl gpg",
+  "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg": "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.35/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg",
+  "echo \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /\" | tee /etc/apt/sources.list.d/kubernetes.list": "echo \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.35/deb/ /\" | tee /etc/apt/sources.list.d/kubernetes.list",
+  "kubeadm init --cri-socket /run/containerd/containerd.sock": "kubeadm init --cri-socket unix:///var/run/containerd/containerd.sock",
+  "k3d kubeconfig merge <name> --switch-context": "k3d kubeconfig merge <name> --kubeconfig-switch-context",
+  "curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64 && chmod +x ./kind && sudo mv ./kind /usr/local/bin/": "curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64 && chmod +x ./kind && sudo mv ./kind /usr/local/bin/",
+  "kind export logs --name <name> --outdir <dir>": "kind export logs <dir> --name <name>",
+  "curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && sudo install minikube-linux-amd64 /usr/local/bin/minikube": "curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64 && sudo install minikube-linux-amd64 /usr/local/bin/minikube",
+  "minikube start --driver hyperkit": "minikube start --driver vfkit",
+  "kubectl autoscale deploy/<name> --min=2 --max=10 --cpu-percent=80": "kubectl autoscale deploy/<name> --min=2 --max=10 --cpu=80%",
+  "kubectl get endpoints <name>": "kubectl get endpointslices -l kubernetes.io/service-name=<name>",
+  "kubectl annotate sc <name> storageclass.kubernetes.io/is-default-class=true": "kubectl annotate sc <name> storageclass.kubernetes.io/is-default-class=true --overwrite",
+  "kubectl get gateways -o wide": "kubectl get gateways",
+  "kubectl get httproutes -o wide": "kubectl get httproutes",
+  "kubectl annotate ingressclass <name> ingressclass.kubernetes.io/is-default-class=true": "kubectl annotate ingressclass <name> ingressclass.kubernetes.io/is-default-class=true --overwrite",
+  "kubectl auth can-i get pods/log --as=<user>": "kubectl auth can-i get pods --subresource=log --as=<user>",
+  "curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash": "curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash",
+  "helm install <release> <chart> --dry-run": "helm install <release> <chart> --dry-run=client",
+  "helm install <release> <chart> --atomic": "helm install <release> <chart> --rollback-on-failure",
+  "helm upgrade <release> <chart> --atomic": "helm upgrade <release> <chart> --rollback-on-failure",
+  "helm plugin install <url>": "helm plugin install <url> --verify=false",
+  "kustomize edit set namesuffix -<suffix>": "kustomize edit set namesuffix -- -<suffix>",
+  "kustomize edit add label <key>:<value>": "kustomize edit add label <key>:<value> --without-selector",
+  ":pvcs": ":pvc",
+  "kubectl get events -n kube-system --sort-by='.lastTimestamp'": "kubectl get events -n kube-system --sort-by='.metadata.creationTimestamp'",
+  "k3s kubectl get events -n kube-system --sort-by='.lastTimestamp'": "k3s kubectl get events -n kube-system --sort-by='.metadata.creationTimestamp'",
+  "kubectl get events --sort-by='.lastTimestamp'": "kubectl get events --sort-by='.metadata.creationTimestamp'",
+  "minikube ssh -- journalctl -u kubelet -f": "minikube ssh -- sudo journalctl -u kubelet -f",
+  "minikube ssh -- crictl ps -a": "minikube ssh -- sudo crictl ps -a",
+  "minikube kubectl -- get events --sort-by='.lastTimestamp'": "minikube kubectl -- get events --sort-by='.metadata.creationTimestamp'",
+  "kubectl get events -A --sort-by='.lastTimestamp'": "kubectl get events -A --sort-by='.metadata.creationTimestamp'",
+  "kubectl debug <pod> -it --image=busybox --copy-to=<debug-pod> --share-processes": "kubectl debug <pod> -it --image=busybox --copy-to=<debug-pod> --share-processes --profile=general",
+  "kubectl debug <pod> -it --image=busybox --copy-to=<debug-pod>": "kubectl debug <pod> -it --image=busybox --copy-to=<debug-pod> --profile=general",
+  "kubectl debug -it <pod> --image=alpine --profile=restricted": "kubectl debug -it <pod> --image=<nonroot-image> --profile=restricted",
+  "kubectl debug -it <pod> --image=nicolaka/netshoot --target=<container>": "kubectl debug -it <pod> --image=nicolaka/netshoot --target=<container> --profile=general",
+  "kubectl debug node/<node> -it --image=busybox": "kubectl debug node/<node> -it --image=busybox --profile=sysadmin",
+  "kubectl exec -it <pod> -- touch <mount-path>/.write-test && rm <mount-path>/.write-test": "kubectl exec <pod> -- sh -c \"touch <mount-path>/.write-test && rm <mount-path>/.write-test\"",
+  "kubectl exec -it <pod> -- cat /sys/fs/cgroup/memory/memory.usage_in_bytes": "kubectl exec -it <pod> -- cat /sys/fs/cgroup/memory.current",
+  "kubectl get events --field-selector=reason=FailedToCreatePodSandbox": "kubectl get events --field-selector=reason=FailedCreatePodSandBox",
+  "kubectl get events --field-selector=reason=FailedScheduling -A --sort-by='.lastTimestamp'": "kubectl get events --field-selector=reason=FailedScheduling -A --sort-by='.metadata.creationTimestamp'",
+  "helm install <release> <chart> --dry-run --debug": "helm install <release> <chart> --dry-run=client --debug",
+  "kustomize build --enable-alpha-plugins <dir>": "kustomize build --enable-alpha-plugins --enable-exec <dir>",
+  "tail -f ~/.local/share/k9s/k9s.log": "tail -f ~/.local/state/k9s/k9s.log",
+  "tail -f ~/Library/Logs/k9s/k9s.log": "tail -f \"$HOME/Library/Application Support/k9s/k9s.log\"",
+  "cat ~/.local/share/k9s/k9s.log | grep -i error": "grep -i error ~/.local/state/k9s/k9s.log",
+  "cat ~/Library/Logs/k9s/k9s.log | grep -i error": "grep -i error \"$HOME/Library/Application Support/k9s/k9s.log\"",
+};
+
 const starred = (() => {
   try {
     const raw = localStorage.getItem(STARRED_KEY);
-    return new Set(raw ? JSON.parse(raw) : []);
+    const saved = raw ? JSON.parse(raw) : [];
+    const set = new Set(saved.map(cmd => STAR_RENAMES[cmd] || cmd));
+    if (saved.some(cmd => cmd in STAR_RENAMES)) {
+      localStorage.setItem(STARRED_KEY, JSON.stringify([...set]));
+    }
+    return set;
   } catch (_) { return new Set(); }
 })();
 
@@ -40,7 +100,7 @@ function escapeHtml(s) {
 }
 
 // ── Syntax Highlighter ────────────────────────────────────────
-function hl(raw) {
+function hl(raw, { slashBreaks = true } = {}) {
   const e = s => s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -48,7 +108,20 @@ function hl(raw) {
 
   const tokens = raw.split(' ').filter(Boolean);
 
+  // Flags and short tokens go in an unbreakable .tok box (see styles.css), so a line never breaks
+  // inside "--token" or "$(id -u)". A long URL or path stays inline and wraps after a "/" while
+  // sharing its lines with its neighbours, instead of taking whole lines to itself. The browser
+  // offers no break after "/" on its own, so a <wbr> goes after each one, in text and never in a tag.
+  // The <wbr> splits the text node, and applyMark() matches inside one node, so a search for a
+  // string with a "/" in it renders without them.
   return tokens.map((tok, i) => {
+    const html = hlTok(tok, i);
+    if (tok.startsWith('-') || tok.length <= 30) return `<span class="tok">${html}</span>`;
+    if (!slashBreaks) return html;
+    return html.split(/(<[^>]*>)/).map(part => part.startsWith('<') ? part : part.replace(/\//g, '/<wbr>')).join('');
+  }).join(' ');
+
+  function hlTok(tok, i) {
     // Main binary
     if (i === 0) return `<span class="hl-cmd">${e(tok)}</span>`;
 
@@ -81,7 +154,7 @@ function hl(raw) {
     if (/^['"{]/.test(tok)) return `<span class="hl-str">${e(tok)}</span>`;
 
     return `<span class="hl-val">${e(tok)}</span>`;
-  }).join(' ');
+  }
 }
 
 // ── Search helpers ────────────────────────────────────────────
@@ -163,6 +236,30 @@ function categoryOfSection(id) {
   return null;
 }
 
+// A new GitHub issue with the section already named, so a report about a wrong flag or a stale
+// command arrives with the place it came from.
+function reportUrl(section) {
+  const title = `[cli] ${section.title}: `;
+  const body = [
+    `Section: ${section.title} (${section.sub})`,
+    `Link: https://kube.how/cli/#${section.id}`,
+    '',
+    'Command:',
+    '',
+    'What is wrong:',
+    '',
+  ].join('\n');
+  return `${ISSUES_URL}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+}
+
+// "New since your last visit" (lib/fresh.js), keyed by a hash of the raw command. A copy clears it.
+const fresh = trackFresh('kube-how:cli-seen:v1', SECTIONS.flatMap(s => s.groups.flatMap(g => g.cmds.map(c => hashKey(c.cmd)))));
+const isNewCmd = (raw) => fresh.isNew(hashKey(raw));
+
+function newChip(n) {
+  return n ? `<span class="section-new" title="New since your last visit">${n} new</span>` : '';
+}
+
 // ── Rendering ─────────────────────────────────────────────────
 function renderSection(section) {
   const cat   = categoryOfSection(section.id) ?? 'all';
@@ -172,6 +269,7 @@ function renderSection(section) {
     .join('');
   const total = section.groups.reduce((n, g) => n + g.cmds.length, 0);
   const label = total === 1 ? 'command' : 'commands';
+  const freshCount = section.groups.reduce((n, g) => n + g.cmds.filter(c => isNewCmd(c.cmd)).length, 0);
 
   return `
     <section class="section" data-section="${escapeHtml(section.id)}" data-cat="${cat}" data-group="${group}">
@@ -179,7 +277,16 @@ function renderSection(section) {
         <div class="section-icon">${section.icon}</div>
         <h2 class="section-title">${escapeHtml(section.title)}</h2>
         <span class="section-sub">${escapeHtml(section.sub)}</span>
-        <span class="section-count">${total} ${label}</span>
+        <span class="section-actions">
+          <button class="section-action section-link" type="button" title="Copy link to this section" aria-label="Copy link to the ${escapeHtml(section.title)} section">${LINK_ICON}</button>
+          ${section.docs ? `<a class="section-action" href="${escapeHtml(section.docs)}" target="_blank" rel="noopener" title="Official documentation" aria-label="${escapeHtml(section.title)} documentation">${DOCS_ICON}</a>` : ''}
+          <a class="section-action" href="${escapeHtml(reportUrl(section))}" target="_blank" rel="noopener" title="Report a problem in this section" aria-label="Report a problem in the ${escapeHtml(section.title)} section">${REPORT_ICON}</a>
+        </span>
+        <span class="section-meta">
+          ${newChip(freshCount)}
+          ${section.version ? `<span class="section-version">${escapeHtml(section.version)}</span>` : ''}
+          <span class="section-count">${total} ${label}</span>
+        </span>
       </div>
       <div class="cards-grid">${groups}</div>
     </section>`;
@@ -210,7 +317,7 @@ function renderCard(group, gi) {
 function renderCmd(item) {
   const starredCls = isStarred(item.cmd) ? ' starred' : '';
   return `
-    <div class="cmd-item" data-raw="${escapeHtml(item.cmd)}" data-desc="${escapeHtml(item.desc)}">
+    <div class="cmd-item${isNewCmd(item.cmd) ? ' is-new' : ''}" data-raw="${escapeHtml(item.cmd)}" data-desc="${escapeHtml(item.desc)}">
       <div class="cmd-code">${hl(item.cmd)}</div>
       <div class="cmd-desc">${escapeHtml(item.desc)}</div>
       <button class="star-btn${starredCls}" title="Toggle star" aria-label="Toggle star" aria-pressed="${isStarred(item.cmd)}">${STAR_ICON}</button>
@@ -229,25 +336,59 @@ function showToast() {
   toastTimer = setTimeout(() => toast.classList.remove('show'), TOAST_DURATION);
 }
 
+// The clipboard holds one command, so only the button that put it there shows the check: a new copy
+// resets whichever command button was still showing one. Its own timer, not the shared `copyTimer`,
+// so a wallet copy in the header cannot cancel a command button's reset and leave it stuck.
+let cmdCopyTimer;
+
+function resetCmdCopyBtn(btn) {
+  btn.innerHTML = COPY_ICON;
+  btn.classList.remove('copied');
+}
+
+// A copied command is no longer news: its badge goes everywhere it appears, and each section's
+// "N new" chip is recounted.
+function clearNew(raw) {
+  if (!isNewCmd(raw)) return;
+  fresh.clear(hashKey(raw));
+  document.querySelectorAll(`.cmd-item[data-raw="${escapeAttr(raw)}"]`).forEach(el => {
+    el.classList.remove('is-new');
+    const sec = el.closest('.section');
+    const meta = sec && sec.querySelector('.section-meta');
+    if (!meta) return;
+    meta.querySelector('.section-new')?.remove();
+    meta.insertAdjacentHTML('afterbegin', newChip(sec.querySelectorAll('.cmd-item.is-new').length));
+  });
+}
+
 function copyCmd(item) {
   const raw = item.dataset.raw;
+  clearNew(raw);
 
   const finish = () => {
     showToast();
     const btn = item.querySelector('.copy-btn');
-    clearTimeout(copyTimer);
+    clearTimeout(cmdCopyTimer);
+    document.querySelectorAll('.cmd-item .copy-btn.copied').forEach(resetCmdCopyBtn);
     btn.innerHTML = CHECK_ICON;
     btn.classList.add('copied');
-    copyTimer = setTimeout(() => {
-      btn.innerHTML = COPY_ICON;
-      btn.classList.remove('copied');
-    }, COPY_RESET_DELAY);
+    cmdCopyTimer = setTimeout(() => resetCmdCopyBtn(btn), COPY_RESET_DELAY);
   };
 
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(raw).then(finish).catch(() => fallbackCopy(raw, finish));
   } else {
     fallbackCopy(raw, finish);
+  }
+}
+
+// The section ids double as hash routes, so a copied link opens the page filtered to that section.
+function copySectionLink(id) {
+  const url = `${location.origin}${location.pathname}#${id}`;
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(url).then(showToast).catch(() => fallbackCopy(url, showToast));
+  } else {
+    fallbackCopy(url, showToast);
   }
 }
 
@@ -373,7 +514,7 @@ function applyGroup(group) {
   navSub.removeAttribute('data-cat');
 
   applySearch(searchInput.value);
-  history.replaceState(null, '', group === 'all' ? location.pathname : `#${group}`);
+  writeUrl(group === 'all' ? '' : `#${group}`);
 }
 
 function applyCategory(cat) {
@@ -402,7 +543,7 @@ function applyCategory(cat) {
   }
 
   applySearch(searchInput.value);
-  history.replaceState(null, '', cat === 'all' ? `#${activeGroup}` : `#${cat}`);
+  writeUrl(cat === 'all' ? `#${activeGroup}` : `#${cat}`);
 }
 
 function applySub(sub) {
@@ -416,7 +557,7 @@ function applySub(sub) {
 
   applySearch(searchInput.value);
   const fallback = activeCategory !== 'all' ? activeCategory : activeGroup;
-  history.replaceState(null, '', sub === 'all' ? `#${fallback}` : `#${sub}`);
+  writeUrl(sub === 'all' ? `#${fallback}` : `#${sub}`);
 }
 
 // ── Search ────────────────────────────────────────────────────
@@ -453,7 +594,7 @@ function applySearch(query) {
           cardMatch = true;
           const codeEl = item.querySelector('.cmd-code');
           const descEl = item.querySelector('.cmd-desc');
-          codeEl.innerHTML = hl(raw);
+          codeEl.innerHTML = hl(raw, { slashBreaks: !q.includes('/') });
           descEl.textContent = item.dataset.desc;
           if (q) {
             applyMark(codeEl, q);
@@ -528,11 +669,26 @@ window.addEventListener('scroll', () => {
 scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
 // ── Key bindings ──────────────────────────────────────────────
+const keysHelp = setupKeysHelp([
+  { title: 'Commands', rows: [
+    { keys: [['/']], desc: 'Focus search' },
+    { keys: [['Esc']], desc: 'Clear search' },
+    { keys: [['?']], desc: 'Show this list' },
+  ] },
+]);
 const searchInput = document.getElementById('searchInput');
 const searchClear = document.getElementById('searchClear');
 
 document.addEventListener('keydown', e => {
+  if (keysHelp.isOpen()) return;
   const typing = ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
+  // `/` jumps to the search field from anywhere on the page, the GitHub / docs-site convention.
+  if (isSlash(e) && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+    return;
+  }
   if (e.key === 'Escape' && (typing || searchInput.value)) {
     clearTimeout(searchDebounce);
     searchInput.value = '';
@@ -561,6 +717,11 @@ searchClear.addEventListener('click', () => {
 const main = document.getElementById('main');
 
 main.addEventListener('click', e => {
+  const linkBtn = e.target.closest('.section-link');
+  if (linkBtn) {
+    copySectionLink(linkBtn.closest('.section').dataset.section);
+    return;
+  }
   const starBtn = e.target.closest('.star-btn');
   if (starBtn) {
     const item = starBtn.closest('.cmd-item');
@@ -601,6 +762,16 @@ function init() {
 init();
 
 // ── URL hash navigation ───────────────────────────────────────
+// The section root shows without its trailing slash (/cli), the same way /scheme does. Any state kept
+// in the hash goes back to /cli/#..., the form a shared link should carry. A bare /cli reaching the
+// server is redirected to /cli/. The path is always written in full: a bare '#...' would resolve
+// against /cli and drop the slash.
+function writeUrl(hash) {
+  const base = location.pathname.replace(/\/$/, '');
+  const target = hash ? `${base}/${location.search}${hash}` : base + location.search;
+  if (location.pathname + location.search + location.hash !== target) history.replaceState(null, '', target);
+}
+
 const HASH_REDIRECTS = {
   'troubleshooting-kubectl': 'troubleshooting-cluster',
 };
@@ -616,6 +787,7 @@ function restoreFromHash() {
   if (cat)              { applyGroup(groupOfCategory(cat)); applyCategory(cat); applySub(hash); return; }
 }
 restoreFromHash();
+if (!location.hash) writeUrl('');
 window.addEventListener('hashchange', restoreFromHash);
 
 // ── Align logo icon center over "All" button center ───────────
@@ -708,6 +880,11 @@ function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
       const addr = btn.closest('.dropdown-copy-row').querySelector('.dropdown-addr').dataset.addr;
       const finish = () => {
         clearTimeout(copyTimer);
+        // The clipboard holds one address, so a new copy clears the check on any other wallet.
+        container.querySelectorAll('.dropdown-copy-btn.copied').forEach(b => {
+          b.innerHTML = COPY_ICON;
+          b.classList.remove('copied');
+        });
         btn.innerHTML = CHECK_ICON;
         btn.classList.add('copied');
         copyTimer = setTimeout(() => {

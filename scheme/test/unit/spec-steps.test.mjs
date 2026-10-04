@@ -61,7 +61,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards, census, CATALOG_BASELINE } from '../fixtures/catalog.mjs';
 import { cardForm, importAll } from '../fixtures/module.mjs';
-import { collectFns, refNames, refUniverse, settledChips, staticChips, timelineOf, walkParts } from '../fixtures/spec.mjs';
+import { collectFns, entryChips, refNames, refUniverse, settledChips, staticChips, timelineOf, walkParts } from '../fixtures/spec.mjs';
 import { flowLights } from '../../js/lib/step-spec.js';
 import { routeDur, REVEAL_MS, BEAT } from '../../js/lib/scheme-kit.js';
 
@@ -594,30 +594,45 @@ describe('chip turnover', () => {
   });
 
   // The reading rule, asserted by exercising it: a key's final value is chips, then enter, then
-  // rewind, then every F.set in flow order. A check that reads `chips` as the final value is wrong
-  // on exactly the steps counted below, and cluster-etcd-raft `quorum-lost` is the exemplar: it
-  // states r1 as Leader and an F.set turns it over to Follower at 1500ms.
+  // rewind, then every F.set in the order it FIRES. cluster-etcd-raft `quorum-lost` is the
+  // exemplar: it states r1 as Leader and an F.set turns it over to Follower at 1500ms.
   test('a chip resolves through chips, rewind and the flow, in that order', (t) => {
     const carried = [];
     const findings = [];
     let resolved = 0, rewound = 0;
     for (const { spec, at } of steps()) {
       const stat = staticChips(spec);
-      const final = settledChips(spec);
+      const final = settledChips(spec, KIT);
       resolved += Object.keys(final).length;
       rewound += Object.keys((spec.rewind && spec.rewind.chips) || {}).length;
       for (const k of Object.keys(stat)) {
         if (final[k] !== stat[k]) carried.push(`${at}:${k} '${stat[k]}' -> '${final[k]}'`);
       }
       // Same input, same answer: the resolution must not depend on iteration luck.
-      if (JSON.stringify(settledChips(spec)) !== JSON.stringify(final)) findings.push(`${at}  the chip resolution is not deterministic`);
+      if (JSON.stringify(settledChips(spec, KIT)) !== JSON.stringify(final)) findings.push(`${at}  the chip resolution is not deterministic`);
     }
     assert.equal(findings.length, 0, `${findings.length} finding(s):\n  ${listing(findings)}`);
-    // The anchor. If this ever reaches 0, either every F.set stopped moving a chip past its static
-    // value, or this resolver has quietly collapsed into reading `chips` and asserts nothing.
-    assert.ok(carried.length > 0,
-      'not one step carries a chip past its static value, so the three-stage resolution above is ' +
-      'indistinguishable from reading `chips` and this test has stopped testing it.');
+    // The anchor, on a PROBE rather than on the catalog: a step whose static and played paths end
+    // apart is the hole section 4 of report/chip-beat.test.mjs counts down to zero, so the catalog
+    // cannot be what proves the resolver works. The probe states every stage at once: `chips` says
+    // one thing, `rewind` another, and two F.sets disagree in source order against firing order,
+    // the first written landing last on a named arrival (a 700ms top hop) and the second at 100ms.
+    // A resolver reading `chips`, skipping `rewind` or walking source order gets a different answer.
+    const probe = {
+      chips: { k: 'static', tie: 'static' }, rewind: { chips: { k: 'rewound' } },
+      flow: [
+        { verb: 'top', p: { from: 0, to: 10, y: 0, name: 'hop' } },
+        { verb: 'set', p: { at: 'hop', chips: { k: 'lands last' } } },
+        { verb: 'set', p: { delay: 100, chips: { k: 'lands first' } } },
+        { verb: 'set', p: { delay: 100, chips: { tie: 'written first' } } },
+        { verb: 'set', p: { delay: 100, chips: { tie: 'written second' } } },
+      ],
+    };
+    assert.deepEqual([staticChips(probe).k, entryChips(probe).k, settledChips(probe, KIT).k],
+      ['static', 'rewound', 'lands last'],
+      'the probe resolves wrong: chips, then rewind, then every F.set by the time it fires');
+    assert.equal(settledChips(probe, KIT).tie, 'written second',
+      'two F.sets on one delay fire in creation order, so the later one in the flow wins');
     t.diagnostic(`${resolved} chip keys resolved, ${rewound} rewound before the animated path, ` +
       `${carried.length} carried past their static value by an F.set: ` +
       carried.slice(0, 3).join(' | ') + (carried.length > 3 ? ` | ... and ${carried.length - 3} more` : ''));

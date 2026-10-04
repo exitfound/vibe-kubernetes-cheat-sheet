@@ -116,7 +116,7 @@ function chipBeatForms(catalogued, modules) {
       // Measured on the way past: a key whose static value is not where the animated path leaves
       // it. Every step, not only a candidate one, since the divergence has nothing to do with
       // packets. It is the hole an F.set repair opens, and the report's section 4 prints it.
-      const stat = staticChips(s), settled = settledChips(s);
+      const stat = staticChips(s), settled = settledChips(s, KIT);
       for (const k of Object.keys(stat)) {
         if (settled[k] !== stat[k]) {
           divergent.push({
@@ -149,7 +149,7 @@ function chipBeatForms(catalogued, modules) {
       }
 
       const now = entryChips(s);
-      const before = settledChips(spec[i - 1]);
+      const before = settledChips(spec[i - 1], KIT);
       const lit = new Set(s.lit || []);
 
       for (const k of Object.keys(now)) {
@@ -185,7 +185,7 @@ function chipBeatForms(catalogued, modules) {
   const stale = staleKeys('FORM-E', E.map(r => r.carryKey));
   // A FORM-B row is carried only where it is NOT also FORM-E: E is the narrower reading of the same
   // record and owns it, so a ruling written on both axes would be printed twice and counted twice.
-  const bOpen = B.filter(r => !r.bWhy), bHeld = B.filter(r => r.bWhy);
+  const bOpen = B.filter(r => !r.neighbours.length && !r.bWhy), bHeld = B.filter(r => r.bWhy);
   const bStale = staleKeys('FORM-B', B.filter(r => !r.neighbours.length).map(r => r.carryKey));
 
   return {

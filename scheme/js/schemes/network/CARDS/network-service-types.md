@@ -107,6 +107,7 @@ NOT A DEFECT
          type, clusterIP and nodePort are spec fields set when the Service is created, and LB ingress
          is `status.loadBalancer.ingress`, published once the balancer is provisioned and so before
          any client can dial that address. The ball reads the rules they produced and writes none.
+         All twelve are carried on FORM-B in `test/fixtures/carried.mjs` with that reason.
 OPEN     CENTRE: the chip column spans 908..1140, centre 1024 against 600. It is a column beside the
          stack on purpose, reading the Service fields next to the layers they describe. Centring it
          puts it on the spine, and a bottom strip has no room because the Node frame reaches 624.

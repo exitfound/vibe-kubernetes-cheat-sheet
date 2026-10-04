@@ -35,21 +35,24 @@ LANES    ONE straight drop on WL.SPINE_X from the Kubelet bottom midpoint to the
          Top row: REQ_Y carries the CRI call out to the Runtime, RESP_Y carries the exit report back
          (WL.A-01). Both ride on four of the five steps, so both are arrows, not relations.
 MOTION   Three steps share one shape: the runtime reports an exit on the answer lane, the Kubelet
-         calls StartContainer back, and the create lands on the node. All three light `runtime` on
-         the ARRIVAL of that hop, at 1500ms, and not in the static `lit` list at t=0, so the three
-         read alike and the box is a receiver on all three (A-06).
-         Spans 2169 / 2969 / 2969 / 2969 / 900 against durations 2600 / 3400 / 3400 / 3400 / 2700.
+         calls StartContainer back, and the create lands on the node. On all three the runtime ACTS
+         FIRST, so it is in the static `lit` list and its report waits BEAT.lead (M-18a): a ball
+         leaving a dark box has no visible source. It sends before it receives, so R3 exempts it.
+         Each container state chip turns over where the create lands on its box, through a
+         `rewind` to Waiting and one F.set, and the chip of the container that has just exited
+         stands at entry, because that exit is the premise the report carries.
+         Spans 2169 / 3769 / 3769 / 3769 / 900 against durations 2600 / 3800 / 3800 / 3800 / 2700.
          The last step is the only one of the five whose duration is a CHOICE. The other four sit
-         within 431ms of their own spans, so M-19 sets them and nothing else can. `running` holds a
-         900ms pulse and everything past it is still air (M-19a).
+         within 431ms of their own spans, three of them within 31, so M-19 sets them and nothing
+         else can. `running` holds a 900ms pulse and everything past it is still air (M-19a).
          Its narration is 269 characters, the reverse termination order having gone to
          `workloads-termination-order` under one pointer clause, and it holds 2700 for them: 10.04 ms
          per character against a catalog median of 10.00, still standing still for 1800ms. At 3400 it
          reads 12.64 and stands still for 74% of itself.
-         THE RHYTHM ARGUMENT IS REFUSED. The three steps above hold 3400 because their span is 2969
-         and `M-19` forbids anything shorter, so matching them here buys an even tail with 2500ms in
-         which nothing moves and nothing is left to read. main-start sits at 16.75 ms
-         per character for the same reason and is NOT a precedent: its 3400 is a floor, not a
+         THE RHYTHM ARGUMENT IS REFUSED. The three steps above hold 3800 because their span is 3769
+         and `M-19` forbids anything shorter, so matching them here buys an even tail with 2900ms in
+         which nothing moves and nothing is left to read. main-start sits at 18.72 ms
+         per character for the same reason and is NOT a precedent: its 3800 is a floor, not a
          choice. Populations and medians live in `report/baselines.test.mjs` and `timing.mjs`, which
          is why none is copied here.
          Nothing pulses but the Pod, and only on the last step, where the Pod is what changed. The

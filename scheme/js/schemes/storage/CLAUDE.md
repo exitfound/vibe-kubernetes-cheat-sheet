@@ -263,9 +263,9 @@ a 16 gap on 23, one uniform width of 232 on 15, and four chips on 22. `STO.L-03`
 new card starts from, and a width off it is a measured string written into that card's `SIZES`.
 12 records carry the `900x650` row `STO.L-04` is about.
 
-Storage's deepest panel is 329.20 units (`storage-volume-detach-on-node-loss`, at 1100x800), not
-the catalog maximum: that is 378.90 on
-`workloads-pod-qos-classes` (`L-04`). The panel's right edge is `x<=397` on every card.
+Storage's deepest panel stands on `storage-fsgroup-ownership` at 1100x800, short of the catalog
+maximum, and the overlay section of `npm run report` prints both readings against `L-04`. The
+panel's right edge is `x<=397` on every card.
 
 **Text is measured, never estimated** (`L-20`). A width a record states is the ink after
 `document.fonts.ready` at 1100x800. Several older `SIZES` blocks size a chip off a rate, 6.89 units
@@ -357,13 +357,14 @@ storage card takes a new file in `./CARDS/` on that form and a row in the `./CAR
 Every record here carries `WHAT`, `PANEL` and `SIZES`, 39 of 39. **A `PANEL` block states the
 READING, not the extent**: the right edge is `x<=397` catalog-wide (`L-02`), and the bottom moves
 non-monotonically per card and per viewport (`L-04`, `L-06`), so the block names the command that
-prints it, `OVERLAY_IDS=<card-id> node --test report/overlay.test.mjs` from `scheme/test/`, and keeps
-only which step is deepest, what stands under the panel and how much clearance is left. Fifteen
-records are on that form today (`csidriver`, `csi-architecture`, `csi-attach-mount`, `pvc-binding`,
-`pv-lifecycle-phases`, `mount-path-chain`, `multi-attach-error`, `volume-detach-on-node-loss`,
-`default-storageclass`, `pv-reservation`, `fsgroup-ownership`, `volume-attach-limits`,
-`downward-api-volume`, `pvc-retention-policy`, `generic-ephemeral-volume`). The other
-24 still store per-viewport
+prints it, `OVERLAY_IDS=<card-id> node --test report/overlay.test.mjs` from `scheme/test/`, and
+keeps only which step is deepest, what stands under the panel and how much clearance is left.
+Twenty-three records are on that form today, in grid order (`volume-model`, `hostpath`,
+`downward-api-volume`, `projected-volume`, `recursive-readonly`, `default-storageclass`,
+`volume-mode`, `csi-capacity-tracking`, `reclaim-policy`, `pv-lifecycle-phases`, `pv-reservation`,
+`csi-architecture`, `csidriver`, `mount-path-chain`, `fsgroup-ownership`, `volume-attach-limits`,
+`multi-attach-error`, `volume-detach-on-node-loss`, `volumeclaimtemplates`, `pvc-retention-policy`,
+`generic-ephemeral-volume`, `volume-snapshot`, `pvc-clone`). The other 16 still store per-viewport
 readings, which go stale on the next prose edit with nothing red, so a reading copied out of one of
 them is re-measured before it is trusted, and a record touched for any other reason is moved onto
 the command form in the same pass. Nothing in `npm test` enforces the character ceilings a `BUDGET`

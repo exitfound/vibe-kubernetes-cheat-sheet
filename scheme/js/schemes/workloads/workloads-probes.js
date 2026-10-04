@@ -140,9 +140,11 @@ export const STEPS_SPEC = [
     sublabels: { epSlice: EP_NOTREADY },
     wires: { req: 'httpGet /healthz/start' },
     opacity: { podGroup: OPACITY.pending, ...lanes('spineDown') },
-    lit: ['startupChip'],
+    // Kubelet self-initiates, so it is lit STATICALLY and its probe waits BEAT.lead (M-18a), the
+    // shape fresh-container takes for the same probe.
+    lit: ['kubelet', 'startupChip'],
     flow: [
-      F.route({ points: SPINE_DOWN, name: 'probe' }),
+      F.route({ points: SPINE_DOWN, delay: BEAT.lead, name: 'probe' }),
       F.pulse({ pod: 'podGroup', dim: true, at: 'probe' }),
     ],
   },
@@ -155,9 +157,13 @@ export const STEPS_SPEC = [
     wires: { req: '200 OK · startup retired' },
     opacity: { podGroup: OPACITY.pending, ...lanes('startupUp', 'livenessDown', 'readinessDown') },
     lit: ['startupChip', 'livenessChip', 'readinessChip'],
+    // The pass reaching Kubelet is what retires startup and releases the two, so all three chips
+    // turn over together on that arrival (P-03, P-04) and read what step 1 left until then.
+    rewind: { chips: { startupChip: 'probing 4/30', livenessChip: HELD, readinessChip: HELD } },
     flow: [
       F.pulse({ pod: 'podGroup', dim: true }),
       F.route({ points: S_UP, delay: BEAT.afterPulse, name: 'pass', lights: ['kubelet'] }),
+      F.set({ at: 'pass', chips: { startupChip: RETIRED, livenessChip: 'running', readinessChip: 'running' } }),
       // THE GATE OPENING, as motion rather than as a line that vanishes. The two probes that were
       // held descend TOGETHER on the answer, which is the one beat this whole composition is for:
       // a reader sees two lanes start carrying traffic at the same instant and on their own paths.
@@ -177,13 +183,19 @@ export const STEPS_SPEC = [
     wires: { req: '200 OK · Ready=True' },
     opacity: { podGroup: 1, ...lanes('reportUp', 'epLane') },
     lit: ['readinessChip'],
+    // The verdict lands with the report on Kubelet and the endpoint flips when it reaches the slice,
+    // so neither stands before its ball (P-03).
+    rewind: { chips: { readinessChip: 'running' }, sublabels: { epSlice: EP_NOTREADY } },
     flow: [
-      F.pulse({ pod: 'podGroup' }),
-      F.fade({ target: 'podGroup', from: OPACITY.pending, to: 1, dur: FADE.in, fill: 'both', easing: 'ease-out' }),
+      F.pulse({ pod: 'podGroup', dim: true }),
       F.route({ points: SPINE_UP, delay: BEAT.afterPulse, name: 'report', lights: ['kubelet'] }),
+      // The Pod comes to full where Kubelet flips Ready, with the verdict, not before it.
+      F.fade({ target: 'podGroup', from: OPACITY.pending, to: 1, dur: FADE.in, at: 'report', fill: 'both', easing: 'ease-out' }),
+      F.set({ at: 'report', chips: { readinessChip: 'passing 1/1' } }),
       // And only THIS answer travels on past Kubelet, which is the sentence the composition exists
       // to say: the same verdict that flips Ready is what moves a different object.
-      F.route({ points: EP_LANE, after: 'report', lights: ['epSlice'] }),
+      F.route({ points: EP_LANE, after: 'report', name: 'ep', lights: ['epSlice'] }),
+      F.set({ at: 'ep', sublabels: { epSlice: EP_READY } }),
     ],
   },
   {
@@ -195,27 +207,35 @@ export const STEPS_SPEC = [
     wires: { req: '503 · readiness failed' },
     opacity: { podGroup: 1, ...lanes('reportUp', 'epLane') },
     lit: ['readinessChip', 'restartChip'],
+    // Same shape as `ready`: the 503 report earns the verdict, the slice arrival earns ready=false.
+    rewind: { chips: { readinessChip: 'passing 1/1' }, sublabels: { epSlice: EP_READY } },
     flow: [
       F.pulse({ pod: 'podGroup' }),
       F.route({ points: SPINE_UP, delay: BEAT.afterPulse, name: 'report', lights: ['kubelet'] }),
-      F.route({ points: EP_LANE, after: 'report', lights: ['epSlice'] }),
+      F.set({ at: 'report', chips: { readinessChip: 'failed 3/3' } }),
+      F.route({ points: EP_LANE, after: 'report', name: 'ep', lights: ['epSlice'] }),
+      F.set({ at: 'ep', sublabels: { epSlice: EP_NOTREADY } }),
     ],
   },
   {
     id: 'liveness-fails',
     duration: 3000,
-    narration: 'The livenessProbe fails failureThreshold consecutive times on its own lane. Kubelet kills the container and starts a fresh instance per restartPolicy, so restartCount becomes 1 and the endpoint goes ready=false with it. The Pod object is not replaced and keeps its IP, because a probe restarts a container and never a Pod.',
+    narration: 'The livenessProbe fails failureThreshold consecutive times on its own lane. Kubelet kills the container and starts a fresh instance per restartPolicy, so restartCount becomes 1 and the endpoint stays ready=false. The Pod object is not replaced and keeps its IP, because a probe restarts a container and never a Pod.',
     chips: { startupChip: 'reset', livenessChip: 'failed 3/3', readinessChip: 'reset', restartChip: '1' },
     sublabels: { epSlice: EP_NOTREADY },
     wires: { req: '503 · liveness failed' },
     opacity: { podGroup: OPACITY.notready, ...lanes('reportUp', 'epRel') },
     lit: ['livenessChip', 'restartChip', 'epSlice'],
+    // The kill is what fails liveness, counts the restart and resets the other two, so all four
+    // chips turn over on the kill beat together (P-04) and read what step 4 left until then.
+    rewind: { chips: { startupChip: RETIRED, livenessChip: 'passing', readinessChip: 'failed 3/3', restartChip: '0' } },
     flow: [
       F.pulse({ pod: 'podGroup' }),
       F.route({ points: SPINE_UP, delay: BEAT.afterPulse, lights: ['kubelet'] }),
       // The kill hangs off the PULSE and not off the report arriving: the container dies when
       // Kubelet decides, and the report is what it sends afterwards.
       F.fade({ target: 'podGroup', from: 1, to: OPACITY.notready, dur: FADE.out, delay: BEAT.afterPulse + BEAT.afterHop, fill: 'both', easing: 'ease-in' }),
+      F.set({ delay: BEAT.afterPulse + BEAT.afterHop, chips: { startupChip: 'reset', livenessChip: 'failed 3/3', readinessChip: 'reset', restartChip: '1' } }),
     ],
   },
   {
@@ -230,11 +250,16 @@ export const STEPS_SPEC = [
     // the 800 is the beat where the lit sender stands alone before the probe leaves. Span 2951
     // against duration 3100, the reading `ready` and `readiness-fails` take on 800 plus two hops.
     lit: ['kubelet', 'startupChip', 'restartChip'],
+    // The probe cycle retires startup and lets the other two pass, and the slice flips on its own
+    // arrival, so every changed value waits for its ball (P-03, P-04).
+    rewind: { chips: { startupChip: 'reset', livenessChip: 'failed 3/3', readinessChip: 'reset' }, sublabels: { epSlice: EP_NOTREADY } },
     flow: [
       F.route({ points: SPINE_DOWN, delay: BEAT.lead, name: 'probe' }),
       F.fade({ target: 'podGroup', from: OPACITY.notready, to: 1, dur: FADE.in, at: 'probe', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'podGroup', at: 'probe' }),
-      F.route({ points: EP_LANE, after: 'probe', lights: ['epSlice'] }),
+      F.set({ at: 'probe', chips: { startupChip: RETIRED, livenessChip: 'passing', readinessChip: 'passing 1/1' } }),
+      F.route({ points: EP_LANE, after: 'probe', name: 'ep', lights: ['epSlice'] }),
+      F.set({ at: 'ep', sublabels: { epSlice: EP_READY } }),
     ],
   },
 ];

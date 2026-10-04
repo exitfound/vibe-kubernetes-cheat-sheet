@@ -22,9 +22,8 @@
 //                              the half-strength pulse: pulsePod was handed a bare element, not the
 //                              group. This is exactly the symptom M-03 names.
 //   PULSE-TOGETHER (M-03)      REPORTED, not asserted. The Pod of a pulsed group must blink on the
-//                              same beat as the containers inside it. 2 findings today, both on
-//                              cluster-pod-sandbox-cri, and the ceiling below keeps a third from
-//                              arriving quietly.
+//                              same beat as the containers inside it. 0 findings today, and the
+//                              empty ceiling below makes the first one red.
 //   RIDE        (M-30, M-31)   a riding tag rides a real ball, with that ball's easing, that ball's
 //                              duration, and pinned at the route start when it is built.
 //   SPEED       (M-12)         a ball's flight time is routeDur() of its own route: one speed
@@ -309,12 +308,9 @@ const PACING = new Map([
   ['network-dns-autoscaling', { speed: 8, clamp: 8 }],
 ]);
 
-// PULSE-TOGETHER's ceiling (M-03). cluster-pod-sandbox-cri pulses appGroup alone on its last two
-// steps, so the app container blinks while the Pod shell holding it does not. Both are deliberate
-// and recorded as NOT A DEFECT in that card's CARDS.md section: the ceiling keeps a third quiet.
-const WHOLE_POD = new Map([
-  ['cluster-pod-sandbox-cri', 2],
-]);
+// PULSE-TOGETHER's ceiling (M-03), per card. Empty: an inner box never blinks inside a Pod without
+// the Pod itself, so a card that needs an entry here is a defect to fix, not a count to record.
+const WHOLE_POD = new Map([]);
 
 // routeDur's own bounds, read out of the function instead of copied from beside it. Both constants
 // are module-private to scheme-kit.js, so this is the only reading that cannot go stale.
@@ -558,9 +554,8 @@ test('the explicit-dur registry has no dead and no under-sized entries', FULL_ON
 });
 
 test('PULSE-TOGETHER: a Pod blinks with everything inside it (M-03, reported)', (t) => {
-  // Reported with a ceiling rather than asserted to zero. The two findings are deliberate and argued
-  // as NOT A DEFECT in that card's record (see WHOLE_POD above), so this file only measures them.
-  // The ceiling is per card, so a NEW one anywhere is red while fixing one of these is not.
+  // Reported with a ceiling rather than asserted to zero. The ceiling is per card (see WHOLE_POD
+  // above) and empty, so any finding anywhere is red.
   const byCard = new Map();
   for (const line of together) {
     const id = line.split(' ')[0];

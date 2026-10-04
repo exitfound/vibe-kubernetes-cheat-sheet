@@ -285,7 +285,7 @@ export const STEPS_SPEC = [
     chips: chipsOf('requests.cpu 1', REFUSED_403, NOT_CREATED),
     ...CHARGED,
     wires: { req: POST_WEB3, over: OVER_WHY },
-    lit: ['bar', 'slot0', 'slot1', 'over', 'hardChip', 'usedChip', 'admitChip'],
+    lit: ['rs', 'bar', 'slot0', 'slot1', 'over', 'hardChip', 'usedChip', 'admitChip'],
     chain: [3],
     // The sum IS the step, so nothing may stand before the admission that earns it: each slot and
     // the two chips turn over on their own Pod's beat, and the refusal on the third arrival.
@@ -318,7 +318,7 @@ export const STEPS_SPEC = [
     chips: chipsOf('requests.cpu 1', REFUSED_403, 'ReplicaFailure · FailedCreate'),
     ...WRITTEN,
     wires: { req: POST_WEB3, over: OVER_WHY, ack: FORBIDDEN },
-    lit: ['bar', 'slot0', 'slot1', 'over', 'usedChip', 'rsChip'],
+    lit: ['api', 'bar', 'slot0', 'slot1', 'over', 'usedChip', 'rsChip'],
     chain: [4],
     // The two writes land first and the row kubectl loses is the same beat as the refused block
     // going dark. Only the 403 and the condition wait for the answer to reach the ReplicaSet.

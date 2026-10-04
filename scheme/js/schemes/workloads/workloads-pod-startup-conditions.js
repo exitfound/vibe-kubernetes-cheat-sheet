@@ -177,12 +177,22 @@ export const STEPS_SPEC = [
     wires: { req: 'PATCH status · PodReadyToStartContainers=True' },
     opacity: { podGroup: OPACITY.pending, ...climb(1), ...phase('pending'), ...corridor('down') },
     podSublabels: { podGroup: 'sandbox up, network configured' },
-    lit: ['kubelet', 'timeChip', RUNG_KEYS[1]],
+    // Everything this step changes is earned by the sandbox ball: the Pod line, the tread and its
+    // stamp, and the endpoint, which exists once the Pod has an IP. All of it waits for `create`.
+    lit: ['kubelet', 'timeChip', 'epChip'],
+    rewind: {
+      chips: { timeChip: '12:00:03', epChip: EMPTY },
+      opacity: { [RUNG_KEYS[1]]: OPACITY.notready },
+      podSublabels: { podGroup: 'bound, nothing running' },
+    },
     flow: [
       F.route({ points: SPINE, name: 'create' }),
       // Down-arrow: the ball lands first, then the Pod blinks and lifts out of its dimmest shade.
       F.pulse({ pod: 'podGroup', at: 'create' }),
       F.fade({ target: 'podGroup', from: OPACITY.notready, to: OPACITY.pending, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
+      F.fade({ target: RUNG_KEYS[1], from: OPACITY.notready, to: 1, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
+      F.light({ at: 'create', targets: [RUNG_KEYS[1]] }),
+      F.set({ at: 'create', chips: { timeChip: '12:00:09', epChip: NOTREADY }, podSublabels: { podGroup: 'sandbox up, network configured' } }),
       F.top({ ...PATCH, after: 'create', lights: ['apiEl'] }),
     ],
   },
@@ -231,10 +241,14 @@ export const STEPS_SPEC = [
     opacity: { podGroup: 1, ...climb(4), ...phase('running'), ...corridor('down') },
     podSublabels: { podGroup: 'serving' },
     lit: ['kubelet', 'timeChip', 'epChip', RUNG_KEYS[4]],
+    // Ready landing on the API is what turns the endpoint ready=true and the Pod to serving, so
+    // both wait for the PATCH. The verdict, its tread and its stamp are the Kubelet's, at entry.
+    rewind: { chips: { epChip: NOTREADY }, podSublabels: { podGroup: 'every container ready' } },
     flow: [
       // Self-initiated: the Kubelet reaches the verdict on its own, so the ball waits BEAT.lead.
       F.top({ ...PATCH, delay: BEAT.lead, name: 'patch', lights: ['apiEl'] }),
       F.pulse({ pod: 'podGroup', at: 'patch' }),
+      F.set({ at: 'patch', chips: { epChip: SERVING }, podSublabels: { podGroup: 'serving' } }),
     ],
   },
 ];

@@ -58,6 +58,11 @@ MOTION   `enter` obeys `P-03`. A packet is not AT a hook until it arrives there,
          rather than a lag. The conntrack row travels with the chips on
          both, because the row IS the conntrack chip written long and `P-04` wants one family on one
          beat.
+         `out` obeys it on `hook` and `src` together. The packet stands in FORWARD at entry and
+         reaches POSTROUTING on the `toPo` arrival at 700ms, and whether MASQUERADE applies is
+         decided there, so `rewind` holds `FORWARD` and `10.244.1.5`, one `F.set` writes `FORWARD,
+         POSTROUTING` and `10.244.1.5 (no SNAT)` on that arrival and `lights` cues both chips on
+         that beat rather than from entry (`P-04`).
          eth0 on `reply` and PREROUTING on `local` are the SENDERS, so each is named in that step's
          `lit` and its ball waits `BEAT.lead` (`M-18a`). Without that the ball leaves a dark block,
          which is what `report:arrival/R4` reports.
@@ -126,16 +131,16 @@ WHY NOT  A sixth station in the row for the local branch. Six labels of this len
          walked, spends a sixth of the card on a subject `network-ebpf-dataplane` owns two rows away
          in the same section, and names a socket hook that has no place on this canvas.
 NOT A DEFECT
-         `dnat`, `fork` and `out` deliberately do NOT take a `P-03` repair, and
-         `report/chip-beat.test.mjs` lists their six values as FORM-B at 700ms. The direction of the
-         motion is the reason. On `enter`, `reply` and `local` a ball travels TO the place that makes
-         the value, so the value waits for the arrival. On these three the ball LEAVES the place that
+         `dnat` and `fork` deliberately do NOT take a `P-03` repair, and
+         `report/chip-beat.test.mjs` lists their four values as FORM-B at 700ms. The direction of the
+         motion is the reason. On `enter`, `out`, `reply` and `local` a ball travels TO the place that
+         makes the value, so the value waits for the arrival. On these two the ball LEAVES the place that
          already made it: the nat table runs inside PREROUTING, where the packet stands at entry, and
          the hook a step opens at is the hook the previous arrival delivered it to. Binding
          `dst 10.244.2.7:8080` to the routing arrival would put the strip 700ms behind the tag on its
          own ball and behind the conntrack row, which writes the DNAT-ed flow at entry too. `P-06`
          puts a value chip turning over at step entry inside the rules, and these are that case.
-         The `-95` frame of `enter`, `reply` and `local` shows the strip still rewound. Those steps
+         The `-95` frame of `enter`, `out`, `reply` and `local` shows a rewound chip. Those steps
          turn their chips over in an `at()` callback, which is the onfinish of an empty animation and
          never fires under a seeked probe: `tools/settled-dump.mjs <id> <step>` plays in real time
          and is what shows the turnover.

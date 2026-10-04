@@ -126,7 +126,7 @@ export const SCENE = {
     P.arrow({ x1: API_X, y1: RESP_Y, x2: RS_X + RS_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }),
     // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
     P.wire({ key: 'req', x: WIRE_X, y: WL.TOP_Y - 12 }),
-    P.chip({ key: 'selChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'selector', value: 'app=web' }),
+    P.chip({ key: 'selChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'selector', value: 'matchLabels app=web' }),
     P.chip({ key: 'ownChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'ownerReferences', value: 'controller=true' }),
     P.chip({ key: 'actChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'reconcile', value: 'in sync' }),
     trunkPath('trunk', TRUNK),
@@ -206,14 +206,14 @@ export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { selChip: 'app=web', ownChip: 'controller=true', actChip: 'in sync' },
+    chips: { selChip: 'matchLabels app=web', ownChip: 'controller=true', actChip: 'in sync' },
     ...bands([...THREE, EMPTY]),
   },
   {
     id: 'own',
     duration: 3700,
     narration: 'Every Pod the ReplicaSet manages carries a metadata.ownerReferences entry pointing back to it, with controller set to true. Those are the links drawn into the owned band, and they are what lets garbage collection remove the Pods when the ReplicaSet is deleted. The ownership is a chain: a Deployment owns this ReplicaSet, and the ReplicaSet owns the Pods. You scale the Deployment, it updates spec.replicas on the ReplicaSet, and the ReplicaSet is what actually creates and deletes Pods.',
-    chips: { selChip: 'app=web', ownChip: 'controller=true', actChip: 'in sync' },
+    chips: { selChip: 'matchLabels app=web', ownChip: 'controller=true', actChip: 'in sync' },
     wires: { req: 'ownerReferences · controller=true · Deployment → RS → Pod' },
     ...bands([...THREE, EMPTY]),
     lit: ['rs', 'ownChip'],
@@ -230,7 +230,7 @@ export const STEPS_SPEC = [
     // median of 10.18 ms/char. At 2000 this was the 4th most hurried step in the catalog.
     duration: 4500,
     narration: 'The controller runs a continuous reconcile loop. On every relevant change it compares the desired count against the Pods it owns and acts only on the difference. The mark on the band is spec.replicas, so a set that ends exactly on the mark needs nothing done. Because the loop is level-triggered it works off the current observed state rather than off one-time events, so a missed event or a controller restart still converges to the same result.',
-    chips: { selChip: 'app=web', ownChip: 'controller=true', actChip: 'balanced · no-op' },
+    chips: { selChip: 'matchLabels app=web', ownChip: 'controller=true', actChip: 'balanced · no-op' },
     wires: { req: 'watch owned Pods · count meets the mark · no-op' },
     ...bands([...THREE, EMPTY]),
     lit: ['rs', 'actChip'],
@@ -243,7 +243,7 @@ export const STEPS_SPEC = [
     // the new Pod down the lane and its arrival pulse. The watch hop cost 800 of it.
     duration: 4700,
     narration: 'One Pod is lost, its Node failed or the Pod was deleted. The owned band falls to two and a gap opens before the mark, so the controller creates a replacement to close it. It learns of the loss through its Pod watch and acts on the difference, not on the event. This self-healing is the whole point of a controller. A bare Pod created on its own has no owner watching it, so once gone it stays gone.',
-    chips: { selChip: 'app=web', ownChip: 'controller=true', actChip: 'create +1' },
+    chips: { selChip: 'matchLabels app=web', ownChip: 'controller=true', actChip: 'create +1' },
     wires: { req: 'owned count below the mark · create Pod web-b2' },
     ...bands([...THREE, EMPTY]),
     // The API ACTS FIRST here, sending the watch event, so it is lit at entry: a ball leaving a
@@ -252,6 +252,8 @@ export const STEPS_SPEC = [
     // The animated path says the replacement landed by PULSING it, which no lights list can name:
     // the static path has to say it with the inner box instead.
     reducedLit: ['pod2Box'],
+    // The decision and the request it sends are made when the watch lands, so both wait for it.
+    rewind: { chips: { actChip: 'balanced · no-op' }, wires: { req: '' } },
     flow: [
       // The loss reaches the controller as a watch event down the answer lane, so the ReplicaSet is
       // dark until that lands: it acts on what it RECEIVES. Only then does the create go out. The
@@ -259,10 +261,12 @@ export const STEPS_SPEC = [
       F.fade({ target: 'pod2', from: 1, to: 0, dur: FADE.out, delay: 0, fill: 'forwards', easing: 'ease-in' }),
       F.fade({ target: 'tap2', from: 1, to: 0, dur: FADE.out, delay: 0, fill: 'forwards', easing: 'ease-in' }),
       F.top({ from: API_X, to: RS_X + RS_W, y: RESP_Y, delay: FADE.out + BEAT.afterHop, name: 'watch', lights: ['rs'] }),
+      F.set({ at: 'watch', chips: { actChip: 'create +1' }, wires: { req: 'owned count below the mark · create Pod web-b2' } }),
       F.top({ from: RS_X + RS_W, to: API_X, y: REQ_Y, after: 'watch', name: 'req', lights: ['api'] }),
       F.route({ points: LANE(1), after: 'req', name: 'create' }),
-      F.fade({ target: 'pod2', from: 0, to: 1, dur: LAND_MS, at: 'create', fill: 'both', easing: 'ease-out' }),
-      F.fade({ target: 'tap2', from: 0, to: 1, dur: LAND_MS, at: 'create', fill: 'both', easing: 'ease-out' }),
+      // `forwards`, not `both`: a backwards fill would hold 0 from step entry and cut the loss fade.
+      F.fade({ target: 'pod2', from: 0, to: 1, dur: LAND_MS, at: 'create', fill: 'forwards', easing: 'ease-out' }),
+      F.fade({ target: 'tap2', from: 0, to: 1, dur: LAND_MS, at: 'create', fill: 'forwards', easing: 'ease-out' }),
       F.pulse({ pod: 'pod2', at: 'create' }),
     ],
   },
@@ -272,22 +276,28 @@ export const STEPS_SPEC = [
     // lands at 1400, the claim rides to 2902 and the arrival pulse closes at 3802.
     duration: 4400,
     narration: 'A standalone Pod is already running with the label app=web and no controller ownerReference, which is what the unowned band holds. The ReplicaSet matches Pods by selector and not by who created them, so it adopts this one: it PATCHes metadata.ownerReferences to point at itself. The Pod was already running, adoption only restamps its owner, and it crosses up into the owned band past the mark as a fourth replica.',
-    chips: { selChip: 'app=web', ownChip: 'PATCH · owner set', actChip: 'adopt +1' },
+    chips: { selChip: 'matchLabels app=web', ownChip: 'PATCH · owner set', actChip: 'adopt +1' },
     wires: { req: 'PATCH ownerReferences · adopt web-d4 (app=web)' },
     ...bands([...THREE, OWNED]),
     lit: ['rs', 'ownChip', 'actChip'],
     reducedLit: ['pod4Box'],
     // The orphan is NOT created by the ReplicaSet, so it winds back to the unowned band and the
     // surplus slot winds back to empty. The bus tail stays ON: the claim rides it.
-    rewind: { opacity: { pod4: 0, tap4: 0, free4: OPACITY.notready, busTail: 1 } },
+    // The decision turns over as the PATCH leaves, and the owner field when the claim lands.
+    rewind: {
+      opacity: { pod4: 0, tap4: 0, free4: OPACITY.notready, busTail: 1 },
+      chips: { ownChip: 'controller=true', actChip: 'create +1' }, wires: { req: '' },
+    },
     flow: [
       // ADOPTION IS A CHANGE OF OWNER, NOT A BIRTH. The Pod surfaces in the UNOWNED band first, at
       // OPACITY.notready, which is the shade for alive but outside this path. Only then does the
       // ReplicaSet see a selector match and PATCH, and the crossing is a handover between the two
       // bands rather than a fade from nothing: the Pod is on screen for the whole step.
       F.fade({ target: 'free4', from: 0, to: OPACITY.notready, dur: FADE.in, delay: 0, fill: 'both', easing: 'ease-out' }),
+      F.set({ delay: FADE.in + BEAT.afterHop, chips: { actChip: 'adopt +1' }, wires: { req: 'PATCH ownerReferences · adopt web-d4 (app=web)' } }),
       F.top({ from: RS_X + RS_W, to: API_X, y: REQ_Y, delay: FADE.in + BEAT.afterHop, name: 'patch', lights: ['api'] }),
       F.route({ points: LANE(3), after: 'patch', name: 'join' }),
+      F.set({ at: 'join', chips: { ownChip: 'PATCH · owner set' } }),
       // The two halves of the crossing land on ONE beat, and the tap arrives with them: the owner
       // link is what the whole step bought.
       F.fade({ target: 'pod4', from: 0, to: 1, dur: LAND_MS, at: 'join', fill: 'both', easing: 'ease-out' }),
@@ -302,7 +312,7 @@ export const STEPS_SPEC = [
     // at 3002 with 200ms of its own pulse still to go, and the two read as one event.
     duration: 3900,
     narration: 'Adoption pushed the owned count to four, one past the mark. The same reconcile loop now deletes a Pod to return to exactly three. A ReplicaSet never settles above its desired count, no matter where the extra Pod came from. Picking the victim prefers pending and unschedulable Pods, then the lowest controller.kubernetes.io/pod-deletion-cost, and that ordering is best effort rather than a guarantee.',
-    chips: { selChip: 'app=web', ownChip: 'controller=true', actChip: 'delete -1' },
+    chips: { selChip: 'matchLabels app=web', ownChip: 'controller=true', actChip: 'delete -1' },
     wires: { req: 'owned count past the mark · DELETE surplus Pod' },
     ...bands([...THREE, { label: 'app=web', sub: 'surplus · deleting', opacity: 0, tap: 0 }]),
     lit: ['rs', 'actChip'],
@@ -323,28 +333,33 @@ export const STEPS_SPEC = [
     id: 'orphan',
     duration: 3700,
     narration: 'The reverse of adoption. A Pod is relabelled so it no longer matches the selector, here app=web becomes app=debug. The ReplicaSet releases it by removing its ownerReference, and it drops into the unowned band still running. That leaves the owned band short of the mark, so the same loop creates a replacement to close the gap. Labels are the binding: change them and a Pod crosses between the two bands.',
-    chips: { selChip: 'app=debug on web-c3', ownChip: 'removed · released', actChip: 'release + create' },
-    wires: { req: 'label app=debug · remove ownerReference · create replacement' },
+    chips: { selChip: 'matchLabels app=web', ownChip: 'removed · released', actChip: 'release + create' },
+    wires: { req: 'remove ownerReference · create replacement' },
     // web-e5 in the freed slot and web-c3 alive below it, which is the whole point: releasing a
     // Pod does not stop it. pod3 ends absent with its box left reading app=debug, the label that
     // put it there, and tap3 stays UP because the replacement standing in the slot owns it now.
     ...bands([OWNED, OWNED, RELEASED, EMPTY], { repl: 1, free3: OPACITY.notready }),
-    lit: ['rs', 'actChip'],
+    lit: ['rs', 'ownChip', 'actChip'],
     reducedLit: ['replBox'],
-    rewind: { opacity: { repl: 0, free3: 0 } },
+    // Relabelled but still owned until the release lands: the decision waits for the PATCH to leave.
+    rewind: {
+      opacity: { repl: 0, free3: 0 }, sublabels: { pod3Box: 'owner: rs' },
+      chips: { ownChip: 'controller=true', actChip: 'delete -1' }, wires: { req: '' },
+    },
     flow: [
-      // The relabel is done to the Pod from OUTSIDE, so it is already true at step entry and the
-      // controller reacts to what it then sees. pod3 leaves the owned band with no pulse: it is
-      // losing an owner and keeping running, and a blink there reads as a create.
-      F.fade({ target: 'pod3', from: 1, to: 0, dur: FADE.out, delay: 0, fill: 'forwards', easing: 'ease-in' }),
-      F.fade({ target: 'tap3', from: 1, to: 0, dur: FADE.out, delay: 0, fill: 'forwards', easing: 'ease-in' }),
-      F.fade({ target: 'free3', from: 0, to: OPACITY.notready, dur: FADE.in, delay: 0, fill: 'both', easing: 'ease-out' }),
-      F.top({ from: RS_X + RS_W, to: API_X, y: REQ_Y, delay: FADE.out + BEAT.afterHop, name: 'release', lights: ['api'] }),
+      // The relabel is done to the Pod from OUTSIDE, so it is true at entry and the ReplicaSet acts
+      // on it first. pod3 drops with no pulse once released: a blink there reads as a create.
+      F.set({ delay: BEAT.lead, chips: { actChip: 'release + create' }, wires: { req: 'remove ownerReference · create replacement' } }),
+      F.top({ from: RS_X + RS_W, to: API_X, y: REQ_Y, delay: BEAT.lead, name: 'release', lights: ['api'] }),
+      F.set({ at: 'release', chips: { ownChip: 'removed · released' }, sublabels: { pod3Box: 'released · no owner' } }),
+      F.fade({ target: 'pod3', from: 1, to: 0, dur: FADE.out, at: 'release', fill: 'both', easing: 'ease-in' }),
+      F.fade({ target: 'tap3', from: 1, to: 0, dur: FADE.out, at: 'release', fill: 'forwards', easing: 'ease-in' }),
+      F.fade({ target: 'free3', from: 0, to: OPACITY.notready, dur: FADE.in, at: 'release', fill: 'both', easing: 'ease-out' }),
       F.route({ points: LANE(2), after: 'release', name: 'replace' }),
       // A DIFFERENT Pod stands in the freed slot, and the tap comes back with it: the slot is a
       // position in the count, and what fills it is new.
       F.fade({ target: 'repl', from: 0, to: 1, dur: LAND_MS, at: 'replace', fill: 'both', easing: 'ease-out' }),
-      F.fade({ target: 'tap3', from: 0, to: 1, dur: LAND_MS, at: 'replace', fill: 'both', easing: 'ease-out' }),
+      F.fade({ target: 'tap3', from: 0, to: 1, dur: LAND_MS, at: 'replace', fill: 'forwards', easing: 'ease-out' }),
       F.pulse({ pod: 'repl', at: 'replace' }),
     ],
   },

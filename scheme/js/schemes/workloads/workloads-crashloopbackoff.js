@@ -160,6 +160,9 @@ export const STEPS_SPEC = [
     wires: { in: 'container exited, code 1', out: 'restart now, next wait 10s' },
     opacity: { podGroup: 1, ...shown(0) },
     lit: ['stateChip', 'restartChip', 'delayChip'],
+    // The pulse at 0 is the CRASH, so the record reads what idle left until the restart lands
+    // and all three chips turn over on it together (P-03, P-04).
+    rewind: { chips: { stateChip: 'Running', restartChip: '0', delayChip: '0s' } },
     flow: [
       // Pod blinks first (the container just crashed), the exit goes to Kubelet, and the restart
       // comes straight back: the immediate one, the 0s mark on the chart.
@@ -167,21 +170,27 @@ export const STEPS_SPEC = [
       exitReport({ delay: BEAT.afterPulse }),
       F.segment({ ...LANE_RESTART, after: 'exit', name: 'restart' }),
       F.pulse({ pod: 'podGroup', at: 'restart' }),
+      F.set({ at: 'restart', chips: { stateChip: 'Running (restarted)', restartChip: '1', delayChip: '10s · base' } }),
       grow(0, { at: 'restart' }),
     ],
   },
   {
     id: 'backoff-named',
     duration: 3000,
-    narration: 'The fresh container crashes again almost immediately. This restart is the one that waits, and each further crash doubles the delay, so 10s becomes 20s. While Kubelet holds off the restart the container state is Waiting with reason CrashLoopBackOff, which surfaces in kubectl get pods.',
+    narration: 'The fresh container crashes again almost immediately. This second restart is the one that waits 10s, and the next crash doubles the delay to 20s. While Kubelet holds off the third restart the container state is Waiting with reason CrashLoopBackOff, which surfaces in kubectl get pods.',
     chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '2', delayChip: '20s · doubled' },
     wires: { in: 'container exited again', out: 'hold restart, 20s' },
     opacity: { podGroup: OPACITY.notready, ...shown(2) },
     lit: ['restartChip', 'stateChip', 'reasonChip', 'delayChip'],
+    // Kubelet decides to hold only when the exit report lands, where the bars grow, so the four
+    // chips wait for that arrival and read what first-crash left until then.
+    rewind: { chips: { stateChip: 'Running (restarted)', reasonChip: 'none', restartChip: '1', delayChip: '10s · base' } },
     flow: [
       F.pulse({ pod: 'podGroup' }),
-      F.fade({ target: 'podGroup', from: 1, to: OPACITY.notready, dur: FADE.out, fill: 'both', easing: 'ease-in' }),
       exitReport({ delay: BEAT.afterPulse }),
+      // The Pod dims into Waiting where the chips say so, not under a state still reading Running.
+      F.fade({ target: 'podGroup', from: 1, to: OPACITY.notready, dur: FADE.out, at: 'exit', fill: 'both', easing: 'ease-in' }),
+      F.set({ at: 'exit', chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '2', delayChip: '20s · doubled' } }),
       grow(1, { at: 'exit' }),
       grow(2, { at: 'exit', plus: STAGGER }),
     ],
@@ -226,6 +235,9 @@ export const STEPS_SPEC = [
     // the crash that has not come, so it rests at pending rather than at 1.
     opacity: { podGroup: 1, ...shown(7, OPACITY.pending) },
     lit: ['reasonChip', 'stateChip', 'restartChip', 'delayChip'],
+    // The new container running is the premise, so state, reason and count stand at entry. The
+    // backoff reset is earned by the healthy report landing, where the ghost bar rises.
+    rewind: { chips: { delayChip: '300s · capped' } },
     flow: [
       // Pod recovers to full opacity first (the visible blink of a healthy run), then reports the
       // healthy status to Kubelet, which resets the backoff: the ghost bar is what the next crash
@@ -234,6 +246,7 @@ export const STEPS_SPEC = [
       F.fade({ target: 'podGroup', from: OPACITY.notready, to: 1, dur: FADE.in, fill: 'both', easing: 'ease-out' }),
       exitReport({ delay: BEAT.afterPulse }),
       F.fade({ target: BAR_KEYS[GHOST], from: AHEAD, to: OPACITY.pending, dur: FADE.in, fill: 'both', easing: 'ease-out', at: 'exit' }),
+      F.set({ at: 'exit', chips: { delayChip: '0s · reset to base' } }),
     ],
   },
 ];

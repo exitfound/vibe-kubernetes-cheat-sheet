@@ -70,8 +70,20 @@ MOTION   Every number here is read off `card-review/tools/motion.mjs` and not co
          `self-heal` is a Pod fade, a watch event IN, a create OUT, then the lane: the controller is
          dark until the watch lands because it acts on what it receives. The watch hop is what puts
          the duration at 4700.
-         `adopt` is two beats: the Pod surfaces in the unowned band at 600, the PATCH lands at 1400,
-         the claim rides to 3042 and the pulse closes at 3942, against a duration of 4400.
+         `adopt` is two beats: the Pod surfaces in the unowned band at 600, the PATCH leaves at 700
+         and lands at 1400, the claim rides to 3042 and the pulse closes at 3942, against a duration
+         of 4400.
+         EACH CHIP TURNS OVER ON THE EVENT THAT MAKES IT TRUE, in the rewind + `F.set` form, with the
+         chip in `lit` from entry and no writer swap. `reconcile` is the DECISION and the `req` wire
+         is the request carrying it, so the two turn over together, when the ReplicaSet decides: on
+         `self-heal` at the watch arrival (1500), on `adopt` as the PATCH leaves (700), on `orphan` as
+         the release leaves (800). Until then `reconcile` holds the previous step's value and the
+         wire is blank, because a wire naming a request beside a chip still naming the last decision
+         is two answers on one frame. `ownerReferences` is the FIELD, so it turns over where the
+         field changes: on `adopt` at the claim landing on the slot (3042), the same beat the Pod
+         crosses up, and on `orphan` at the release landing on the API (1500), the same beat the Pod
+         drops. Turned over at the PATCH landing on `adopt` instead, the chip says `owner set` for
+         1.6s while web-d4 still stands in the unowned band reading `owner: none`.
          `converge` lands its delete at 2342 and holds the dissolve a full BEAT.afterPulse behind
          the blink, so the fade runs 3142..3842 against a duration of 3900. Run together, as they
          were, the Pod reached 0 at 3002 with 200ms of its own pulse still to go and the blink and
@@ -89,10 +101,12 @@ MOTION   Every number here is read off `card-review/tools/motion.mjs` and not co
          create, which is the defect the adoption step on this same card is built to avoid.
          `report/pod-fade.test.mjs` carries the ruling under the key `workloads-replicaset orphan
          pod3`, which is the step id and the ref together. The relabel is done to the Pod from
-         OUTSIDE, so it is already true at step entry rather than written by an `F.set` at delay 0,
-         and the controller reacts to what it then sees. As a flow entry it changes nothing visible
-         and makes the step the only one on the card whose end state a frozen frame cannot be read
-         off, since a seek never fires an `at()` callback.
+         OUTSIDE, so `app=debug` is on the web-c3 box at step entry while the box still reads `owner:
+         rs` and its tap is still drawn: relabelled, still owned. The ReplicaSet acts on that first,
+         its release leaves at BEAT.lead, and only the release landing makes web-c3 unowned, so
+         the crossing (pod3 and tap3 out, free3 in), the box reading `released · no owner` and
+         `ownerReferences` all hang off that arrival. The `req` wire names only what the ReplicaSet
+         sends, `remove ownerReference · create replacement`: the relabel is not its request.
          tap3 comes back at the arrival while pod3 stays gone: the tap belongs to whatever owns the
          slot, and after the replacement lands that is web-e5. ADOPTION IS A CHANGE OF OWNER, NOT A
          BIRTH, and the step is two beats because of it. The Pod surfaces in the UNOWNED band first,
@@ -137,6 +151,16 @@ CONTENT  Read against k8s 1.35 and the two pages in `sources`.
          controller contract and the convergence the page describes. The counter-case is a Pod the
          API will not remove, a finalizer or a stuck terminate, and that is a statement about the
          cluster rather than about what the controller does, so it does not qualify this sentence.
+         THE `selector` CHIP SHOWS THE ReplicaSet SELECTOR AND NEVER A Pod LABEL (P-02), and it reads
+         `matchLabels app=web` on every step. `spec.selector` is a `LabelSelector`, `a label query
+         over pods that should match the replica count` (apps/v1 ReplicaSetSpec), whose equality
+         half is `matchLabels`, `a map of {key,value} pairs` (meta/v1 LabelSelector), and the page
+         shows it as `matchLabels: tier: frontend`. `app=debug on web-c3` on `orphan` is rejected:
+         it is the label of one Pod, written into the chip of a field the relabel never touches,
+         and it says the selector changed on the one step whose whole point is that the POD did.
+         The selector stands still and the released Pod box carries `app=debug`. A bare `app=web`
+         is rejected too: it is letter for letter the label drawn on every owned Pod box, so the
+         chip read as a fourth Pod label rather than as the query matching them.
          VERIFIED AND UNCHANGED: `controller: true` on the ownerReference, quoted in the page YAML.
          Garbage collection removing the Pods when the ReplicaSet goes, from the Owners and
          Dependents page. Scaling the Deployment writing spec.replicas on the ReplicaSet. The
@@ -169,12 +193,12 @@ DO NOT   Do not state `spec.replicas` or the observed count in a chip. The mark 
          composition can contradict itself, which is the failure the Instrument panel family is
          named for. THREE chips is the count, not four.
 NOT A DEFECT
-         Three rows in `report:chip-cue/R2-ENTRY` and five in the chip-beat queue, for chips
-         that state their new value at step entry with no `.highlight`. That is the CATEGORY writer
-         and not a card choice: workloads is a `chips` category throughout, where `setVal` replaces
-         the value and nothing lights, and `P-09` makes the writer inherited rather than picked.
-         Closing them means moving the category to `chipsCued`, which is not a change one card
-         makes. The queue holds 134 rows over 35 cards for the same reason. The unowned band is
+         `converge` keeps `reconcile` at entry: the ReplicaSet acts first, lit at entry, and its
+         DELETE leaves at 0ms, so `delete -1` stands at the moment of decision, which on this step
+         is entry. The three other action steps decide later and turn over later. `ownerReferences` goes from `PATCH · owner set` back to
+         `controller=true` on `converge` with no cue, because the owner was set on `adopt` and the
+         string returns from the action to the standing field: the fact did not change. Both are
+         carried in `test/fixtures/carried.mjs` with those reasons. The unowned band is
          EMPTY on five of the seven steps. It is the second zone of a two-zone composition and its
          emptiness is the statement that nothing is unowned right now, which is why it is drawn at
          0.3 stroke opacity against the owned band's 0.55 and is the faintest thing on the canvas

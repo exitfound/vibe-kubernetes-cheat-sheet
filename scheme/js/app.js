@@ -4,6 +4,8 @@ import { SCHEMES, CATEGORIES, CATEGORY_LABEL, CATEGORY_ICONS, CATEGORY_TAGLINE, 
 import { POSTERS } from './posters.js';
 import { reducedMotion, onReducedMotionChange } from './lib/motion.js';
 import { setupSidebar } from './lib/sidebar.js';
+import { setupKeysHelp, isSlash, isLetter } from './lib/keys.js';
+import { trackFresh } from './lib/fresh.js';
 import { isInspectActive, attachInspector } from './lib/inspector.js';
 
 setupSidebar();
@@ -15,9 +17,16 @@ const SPONSOR_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none
 const COPY_RESET_DELAY = 1500;
 let copyTimer;
 
+// Phones get a stub instead of the catalog (css/styles.css, "MOBILE STUB", holds the same query).
+// Here it only keeps a deep link or a hash change from opening a dialog behind that stub.
+const MOBILE_STUB = window.matchMedia('(hover: none) and (pointer: coarse) and (max-width: 600px), (hover: none) and (pointer: coarse) and (max-height: 500px)');
+
 const SPEED_KEY = 'kube-how:scheme-speed:v1';
+const STARRED_KEY = 'kube-how:scheme-starred:v1';
 const LOOP_KEY  = 'kube-how:scheme-loop:v1';
+const VIEW_KEY  = 'kube-how:scheme-view:v1';
 const ALLOWED_SPEEDS = [0.5, 1, 2];
+const ISSUES_URL = 'https://github.com/exitfound/vibe-kubernetes-cheat-sheet/issues/new';
 
 function getSavedSpeed() {
   try {
@@ -42,6 +51,31 @@ function getSavedLoop() {
 
 function setSavedLoop(v) {
   try { localStorage.setItem(LOOP_KEY, v ? '1' : '0'); } catch (_) {}
+}
+
+// The grid has two views: `full` (poster, title, description, tags) and `compact` (poster and title,
+// about twice as many cards per screen, the description as a hover tooltip). The choice is a
+// body class, so it survives every renderGrid(), and it is remembered like the speed and the loop.
+function getSavedView() {
+  try { return localStorage.getItem(VIEW_KEY) === 'compact' ? 'compact' : 'full'; } catch (_) { return 'full'; }
+}
+function setSavedView(v) {
+  try { localStorage.setItem(VIEW_KEY, v); } catch (_) {}
+}
+const isCompact = () => document.body.classList.contains('view-compact');
+
+// Starred cards, the same mechanic /cli/ keeps for commands: a Set of ids in localStorage, a star on
+// every card, and a `starred` pseudo-section in the nav that narrows the grid to them. An id a rename
+// left behind matches no card and is simply never shown.
+const starred = (() => {
+  try {
+    const raw = localStorage.getItem(STARRED_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch (_) { return new Set(); }
+})();
+
+function persistStarred() {
+  try { localStorage.setItem(STARRED_KEY, JSON.stringify([...starred])); } catch (_) {}
 }
 
 function fallbackCopy(text, callback) {
@@ -128,6 +162,11 @@ function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
       const addr = btn.closest('.dropdown-copy-row').querySelector('.dropdown-addr').dataset.addr;
       const finish = () => {
         clearTimeout(copyTimer);
+        // The clipboard holds one address, so a new copy clears the check on any other wallet.
+        container.querySelectorAll('.dropdown-copy-btn.copied').forEach(b => {
+          b.innerHTML = COPY_ICON;
+          b.classList.remove('copied');
+        });
         btn.innerHTML = CHECK_ICON;
         btn.classList.add('copied');
         copyTimer = setTimeout(() => {
@@ -176,7 +215,15 @@ const ICON = {
   loop:    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
   close:   '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   cli:     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
+  link:    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+  linkDone: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>',
   search:  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>',
+  viewFull: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><line x1="14" y1="5" x2="21" y2="5"/><line x1="14" y1="9" x2="19" y2="9"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><line x1="14" y1="16" x2="21" y2="16"/><line x1="14" y1="20" x2="19" y2="20"/></svg>',
+  viewCompact: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  star:    '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  report:  '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4.5L17 13H4"/></svg>',
+  expand:  '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>',
+  shrink:  '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>',
   searchClear: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
 };
 
@@ -212,6 +259,10 @@ for (const c of CATEGORIES) {
   FILTER_KEYS.set(c.key, { cat: c.key, sub: null });
   for (const sc of (SUBCATEGORIES[c.key] || [])) FILTER_KEYS.set(sc.key, { cat: c.key, sub: sc.key });
 }
+// The starred view is a pseudo-section: no category owns it, but it is a grid state like any other,
+// so it rides `at=` and survives a reload.
+const STARRED = 'starred';
+FILTER_KEYS.set(STARRED, { cat: STARRED, sub: null });
 
 function filterKey() {
   if (activeCat === 'all') return '';
@@ -231,12 +282,14 @@ function gridHash() {
 
 // Every write is a replaceState: the grid filter is a view, not a place, and it never fires
 // hashchange, so `apply` below cannot be re-entered by our own writes.
+// The section root shows without its trailing slash (/scheme). Any state kept in the hash goes back
+// to /scheme/#..., the form a shared link should carry. A bare /scheme reaching the server is
+// redirected to /scheme/ and lands here again. The path is always written in full: a bare '#...'
+// would resolve against /scheme and drop the slash.
 function writeHash(hash) {
-  if (hash) {
-    if (location.hash !== hash) history.replaceState(null, '', hash);
-  } else if (location.hash) {
-    history.replaceState(null, '', location.pathname + location.search);
-  }
+  const base = location.pathname.replace(/\/$/, '');
+  const target = hash ? `${base}/${location.search}${hash}` : base + location.search;
+  if (location.pathname + location.search + location.hash !== target) history.replaceState(null, '', target);
 }
 
 function schemeHash(id, stepIdx) {
@@ -292,10 +345,12 @@ function init() {
   // The browser would restore a scroll offset measured against the grid it had BEFORE the filter
   // was applied, which is a different document height and lands nowhere in particular.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  document.body.classList.toggle('view-compact', getSavedView() === 'compact');
   const parsed = parseHash();
   applyFilter(parsed.filter, { render: false });
   applySearch(parsed.q, { render: false });
   setupSearch();
+  setupSectionLinks();
   renderCatNav();
   renderSubNav();
   renderGrid();
@@ -305,6 +360,35 @@ function init() {
   setupHashRouting();
   setupGlobalKeys();
   setupScrollTop();
+  setupMobileStub();
+}
+
+// The stub's copy button hands over the current URL, deep link and all, so a reader can send the
+// card to their computer. A rotation or a resize into the stub closes an open dialog.
+function setupMobileStub() {
+  MOBILE_STUB.addEventListener('change', (e) => {
+    if (e.matches && activeDialogScheme) closeDialog({ updateHash: false });
+  });
+  const btn = document.getElementById('mobileStubCopy');
+  if (!btn) return;
+  let timer;
+  btn.addEventListener('click', () => {
+    const url = location.href;
+    const finish = () => {
+      clearTimeout(timer);
+      btn.textContent = 'Link copied';
+      btn.classList.add('copied');
+      timer = setTimeout(() => {
+        btn.textContent = 'Copy link';
+        btn.classList.remove('copied');
+      }, COPY_RESET_DELAY);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(url).then(finish).catch(() => fallbackCopy(url, finish));
+    } else {
+      fallbackCopy(url, finish);
+    }
+  });
 }
 
 function setupSearch() {
@@ -333,6 +417,13 @@ function setupSearch() {
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && document.activeElement === input) clearSearch();
+    // `/` jumps to the search field, as on /cli/. Not while typing or while a card dialog is open.
+    const typing = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+    if (isSlash(e) && !typing && !e.ctrlKey && !e.metaKey && !e.altKey && !document.querySelector('dialog[open]')) {
+      e.preventDefault();
+      input.focus();
+      input.select();
+    }
   });
 }
 
@@ -342,7 +433,23 @@ function renderCatNav() {
     const btn = `<button class="cat-btn ${c.key === activeCat ? 'active' : ''}" data-cat="${escapeHtml(c.key)}">${escapeHtml(c.label)}</button>`;
     return c.key === 'all' ? `${btn}<span class="nav-sep"></span>` : btn;
   });
+  parts.push(`<button class="cat-btn cat-starred ${activeCat === STARRED ? 'active' : ''}" data-cat="${STARRED}">Starred</button>`);
+  const compact = isCompact();
+  parts.push(`<span class="view-toggle" role="group" aria-label="Grid view">
+    <button class="view-btn${compact ? '' : ' active'}" type="button" data-view="full" title="Detailed cards" aria-label="Detailed cards" aria-pressed="${!compact}">${ICON.viewFull}</button>
+    <button class="view-btn${compact ? ' active' : ''}" type="button" data-view="compact" title="Compact cards" aria-label="Compact cards" aria-pressed="${compact}">${ICON.viewCompact}</button>
+  </span>`);
   inner.innerHTML = parts.join('');
+  inner.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.dataset.view;
+      if ((view === 'compact') === isCompact()) return;
+      document.body.classList.toggle('view-compact', view === 'compact');
+      setSavedView(view);
+      renderCatNav();
+      renderGrid();
+    });
+  });
   inner.querySelectorAll('.cat-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const next = btn.dataset.cat;
@@ -399,7 +506,9 @@ function renderSubNav() {
 
 function filteredSchemes() {
   return SCHEMES.filter(s => {
-    if (activeCat !== 'all' && s.category !== activeCat) return false;
+    if (activeCat === STARRED) {
+      if (!starred.has(s.id)) return false;
+    } else if (activeCat !== 'all' && s.category !== activeCat) return false;
     if (activeSub && s.subcategory !== activeSub) return false;
     if (searchQuery) {
       const hay = `${s.title} ${s.desc} ${s.category} ${s.subcategory || ''}`.toLowerCase();
@@ -411,19 +520,123 @@ function filteredSchemes() {
 
 function renderCard(s) {
   return `
-    <article class="card" data-id="${escapeHtml(s.id)}" data-cat="${escapeHtml(s.category)}" tabindex="0" role="button" aria-label="${escapeHtml(s.title)}">
-      <div class="card-poster">${renderPoster(s)}</div>
+    <article class="card" data-id="${escapeHtml(s.id)}" data-cat="${escapeHtml(s.category)}" tabindex="0" role="button" aria-label="${escapeHtml(s.title)}"${isCompact() ? ` title="${escapeHtml(s.desc)}"` : ''}>
+      <div class="card-poster">${renderPoster(s)}${fresh.isNew(s.id) ? '<span class="new-pill card-new" title="New since your last visit">NEW</span>' : ''}</div>
       <div class="card-body">
         <div class="card-title">${escapeHtml(s.title)}</div>
         <div class="card-desc">${escapeHtml(s.desc)}</div>
         <div class="card-meta">
           <span class="card-cat">${escapeHtml(CATEGORY_LABEL[s.category] || s.category)}</span>
           <span class="card-version">k8s ${escapeHtml(s.k8sVersion)}</span>
+          ${renderStarBtn(s.id)}
         </div>
       </div>
     </article>
   `;
 }
+
+// "New since your last visit" (lib/fresh.js). Opening a card clears it.
+const fresh = trackFresh('kube-how:scheme-seen:v1', SCHEMES.map(s => s.id));
+
+function newChip(n) {
+  return n ? `<span class="section-new" title="New since your last visit">${n} new</span>` : '';
+}
+
+function clearNew(id) {
+  if (!fresh.isNew(id)) return;
+  fresh.clear(id);
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  if (!card) return;
+  card.querySelector('.card-new')?.remove();
+  const sec = card.closest('.section');
+  sec.querySelector('.section-new')?.remove();
+  sec.querySelector('.section-count').insertAdjacentHTML('beforebegin', newChip(sec.querySelectorAll('.card-new').length));
+}
+
+function renderStarBtn(id) {
+  const on = starred.has(id);
+  return `<button class="star-btn${on ? ' starred' : ''}" type="button" title="Toggle star" aria-label="Toggle star" aria-pressed="${on}">${ICON.star}</button>`;
+}
+
+function toggleStar(id) {
+  const nowOn = !starred.has(id);
+  if (nowOn) starred.add(id); else starred.delete(id);
+  persistStarred();
+  syncDialogStar();
+  // In the starred view an unstar drops the card at once, exactly as /cli/ drops the row. An open
+  // dialog flips through that view, so its counter and arrows are recounted with it.
+  if (activeCat === STARRED) {
+    renderGrid();
+    const dlg = document.querySelector('dialog.scheme-dialog');
+    if (dlg && activeDialogScheme) updateNavUi(dlg);
+    return;
+  }
+  document.querySelectorAll(`.card[data-id="${id}"] .star-btn`).forEach(btn => {
+    btn.classList.toggle('starred', nowOn);
+    btn.setAttribute('aria-pressed', nowOn);
+  });
+}
+
+// The dialog carries its own star for the card it shows, the same state as the star on the grid.
+function syncDialogStar() {
+  const btn = document.querySelector('dialog.scheme-dialog .dialog-star');
+  if (!btn || !activeDialogScheme) return;
+  const on = starred.has(activeDialogScheme.id);
+  btn.classList.toggle('starred', on);
+  btn.setAttribute('aria-pressed', on);
+  btn.title = on ? 'Remove from Starred' : 'Add to Starred';
+}
+
+// A new GitHub issue with the card, the step and a link to that step already filled in, so a report
+// arrives pointing at the exact frame it is about.
+function reportUrl(scheme, stepLabel, stepIdx) {
+  const link = `https://kube.how/scheme/#scheme=${scheme.id}${stepIdx ? `&step=${stepIdx}` : ''}`;
+  const body = [
+    `Card: ${scheme.title} (${scheme.id})`,
+    stepLabel ? `Step: ${stepLabel}` : null,
+    `Link: ${link}`,
+    '',
+    'What is wrong:',
+    '',
+  ].filter(l => l !== null).join('\n');
+  return `${ISSUES_URL}?title=${encodeURIComponent(`[scheme] ${scheme.title}: `)}&body=${encodeURIComponent(body)}`;
+}
+
+function setReportLink(dialog, stepLabel = '', stepIdx = 0) {
+  if (!activeDialogScheme) return;
+  dialog.querySelector('.dialog-report').href = reportUrl(activeDialogScheme, stepLabel, stepIdx);
+}
+
+// Fullscreen goes on the PAGE, not on the dialog: Chrome refuses requestFullscreen() on a <dialog>
+// ("Dialog elements are invalid"). The modal stays on top of the fullscreen page, and
+// `dialog.is-fullscreen` (css/styles.css) stretches its panel to the whole screen. Flipping to the
+// next card stays fullscreen because the dialog is reused.
+function toggleFullscreen() {
+  if (!document.querySelector('dialog.scheme-dialog') || !document.fullscreenEnabled) return;
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  else document.documentElement.requestFullscreen().catch(() => {});
+}
+
+function syncFullscreenBtn() {
+  const dlg = document.querySelector('dialog.scheme-dialog');
+  if (!dlg) return;
+  const on = !!document.fullscreenElement;
+  // The fullscreen page joins the top layer ABOVE the modal that was already there, and would paint
+  // the grid over the card. Reopening the modal puts it back on top. Nothing listens for `close`,
+  // and the DOM is not moved, so the running animation is untouched.
+  if (on && dlg.open && typeof dlg.showModal === 'function') {
+    const focused = document.activeElement;
+    dlg.close();
+    dlg.showModal();
+    if (focused && dlg.contains(focused)) focused.focus();
+  }
+  dlg.classList.toggle('is-fullscreen', on);
+  const btn = dlg.querySelector('.dialog-full');
+  btn.innerHTML = on ? ICON.shrink : ICON.expand;
+  btn.title = on ? 'Exit fullscreen (F)' : 'Fullscreen (F)';
+  btn.setAttribute('aria-label', on ? 'Exit fullscreen' : 'Fullscreen');
+}
+document.addEventListener('fullscreenchange', syncFullscreenBtn);
 
 function renderSection(unit) {
   const { catKey, subKey, label, tagline, schemes } = unit;
@@ -431,12 +644,19 @@ function renderSection(unit) {
   const total = schemes.length;
   const word = total === 1 ? 'scheme' : 'schemes';
   const subAttr = subKey ? ` data-subcat="${escapeHtml(subKey)}"` : '';
+  // The `at=` key this section is reached by. The `_other` bucket is no filter of its own, so its
+  // link opens the whole category.
+  const linkKey = subKey && subKey !== '_other' ? subKey : catKey;
   return `
     <section class="section" data-cat="${escapeHtml(catKey)}"${subAttr}>
       <div class="section-header">
         <div class="section-icon">${icon}</div>
         <h2 class="section-title">${escapeHtml(label)}</h2>
         <span class="section-sub">${escapeHtml(tagline)}</span>
+        <span class="section-actions">
+          <button class="section-action section-link" type="button" data-at="${escapeHtml(linkKey)}" title="Copy link to this section" aria-label="Copy link to the ${escapeHtml(label)} section">${ICON.link}</button>
+        </span>
+        ${newChip(schemes.filter(s => fresh.isNew(s.id)).length)}
         <span class="section-count">${total} ${word}</span>
       </div>
       <div class="cards-grid">${schemes.map(renderCard).join('')}</div>
@@ -489,9 +709,43 @@ function buildUnits(list) {
   return units;
 }
 
+// The section ids double as `#at=` routes, the same as /cli/, so a copied link opens the grid
+// filtered to that section. Delegated once on #grid, which renderGrid() rewrites.
+function setupSectionLinks() {
+  document.getElementById('grid').addEventListener('click', (e) => {
+    const btn = e.target.closest('.section-link');
+    if (!btn) return;
+    const url = `${location.origin}${location.pathname.replace(/\/?$/, '/')}#at=${btn.dataset.at}`;
+    const finish = () => {
+      clearTimeout(btn._timer);
+      btn.innerHTML = ICON.linkDone;
+      btn.classList.add('copied');
+      btn._timer = setTimeout(() => {
+        btn.innerHTML = ICON.link;
+        btn.classList.remove('copied');
+      }, COPY_RESET_DELAY);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(url).then(finish).catch(() => fallbackCopy(url, finish));
+    } else {
+      fallbackCopy(url, finish);
+    }
+  });
+}
+
 function renderGrid() {
   const grid = document.getElementById('grid');
   const list = filteredSchemes();
+  if (list.length === 0 && activeCat === STARRED && !searchQuery) {
+    grid.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">${ICON.star}</div>
+        <div class="empty-title">No starred schemes yet.</div>
+        <div class="empty-desc">Click the star on a card to save it here.</div>
+      </div>
+    `;
+    return;
+  }
   if (list.length === 0) {
     grid.innerHTML = `
       <div class="empty">
@@ -504,8 +758,16 @@ function renderGrid() {
   const units = buildUnits(list);
   grid.innerHTML = units.map(renderSection).join('');
   grid.querySelectorAll('.card').forEach(card => {
-    card.addEventListener('click', () => openScheme(card.dataset.id));
+    card.addEventListener('click', (e) => {
+      // The star sits inside the card, so its click must not also open the dialog.
+      if (e.target.closest('.star-btn')) {
+        toggleStar(card.dataset.id);
+        return;
+      }
+      openScheme(card.dataset.id);
+    });
     card.addEventListener('keydown', (e) => {
+      if (e.target !== card) return;
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         openScheme(card.dataset.id);
@@ -552,30 +814,41 @@ function renderPoster(scheme) {
 
 // The dialog lifecycle, and why a card module is lazy-imported: 108 modules are never all in
 // memory. A live controller is torn down first, or its animations land on the next dialog's canvas.
-async function openScheme(id, initialStep = null) {
+// An open dialog is REUSED for the next card rather than closed and rebuilt: the shell, the backdrop
+// and the inspector stay, only the card-specific parts are rewritten, so flipping between cards
+// never flashes the page behind.
+async function openScheme(id, initialStep = null, { dir = 0 } = {}) {
   const scheme = SCHEMES.find(s => s.id === id);
-  if (!scheme) return;
-  if (activeController || activeDialogScheme || document.querySelector('dialog.scheme-dialog')) {
-    closeDialog({ updateHash: false });
-  }
-  const dialog = buildDialog(scheme);
-  document.body.appendChild(dialog);
-  if (typeof dialog.showModal === 'function') {
-    dialog.showModal();
+  if (!scheme || MOBILE_STUB.matches) return;
+  let dialog = document.querySelector('dialog.scheme-dialog');
+  if (dialog) {
+    teardownController();
   } else {
-    dialog.setAttribute('open', '');
+    dialog = buildDialog();
+    document.body.appendChild(dialog);
+    if (typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    } else {
+      dialog.setAttribute('open', '');
+    }
+    if (isInspectActive()) {
+      dialog._inspectCleanup = attachInspector(dialog);
+    }
   }
-  if (isInspectActive()) {
-    dialog._inspectCleanup = attachInspector(dialog);
-  }
+  fillDialog(dialog, scheme);
   activeDialogScheme = scheme;
+  clearNew(id);
+  updateNavUi(dialog);
+  syncDialogStar();
+  setReportLink(dialog);
+  syncFullscreenBtn();
   writeHash(schemeHash(id, initialStep));
 
   let mod;
   try {
     // A card lives at js/schemes/<category>/<id>.js and its id starts with its category, so the path
     // is DERIVED rather than stored. R-modulepath holds both halves of that convention.
-    mod = await import(`./schemes/${scheme.category}/${scheme.id}.js`);
+    mod = await import(schemeModulePath(scheme));
   } catch (e) {
     console.error('Failed to load scheme:', e);
     showLoadError(dialog);
@@ -600,6 +873,7 @@ async function openScheme(id, initialStep = null) {
     window.__schemeCtl = ctrl;
     window.__schemeId = scheme.id;
   }
+  if (dir) slideIn(root, dir);
 
   ctrl.setSpeed(getSavedSpeed());
   ctrl.setLoop(getSavedLoop());
@@ -619,34 +893,138 @@ async function openScheme(id, initialStep = null) {
       }
     }
   }
+  prefetchNeighbours();
 }
 
-function buildDialog(scheme) {
+function schemeModulePath(scheme) {
+  return `./schemes/${scheme.category}/${scheme.id}.js`;
+}
+
+function teardownController() {
+  if (activeController) {
+    try { activeController.destroy(); } catch (_) {}
+    activeController = null;
+  }
+  if (window.__schemeCtl) { try { delete window.__schemeCtl; } catch (_) { window.__schemeCtl = null; } }
+}
+
+// ── Flipping between cards ────────────────────────────────────
+// The order is the grid the reader came from: a section, a search or the starred view flips inside
+// itself. A card opened from outside that view (a deep link, a stale filter) flips through the
+// whole catalog instead, so the arrows never strand it. Both ends wrap.
+function navList() {
+  const view = buildUnits(filteredSchemes()).flatMap(u => u.schemes);
+  if (activeDialogScheme && view.some(s => s.id === activeDialogScheme.id)) return view;
+  return buildUnits(SCHEMES).flatMap(u => u.schemes);
+}
+
+function neighbour(list, dir) {
+  const i = list.findIndex(s => s.id === activeDialogScheme.id);
+  return list[(i + dir + list.length) % list.length];
+}
+
+function navigateScheme(dir) {
+  if (!activeDialogScheme) return;
+  const list = navList();
+  if (list.length < 2) return;
+  pressNavBtn(dir);
+  openScheme(neighbour(list, dir).id, null, { dir });
+}
+
+function updateNavUi(dialog) {
+  const list = navList();
+  const i = list.findIndex(s => s.id === activeDialogScheme.id);
+  const pos = dialog.querySelector('.dialog-pos');
+  pos.textContent = `${i + 1} / ${list.length}`;
+  const multi = list.length > 1;
+  dialog.querySelectorAll('.dialog-nav').forEach(btn => {
+    btn.hidden = !multi;
+    if (!multi) return;
+    const dir = Number(btn.dataset.nav);
+    const name = dir < 0 ? 'Previous' : 'Next';
+    const t = neighbour(list, dir).title;
+    btn.title = `${name}: ${t} (Shift+${dir < 0 ? '←' : '→'})`;
+    btn.setAttribute('aria-label', `${name} scheme: ${t}`);
+  });
+}
+
+// A keyboard flip lights the arrow it stands for, so the reader sees which way the catalog moved.
+function pressNavBtn(dir) {
+  const btn = document.querySelector(`dialog.scheme-dialog .dialog-nav[data-nav="${dir}"]`);
+  if (!btn) return;
+  btn.classList.remove('pressed');
+  void btn.offsetWidth;
+  btn.classList.add('pressed');
+  clearTimeout(btn._pressTimer);
+  btn._pressTimer = setTimeout(() => btn.classList.remove('pressed'), 180);
+}
+
+function slideIn(el, dir) {
+  if (reducedMotion()) return;
+  el.classList.remove('slide-next', 'slide-prev');
+  void el.offsetWidth;
+  el.classList.add(dir > 0 ? 'slide-next' : 'slide-prev');
+  el.addEventListener('animationend', () => el.classList.remove('slide-next', 'slide-prev'), { once: true });
+}
+
+// The two neighbours are fetched while the reader is still on this card, so a flip waits on
+// nothing but the card's own init.
+function prefetchNeighbours() {
+  const list = navList();
+  if (list.length < 2) return;
+  const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 300));
+  idle(() => {
+    if (!activeDialogScheme) return;
+    for (const dir of [1, -1]) import(schemeModulePath(neighbour(list, dir))).catch(() => {});
+  });
+}
+
+// A horizontal swipe on the stage flips, touch only: a mouse drag is a text selection, not a turn.
+function setupSwipe(dialog) {
+  const stage = dialog.querySelector('.dialog-stage');
+  let start = null;
+  stage.addEventListener('pointerdown', (e) => {
+    start = e.pointerType === 'touch' ? { x: e.clientX, y: e.clientY } : null;
+  });
+  stage.addEventListener('pointercancel', () => { start = null; });
+  stage.addEventListener('pointerup', (e) => {
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    start = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    navigateScheme(dx < 0 ? 1 : -1);
+  });
+}
+
+const NAV_ICON = {
+  prev: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>',
+  next: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>',
+};
+
+// The shell: everything that is the same for every card. The <dialog> itself covers the viewport
+// and is transparent, so the two flip arrows can sit in the gutters beside the panel and still be
+// clickable (a modal leaves everything outside the dialog inert). `.dialog-inner` is the panel.
+function buildDialog() {
   const dlg = document.createElement('dialog');
   dlg.className = 'scheme-dialog';
-  dlg.setAttribute('data-cat', scheme.category);
-  dlg.setAttribute('data-scheme', scheme.id);
-  if (scheme.tinted) dlg.setAttribute('data-tinted', 'true');
   dlg.setAttribute('aria-labelledby', 'dialogTitle');
-  // Every source, not just the first: 70 cards carry 2 and 10 carry 3 or 4, so rendering
-  // sources[0] alone put 91 of the 194 gathered links out of reach of the interface.
-  const srcs = scheme.sources || [];
-  const sourceLink = srcs.length
-    ? `<span class="ctl-source">${srcs.length > 1 ? 'Sources' : 'Source'}: ` +
-      srcs.map(s => `<a href="${escapeHtml(s.href)}" target="_blank" rel="noopener">${escapeHtml(s.label)}</a>`).join('<span class="ctl-source-sep">·</span>') +
-      '</span>'
-    : '';
   const initialLoop  = getSavedLoop();
   const initialSpeed = getSavedSpeed();
   const speedActive = (v) => initialSpeed === v ? ' class="active"' : '';
   dlg.innerHTML = `
+    <button class="dialog-nav dialog-nav-prev" data-nav="-1" type="button">${NAV_ICON.prev}</button>
     <div class="dialog-inner">
       <header class="dialog-header">
-        <h2 id="dialogTitle" class="dialog-title">${escapeHtml(scheme.title)}</h2>
+        <h2 id="dialogTitle" class="dialog-title"></h2>
         <div class="dialog-meta">
-          <span class="card-cat">${escapeHtml(CATEGORY_LABEL[scheme.category] || scheme.category)}</span>
-          <span>k8s ${escapeHtml(scheme.k8sVersion)}</span>
+          <span class="card-cat"></span>
+          <span class="dialog-section"></span>
         </div>
+        <span class="dialog-pos" title="Position in the current view"></span>
+        <button class="dialog-tool dialog-star" type="button" aria-label="Star this card" aria-pressed="false">${ICON.star}</button>
+        <a class="dialog-tool dialog-report" href="${ISSUES_URL}" target="_blank" rel="noopener" title="Report a problem with this card" aria-label="Report a problem with this card">${ICON.report}</a>
+        <button class="dialog-tool dialog-full" type="button" title="Fullscreen (F)" aria-label="Fullscreen"${document.fullscreenEnabled ? '' : ' hidden'}>${ICON.expand}</button>
         <button class="dialog-close" aria-label="Close">${ICON.close}</button>
       </header>
       <div class="dialog-body">
@@ -673,13 +1051,22 @@ function buildDialog(scheme) {
           <button data-speed="2"${speedActive(2)}>2×</button>
         </div>
         <span class="ctl-spacer"></span>
-        ${sourceLink}
+        <span class="ctl-source"></span>
       </div>
     </div>
+    <button class="dialog-nav dialog-nav-next" data-nav="1" type="button">${NAV_ICON.next}</button>
   `;
 
   dlg.querySelector('.dialog-close').addEventListener('click', () => closeDialog());
+  dlg.querySelector('.dialog-star').addEventListener('click', () => {
+    if (activeDialogScheme) toggleStar(activeDialogScheme.id);
+  });
+  dlg.querySelector('.dialog-full').addEventListener('click', toggleFullscreen);
   dlg.addEventListener('cancel', (e) => { e.preventDefault(); closeDialog(); });
+  dlg.querySelectorAll('.dialog-nav').forEach(btn => {
+    btn.addEventListener('click', () => navigateScheme(Number(btn.dataset.nav)));
+  });
+  setupSwipe(dlg);
 
   dlg.querySelectorAll('.ctl-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -713,6 +1100,38 @@ function buildDialog(scheme) {
   return dlg;
 }
 
+// Everything that belongs to ONE card, written on open and again on every flip, so a field left
+// out here would carry the previous card's value into the next.
+function fillDialog(dlg, scheme) {
+  dlg.setAttribute('data-cat', scheme.category);
+  dlg.setAttribute('data-scheme', scheme.id);
+  if (scheme.tinted) dlg.setAttribute('data-tinted', 'true');
+  else dlg.removeAttribute('data-tinted');
+  dlg.querySelector('.dialog-title').textContent = scheme.title;
+  dlg.querySelector('.dialog-meta .card-cat').textContent = CATEGORY_LABEL[scheme.category] || scheme.category;
+  const sub = (SUBCATEGORIES[scheme.category] || []).find(sc => sc.key === scheme.subcategory);
+  const section = dlg.querySelector('.dialog-section');
+  section.textContent = sub ? sub.label : '';
+  section.hidden = !sub;
+  // Every source, not just the first: 70 cards carry 2 and 10 carry 3 or 4, so rendering
+  // sources[0] alone put 91 of the 194 gathered links out of reach of the interface.
+  const srcs = scheme.sources || [];
+  const source = dlg.querySelector('.ctl-source');
+  source.innerHTML = srcs.length
+    ? `${srcs.length > 1 ? 'Sources' : 'Source'}: ` +
+      srcs.map(s => `<a href="${escapeHtml(s.href)}" target="_blank" rel="noopener">${escapeHtml(s.label)}</a>`).join('<span class="ctl-source-sep">·</span>')
+    : '';
+  source.hidden = !srcs.length;
+  // The player resets to the state a fresh dialog opens in, so nothing of the last card's run
+  // (its step count, its progress, its narration) shows over the next card while it loads.
+  dlg.querySelector('.narration-overlay').classList.add('is-poster');
+  dlg.querySelector('.narration-step').textContent = '';
+  dlg.querySelector('.narration-text').textContent = '';
+  dlg.querySelector('.dialog-progress-fill').style.width = '0%';
+  dlg.querySelector('.dialog-step-dots').innerHTML = '';
+  updatePlayBtn(dlg, false);
+}
+
 function updateNarration(dialog, idx, step, total, meta) {
   const overlay = dialog.querySelector('.narration-overlay');
   const stepEl = dialog.querySelector('.narration-step');
@@ -742,6 +1161,8 @@ function updateNarration(dialog, idx, step, total, meta) {
     stepEl.textContent = `Step ${displayStep}${displayTot ? ' / ' + displayTot : ''}`;
     textEl.textContent = narration;
   }
+
+  setReportLink(dialog, (step || onPoster) && displayTot ? `${displayStep} / ${displayTot}` : '', idx);
 
   prevBtn.disabled = idx <= 0;
   // With a poster, Next wraps the last step back to the poster, so it is never disabled.
@@ -789,13 +1210,10 @@ function showLoadError(dialog) {
 
 function closeDialog({ updateHash = true } = {}) {
   const dlg = document.querySelector('dialog.scheme-dialog');
-  if (activeController) {
-    try { activeController.destroy(); } catch (_) {}
-    activeController = null;
-  }
-  if (window.__schemeCtl) { try { delete window.__schemeCtl; } catch (_) { window.__schemeCtl = null; } }
+  teardownController();
   activeDialogScheme = null;
   if (dlg) {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     if (typeof dlg._inspectCleanup === 'function') {
       try { dlg._inspectCleanup(); } catch (_) {}
     }
@@ -896,10 +1314,42 @@ function setupScrollTop() {
   btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 }
 
+const keysHelp = setupKeysHelp([
+  { title: 'Catalog', rows: [
+    { keys: [['/']], desc: 'Focus search' },
+    { keys: [['Esc']], desc: 'Clear search' },
+    { keys: [['Enter']], desc: 'Open the focused card' },
+    { keys: [['?']], desc: 'Show this list' },
+  ] },
+  { title: 'Inside a card', rows: [
+    { keys: [['Space']], desc: 'Play or pause' },
+    { keys: [['←'], ['→']], desc: 'Previous or next step' },
+    { keys: [['Shift', '←'], ['Shift', '→']], desc: 'Previous or next card' },
+    { keys: [['R']], desc: 'Restart' },
+    { keys: [['L']], desc: 'Loop on or off' },
+    { keys: [['F']], desc: 'Fullscreen' },
+    { keys: [['Esc']], desc: 'Close' },
+  ] },
+]);
+
 function setupGlobalKeys() {
   document.addEventListener('keydown', (e) => {
-    if (!activeController) return;
     if (e.target && /^(input|textarea|select)$/i.test(e.target.tagName)) return;
+    if (keysHelp.isOpen()) return;
+    if (activeDialogScheme && isLetter(e, 'f') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      toggleFullscreen();
+      return;
+    }
+    // Shift+arrows flip to the neighbouring card, plain arrows step inside this one. A flip is
+    // keyed off the open card rather than its controller, so presses landing while the next module
+    // is still loading are not dropped.
+    if (activeDialogScheme && e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault();
+      navigateScheme(e.key === 'ArrowLeft' ? -1 : 1);
+      return;
+    }
+    if (!activeController) return;
     if (e.key === ' ' || e.code === 'Space') {
       e.preventDefault();
       if (activeController.isPlaying && activeController.isPlaying()) activeController.pause();
@@ -910,10 +1360,10 @@ function setupGlobalKeys() {
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
       activeController.step('next');
-    } else if (e.key === 'r' || e.key === 'R') {
+    } else if (isLetter(e, 'r') && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
       activeController.restart();
-    } else if (e.key === 'l' || e.key === 'L') {
+    } else if (isLetter(e, 'l') && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
       const next = !(activeController.isLooping && activeController.isLooping());
       activeController.setLoop(next);

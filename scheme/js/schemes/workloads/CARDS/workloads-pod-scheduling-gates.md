@@ -143,6 +143,13 @@ MOTION   Six beats, every one of them carrying a packet.
          THE CHIP THAT MOVED IS CUED IN THE STEP IT MOVES: workloads is bound to `chips` and not
          `chipsCued` (P-09), so the cue is a name in `lit` rather than an automatic one, on
          gatesChip for steps 3 and 5 and on metricChip for step 6.
+         ON STEPS 3 AND 5 THE COUNT TURNS OVER WHEN THE WRITE LANDS ON THE ENTRY, at 1500, in the
+         same `F.set` that cues the entry, and the entry's own sublabel turns over with it: the
+         PATCH is what removes the entry, so `2 entries` / `holds the Pod` stand until it lands and
+         `1 entry` / `removed from the list` from then on (`empty` on step 5). `rewind` holds the
+         previous values and gatesChip is lit from entry, so no writer is swapped. Turned over at
+         entry, the count read one entry fewer for 1500ms while the ball that removes it was still
+         travelling and the gate still stood at full strength.
 CONTENT  Claims read against the k8sVersion the catalog entry states, 1.35.
          THE LAST STEP CLEARS NEITHER READING, and this is the one counter-intuitive fact on the
          card. `queued` keeps STATUS `SchedulingGated` and PodScheduled `False · SchedulingGated`,
@@ -245,20 +252,10 @@ OPEN     THE BAND BETWEEN THE WRITER AND THE FLOOR CARRIES THE TWO DROPS AND NOT
          What the wide viewport adds to it is the house constraint scheme/CLAUDE.md states rather
          than a fault of this card: the Pod reaches x=60, so the geometry is pinned to the deepest
          panel and the hundred-odd units the panel vacates at 1600x1000 stand empty.
-         THREE CHIP READINGS STAND ON SCREEN BEFORE THE BALL THAT PRODUCES THEM LANDS, at 700ms on
-         the two removal steps and at 1500ms on the last, which is the FORM-B queue
-         `report/chip-beat.test.mjs` prints. They stay on it. The shape that closes a FORM-B row is
-         a `rewind` plus an `F.set` bound to the arrival, and here that trade runs the wrong way:
-         the metric is the ONE reading step 6 turns over and it IS the answer its narration gives,
-         so winding it back would count the Pod under queue gated for the opening beat of a step
-         whose panel has just said it joined the active queue. On the two removal steps the value
-         and its cue arrive together at entry, which is the shape `P-06` puts inside the rules, and
-         the same file carries a ruling on `cluster-etcd-raft` saying the rewind is bought at the
-         price of a defect a viewer can actually see.
-         THE GATE SUBLABEL TURNS OVER AT ENTRY TOO, and on the same argument. On steps 3 and 5 the
-         gate reads `removed from the list` for the 700ms before the write lands on it, while the
-         box is still at full strength, so the sublabel and the chip say the same thing at the same
-         moment and the fade is the one cue that arrives late. Splitting them would put the panel
-         and the picture out of step for the opening beat, which is the trade the chip ruling above
-         already refuses.
+         THE METRIC STANDS ON SCREEN 1500ms BEFORE THE BALL OF STEP 6 LANDS, which is the one FORM-B
+         row `report/chip-beat.test.mjs` prints for this card, carried in `test/fixtures/carried.mjs`.
+         The metric is the ONE reading step 6 turns over and it IS the answer its narration gives at
+         entry, the enqueue following from step 5 emptying the list, and the ball draws the Pod
+         reaching the queue rather than moving the count. Winding it back would count the Pod under
+         queue gated for the opening beat of a step whose panel has just said it joined active.
 ```

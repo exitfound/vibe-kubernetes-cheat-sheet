@@ -2,11 +2,11 @@
 
 Guidance for the commands sub-app. The root `../CLAUDE.md` has the repo overview, Running/Deployment, and the **shared chrome** (left sidebar switcher, chrome parity / `alignLogo`, first-paint flash handling) that this page inherits. This file covers only what is specific to `/cli/`.
 
-The original single-page app, moved wholesale into `cli/`. Self-contained: `cli/index.html`, `cli/css/styles.css`, `cli/js/{app,data,contacts}.js`, `cli/js/lib/sidebar.js`. No framework, no bundler. The only runtime dependency is Google Fonts.
+The original single-page app, moved wholesale into `cli/`. Self-contained: `cli/index.html`, `cli/css/styles.css`, `cli/js/{app,data,contacts}.js`, `cli/js/lib/{sidebar,keys,fresh}.js`. No framework, no bundler. The only runtime dependency is Google Fonts.
 
 ## Architecture
 
-**`js/data.js`**: all content: `SECTIONS` array, `ICONS` object, `COPY_ICON`/`CHECK_ICON`/`STAR_ICON`/`CONTACT_ICON`/`SPONSOR_ICON` SVGs.
+**`js/data.js`**: all content: `SECTIONS` array, `ICONS` object, `COPY_ICON`/`CHECK_ICON`/`STAR_ICON`/`LINK_ICON`/`DOCS_ICON`/`CONTACT_ICON`/`SPONSOR_ICON` SVGs.
 
 **`js/contacts.js`**: optional file. Exports `CONTACTS`, `SPONSOR`, and `GITHUB` config objects, dynamically imported by `app.js` at runtime; if absent the header renders without those buttons and everything else works. Delete it to ship without GitHub/Contacts/Sponsor. Structure:
 ```js
@@ -21,7 +21,7 @@ The three header buttons are ghost-style: GitHub is a plain `<a>`, Contacts and 
 - `CATEGORIES` maps category keys (`installation`, `cluster`, `workloads`, `helm`, `kustomize`, `k9s`, `troubleshooting-kubernetes`, `troubleshooting-tools`) to section ID arrays. Order inside a category array = order in the sub-nav.
 - `GROUP_LABELS` / `CATEGORY_LABELS` provide display names; helpers `groupOfCategory(cat)` and `categoryOfSection(id)` do reverse lookups.
 - `SUB_LABELS` is auto-derived from `SECTIONS`, no manual maintenance.
-- `hl()` tokenizes commands into highlighted HTML spans (HTML-escaped, XSS-safe).
+- `hl()` tokenizes commands into highlighted HTML spans (HTML-escaped, XSS-safe). A flag (any token starting with `-`) or a token of 30 characters or fewer is wrapped whole in an unbreakable inline-block `.tok`, so a line never breaks inside `--token` or `$(id -u)`. A longer token (a URL, a path) stays inline with a `<wbr>` after every `/`, because the browser offers no break after a slash on its own, and `.cmd-code` carries `overflow-wrap: anywhere` for the rare token wider than the line. `applyMark()` matches inside one text node and a `<wbr>` splits the node, so a search whose query contains `/` re-renders with `hl(raw, { slashBreaks: false })`. `word-break: break-all` was removed: it cut words mid-letter (`kubernet|es.io`).
 - `sortCmds()` sorts commands by subcommand, then flag count, then full string.
 - All content renders into `<main id="main">` on `init()`; copy and star clicks handled by event delegation on `main` (star wins over copy when both are clicked).
 - Search input is debounced (~80ms) and re-runs `hl()` plus `<mark>` highlighting on each keystroke.
@@ -41,7 +41,7 @@ Each row is sticky and presents as one continuous block with no visible 1px bord
 
 **URL hash routing.** `applyGroup`/`applyCategory`/`applySub` write to `history.replaceState`. `restoreFromHash()` resolves any `#hash` to its level (group/category/section IDs are all unique). Deep links like `/cli/#pod`, `/cli/#workloads`, `/cli/#kubernetes`, `/cli/#starred` all work and auto-select parent levels.
 
-**Keyboard.** `Esc` clears the search field. No other bindings.
+**Keyboard.** `/` focuses the search field and selects its text (skipped while typing in a field or with Ctrl/Cmd/Alt held). `Esc` clears the search field. `?` opens the keyboard-shortcuts sheet (`js/lib/keys.js`, see the root `CLAUDE.md`), and while it is open the page ignores its other keys. `/` and `?` go through `isSlash` / `isQuestion`, so they work on a Russian layout too. The search field shows a `/` hint (`.search-kbd`) while it is empty and unfocused.
 
 ## Starred commands
 
@@ -49,11 +49,15 @@ A 4th top-row button **Starred** (rightmost) hosts a favourites view. Each comma
 
 Starred mode is a **filter, not a separate render path**. `applyGroup('starred')` adds `body.starred-mode`, hides nav-mid/nav-sub, and `applySearch()` ANDs in a `starred.has(rawCmd)` predicate. Existing card-empty / section-empty roll-up then collapses what becomes empty for free. Search still works inside Starred mode. `#starred` deep-links work because `starred: []` is in `GROUPS` and `'Starred'` in `GROUP_LABELS`; `sectionInScope` short-circuits to `true` for `activeGroup === 'starred'`.
 
+**New commands.** A command this browser had not seen on its previous visit carries `.cmd-item.is-new`, drawn as a `NEW` pill after the description by `.cmd-desc::after` (a pseudo-element, so `applySearch()` resetting the description text cannot wipe it). The section header gets an `N new` chip at the start of `.section-meta`. Copying a command clears it everywhere it appears and recounts the chips (`clearNew()`). The rule itself lives in `js/lib/fresh.js`, see the root `CLAUDE.md`.
+
 Identity key is the **raw command string**. Commands that appear in two sections toggle in lockstep: `toggleStar()` updates every `.cmd-item[data-raw="..."]` in the DOM (selector built via `escapeAttr()`). The active Starred top-btn stays lavender. The cyan `--starred-color` is reserved for the inline star icon: gray hollow by default, cyan filled + glow when starred. On touch screens `.star-btn` enlarges to 44x44 and `.cmd-item` padding-right grows to match. Empty state: `#emptyState` swaps to a star-icon variant ("No starred commands yet...") in Starred mode, and is reused for "No results for ..." otherwise.
 
 ## Section count badge
 
 Each `.section-header` carries a right-aligned `.section-count` chip showing `N commands` (`N command` for n=1), computed in `renderSection()` by summing `g.cmds.length`. Rectangular, JetBrains Mono 13px @ 600, colored by the section's category tokens (lavender fallback). It shows the section total, not the visible-after-filter count, so it does not react to search or Starred mode.
+
+The count sits in a `.section-meta` wrapper (which carries the `margin-left: auto`) together with `.section-version`, the quiet `version` label from the section data, in `--text-dim` mono 12px like the `k8s` label on scheme cards. Beside the title, `.section-actions` holds up to three icon buttons, ALWAYS visible in `--text-muted` (they were once revealed on hover only, and readers never found them): `.section-link` copies `<origin>/cli/#<section-id>` and shows the shared toast, a book icon opens the section's `docs` URL in a new tab, and a flag icon opens a new GitHub issue prefilled by `reportUrl(section)` (title `[cli] <section>: `, a body naming the section, its link, and empty `Command:` / `What is wrong:` lines). At <=680px `.section-header` wraps, so a long title with its actions drops the version and count to a second, right-aligned line instead of clipping them.
 
 ## Sections
 
@@ -101,7 +105,9 @@ Array order in `SECTIONS` = display order in "All" view: Installation, Cluster, 
 
 **Adding commands:** edit only `SECTIONS` in `js/data.js`. Each group has `cmds: [{ cmd, desc }]`. Every group needs a `desc`. Commands sort automatically.
 
-**Adding a section to an existing category:** add it to `SECTIONS` (with `sub` matching the category label) at the right position, then add its ID to the right `CATEGORIES.<category>` array in `js/app.js`.
+**Adding a section to an existing category:** add it to `SECTIONS` (with `sub` matching the category label) at the right position, then add its ID to the right `CATEGORIES.<category>` array in `js/app.js`. Give it a `version` (the tool and release its commands were checked against, e.g. `'k8s 1.35'`, `'Helm 4.3'`) and a `docs` URL (the official page for the section, opened from the header's book icon). Both are optional in code, a section without them just renders without the label or the icon, so nothing fails when one is forgotten.
+
+**Changing a command string:** a saved star is keyed on the raw string, so a rewritten command loses its star silently. Add the old string to `STAR_RENAMES` in `js/app.js`, mapped to the new one, and the star follows it on the next load. A deleted command needs no entry.
 
 **Adding a new category to an existing group:**
 1. Add sections to `SECTIONS` in `js/data.js`.
@@ -130,7 +136,7 @@ On touch (`@media (hover: none)`), `top-btn`/`cat-btn`/`sec-btn` get tighter min
 
 **No em-dashes** anywhere in user-visible text. Rephrase instead.
 
-**Duplicate commands:** troubleshooting sections take priority. Remove duplicates from main sections, keep in troubleshooting. Exceptions: `kubectl describe pod` stays in Pods; `kubectl get all -n` stays in Namespaces; `kubectl api-resources` and `kubectl explain` exist in both `cluster-health` (discovery framing) and `troubleshooting-cluster` (debug framing) on purpose; `kubectl debug -it <pod> --image=nicolaka/netshoot --target=<container>` exists in both `troubleshooting-cluster` and `troubleshooting-network`; `helm history` and `helm status` live only in `troubleshooting-helm`.
+**Duplicate commands:** troubleshooting sections take priority. Remove duplicates from main sections, keep in troubleshooting. Exceptions: `kubectl describe pod` stays in Pods; `kubectl get all -n` stays in Namespaces; `kubectl api-resources` and `kubectl explain` exist in both `cluster-health` (discovery framing) and `troubleshooting-cluster` (debug framing) on purpose; `kubectl debug -it <pod> --image=nicolaka/netshoot --target=<container> --profile=general` exists in both `troubleshooting-cluster` and `troubleshooting-network`; `helm history` and `helm status` live only in `troubleshooting-helm`.
 
 **Troubleshooting philosophy.** Cards must be genuinely diagnostic, not duplicates of `get`/`describe`. Prefer `exec`-based checks, unique flags (`--previous`, jsonpath for `lastState`/`restartCount`), debug tools (`kubectl debug`, `nicolaka/netshoot`), and cluster-wide one-liners (events by time, pods by restart count).
 

@@ -28,8 +28,8 @@ const REPORT_UP = [...FORK_R].reverse();
 const WIRE_FORK_X = WL.SPINE_X + 12, WIRE_FORK_Y = midX(WL.TOP_BOTTOM, BUS_Y) + 4;   // 612 / 214
 
 // Left zone: the two control-plane blocks stacked on the tap, then the chip column under them.
-// Below the panel bottom the whole column is legal (L-03), and 232 is the actor width.
-const LZ_W = 232, LZ_X = LZ_CX - LZ_W / 2;               // 184..416
+// Below the panel bottom the whole column is legal (L-03). 360 pulls the content onto CX (L-13).
+const LZ_W = 360, LZ_X = LZ_CX - LZ_W / 2;               // 120..480
 const LZ_H = 60;
 const CTRL_Y = ZONE_Y;                                   // 330..390
 // kube-proxy is centred on the frame's own centre line, so the traffic lane meets the frame on its
@@ -39,8 +39,8 @@ const NODE_CY = NODE_Y + NODE_H / 2;                     // 464
 const KP_Y = NODE_CY - LZ_H / 2;                         // 434..494
 const LINK = [[LZ_CX, CTRL_Y + LZ_H], [LZ_CX, KP_Y]];    // 44 units, the slice reaching kube-proxy
 const WIRE_LINK_X = LZ_CX + 12, WIRE_LINK_Y = midX(CTRL_Y + LZ_H, KP_Y) + 4;   // 312 / 416
-const TRAFFIC = [[LZ_X + LZ_W, NODE_CY], [WL.COL_R.x, NODE_CY]];   // 416..660 on 464
-const WIRE_TRAFFIC_X = midX(LZ_X + LZ_W, WL.COL_R.x), WIRE_TRAFFIC_Y = NODE_CY - 12;   // 538 / 452
+const TRAFFIC = [[LZ_X + LZ_W, NODE_CY], [WL.COL_R.x, NODE_CY]];   // 480..660 on 464
+const WIRE_TRAFFIC_X = midX(LZ_X + LZ_W, WL.COL_R.x), WIRE_TRAFFIC_Y = NODE_CY - 12;   // 570 / 452
 const CHIP_X = WL.COL_L.x, CHIP_W = WL.COL_L.w;          // 60..540
 const CHIPS_TOP = KP_Y + LZ_H + 16;                      // 510
 const CHIP_Y = ladder({ y: CHIPS_TOP, rowH: WL.CHIP_H, gap: 8 });   // 510 / 552

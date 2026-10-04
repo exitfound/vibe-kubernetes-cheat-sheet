@@ -5,7 +5,7 @@ import { P, F, defineCard, WL, OPACITY, BEAT } from './workloads-kit.js';
 // NO ladder, NO Node frame, and no actor row on TOP_Y: the phase machine is DRAWN as a machine over
 // the container register, and both bands are measured off ONE strip so they line up by construction.
 // Panel measured at x<=397, y<=279.51, the worst of the three viewports report/overlay.test.mjs
-// walks: the register band clears it on Y. The machine does NOT clear it on X (the record says why).
+// walks. The machine starts under it on X, so the row is dropped until Pending clears it on Y.
 
 // The strip is the DATUM of the whole card: geometry-soft holds a chip strip on CX to +-6, and the
 // Kubelet, the Pod, the chips and the machine all live inside it, so everything centres on CX.
@@ -18,7 +18,7 @@ const STRIP_R = STRIP_X + STRIP_W;
 const MACH_INSET = 20;
 const MACH_L = STRIP_X + MACH_INSET, MACH_R = STRIP_R - MACH_INSET;   // 176..1024
 const ST_H = 58;                                         // every state box but Running
-const ROW_CY = 205;                                      // the machine centre line, its one datum
+const ROW_CY = 313;                                      // Pending top 284, clear of the 279.51 panel
 
 const PEND_X = MACH_L, PEND_W = 190;                     // 176..366
 const PEND_Y = ROW_CY - ST_H / 2;                        // 176..234
@@ -26,27 +26,27 @@ const EDGE_RUN_GAP = 100;                                // the one drawn edge w
 
 // Running is tall because CrashLoopBackOff lives INSIDE it, which is the whole card.
 const RUN_X = PEND_X + PEND_W + EDGE_RUN_GAP, RUN_W = 260;   // 466..726
-const RUN_Y = 130, RUN_H = 150;                          // 130..280
+const RUN_Y = ROW_CY - 75, RUN_H = 150;                  // 238..388
 const CLBO_INSET = 25;
 const CLBO_X = RUN_X + CLBO_INSET, CLBO_W = RUN_W - 2 * CLBO_INSET;   // 491..701
-const CLBO_Y = 198, CLBO_H = 62;                         // 198..260, 20 clear of the Running floor
+const CLBO_Y = ROW_CY - 7, CLBO_H = 62;                  // 306..368, 20 clear of the Running floor
 
 // 50 and not the 35 it started at: Running sits 100 from Pending AND 100 from the terminal pair,
 // so the two gaps of the row read as one measure and the board is equidistant, not pushed right.
 const FORK_GAP = 50;                                     // Running wall to trunk, trunk to terminal wall
 const FORK_X = RUN_X + RUN_W + FORK_GAP;                 // 776, the trunk both terminal edges leave from
 const END_X = FORK_X + FORK_GAP, END_W = MACH_R - END_X; // 826..1024
-const SUCC_Y = 100, FAIL_Y = 252;                        // 100..158 / 252..310
+const SUCC_Y = ROW_CY - 105, FAIL_Y = ROW_CY + 47;       // 208..266 / 360..418
 const SUCC_CY = SUCC_Y + ST_H / 2, FAIL_CY = FAIL_Y + ST_H / 2;   // 129 / 281
 
 // ---- the container register, below the panel, on the same strip ----
 const KUBE_X = STRIP_X, KUBE_W = 232;                    // 156..388, the pair width of the section
-const KUBE_Y = 435, KUBE_H = WL.BOX_H;                   // 435..515
+const KUBE_Y = 465, KUBE_H = WL.BOX_H;                   // 465..545
 
 const POD_W = 400, POD_X = STRIP_R - POD_W;              // 644..1044
-const POD_Y = 420, POD_H = 110;                          // 420..530
-const POD_CX = POD_X + POD_W / 2, POD_CY = POD_Y + POD_H / 2;     // 844 / 475
-const CONT_W = 300, CONT_H = 60;                                  // 694..994, 450..510
+const POD_Y = 450, POD_H = 110;                          // 450..560
+const POD_CX = POD_X + POD_W / 2, POD_CY = POD_Y + POD_H / 2;     // 844 / 505
+const CONT_W = 300, CONT_H = 60;                                  // 694..994, 480..540
 const CONT_DX = (POD_W - CONT_W) / 2, CONT_DY = 30;
 
 // Three chips at the FLOOR rather than under the panel: a full-width strip anywhere higher would
@@ -55,14 +55,14 @@ const CONT_DX = (POD_W - CONT_W) / 2, CONT_DY = 30;
 // and the other two need 182 and 114, so an equal strip is floored by one cell at three times over.
 const CHIP_GAP = 14, CHIP_W = [260, 340, 260];
 const CHIP_X = i => STRIP_X + CHIP_W.slice(0, i).reduce((a, w) => a + w + CHIP_GAP, 0);
-const CHIP_Y = 570;                                      // 570..604
+const CHIP_Y = 590;                                      // 590..624
 
 // ---- the two registers, as lanes. Neither ever carries the other's ball ----
 // Kubelet works on the container. 256 units, inside the routeDur clamp with every other hop here.
 const SYNC = [[KUBE_X + KUBE_W, POD_CY], [POD_X, POD_CY]];
 // The field pointer: this machine is THIS Pod's status.phase, and a Pod enters it at Pending. It
 // takes role cluster with every other lane here: there is no .scheme-arrow-workloads rule at all.
-const ENTER_Y = 350;
+const ENTER_Y = 434;                                     // midway from the Failed floor 418 to the Pod top
 const ENTER = [[POD_CX, POD_Y], [POD_CX, ENTER_Y], [PEND_X + PEND_W / 2, ENTER_Y], [PEND_X + PEND_W / 2, PEND_Y + ST_H]];
 const EDGE_RUN = [[PEND_X + PEND_W, ROW_CY], [RUN_X, ROW_CY]];
 const EDGE_SUCC = [[RUN_X + RUN_W, ROW_CY], [FORK_X, ROW_CY], [FORK_X, SUCC_CY], [END_X, SUCC_CY]];
@@ -71,8 +71,8 @@ const EDGE_FAIL = [[RUN_X + RUN_W, ROW_CY], [FORK_X, ROW_CY], [FORK_X, FAIL_CY],
 // Each register carries its own wire label, because a step always has something true to say about
 // both: what Kubelet did to the container, and whether the phase moved at all. Every label here
 // sits directly over the thing it names: the record's WIRE LABELS block carries the clearances.
-const CWIRE_X = (KUBE_X + KUBE_W + POD_X) / 2, CWIRE_Y = POD_CY - 20;   // 516 / 455, over the lane
-const PWIRE_X = RUN_X + RUN_W / 2, PWIRE_Y = RUN_Y - 16;                // 596 / 114, over Running
+const CWIRE_X = (KUBE_X + KUBE_W + POD_X) / 2, CWIRE_Y = POD_CY - 20;   // 516 / 485, over the lane
+const PWIRE_X = RUN_X + RUN_W / 2, PWIRE_Y = RUN_Y - 16;                // 596 / 222, over Running
 
 // Z-order: edges first so the state boxes sit on their endpoints, then the packet layer, then
 // everything a ball must run under.

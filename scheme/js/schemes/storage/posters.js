@@ -1108,10 +1108,10 @@ export const POSTERS = {
     </g>
   `,
 
-  // Two zones compared: the clone is its source spec rewritten row for row, and only the size may
-  // grow. Two equal sheets, each a title bar over a roster of five field bars whose lengths repeat
-  // exactly, so the repeated pattern reads as a copy at 200px. The accent is the grown storage row
-  // of the clone. The gap between the sheets is the no-lineage claim, so no line crosses it.
+  // Two zones compared: the clone is its source spec rewritten row for row, the size free to grow
+  // and the class free to differ. Two equal sheets, each a title bar over a roster of five field bars
+  // whose lengths repeat exactly, so the repeated pattern reads as a copy at 200px. The accent is
+  // the grown storage row of the clone, the one change the thumbnail draws. The gap between the sheets is the no-lineage claim, so no line crosses it.
   // Rejected: two sheets overlapping, which reads as the storage-container-filesystem cascade, and
   // a gate column between the sheets, which is a miniature of the card diagram (R-10).
   'storage-pvc-clone': `

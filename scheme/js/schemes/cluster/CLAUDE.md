@@ -178,7 +178,7 @@ Nothing in `npm test` enforces the character ceilings a `BUDGET` block states (`
 
 ## Exemplar (`CLU.S-02`)
 
-`cluster-scheduler-decision.js`, 262 lines. Copy its shape for a new cluster card: a top-row
+`cluster-scheduler-decision.js`, 267 lines. Copy its shape for a new cluster card: a top-row
 request/persist arrow strip over the control-plane actors, with the Node frame below.
 
 It is also the reference for the declarative form (`scheme/CLAUDE.md`, the module contract), and it

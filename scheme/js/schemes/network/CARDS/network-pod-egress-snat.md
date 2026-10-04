@@ -43,8 +43,12 @@ MOTION   `reply` obeys `P-03`. Conntrack reverses the translation where the repl
          still the Node IP, the entry merely `matched`), and one `F.set` writes both on the return
          arrival, which is also where `lights: ['ruleBox']` cues the box. On `masquerade` the store
          is written FIRST and the packet leaves `after` that arrival, which is the order the
-         narration states rather than a timing preference. On `rule` the ball arrives INTO a Pod, so
-         the receiver blinks as a whole Pod (`M-03`) and not by a highlight on its inner box: lighting
+         narration states rather than a timing preference. The entry exists only once that store
+         ball lands, so `rewind` holds `conntrack` at `none` and one `F.set` writes `entry stored` on
+         the arrival, where `lights` cues the chip with the store, the deferral `reply` applies too.
+         `packet src` and `rule matched` read the rewrite from entry, since the packet stands in the
+         rule box that makes it. On `rule` the ball arrives INTO a Pod, so the receiver blinks as a
+         whole Pod (`M-03`) and not by a highlight on its inner box: lighting
          `peerApp` alone leaves the shell dark and reads as a packet reaching a box that happens to
          sit inside a Pod. The pulse is what makes that step move at all: without it the step stands
          still for 66 percent of its length, with it 35, against a catalog median of 42.
@@ -97,14 +101,15 @@ SCOPE    The conntrack ENTRY itself, its original and reply tuples and the ESTAB
          belongs to `network-netfilter-path`. This card draws conntrack as a store it writes and
          reads, and draws one rule list rather than the chain that leads to it.
 NOT A DEFECT
-         Six entries in the arrival-cue queue read `chip already reads X and is lit at entry`. That
-         is the declarative `chips:` block writing the static state at step entry, which is the house
-         form: the queue holds dozens of cards and the largest single card in it carries five. The
-         two on `reply` are also FORM-E, so they are ruled where the gate can read the ruling, in
-         `test/fixtures/carried.mjs`: the reply carries the SERVER as its source from the moment it
-         leaves the Internet box, and `no nat rule walked` is the premise of a step whose narration
-         is that the reply walks no rule. `dst` and `conntrack` are what the arrival earns, and that
-         split is the sentence.
+         Five chips read their new value lit at entry, and all five are ruled in
+         `test/fixtures/carried.mjs`. `rule matched` on `rule` is FORM-B: the verdict is decided
+         when `send` lands on the rule box, and the one ball of `rule` is the road not taken. The
+         other four are FORM-E, where the gate reads the ruling. On `masquerade`, `packet src` and
+         `rule matched` are the rewrite made in the box the packet stands in, and both balls leave
+         after it. On `reply`, the reply carries the SERVER as its source from the moment it leaves
+         the Internet box, and `no nat rule walked` is the premise of a step whose narration is that
+         the reply walks no masquerade rule. `dst` and `conntrack` are what the arrival earns, and
+         that split is the sentence.
          The `report/arrival.test.mjs` R2-ENTRY row on `step 5 chip conntrack` is ruled where the file
          that prints it can read the ruling, `test/fixtures/carried.mjs`, so it comes back marked
          CARRIED rather than sitting on the open queue: the value is carried from the end of `reply`,

@@ -54,8 +54,8 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
 .side-btn,
 .side-toggle {
   position: relative;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border: none;
@@ -76,12 +76,13 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
   color: var(--accent);
   background: var(--accent-glow);
 }
+.side-btn svg { width: 20px; height: 20px; }
 .side-btn.active::before {
   content: '';
   position: absolute;
-  left: -4px;
-  top: 6px;
-  bottom: 6px;
+  left: -3px;
+  top: 7px;
+  bottom: 7px;
   width: 2px;
   border-radius: 0 2px 2px 0;
   background: var(--accent);
@@ -91,7 +92,24 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-.side-toggle { margin-top: auto; color: var(--text-muted); }
+/* The hide button is drawn like the .side-expand tab that replaces it, and ends 8px above the
+   viewport bottom like the tab does, so hiding leaves the tab right under the cursor. */
+.side-toggle {
+  margin-top: auto;
+  margin-bottom: 4px;
+  width: 30px;
+  height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(28, 22, 56, 0.97);
+  color: var(--text-nav);
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.side-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: rgba(38, 30, 76, 0.98);
+}
 
 .side-btn[data-tooltip]::after,
 .side-toggle[data-tooltip]::after,
@@ -122,30 +140,71 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
 .side-expand:hover::after,
 .side-expand:focus-visible::after { opacity: 1; }
 
+/* Expand handle: a tab on the left edge, shown only while the sidebar is hidden. It sits where the
+   hide button was, so it turns up right where the visitor just clicked, and it is drawn bright
+   enough to be found again later. */
 .side-expand {
   position: fixed;
   left: 0;
   bottom: 8px;
-  width: 22px;
-  height: 38px;
+  width: 26px;
+  height: 46px;
   z-index: 110;
   display: none;
   place-items: center;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   border-left: none;
-  border-radius: 0 8px 8px 0;
-  background: rgba(17, 15, 31, 0.95);
+  border-radius: 0 9px 9px 0;
+  background: rgba(28, 22, 56, 0.97);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  color: var(--text-muted);
+  box-shadow: 2px 0 14px rgba(0, 0, 0, 0.35);
+  color: var(--text-nav);
   cursor: pointer;
-  transition: color 0.12s, background 0.12s;
+  transition: width 0.12s, color 0.12s, background 0.12s, border-color 0.12s;
 }
-.side-expand:hover {
-  color: var(--text-bright);
-  background: rgba(28, 22, 56, 0.97);
+.side-expand:hover,
+.side-expand:focus-visible {
+  width: 32px;
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: rgba(38, 30, 76, 0.98);
 }
+.side-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 body.sidebar-collapsed .side-expand { display: grid; }
+
+/* Thin rule between Home and the sections, so the list reads as "site root, then sections". */
+.side-sep {
+  flex-shrink: 0;
+  width: 20px;
+  height: 1px;
+  margin: 3px 0;
+  background: rgba(221, 202, 250, 0.3);
+}
+
+/* Phones: tooltips never show on touch and the rail costs a tenth of the width, so it starts
+   hidden here. A visitor who taps the tab gets body.sidebar-shown from sidebar.js, remembered
+   like the desktop choice. Same breakpoint as PHONE_QUERY in sidebar.js. */
+@media (max-width: 680px) {
+  body:not(.sidebar-shown) { padding-left: 0; }
+  body:not(.sidebar-shown) .sidebar { transform: translateX(-100%); }
+  body:not(.sidebar-shown) .side-expand { display: grid; }
+  /* The page gutter is 14px here, so a 26px tab sat on the cards and the footer text. The tab
+     narrows to fit inside the gutter, and an invisible strip keeps the tap target finger-wide. */
+  .side-expand,
+  .side-expand:hover,
+  .side-expand:focus-visible { width: 12px; }
+  .side-expand { border-radius: 0 7px 7px 0; }
+  .side-expand svg { width: 11px; height: 11px; }
+  .side-expand::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    left: 0;
+    width: 30px;
+  }
+}
 
 /* ===== HEADER ===== */
 .header {
@@ -383,6 +442,35 @@ body.sidebar-collapsed .side-expand { display: grid; }
   max-width: calc(100% - 480px);
 }
 
+/* A page-centred search only fits a wide header. Narrower, the centred box runs into the title
+   on the left and the GitHub button on the right, so it joins the row between them instead.
+   Measured on the header, not the viewport, because the sidebar takes 38px of it when shown. */
+.header-inner { container-type: inline-size; }
+@media (min-width: 901px) {
+  @container (max-width: 1180px) {
+    .logo { margin-right: 16px; }
+    .search-container + .header-actions { margin-left: 16px; }
+    .search-container {
+      position: relative;
+      left: auto;
+      top: auto;
+      transform: none;
+      flex: 1 1 auto;
+      width: auto;
+      max-width: 464px;
+      min-width: 0;
+      margin: 10px auto 0;
+    }
+  }
+  /* Tighter still, the action buttons drop their labels, the same way they do below 900px. */
+  @container (max-width: 1010px) {
+    .search-container ~ .header-actions { gap: 4px; }
+    .search-container ~ .header-actions .action-btn-label { display: none; }
+    .search-container ~ .header-actions .action-btn,
+    .search-container ~ .header-actions .action-btn-link { padding: 0 9px; gap: 0; }
+  }
+}
+
 .search-icon {
   position: absolute;
   left: 11px;
@@ -499,9 +587,12 @@ body.sidebar-collapsed .side-expand { display: grid; }
   margin: 0 4px;
 }
 
+/* Hover reads like the header action buttons (GitHub, Contacts): lavender until clicked, and the
+   .active rules below keep a clicked button in its own colour. */
 .cat-btn:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.07);
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-glow);
 }
 
 .cat-btn:focus-visible {
@@ -518,6 +609,36 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .cat-btn.active[data-cat="storage"]   { color: var(--storage-color);   background: var(--storage-glow);   border-color: var(--storage-border); }
 .cat-btn.active[data-cat="workloads"] { color: var(--workloads-color); background: var(--workloads-glow); border-color: var(--workloads-border); }
 .cat-btn.active[data-cat="cluster"]   { color: var(--cluster-color);   background: var(--cluster-glow);   border-color: var(--cluster-border); }
+.cat-btn.active[data-cat="starred"]   { color: var(--starred-color);   background: var(--starred-glow);   border-color: var(--starred-border); }
+
+/* Starred lives on the far right of the row, the "personal" zone, exactly as on /cli/. */
+.cat-btn.cat-starred { margin-left: auto; }
+
+/* Grid view switch after Starred: detailed cards or compact tiles (js/app.js, VIEW_KEY). */
+.view-toggle {
+  flex-shrink: 0;
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.view-btn {
+  width: 30px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+}
+.view-btn:hover { color: var(--accent); background: var(--accent-glow); }
+.view-btn.active { color: var(--accent); background: rgba(221, 202, 250, 0.1); }
+.view-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ===== SUB-CATEGORY NAV (mirrors CLI mid-row coordinates) ===== */
 .cat-nav-sub {
@@ -545,8 +666,9 @@ body.sidebar-collapsed .side-expand { display: grid; }
 }
 .subcat-btn[data-sub="all"] { min-width: 48px; padding-left: 10px; padding-right: 10px; justify-content: center; }
 .subcat-btn:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.07);
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-glow);
   opacity: 1;
 }
 .subcat-btn:focus-visible {
@@ -747,6 +869,66 @@ body.sidebar-collapsed .side-expand { display: grid; }
   color: var(--text-dim);
 }
 
+/* Compact view: poster, then one row of title and star. The description becomes the card's
+   hover tooltip, and the tags go, so about twice as many cards fit on a screen. */
+.view-compact .cards-grid {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.view-compact .card-body {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 11px 14px;
+}
+.view-compact .card-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.view-compact .card-desc,
+.view-compact .card-cat,
+.view-compact .card-version { display: none; }
+.view-compact .card-meta { margin-top: 0; flex-wrap: nowrap; }
+.view-compact .star-btn { margin: -6px -6px -6px 0; }
+
+/* ===== STAR BUTTON (mirrors /cli/) ===== */
+.star-btn {
+  margin: -4px -6px -4px auto;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.1s, color 0.1s, border-color 0.1s, background 0.1s, filter 0.15s;
+  flex-shrink: 0;
+}
+.star-btn svg { fill-opacity: 0; }
+.card:hover .star-btn { opacity: 1; }
+.star-btn:hover {
+  color: var(--starred-color);
+  border-color: var(--starred-border);
+  background: var(--starred-glow);
+}
+.star-btn:focus-visible {
+  outline: 2px solid var(--starred-color);
+  outline-offset: 1px;
+  opacity: 1;
+}
+.star-btn.starred {
+  opacity: 1;
+  color: var(--starred-color);
+  filter: drop-shadow(0 0 5px var(--starred-glow));
+}
+.star-btn.starred svg { fill-opacity: 1; }
+
 /* ===== EMPTY STATE ===== */
 .empty {
   grid-column: 1 / -1;
@@ -761,19 +943,36 @@ body.sidebar-collapsed .side-expand { display: grid; }
   color: var(--text);
 }
 .empty-desc { font-size: 14px; }
+.empty-icon { color: var(--starred-color); opacity: 0.8; margin-bottom: 10px; }
+.empty-icon svg { width: 40px; height: 40px; fill-opacity: 0; }
 
-/* ===== DIALOG ===== */
+/* ===== DIALOG =====
+   The <dialog> covers the whole viewport and draws nothing: a modal leaves everything outside it
+   inert, so the flip arrows have to live INSIDE it to be clickable, and they sit in the 4vw gutters
+   beside the panel. `.dialog-inner` is the panel, at exactly the 92vw x 92vh the dialog itself used
+   to be, so the canvas and every panel measurement taken against it are unchanged. */
 .scheme-dialog {
-  width: 92vw;
-  max-width: 92vw;
-  height: 92vh;
-  max-height: 92vh;
-  margin: auto;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  margin: 0;
   padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  overflow: hidden;
+}
+.scheme-dialog[open] {
+  display: grid;
+  place-items: center;
+}
+.scheme-dialog .dialog-inner {
+  width: 92vw;
+  height: 92vh;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 16px;
-  color: var(--text);
   overflow: hidden;
 }
 .scheme-dialog::backdrop {
@@ -781,10 +980,10 @@ body.sidebar-collapsed .side-expand { display: grid; }
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
-.scheme-dialog[data-cat="network"]   { border-top: 3px solid var(--network-color); }
-.scheme-dialog[data-cat="storage"]   { border-top: 3px solid var(--storage-color); }
-.scheme-dialog[data-cat="workloads"] { border-top: 3px solid var(--workloads-color); }
-.scheme-dialog[data-cat="cluster"]   { border-top: 3px solid var(--cluster-color); }
+.scheme-dialog[data-cat="network"]   .dialog-inner { border-top: 3px solid var(--network-color); }
+.scheme-dialog[data-cat="storage"]   .dialog-inner { border-top: 3px solid var(--storage-color); }
+.scheme-dialog[data-cat="workloads"] .dialog-inner { border-top: 3px solid var(--workloads-color); }
+.scheme-dialog[data-cat="cluster"]   .dialog-inner { border-top: 3px solid var(--cluster-color); }
 
 /* ===== TINTED DIALOG =====
    The whole modal collapses onto one category's colour ramp. A category declares only what is its
@@ -908,8 +1107,69 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .dialog-inner {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  height: 100%;
+  /* minmax(0, 1fr), not the implicit auto track: a header wider than the panel (a long title, the
+     section and the counter on a phone) would otherwise widen the whole panel past the viewport. */
+  grid-template-columns: minmax(0, 1fr);
 }
+
+/* Flip arrows, one in each gutter. 36 wide so they fit the 4vw gutter down to 1000px; below that
+   there is no gutter to stand in and the reader flips with a swipe or Shift+arrows. */
+.dialog-nav {
+  position: absolute;
+  top: 50%;
+  width: 36px;
+  height: 72px;
+  margin-top: -36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(17, 15, 31, 0.72);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s, border-color 0.12s, transform 0.12s;
+}
+.dialog-nav-prev { left: calc(2vw - 18px); }
+.dialog-nav-next { right: calc(2vw - 18px); }
+.dialog-nav:hover,
+.dialog-nav.pressed {
+  color: var(--accent);
+  background: var(--accent-glow);
+  border-color: var(--accent-border);
+}
+.dialog-nav.pressed { transform: scale(0.92); }
+.dialog-nav:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.dialog-nav[hidden] { display: none; }
+@media (max-width: 999px) {
+  .dialog-nav { display: none; }
+}
+
+.dialog-pos {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.dialog-section {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.dialog-section[hidden],
+.ctl-source[hidden] { display: none; }
+
+/* A swipe or a flip, the next card glides in from the side it came from. */
+.dialog-canvas.slide-next { animation: slide-from-right 0.24s ease-out; }
+.dialog-canvas.slide-prev { animation: slide-from-left 0.24s ease-out; }
+@keyframes slide-from-right { from { opacity: 0; transform: translateX(36px); } to { opacity: 1; transform: none; } }
+@keyframes slide-from-left  { from { opacity: 0; transform: translateX(-36px); } to { opacity: 1; transform: none; } }
+
+/* Horizontal touch gestures on the stage belong to the flip, vertical ones still scroll and pinch. */
+.dialog-stage { touch-action: pan-y pinch-zoom; }
 .dialog-header {
   display: flex;
   align-items: center;
@@ -953,6 +1213,54 @@ body.sidebar-collapsed .side-expand { display: grid; }
   color: var(--accent);
   border-color: var(--accent-border);
 }
+
+/* The star, report and fullscreen tools beside close: the same 40px box, quieter until hovered */
+.dialog-tool {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.dialog-tool:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+.dialog-tool[hidden] { display: none; }
+.dialog-tool:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.dialog-star svg { width: 17px; height: 17px; fill-opacity: 0; }
+.dialog-star:hover {
+  color: var(--starred-color);
+  border-color: var(--starred-border);
+  background: var(--starred-glow);
+}
+.dialog-star.starred {
+  color: var(--starred-color);
+  filter: drop-shadow(0 0 5px var(--starred-glow));
+}
+.dialog-star.starred svg { fill-opacity: 1; }
+
+/* Fullscreen (the page is fullscreen, the class is set by app.js): the panel takes the whole
+   screen. There is no gutter left for the flip arrows, so they go, and Shift+arrows (or a swipe)
+   flips instead. */
+.scheme-dialog.is-fullscreen .dialog-inner {
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+.scheme-dialog.is-fullscreen .dialog-nav { display: none; }
 
 .dialog-body {
   display: grid;
@@ -1118,7 +1426,8 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-tinted="true"] .scheme-chip.highlight .scheme-chip-rect,
 .scheme-dialog[data-tinted="true"] .scheme-pod.highlight .scheme-pod-rect,
 .scheme-dialog[data-tinted="true"] .scheme-cylinder.highlight .scheme-cylinder-body,
-.scheme-dialog[data-tinted="true"] .scheme-cylinder.highlight .scheme-cylinder-cap {
+.scheme-dialog[data-tinted="true"] .scheme-cylinder.highlight .scheme-cylinder-cap,
+.scheme-dialog[data-tinted="true"] .scheme-node.highlight .scheme-node-rect {
   stroke: var(--tint-bright);
 }
 .scheme-dialog[data-tinted="true"] .scheme-packet {
@@ -1314,6 +1623,93 @@ body.reduced-motion .reduced-notice { display: block; }
 }
 
 /* ===== FOOTER ===== */
+/* ===== MOBILE STUB =====
+   The diagrams are not adapted to phones, so a phone gets this page instead of the grid. The query
+   is written TWICE, here and as MOBILE_STUB in js/app.js (which keeps a deep link from opening a
+   dialog over the stub): change one, change both. PHONES ONLY: a touch screen at most 600 wide
+   (portrait) or at most 500 tall (landscape). The smallest tablet is 744 wide and 744+ tall in
+   either orientation, so every tablet, and every desktop window however narrow, gets the catalog. */
+.mobile-stub { display: none; }
+@media (hover: none) and (pointer: coarse) and (max-width: 600px), (hover: none) and (pointer: coarse) and (max-height: 500px) {
+  .cat-nav, .main, .scroll-top-btn, .search-container, .scheme-dialog { display: none !important; }
+  /* The page is only header, stub and footer here, so the body becomes a column the stub fills:
+     the footer then sits on the bottom edge instead of under a short stub mid-screen. */
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .mobile-stub {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 14px;
+    width: 100%;
+    max-width: 420px;
+    align-self: center;
+    padding: 40px 20px;
+  }
+}
+.mobile-stub-icon {
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-glow);
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.mobile-stub-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-bright);
+}
+.mobile-stub-text {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-card-desc);
+}
+.mobile-stub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.mobile-stub-btn {
+  min-height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.mobile-stub-btn.primary {
+  color: var(--accent);
+  background: var(--accent-glow);
+  border-color: var(--accent-border);
+}
+.mobile-stub-btn.copied {
+  color: var(--success-color);
+  border-color: rgba(92, 184, 92, 0.3);
+  background: rgba(92, 184, 92, 0.08);
+}
+
 .footer {
   border-top: 1px solid var(--border-subtle);
   padding: 22px 24px;
@@ -1384,10 +1780,16 @@ body.reduced-motion .reduced-notice { display: block; }
 }
 
 @media (max-width: 680px) {
+  .view-compact .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  /* A long title, its category label and the link button can outgrow a narrow row: the count
+     drops to a second line (still right-aligned by its margin-left: auto), as on /cli/ */
+  .section-header { flex-wrap: wrap; row-gap: 6px; }
   .main { padding: 18px 14px 60px; }
   .cards-grid { grid-template-columns: 1fr; }
   .dialog-controls { gap: 6px; padding: 10px 12px; }
   .ctl-source { display: none; }
+  .dialog-header { gap: 8px; padding: 6px 10px 6px 14px; }
+  .dialog-section { display: none; }
   .narration-overlay {
     top: 10px;
     left: 10px;
@@ -1403,6 +1805,7 @@ body.reduced-motion .reduced-notice { display: block; }
 
 @media (hover: none) {
   .cat-btn { min-height: 40px; }
+  .star-btn { opacity: 0.85; width: 40px; height: 40px; margin: -9px -10px -9px auto; }
   .scroll-top-btn { min-width: 44px; min-height: 44px; }
 }
 
@@ -1414,3 +1817,197 @@ body.reduced-motion .reduced-notice { display: block; }
   .action-btn, .action-btn-link { height: 30px; }
   .ctl-btn { height: 30px; padding: 0 8px; }
 }
+
+/* ===== KEYBOARD SHORTCUTS ===== */
+/* The sheet opened by `?` or the sidebar keyboard button (js/lib/keys.js), and the `/` hint in the
+   search field. Duplicated in cli/css/styles.css and scheme/css/styles.css, like the sidebar. */
+.side-keys { margin-top: auto; }
+.side-keys + .side-toggle { margin-top: 6px; }
+
+.keys-dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-width: none;
+  margin: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+}
+.keys-dialog::backdrop {
+  background: rgba(8, 6, 16, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.keys-inner {
+  padding: 16px 20px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.keys-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.keys-head h2 {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+.keys-close {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.keys-close:hover {
+  color: var(--accent);
+  background: var(--accent-glow);
+  border-color: var(--accent-border);
+}
+.keys-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.keys-group { margin-top: 12px; }
+.keys-group h3 {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.keys-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 14px;
+}
+.keys-row dd {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.keys-plus,
+.keys-or {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.keys-or { margin: 0 3px; }
+.keys-dialog kbd,
+.search-kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  color: var(--text-bright);
+}
+
+.search-kbd {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.search-input:focus ~ .search-kbd,
+.search-input:not(:placeholder-shown) ~ .search-kbd { display: none; }
+@media (hover: none) {
+  .search-kbd,
+  .side-keys { display: none; }
+  .side-keys + .side-toggle { margin-top: auto; }
+}
+
+/* The narrowest phones: an empty field shows no clear button and no `/` hint, so the room kept for
+   them on the right goes to the placeholder, which otherwise ends cut off. */
+@media (max-width: 400px) {
+  .search-input:placeholder-shown { padding-right: 12px; }
+  .search-kbd { display: none; }
+}
+
+/* ===== SECTION LINK ===== */
+/* Copy-link button beside the section title, mirrors /cli/: always shown in the muted text colour. */
+.section-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+}
+.section-action {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.1s, border-color 0.1s, background 0.1s;
+}
+.section-action:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: rgba(224, 205, 255, 0.08);
+}
+.section-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.section-action.copied {
+  color: var(--success-color);
+  border-color: rgba(92, 184, 92, 0.3);
+  background: rgba(92, 184, 92, 0.08);
+}
+
+/* ===== NEW SINCE LAST VISIT ===== */
+/* js/lib/fresh.js decides what is new for THIS browser. A filled lavender pill, distinct from the
+   cyan star and from every category colour, the same as on /cli/. */
+.new-pill,
+.section-new {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #1a1530;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 16px;
+}
+.card-new {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.section-new {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.section-new + .section-count { margin-left: 8px; }

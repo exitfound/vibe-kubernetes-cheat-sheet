@@ -111,6 +111,12 @@ MOTION   Step 1 is the only self-initiated send from the API and waits BEAT.lead
          The Pod pulse on the last step hangs off the PATCH arrival, which lands on the API at the
          top of the canvas while the Pod sits on the floor. The beat is the Pod's own state change
          and not an arrival at the Pod, so the only ring on screen is the API's.
+         EVERY VALUE WAITS FOR THE BALL THAT EARNS IT, through a `rewind` and one F.set. On
+         `sandbox` the sandbox ball earns all of it: the Pod line, the PodReadyToStartContainers
+         tread (faded up and lit by an F.light on `create`), its time stamp, and the endpoint, which
+         exists from the moment the Pod has an IP. On `ready` the Kubelet computes the verdict on
+         its own, so Ready, its tread and its stamp stand at entry, and the endpoint turning
+         ready=true and the Pod line turning to `serving` wait for the PATCH, where the Pod blinks.
 CONTENT  THE DESC OPENS ON A SET, NOT ON A POSITION. `Which rung is a Pod stuck on when it is not
          Ready yet?` is rejected twice over. It borrows the STAIRCASE this card draws into the one
          string a reader meets before opening anything, on the grid and in search, where no ladder

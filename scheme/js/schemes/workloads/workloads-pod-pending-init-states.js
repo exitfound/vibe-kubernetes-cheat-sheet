@@ -178,12 +178,18 @@ export const STEPS_SPEC = [
     podSublabels: { podGroup: 'init container 1 of 2 running' },
     sublabels: crew('Running', WAITING, WAITING),
     lit: ['kubelet', 'statusChip', 'nodeChip', 'holdChip'],
-    // The Kubelet is what writes containerStatuses, so the three readings and the cue on init-1
-    // land with its ball (A-06): until then the Pod still reads what step 1 left.
-    rewind: { sublabels: crew(NO_STATUS, NO_STATUS, NO_STATUS) },
+    // The Kubelet writes containerStatuses, so the readings, STATUS, the Pod line and `running` land
+    // with its ball (A-06). NODE is the bind, true at entry, and the holder starts init 1 until then.
+    rewind: {
+      chips: { statusChip: 'Pending', holdChip: 'the Kubelet, starting init 1' },
+      podSublabels: { podGroup: '' }, sublabels: crew(NO_STATUS, NO_STATUS, NO_STATUS),
+    },
     flow: [
       F.route({ points: LANE_DOWN, name: 'take', lights: ['initA'] }),
-      F.set({ at: 'take', sublabels: crew('Running', WAITING, WAITING) }),
+      F.set({
+        at: 'take', chips: { statusChip: 'Init:0/2', holdChip: 'the Kubelet, running init 1' },
+        podSublabels: { podGroup: 'init container 1 of 2 running' }, sublabels: crew('Running', WAITING, WAITING),
+      }),
       F.pulse({ pod: 'podGroup', dim: true, at: 'take' }),
       F.fade({ target: 'podGroup', from: OPACITY.notready, to: OPACITY.pending, dur: FADE.in, at: 'take', fill: 'both', easing: 'ease-out' }),
     ],
@@ -222,11 +228,21 @@ export const STEPS_SPEC = [
     podSublabels: { podGroup: 'app container being created' },
     sublabels: crew(DONE, DONE, WAITING),
     lit: ['kubelet', 'statusChip', 'restartChip', 'holdChip'],
-    // Same shape as step 2: the two Completed readings and the cue on the app land with the ball.
-    rewind: { sublabels: crew('CrashLoopBackOff', WAITING, WAITING) },
+    // Same shape as step 2: the two Completed readings, the three row cells, the Pod line and the
+    // cue on the app land with the ball.
+    rewind: {
+      chips: { statusChip: 'Init:CrashLoopBackOff', restartChip: '3 (20s ago)', holdChip: 'the Kubelet, backoff timer' },
+      podSublabels: { podGroup: 'init container 1 keeps exiting 1' },
+      sublabels: crew('CrashLoopBackOff', WAITING, WAITING),
+    },
     flow: [
       F.route({ points: LANE_DOWN, name: 'create', lights: ['appBox'] }),
-      F.set({ at: 'create', sublabels: crew(DONE, DONE, WAITING) }),
+      F.set({
+        at: 'create',
+        chips: { statusChip: 'PodInitializing', restartChip: NO_RESTARTS, holdChip: 'the Kubelet, app containers' },
+        podSublabels: { podGroup: 'app container being created' },
+        sublabels: crew(DONE, DONE, WAITING),
+      }),
       F.pulse({ pod: 'podGroup', dim: true, at: 'create' }),
     ],
   },
@@ -244,12 +260,21 @@ export const STEPS_SPEC = [
     sublabels: crew(DONE, DONE, 'Running'),
     lit: ['kubelet', 'statusChip', 'readyChip', 'holdChip'],
     // The app box is the RECEIVER of this step: the ball is the runtime reporting the container
-    // started, so its cue and its `Running` land with the ball (A-06) and not at entry. The static
-    // block above still writes the end state; rewind holds the text back until the arrival.
-    rewind: { sublabels: { appBox: WAITING } },
+    // started, so its cue, its `Running` and the STATUS cell land with the ball (A-06), not at entry.
+    // The static block above still writes the end state; rewind holds the text back until the arrival.
+    rewind: {
+      chips: { statusChip: 'PodInitializing', holdChip: 'the Kubelet, app containers' },
+      podSublabels: { podGroup: 'app container being created' },
+      sublabels: { appBox: WAITING },
+    },
     flow: [
       F.route({ points: LANE_DOWN, name: 'start', lights: ['appBox'] }),
-      F.set({ at: 'start', sublabels: { appBox: 'Running' } }),
+      F.set({
+        at: 'start',
+        chips: { statusChip: 'Running', holdChip: 'the app, readiness is next' },
+        podSublabels: { podGroup: 'started, not ready' },
+        sublabels: { appBox: 'Running' },
+      }),
       // NOT dim: pulsePodDim fills opacity forward to OPACITY.pending and this step ends at full.
       F.pulse({ pod: 'podGroup', at: 'start' }),
       F.fade({ target: 'podGroup', from: OPACITY.pending, to: 1, dur: FADE.in, at: 'start', fill: 'both', easing: 'ease-out' }),

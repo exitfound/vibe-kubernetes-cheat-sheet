@@ -575,6 +575,45 @@ const ENTRIES = [
       + '`edit-file` is first seen frozen on `drain`. DO NOT light the chip on `drain`, where '
       + 'nothing happens to the container.' },
 
+  // Cluster, the frozen-sample class in its plainest form: each value is written through `chips`,
+  // wound back in `rewind` and turned over by an F.set on the arrival of the PREVIOUS step, where
+  // the chip is in `lit`. Frozen at t=0 the change first shows here. R2-STEP holds none of these
+  // rows. DO NOT light the chip on the step named in the key, where nothing happens to it.
+  ...[
+    ['cluster-node-registration', '3', 'metadata.name', 'step 2 `register` writes Node-1 on the `post` arrival'],
+    ['cluster-node-registration', '4', 'status.addresses', 'step 3 `status` writes the InternalIP on the `put` arrival'],
+    ['cluster-node-registration', '4', 'status.capacity', 'step 3 `status` writes the capacity on the `put` arrival, with the addresses'],
+    ['cluster-node-registration', '4', 'status.nodeInfo', 'step 3 `status` writes the nodeInfo on the `put` arrival, with the addresses'],
+    ['cluster-node-registration', '6', 'Ready', 'step 5 `ready` writes True · KubeletReady on the `ok` arrival'],
+    ['cluster-node-registration', '6', 'Taint', 'step 5 `ready` clears the not-ready taint on the `ok` arrival, with Ready'],
+    ['cluster-node-conditions', '3', 'MemoryPressure', 'step 2 `pressure` writes True with its taint on the `taint` arrival'],
+    ['cluster-node-conditions', '3', 'DiskPressure', 'step 2 `pressure` writes True with its taint on the `taint` arrival'],
+    ['cluster-node-conditions', '3', 'PIDPressure', 'step 2 `pressure` writes True with its taint on the `taint` arrival'],
+    ['cluster-node-conditions', '3', 'NetworkUnavailable', 'step 2 `pressure` writes True with its taint on the `taint` arrival'],
+    ['cluster-node-conditions', '4', 'effect on Pods', 'step 3 `not-ready` writes the eviction clause on the `taint` arrival'],
+    ['cluster-node-conditions', '5', 'Ready', 'step 4 `unreachable` writes Unknown · unreachable on the `taint` arrival'],
+    ['cluster-taints-tolerations', '2', 'Node-1 taints', 'step 1 `taint` writes NoSchedule on the `patch` arrival, the pair `cluster-node-failure 5 Taint` calls identical'],
+    ['cluster-taints-tolerations', '2', 'effect in force', 'step 1 `taint` writes NoSchedule on the `patch` arrival, with the taint'],
+    ['cluster-image-container-gc', '5', 'imagefs usage', 'step 4 `max-age` writes 58 percent on the `del` arrival'],
+    ['cluster-image-container-gc', '5', 'images on disk', 'step 4 `max-age` writes 2 on the `del` arrival, with the usage'],
+    ['cluster-node-restart', '5', 'Node condition', 'step 4 `recreate` writes Ready on the `start` arrival'],
+    ['cluster-node-restart', '5', 'Taint', 'step 4 `recreate` clears the not-ready taint on the `start` arrival, with the condition'],
+    ['cluster-pod-cgroup-hierarchy', '6', 'cpu.weight', 'step 5 `leaf` writes 35 on the `write` arrival'],
+    ['cluster-node-drain', '2', 'spec.unschedulable', 'step 1 `cordon` writes true · SchedulingDisabled on the `acked` arrival'],
+    ['cluster-node-pressure-eviction', '3', 'MemoryPressure', 'step 2 `condition` writes True on the `patch` arrival'],
+    ['cluster-pod-sandbox-cri', '2', 'sandbox id', 'step 1 `sandbox` writes pause-7f3a on the `run` arrival, where the sandbox appears'],
+    ['cluster-pod-sandbox-cri', '3', 'Pod IP', 'step 2 `cni` writes 10.244.1.5 on the `conf` arrival'],
+    ['cluster-scheduler-decision', '2', 'queued pod', 'step 1 `queue` writes the Pod on the `watch` arrival, where it enters the queue'],
+    ['cluster-list-watch-informers', '3', 'resourceVersion', 'step 2 `list` writes 842 on the `toCache` arrival, where the set lands in the Indexer'],
+    ['cluster-list-watch-informers', '3', 'cache size', 'step 2 `list` writes 3 on the `toCache` arrival, with resourceVersion'],
+  ].map(([card, step, chip, where]) => ({ axis: 'R2-ENTRY', card, where: [step, chip],
+    why: `${where} and lights it there. Frozen at t=0 the change first shows one step later.` })),
+  // One more cluster card, where the row restates a ruling R2-STEP already carries.
+  { axis: 'R2-ENTRY', card: 'cluster-oom-kill', where: ['3', 'container state'],
+    why: 'the mirror of `R2-STEP cluster-oom-kill 3 container state`: containerStatuses[].state is '
+      + 'STILL Running, and the suffix `not yet observed` explains an unchanged fact. The turnover '
+      + 'the reader must catch is on the observe step, where the chip IS lit.' },
+
   { axis: 'R2-ENTRY', card: 'workloads-ephemeral-containers', where: ['3', 'spec.ephemeralContainers'],
     why: 'the value is a static write (`S-13`) and the cue rides the ball, which is what `lights:` '
       + 'on the route entry does. This axis reads both frames frozen at t=0, before that ball has '
@@ -586,10 +625,12 @@ const ENTRIES = [
     why: 'the same PATCH that appends the entry carries targetContainerName, so the chip moves on '
       + 'the same ball as `3 spec.ephemeralContainers` and is cued by the same `lights:` list at '
       + 'the door. DO NOT light it at entry: the field is set by the write that has not landed yet.' },
-  { axis: 'R2-ENTRY', card: 'workloads-ephemeral-containers', where: ['5', 'status.ephemeralContainerStatuses'],
-    why: 'the same shape as `3 spec.ephemeralContainers` on this card, one hop lower: the status '
-      + 'is written statically and cued by `lights:` on the spine route, so the frozen t=0 frame '
-      + 'reads the value without the highlight that arrives with the ball.' },
+  { axis: 'R2-ENTRY', card: 'workloads-ephemeral-containers', where: ['6', 'status.ephemeralContainerStatuses'],
+    why: 'not a change on `inside`: step 5 `starts` winds the status back to none in `rewind` and '
+      + 'writes Running with an F.set on the spine arrival (`write`), cued there by `lights:`, so a '
+      + 'frame frozen at t=0 of `starts` reads none and the turnover is first seen one step later. '
+      + 'DO NOT close it by dropping the rewind: the status would report a container the picture '
+      + 'has not drawn yet.' },
 
   { axis: 'R2-ENTRY', card: 'workloads-termination-order', where: ['2', 'stop order'],
     why: 'the value is a static write (`S-13`) and the cue rides the ball, which is what `lights:` '
@@ -733,6 +774,16 @@ const ENTRIES = [
       + 'the chip in that step lit list. Frozen at t=0 the change is first seen on `terminal`, step '
       + '5, where it is not lit because that step is about the phase reaching Succeeded and the '
       + 'restart count is settled. DO NOT close it by lighting restartCount on `terminal`.' },
+  // workloads-pod-scheduling-gates, the same frozen-sample price: the count turns over on the write.
+  ...[['4', '`remove-one`, step 3, where a `rewind` holds it at 2 entries and the `F.set` that cues '
+      + 'gateB on the write arrival writes 1 entry at 1500ms', '`one-way`, step 4'],
+    ['6', '`remove-last`, step 5, where a `rewind` holds it at 1 entry and the `F.set` that cues '
+      + 'gateA on the write arrival writes empty at 1500ms', '`queued`, step 6']].map(([step, where, next]) => (
+    { axis: 'R2-ENTRY', card: 'workloads-pod-scheduling-gates', where: [step, 'spec.schedulingGates'],
+      why: 'the price of the P-03 FORM-B repair. spec.schedulingGates turns over on ' + where + ', '
+        + 'with the chip in that step lit list from 0ms. Frozen at t=0 the change is first seen on '
+        + next + ', where the chip is correctly not lit: that step moves no entry. R2-STEP, settled '
+        + 'against settled, does not list it. DO NOT close it by lighting the count on ' + next + '.' })),
   { axis: 'R2-ENTRY', card: 'workloads-graceful-shutdown', where: ['3', 'endpoint 10.244.1.7'],
     why: 'the same shape. The endpoint turns over on `deregister`, step 2, where a `rewind` holds '
       + 'it at ready=true and an `F.set` bound to the slice ball landing on kube-proxy writes '
@@ -907,6 +958,49 @@ const ENTRIES = [
     ['6', 'dnsConfig.searches', 'step 5 `none` writes `svc.cluster.local lab.test` on the watch arrival and lights it there'],
     ['6', 'dnsConfig.options', 'step 5 `none` writes `ndots:2 edns0` on the watch arrival and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'network-dns-pod-policy', where: [step, chip], why })),
+
+  // Ten more network cards in the same class: each value is wound back in `rewind` and turned over
+  // MID-step on the arrival or beat that makes it true, cued there by `lights`, an F.light or a cued
+  // F.set, so a frozen entry sample first sees it one step late or pairs two rewind values. A key
+  // names the chip as drawn, so one entry covers every same-named chip on that step. R2-STEP holds
+  // none of these rows. DO NOT light the chip on the step named in the key, where nothing happens to it.
+  ...[
+    ['network-model', '3', 'NAT', 'step 2 `no-nat` writes `none, src 10.244.1.5` with a cued F.set on its `hop` arrival. `same-node` carries the value in unchanged, so it earns no cue here (P-05)'],
+    ['network-model', '3', 'reachability', 'step 2 `no-nat` writes `cross-Node direct` cued on `hop`, and that is the value `same-node` winds back to before turning it over, cued, on its own `hop`'],
+    ['network-model', '4', 'reachability', '`same-node` writes `same-Node direct` cued on its `hop` arrival, and `node-agent` winds back to that value before turning it over, cued, on its own `hop`'],
+    ['network-model', '5', 'NAT', 'step 4 `node-agent` clears the value to `none` with a cued F.set on its `hop` arrival, after winding it back to `none, src 10.244.1.5`. `cni` only holds it'],
+    ['network-pod-ip-and-veth', '3', 'Pod IP', 'step 2 `address` winds the chip back to `allocated` and writes 10.244.1.5/24 at 800ms with the eth0 sublabel, the chip lit in `lit`: one result of one beat (P-03, P-04). `through` only holds it'],
+    ['network-service-clusterip', '3', 'DNAT', 'step 2 `program` winds the chip back to none and writes the rules after the watch arrival, with an F.light on dnatChip there. `send` only holds them'],
+    ['network-service-clusterip', '6', 'conntrack', 'both frames are rewind values: `reply` holds `flow pinned` until its h1 arrival, and `balance` holds `reverse NAT` until its send arrival, where an F.light cues `two flows`'],
+    ['network-service-clusterip', '7', 'DNAT', 'step 6 `balance` winds the chip back to .2.7 and writes .3.9 on its send arrival, cued by an F.light there. `balance-reply` only holds it'],
+    ['network-service-clusterip', '7', 'conntrack', 'both frames are rewind values: `balance` holds `reverse NAT` until send, and `balance-reply` holds `two flows` until its h1 arrival, where an F.light cues `reverse NAT`'],
+    ['network-service-clusterip', '7', 'backend', 'step 6 `balance` winds the chip back to 10.244.2.7 and writes 10.244.3.9 on its send arrival, cued by an F.light there. `balance-reply` only holds it'],
+    ['network-endpointslice-reconcile', '3', 'endpoint', 'all three rows: step 2 `reconcile` winds them back to (empty) and writes them on the `write` arrival, with an F.light on all three there. `readiness` winds ep2 back to ready=true for its own turnover on `upd`'],
+    ['network-endpointslice-reconcile', '4', 'endpoint', 'step 3 `readiness` winds ep2 back to ready=true and writes ready=false on the `upd` arrival, with an F.light on ep2 there. `consume` only holds it'],
+    ['network-service-terminating-endpoints', '4', 'condition', 'both rows: step 3 `delete` winds the conditions back to the steady values and turns ready and terminating over at 450ms with an F.light on both. `reprogram` only holds them'],
+    ['network-internal-traffic-policy', '3', 'Node-1 rules', 'step 2 `local` winds both rule chips back to both agents and turns them over at RULES_MS 300 with an F.light, the kube-proxy beat that writes them. `no-local-backend` only holds this one'],
+    ['network-internal-traffic-policy', '3', 'Node-2 rules', 'both frames are rewind values: `local` holds both agents until its 300ms turnover, and `no-local-backend` holds agent-2 until its own 300ms turnover to drop, cued there'],
+    ['network-externalname', '3', 'SNI · Host', 'step 2 `connect` winds the chip back to none and writes api.default.svc on the `hello` arrival, whose `lights` cue the chip. `mismatch` only holds it'],
+    ['network-externalname', '4', 'cert', 'step 3 `mismatch` winds the chip back to none and writes api.partner.example on the `cert` arrival, whose `lights` cue the chip. `slice` only holds it'],
+    ['network-external-traffic-policy', '2', 'share', 'all three shares: step 1 `cluster` winds them back to none and writes 33% on the `hop` arrival, whose `lights` cue all three. `cluster-snat` only holds them'],
+    ['network-external-traffic-policy', '2', 'client src IP', 'step 1 `cluster` winds the chip back to none and writes `lost (SNAT)` on the `hop` arrival, whose `lights` cue it. `cluster-snat` only holds it'],
+    ['network-external-traffic-policy', '2', 'extra hop', 'step 1 `cluster` winds the chip back to none and writes yes on the `hop` arrival, cued there, and `cluster-snat` winds back to that yes before its own cued turnover on `toN1`'],
+    ['network-external-traffic-policy', '3', 'extra hop', 'step 2 `cluster-snat` winds the chip back to yes and writes no on the `toN1` arrival, whose `lights` cue it. `local` only holds it'],
+    ['network-external-traffic-policy', '4', 'share', 'both 17% shares: step 3 `local` winds them back to 33% and writes 17% on the `drop` arrival, whose `lights` cue them. `healthcheck` only holds them'],
+    ['network-external-traffic-policy', '4', 'client src IP', 'step 3 `local` winds the chip back to `lost (SNAT)` and writes preserved on the `toN1` arrival, whose `lights` cue it. `healthcheck` only holds it'],
+    ['network-loadbalancer-direct-to-pods', '2', 'path through Nodes', 'step 1 `nodeports` winds the chip back to none and writes 2 on the `hop` arrival, whose `lights` cue it. `register` only holds it'],
+    ['network-loadbalancer-direct-to-pods', '4', 'path through Nodes', 'step 3 `direct` winds the chip back to 2 and writes 1 on the `toN1` arrival, whose `lights` cue it. `replace` only holds it'],
+    ['network-client-ip-preservation', '3', 'src', 'step 2 `terminate` winds rSrc back to none and writes 10.244.0.9 on the `out` arrival, the chip lit in `lit`. `xff` only holds it'],
+    ['network-client-ip-preservation', '4', 'app reads', 'step 3 `xff` winds the chip back to socket and writes header on the `out` arrival, the chip lit in `lit`. `forge` only holds it'],
+    ['network-client-ip-preservation', '5', 'X-Forwarded-For', 'the step 4 frame is the rewind of `forge`, which turns rXff over on `out`. Settled against settled this is the R2-STEP row already carried: a raw stream has no header, and nothing cleared one'],
+    ['network-client-ip-preservation', '5', 'client IP', 'both frames are rewind values: `forge` holds recovered until `out`, and `passthrough` holds `trusted hop only` until its own `out`. Settled against settled this is the R2-STEP row already carried: the value returns to the steady reading, uncued on purpose'],
+  ].map(([card, step, chip, why]) => ({ axis: 'R2-ENTRY', card, where: [step, chip], why })),
+  { axis: 'R2-ENTRY', card: 'network-netfilter-path', where: ['4', 'hook'],
+    why: 'step 4 `out` winds the chip back to FORWARD, the box the `fork` hop delivered the packet '
+      + 'to and the one lit at entry, and writes `FORWARD, POSTROUTING` on the `toPo` arrival, whose '
+      + '`lights` cue it. A frame frozen at t=0 reads the rewind value, and settled against settled '
+      + 'R2-STEP reports nothing. DO NOT light the chip at entry: the cue would be spent before the '
+      + 'turnover it announces' },
   // storage-container-filesystem writes every chip a ball earns through `chips`, winds it back in
   // `rewind`, and turns it over and lights it with an F.set on that ball's arrival. A frozen entry
   // sample first sees each value on the step after the one that wrote it. R2-STEP reports none.
@@ -1035,8 +1129,10 @@ const ENTRIES = [
   // storage-volume-snapshot, the same class: each step winds the chips its ball earns back in
   // `rewind` and turns them over with a cued F.set on that ball's arrival (P-03). R2-STEP reports none.
   ...[
+    ['3', 'readyToUse', 'step 2 `request` writes false when the bind ball reaches the content (`bind`) and lights it there'],
     ['4', 'readyToUse', 'step 3 `cut` writes true when CreateSnapshot reaches the pool (`call`) and lights it there'],
     ['4', 'shared blocks', 'step 3 `cut` writes 6 of 6 when CreateSnapshot reaches the pool (`call`) and lights it there'],
+    ['4', 'stored', 'step 3 `cut` writes same pool when CreateSnapshot reaches the pool (`call`) and lights it there'],
     ['5', 'shared blocks', 'step 4 `diverge` writes 5 of 6 when the old C v2 reaches the snapshot row (`keep`) and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-volume-snapshot', where: [step, chip], why })),
   // storage-volume-mode, the same class: each step winds the chip its ball earns back in `rewind`
@@ -1152,6 +1248,39 @@ const ENTRIES = [
     ['3', 'nvme1n1 on host', 'step 2 `shared` writes `1 entry` when the staging entry lands in the host table (`rep`) and lights it there'],
     ['4', 'nvme1n1 on host', 'step 3 `bind` writes `2 entries` when the bind entry lands in the host table (`rep`) and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-mount-path-chain', where: [step, chip], why })),
+
+  // Workloads, the rewind class: each value is wound back in `rewind`, turned over by an F.set on
+  // the arrival that earns it and cued on the step that turns it. R2-STEP reports none.
+  ...[
+    ['workloads-pod-pending-init-states', '5', 'RESTARTS', 'step 4 `initializing` winds RESTARTS back to `3 (20s ago)` and writes 0 on the create arrival (`create`), lit from entry'],
+    ['workloads-pod-startup-conditions', '3', 'Service endpoints', 'step 2 `sandbox` winds the endpoint back to empty and writes it on the sandbox arrival (`create`), lit from entry'],
+    ['workloads-image-pull-registry-auth', '5', 'layers cached', 'step 4 `pull` winds the count back to `2 of 4` and writes `4 of 4` when the 200 with the layers is back (`layers`), lit from entry'],
+    ['workloads-crashloopbackoff', '3', 'container state', 'step 2 `backoff-named` winds the state back to `Running (restarted)` and writes Waiting on the exit report arrival (`exit`), lit from entry'],
+    ['workloads-probes', '3', 'startupProbe', 'step 2 `gate-opens` winds startupProbe back to `probing 4/30` and writes `passed (retired)` on the pass arrival (`pass`), lit from entry'],
+    ['workloads-probes', '5', 'readinessProbe', 'step 4 `readiness-fails` winds readinessProbe back to `passing 1/1` and writes `failed 3/3` on the report arrival (`report`), lit from entry'],
+    ['workloads-probes', '6', 'livenessProbe', 'step 5 `liveness-fails` winds livenessProbe back to passing and writes `failed 3/3` on the kill beat, lit from entry'],
+    ['workloads-container-states', '4', 'restartCount', 'step 3 `restart` winds restartCount back to 1 and writes 2 on the status write arrival (`write`), lit from entry'],
+    ['workloads-pod-resize', '3', 'spec.containers[].resources', 'step 2 `patch` winds the spec back to 700m and writes 800m on the PATCH arrival, lit from entry'],
+    ['workloads-pod-resize', '6', 'status.containerStatuses[].resources', 'step 5 `apply` winds the status back to 700m and writes 800m on the actuation arrival (`apply`), lit from entry'],
+    ['workloads-pod-resize', '6', 'Pod resize condition', 'step 5 `apply` winds the condition back to PodResizeInProgress and writes the settled reading on the actuation arrival (`apply`), lit from entry'],
+    ['workloads-poststart-prestop-hooks', '4', 'postStart hook', 'step 3 `settled` winds the hook back to `running (exec)` and turns it to `exit 0` with chipsCued in an F.set on the ack arrival, cued there'],
+    ['workloads-poststart-prestop-hooks', '4', 'container state', 'step 3 `settled` winds the state back to Waiting and turns it to Running with chipsCued in an F.set on the ack arrival, cued there'],
+  ].map(([card, step, chip, how]) => ({ axis: 'R2-ENTRY', card, where: [step, chip],
+    why: how + ', so a frame frozen at t=0 reads the rewind value and the turnover is first seen one '
+      + 'step later. DO NOT close it by dropping the rewind: the chip would state its value before '
+      + 'the ball that earns it lands' })),
+  // workloads-probes, the two rows its record rules: a background probe state the step is not about
+  // changes uncued, because in a `chips` category `lit` names the subject of the step (P-09).
+  { axis: 'R2-ENTRY', card: 'workloads-probes', where: ['3', 'livenessProbe'],
+    why: 'two changes read as one by the frozen sample. `held` to `running` is step 2 `gate-opens`, '
+      + 'wound back and written lit on the pass arrival. `running` to `passing` is step 3 `ready`, '
+      + 'background state on the step whose subject is readiness, and the card record keeps it uncued: '
+      + 'lighting it points the reader at the wrong chip' },
+  { axis: 'R2-ENTRY', card: 'workloads-probes', where: ['6', 'readinessProbe'],
+    why: 'step 5 `liveness-fails` writes `reset` on the kill beat together with the lit liveness and '
+      + 'restart chips, and keeps readinessProbe dark: the subject of that step is the kill, and the '
+      + 'card record rules that a probe reset beside it is background state. Lighting it would put '
+      + 'four lit chips of four on a step that is about one probe' },
 
   // ---------------------------------------------------------------------------------------
   // R3. One entry. A block that receives a ball must be dark when the step opens, and the
@@ -1273,6 +1402,16 @@ const ENTRIES = [
   { axis: 'R4', card: 'storage-configmap-secret-mount', where: ['3', 'app.conf'],
     why: 'the app.conf row is lit by the `F.light` on the rename beat at 2800ms, the moment ..data and so app.conf start resolving to v2, and its read leaves at 4700ms. No ball ever lands on the row, so R4 finds no earlier arrival. `confRow` in `lit` would light the entry beside a still lit Kubelet from 0ms, before the ..data_tmp link it depends on exists.' },
 
+  { axis: 'R4', card: 'workloads-container-states', where: ['6', 'Kubelet'],
+    why: 'the Kubelet is MID-CHAIN on `logs` and is cued as one: `F.light` on the `ask` arrival lights '
+      + 'it at 1500ms and the readlog hop leaves one BEAT.afterHop later. R4 reads a frame frozen at '
+      + 't=0 and credits only a ball landing on the box, so it cannot see the F.light. `kubelet` in '
+      + '`lit` would light it before the request that sets it working has arrived' },
+  { axis: 'R4', card: 'workloads-pod-scheduling-gates', where: ['6', 'example.com/bar'],
+    why: 'the ball re-emerges at the far face of the gate assembly (A-19): the sender is the Pod, '
+      + 'which pulses first, and the gate it passes is the removed ghost at OPACITY.terminated. '
+      + 'Lighting the gate would say the entry the previous step removed is back in the list' },
+
   // ---------------------------------------------------------------------------------------
   // FORM-B. The queue is hundreds of rows deep and ranked by lead, so an entry here says the
   // ranking put a row high and a person read it and kept it.
@@ -1339,6 +1478,26 @@ const ENTRIES = [
       + 'been crossed and is the precondition of the report leaving. Cueing l1 on the departure and '
       + 'this one on the arrival, or the reverse, is the split P-04 calls worse than doing '
       + 'neither: the two are one verdict read together.' },
+  { axis: 'FORM-B', card: 'cluster-list-watch-informers', where: ['watch', 'watchChip'],
+    why: 'the INFORMER opens the watch, so `open · chunked HTTP` is true the moment it issues the '
+      + 'GET, and the one ball of the step is the stream the API sends DOWN that open connection. '
+      + 'The ball rides the open watch rather than opening it, so binding the chip to its arrival '
+      + 'would draw the stream arriving on a connection the picture still calls closed.' },
+  { axis: 'FORM-B', card: 'cluster-scheduler-decision', where: ['bind', 'winnerChip'],
+    why: '`Node-4 · 92` is the verdict of the scoring the PREVIOUS step drew, and the verdict is '
+      + 'what SENDS the first ball of this step, the Binding POST to the API. It stands before the '
+      + 'ball departs rather than after anything lands, the shape of `cluster-leader-election '
+      + 'renew v1`. Binding it to the POST arrival would draw the Scheduler posting a Binding for '
+      + 'a Node it had not yet picked.' },
+  { axis: 'FORM-B', card: 'cluster-static-pods', where: ['manifest', 'fileChip'],
+    why: 'the file is earned by the fileBox REVEAL, which starts at 0 beside the chip, and the one '
+      + 'ball of the step is the Kubelet READING that file, which leaves at REVEAL_MS once it is on '
+      + 'disk. The lead the queue ranks is measured to that read, which the file is the source of, '
+      + 'not its result. `edit-file fileChip` on FORM-E is the same shape on the same chip.' },
+  { axis: 'FORM-B', card: 'cluster-static-pods', where: ['drain', 'mirrorChip'],
+    why: 'the chip restates what the step wire states at entry, `kubectl drain Node-1 · mirror Pods '
+      + 'are skipped`: the drain policy is known before any ball moves, and P-04 keeps chip and wire '
+      + 'together. Deferring the chip alone would split one fact across two places' },
   { axis: 'FORM-B', card: 'workloads-graceful-shutdown', where: ['expiry', 'graceChip'],
     why: 'the window reading 0s · expired at entry is the PREMISE of the step, not something the '
       + 'ball produces: the timer reaching 0 is what makes the Kubelet send SIGKILL, so the kill '
@@ -1411,10 +1570,59 @@ const ENTRIES = [
       + 'is what decides whether the work ends. A CronJob ending once per tick is a property of '
       + 'the schedule, and it holds whether or not this particular tick has fired yet.' },
 
+  // Workloads captions and premises. Each chip names the rule or the premise its step states, or
+  // describes a moment no ball carries, so there is no arrival for it to wait for (P-06).
+  { axis: 'FORM-B', card: 'workloads-probes', where: ['startup-gating', 'startupChip'],
+    why: '`probing 4/30` is the state the whole step names, true for its whole length: the probe ball '
+      + 'is one period of it, and no arrival earns `probing`. The verdicts the card does earn, on '
+      + 'every later step, wait for the report that carries them' },
+  ...['statusChip', 'restartChip', 'ageChip', 'holdChip'].map(chip => ({ axis: 'FORM-B', card: 'workloads-pod-pending-init-states', where: ['init-failing', chip],
+    why: 'the step opens after a time skip, on a loop already live: init-1 is lit and reads '
+      + 'CrashLoopBackOff at entry, so the four row cells agree with the box from the first frame. '
+      + 'The one ball is the Pod REPORTING upward and produces none of them, and AGE is the clock of '
+      + 'the Pod. Winding them back would draw a crash loop under a row still reading Init:0/2' })),
+  ...['scheduled', 'initialized', 'containers-ready'].map(step => ({ axis: 'FORM-B', card: 'workloads-pod-startup-conditions', where: [step, 'timeChip'],
+    why: 'the chip is the lastTransitionTime of the one tread this step flips, and that tread is '
+      + 'taken and lit at entry beside it. The condition is stamped where it is written, before the '
+      + 'ball that reports it leaves, so binding the chip alone to the arrival would split the stamp '
+      + 'from the rung it dates (P-04)' })),
+  ...[
+    ['policy', 'focusChip', 'names the field the step reads, Pod-level and defaulting to Always'],
+    ['exit-zero', 'focusChip', 'states the restart rule for exit 0'],
+    ['exit-nonzero', 'focusChip', 'states the restart rule for a non-zero exit'],
+    ['backoff', 'focusChip', 'states the shared backoff rule'],
+    ['backoff', 'pod3Chip', 'is counterfactual: it states what does NOT happen to the Never Pod, which no arrival can earn'],
+  ].map(([step, chip, what]) => ({ axis: 'FORM-B', card: 'workloads-pod-restart-policy', where: [step, chip],
+    why: 'the chip ' + what + '. It is true before any ball, the daemonset focus caption convention, '
+      + 'and the status PATCH that follows reports a decision already made' })),
+  ...[
+    ['exit-zero', 'pod1Chip'], ['exit-zero', 'pod2Chip'], ['exit-zero', 'pod3Chip'],
+    ['exit-nonzero', 'pod2Chip'], ['exit-nonzero', 'pod3Chip'],
+    ['backoff', 'pod1Chip'], ['backoff', 'pod2Chip'],
+  ].map(([step, chip]) => ({ axis: 'FORM-B', card: 'workloads-pod-restart-policy', where: [step, chip],
+    why: 'the result is earned by the IN-PLACE exit, all three Pods pulsing at REACT_MS 400, which no '
+      + 'ball carries. The 1900ms the queue ranks is the status PATCH that leaves AFTER the Kubelet '
+      + 'decided, so the real lead is 400ms, inside the entry beat P-06 allows. The three Pod chips '
+      + 'move together on every step, so deferring one alone would be the P-04 split' })),
+  ...['schedule', 'cgroups', 'tiers'].map(step => ({ axis: 'FORM-B', card: 'workloads-pod-qos-classes', where: [step, 'focusChip'],
+    why: 'a caption of the rule the step states, not object state: the record keeps the order on the '
+      + 'sublabels and holds the focus chip and the qosClass chips uncued together (P-09a, P-04)' })),
+  { axis: 'FORM-B', card: 'workloads-daemonset', where: ['node-join', 'focusChip'],
+    why: 'the same caption convention as the five FORM-E daemonset focus rulings: the step moves no '
+      + 'counter on purpose, and the caption states its premise, Node-4 joining without the label, '
+      + 'which no arrival produces' },
+  { axis: 'FORM-B', card: 'workloads-pod-scheduling-gates', where: ['queued', 'metricChip'],
+    why: 'the card record rules it: the metric is the ONE reading this step turns over and it is the '
+      + 'answer the narration gives at entry, the enqueue following from step 5 emptying the list. '
+      + 'The ball draws the Pod reaching the queue and does not move the count, so winding it back '
+      + 'would count the Pod as gated for the opening beat of the step that says it joined active' },
+  { axis: 'FORM-B', card: 'workloads-replicaset', where: ['converge', 'actChip'],
+    why: 'the ReplicaSet acts first: it is lit at entry and its DELETE leaves at 0ms, so `delete -1` '
+      + 'names the decision being sent rather than the result of an arrival (P-06, M-18a)' },
+
   // ---------------------------------------------------------------------------------------
-  // FORM-E. Twenty six entries, twenty six findings, nothing unread: that is the state that let
-  // FORM-E out of the report and into `npm test`, and each one is the measurement that put a
-  // finding here. ../unit/chip-beat-e.test.mjs asserts on this set, so an entry that stops
+  // FORM-E. One entry per finding and nothing unread: that is the state that let FORM-E out of
+  // the report and into `npm test`, and each one is the measurement that put a finding here. ../unit/chip-beat-e.test.mjs asserts on this set, so an entry that stops
   // matching turns the GATE red rather than printing a note.
   // ---------------------------------------------------------------------------------------
   { axis: 'FORM-E', card: 'cluster-pod-priority-preemption', where: ['delete', 'focusChip'],
@@ -1476,12 +1684,33 @@ const ENTRIES = [
   { axis: 'FORM-E', card: 'cluster-leader-election', where: ['renew', 'v3'],
     why: 'See `renew v2`: the second standby runs the identical poll and its chip moves with it, or '
       + 'P-04 splits one fact across two chips.' },
+  { axis: 'FORM-E', card: 'cluster-node-failure', where: ['evict', 'leaseChip'],
+    why: '`over 350s · Expired` is a CLOCK, the age of a Lease nobody has renewed, and it grows '
+      + 'whether or not anything travels. The DELETE this step sends does not produce it: the age '
+      + 'passing 50s plus 300s is the expiry the step opens on, and it is why the toleration has '
+      + 'run out and the DELETE leaves at all. Its neighbour evictChip waits because `Terminating` '
+      + 'is what that DELETE writes, and until it lands the timer reads `0s · Expired`, which this '
+      + 'clock agrees with. Binding the age to that arrival would say a deletion reaching the Node '
+      + 'is what aged the Lease.' },
   { axis: 'FORM-E', card: 'cluster-static-pods', where: ['edit-file', 'fileChip'],
     why: 'fileChip is the manifest file on disk, and the file is the SOURCE of the first ball here, '
       + 'the spec segment running from fileBox to the Kubelet. The edit therefore has to be on '
       + 'screen before the ball leaves, not after it lands. Step 1 is the same shape and reads '
       + 'correctly: the chip takes the new filename at entry and the segment leaves REVEAL_MS '
       + 'later.' },
+  // One shape over all five steps: `last op` names the CRI call the step SENDS, and the result
+  // chips beside it wait for the arrival that produces them.
+  ...[
+    ['sandbox', 'RunPodSandbox', 'sandbox id and status wait for the `run` arrival, where the sandbox appears on the Node'],
+    ['cni', 'CNI ADD', 'Pod IP, status and the shell sublabel wait for `conf`, where the netns config lands on the sandbox'],
+    ['image', 'PullImage', 'status waits for the PullImage call to land on the runtime'],
+    ['create', 'CreateContainer', 'status waits for `create`, where the container lands dim inside the sandbox'],
+    ['start', 'StartContainer', 'status and the app sublabel wait for `start`, where the container brightens'],
+  ].map(([step, call, neighbours]) => ({ axis: 'FORM-E', card: 'cluster-pod-sandbox-cri', where: [step, 'lastOpChip'],
+    why: `\`${call}\` is the call this step SENDS, and the call is what puts the first ball on the `
+      + 'wire, so it is true before anything departs rather than after anything lands, the shape of '
+      + `\`cluster-leader-election renew v1\`. What the arrival earns is the result: ${neighbours}. `
+      + 'Binding the call name to its own arrival would draw the Kubelet calling nothing for 700ms.' })),
   { axis: 'FORM-E', card: 'cluster-taints-tolerations', where: ['prefer', 'taintsChip'],
     why: 'The rewrite of spec.taints is the PREMISE of the step and its opening sentence, true '
       + 'before the Scheduler forms the binding this step sends: no arrival here produces it, and '
@@ -1573,6 +1802,45 @@ const ENTRIES = [
       + 'the delete. Winding it back would draw a controller that deletes first and reaches the '
       + 'deadline afterwards, which inverts the one comparison the card is about. What the arrival '
       + 'earns is statusChip, and that is the chip this step holds back.' },
+  // workloads-pod-pending-init-states `init-running`: NODE is the BIND, which no ball draws.
+  { axis: 'FORM-E', card: 'workloads-pod-pending-init-states', where: ['init-running', 'nodeChip'],
+    why: 'the Scheduler BINDS the Pod before the Kubelet ball leaves, and no bind ball is drawn: '
+      + 'the step opens on `A Node is chosen, the Node column fills in, and the Kubelet takes over`, '
+      + 'and the Node-1 frame and its corridor come up to full strength at entry. The holder stands '
+      + 'beside it as `the Kubelet, starting init 1`, the same bind read from the Node side, and '
+      + 'winding NODE back would draw a full Node-1 frame under a <none> cell. What the Kubelet ball '
+      + 'earns is containerStatuses, the STATUS counter, `running init 1`, the box readings and the '
+      + 'Pod line, and those wait for it.' },
+  // workloads-crashloopbackoff `reset`, three rows and one ruling. The fixed container already runs
+  // when the step opens: the Pod pulses and lifts to full at 0ms and the narration opens on it.
+  ...['stateChip', 'reasonChip', 'restartChip'].map(chip => ({ axis: 'FORM-E', card: 'workloads-crashloopbackoff', where: ['reset', chip],
+    why: 'the new container running stably is the PREMISE of the step: the Pod blinks and lifts to '
+      + 'full strength at 0ms, and the state, the cleared reason and the counter that moved with the '
+      + 'new container all describe it from the first frame. The one ball is the healthy report '
+      + 'going to Kubelet, and what it earns is the backoff reset, which is the chip this step holds '
+      + 'back to its arrival, where the ghost bar rises. Winding these back would draw a Pod at full '
+      + 'strength still reading Waiting in CrashLoopBackOff.' })),
+  // workloads-init-containers-and-sidecars, three rows and one ruling. On each of steps 2 to 4 the
+  // runtime is lit at entry and ACTS FIRST, reporting a change that has already happened.
+  ...[
+    ['migrate-schema', 'waitDbChip', 'wait-for-db has exited 0'],
+    ['sidecar-start', 'migrateChip', 'migrate-schema has exited 0'],
+    ['main-start', 'sidecarChip', 'the sidecar has reported Started and runs on'],
+  ].map(([step, chip, what]) => ({ axis: 'FORM-E', card: 'workloads-init-containers-and-sidecars', where: [step, chip],
+    why: what + ' when the step opens, which the narration states first: the runtime is lit at '
+      + 'entry because it is the one acting, and the ball it sends up the answer lane REPORTS that '
+      + 'change to Kubelet rather than producing it. What the chain earns is the next container, '
+      + 'and that chip waits for the create landing on its box. Winding this one back would draw '
+      + 'a runtime reporting an exit the chip says has not happened.' })),
+  // workloads-pod-startup-conditions `ready`: the time chip is the lastTransitionTime of the rung
+  // the step flips, and the Kubelet reaches that verdict on its own, at entry.
+  { axis: 'FORM-E', card: 'workloads-pod-startup-conditions', where: ['ready', 'timeChip'],
+    why: 'the chip is the lastTransitionTime of the ONE tread this step flips, Ready, and the '
+      + 'Kubelet computes that verdict on its own: it is lit at entry and its PATCH waits BEAT.lead. '
+      + 'The tread is taken and lit at entry, so the stamp and its rung are one fact, and binding '
+      + 'the chip alone to the arrival would split it from the rung it dates (P-04). What the PATCH '
+      + 'landing on the API earns is the endpoint turning ready=true and the Pod line turning to '
+      + 'serving, and both wait for it.' },
   { axis: 'FORM-E', card: 'network-proxy-rule-resync', where: ['immediate', 'floorChip'],
     why: 'minSyncPeriod is a CONFIGURATION FIELD the operator set before anything happened, and the '
       + 'step opens on it in words: `With minSyncPeriod set to 0s kube-proxy resyncs immediately`. '
@@ -1593,11 +1861,38 @@ const ENTRIES = [
       + 'this one to the arrival would claim the server address appears when the reply reaches the '
       + 'Node rather than when the server chose it.' },
   { axis: 'FORM-E', card: 'network-pod-egress-snat', where: ['reply', 'ruleChip'],
-    why: 'The narration of this step is `the reply walks no rule at all`, so `none, conntrack only` '
-      + 'is the premise the step reasons from and is true for its whole length rather than at a '
-      + 'moment inside it. The card has the deferral technique and applies it to the two chips the '
-      + 'arrival does earn. Deferring this one would leave the step reading MASQUERADE for its '
+    why: 'The narration of this step is `The reply walks no masquerade rule at all`, so `no nat rule '
+      + 'walked` is the premise the step reasons from and is true for its whole length rather than '
+      + 'at a moment inside it. The card has the deferral technique and applies it to the two chips '
+      + 'the arrival does earn. Deferring this one would leave the step reading MASQUERADE for its '
       + 'first 700ms, which is the claim the step exists to deny.' },
+  { axis: 'FORM-E', card: 'network-pod-egress-snat', where: ['masquerade', 'srcChip'],
+    why: 'MASQUERADE rewrites the source inside the rule box, where the packet already stands when '
+      + 'the step opens. Both balls of the step leave AFTER the rewrite: the store ball carries the '
+      + 'translated flow to conntrack, and the out ball carries the rewritten source on its tag. '
+      + 'Neither produces it. ctChip waits because the entry exists only once the store ball lands, '
+      + 'and `none` beside a rewritten source is the order the narration states: rewrite, then store.' },
+  { axis: 'FORM-E', card: 'network-pod-egress-snat', where: ['masquerade', 'ruleChip'],
+    why: 'The walk ended on MASQUERADE in the rule box before this step opens, the fall-through the '
+      + 'previous step narrates, and the rewrite beside it is that rule acting. No arrival on this '
+      + 'step produces the match. ctChip is the one value an arrival earns here, and it waits for '
+      + 'the store ball.' },
+  // network-policy: the policy object is applied before the call leaves, so the rule chip is the
+  // premise of the step. The verdict reads `in flight` until the arrival or the drop decides it.
+  ...[
+    ['isolate', 'inChip', 'The NetworkPolicy that selects db-1 and allows nothing is the premise of the step: '
+      + 'selecting the Pod raises the boundary before the call leaves web-1, and the bar is drawn from '
+      + 'entry for the same reason. No arrival writes a rule. vChip waits because the drop is what '
+      + 'the ball earns, and `in flight` beside `allows nothing` contradicts nothing while it travels.'],
+    ['allow', 'inChip', 'The ingress rule is written into the policy before the call is sent, which is the '
+      + 'order the narration states: the policy gains a rule, then the same call passes. No arrival '
+      + 'writes a rule. vChip waits for db-1 to take the call, and `in flight` beside `from role=web` '
+      + 'is the moment before that answer.'],
+    ['both-ends', 'egChip', 'The second policy and its egress rule are the premise the step opens on: it '
+      + 'selects web-1, and the boundary on the way out stands before the call leaves. No arrival '
+      + 'writes a rule. vChip waits for the call to clear both boundaries and land on db-1, and reads '
+      + '`in flight` until then.'],
+  ].map(([step, chip, why]) => ({ axis: 'FORM-E', card: 'network-policy', where: [step, chip], why })),
   { axis: 'FORM-E', card: 'network-mtu-overhead', where: ['path', 'wireChip'],
     why: 'The size of the frame is settled where the frame is BUILT, inside Pod A, so 1500 B is '
       + 'true from the moment the step opens and the 100 over half of it is a comparison against '
@@ -1721,6 +2016,100 @@ const ENTRIES = [
   { axis: 'FORM-B', card: 'network-service-debugging', where: ['named-port', 'targetChip'],
     why: 'targetPort http is the Service spec the step opens on. No arrival writes a spec field.' },
 
+  // network-service-types, twelve rows and one cause, ruled under NOT A DEFECT in its record. Every
+  // chip on this card is a Service FIELD, true before any packet: the balls read the rules those
+  // fields produced and write none of them.
+  ...[
+    ['clusterip', 'typeChip', 'type ClusterIP is the spec field written when the Service is created, before the client dials the VIP'],
+    ['clusterip', 'ciChip', 'the clusterIP is allocated when the Service is created, so 10.96.0.20 exists before the client dials it. The vip arrival earns the Service rules lighting'],
+    ['nodeport', 'typeChip', 'type NodePort is the spec field the step opens on. No arrival writes a spec field'],
+    ['nodeport', 'npChip', 'nodePort 31000 is allocated when the type is written, before any client can dial NodeIP:31000'],
+    ['loadbalancer', 'typeChip', 'type LoadBalancer is the spec field the step opens on. No arrival writes a spec field'],
+    ['loadbalancer', 'lbChip', 'the LB address is status.loadBalancer.ingress, published once the balancer is provisioned and so before a client can dial 203.0.113.7'],
+    ['externalname', 'typeChip', 'type ExternalName is the spec field the step opens on. No arrival writes a spec field'],
+    ['externalname', 'ciChip', 'an ExternalName Service has no clusterIP by construction. An absence in the spec, which no arrival makes'],
+    ['externalname', 'npChip', 'an ExternalName Service has no nodePort by construction. An absence in the spec, which no arrival makes'],
+    ['externalname', 'lbChip', 'an ExternalName Service has no balancer address by construction. An absence in the spec, which no arrival makes'],
+    ['headless', 'typeChip', 'a headless Service is type ClusterIP in its spec, the field the step opens on. No arrival writes it'],
+    ['headless', 'ciChip', 'clusterIP: None is the spec the step opens on and names, which no arrival writes'],
+  ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-service-types', where: [step, chip], why })),
+  // network-policy, the three ABSENCE rows on `implementer`. The rule chips on steps 2 to 4 stand
+  // beside a verdict that waits for its arrival, so they are FORM-E and carried there.
+  ...[
+    ['implementer', 'inChip', 'with no plugin implementing NetworkPolicy no boundary is ever raised, an absence true from the first millisecond. The two calls only demonstrate it'],
+    ['implementer', 'egChip', 'the same absence on the way out of web-1: nothing programs a boundary, so none exists at any moment of the step'],
+    ['implementer', 'vChip', '`nothing enforced` is the absence the step opens on, not the outcome of either call: both calls are served exactly because nothing was ever enforced'],
+  ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-policy', where: [step, chip], why })),
+  // network-loadbalancer-bare-metal: the mode is operator config, and a speaker role is what SENDS a
+  // ball. What the arrivals earn is the router entry, and that waits for them (rewind + F.set).
+  ...[
+    ['l2', 'modeChip', 'L2 (ARP) is the L2Advertisement the operator configured, the premise the step opens with. No arrival picks a mode'],
+    ['l2', 'spk1', 'the hash election runs before the ARP reply, and spk1 SENDS that reply, lit before it leaves (M-18a). The router sublabel is what the arrival earns, and it waits'],
+    ['failover', 'spk1', 'Node-1 has failed when the step opens, its frame dimmed from entry. No ball carries a failure'],
+    ['failover', 'spk2', 'memberlist re-election comes first, then spk2 sends the gratuitous ARP as the lit sender. The router entry is what the arrival earns, and it waits'],
+    ['bgp', 'modeChip', 'BGP (ECMP) is configuration, the premise the narration opens on. No arrival picks a mode'],
+    ['bgp', 'spk1', 'an UPDATE travels only over a session that is already up, so the session is true before the ball leaves. The arrivals earn the router ECMP entry, which waits for u3'],
+    ['bgp', 'spk2', 'the same as spk1: the session stands before its UPDATE leaves'],
+    ['bgp', 'spk3', 'the same as spk1: the session stands before its UPDATE leaves'],
+  ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-loadbalancer-bare-metal', where: [step, chip], why })),
+  // network-hostnetwork-hostport: all eight come from the Pod spec and its setup, made before the
+  // client dials. The arrivals earn the eth, portmap and bridge lights and the Pod pulse.
+  ...['nsChip', 'ipChip', 'vethChip', 'portChip'].map(chip => ({ axis: 'FORM-B', card: 'network-hostnetwork-hostport', where: ['hostnetwork', chip],
+    why: 'follows from `hostNetwork: true` in the Pod spec, set before the Pod started. The request travels under it and does not produce it' })),
+  ...['nsChip', 'ipChip', 'vethChip', 'portChip'].map(chip => ({ axis: 'FORM-B', card: 'network-hostnetwork-hostport', where: ['hostport', chip],
+    why: 'the Pod keeps its own namespace, and portmap installed the :8080 mapping at Pod setup, before anyone dials. The request travels under it and does not produce it' })),
+  // network-traffic-distribution: values the rules are programmed with, which stand before the client
+  // sends. The record NOTE argues modeChip. Contrast session-affinity, where the pin waits for `arr`.
+  { axis: 'FORM-B', card: 'network-traffic-distribution', where: ['topology', 'modeChip'],
+    why: 'the zone filter is set when kube-proxy programs the rules: the zone-b dim and the lit '
+      + 'kube-proxy stand from entry, before the client pulses. Binding the chip to the arrival would '
+      + 'name the old setting over a picture whose zone is already dimmed' },
+  { axis: 'FORM-B', card: 'network-traffic-distribution', where: ['topology', 'pinChip'],
+    why: 'sessionAffinity back to None is a spec value, staged one lever at a time, and no connection '
+      + 'writes it' },
+  { axis: 'FORM-B', card: 'network-traffic-distribution', where: ['fallback', 'modeChip'],
+    why: 'the zone-a endpoints are not ready before the step opens, so kube-proxy has already written '
+      + 'every ready endpoint into its rules (zone-a dim from entry). The fallback is decided when the '
+      + 'rules are programmed, not when the connection lands' },
+  // network-netfilter-path, ruled under NOT A DEFECT in its record: on these two steps the ball
+  // LEAVES the place that already made the value, so the value stands at entry (P-06).
+  ...[
+    ['dnat', 'hookChip', 'the packet stands in PREROUTING when the step opens, delivered there on `enter`, and the nat table runs inside it. The ball leaves the hook'],
+    ['dnat', 'dstChip', 'the rewrite is made inside PREROUTING, where the packet stands at entry, and the ball leaves carrying the new dst on its tag. Binding the chip to the arrival would put the strip behind the tag on its own ball'],
+    ['dnat', 'ctChip', 'conntrack stores the translation where the rewrite is made, inside PREROUTING at entry, beside the dst it records'],
+    ['fork', 'hookChip', 'the hook a step opens at is the box the previous arrival delivered the packet to: `rt` lit on the dnat `hop`. The ball here leaves the decision'],
+  ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-netfilter-path', where: [step, chip], why })),
+  // network-pod-localhost, ruled under NOT A DEFECT in its record (P-06).
+  ...[
+    ['localhost', 'pathChip', 'the path is fixed by the address the app dials, 127.0.0.1, before the ball leaves. A caption for the road this step rides, and the arrivals earn the lo and sidecar lights'],
+    ['external', 'pathChip', '10.244.1.5 lives only on eth0, so the interface is fixed by the destination before the client sends. The arrival lights eth0 itself'],
+    ['external', 'bindChip', 'the app made that bind on `bind`, step 1. The call arriving shows what the bind means and cannot be what makes it'],
+  ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-pod-localhost', where: [step, chip], why })),
+  // network-pod-ip-and-veth, ruled under NOT A DEFECT in its record: step-scoped labels, the
+  // network-cni-invocation `CNI op` reading.
+  ...[
+    ['through', 'pathChip', '`veth, no lookup` states what a veth pair IS, a point to point link, which holds for every packet from the first millisecond. The arrival earns the peer lighting'],
+    ['port', 'hostChip', 'enslaving the host end to cni0 is CNI ADD configuration made before the card opens, so the port takes no address before any frame. The 700ms hop earns cni0 lighting'],
+    ['port', 'pathChip', 'the road this step frame rides, a caption for the step rather than the result of its one 700ms hop'],
+  ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-pod-ip-and-veth', where: [step, chip], why })),
+  // network-packet-classification: decisions made inside the box the packet already stands in, and
+  // the ball emerges with them (NET.A-01).
+  ...[
+    ['service', 'dstChip', 'the packet reached nat on `stations`, and the rewrite is made inside the box it stands in. The ball emerges already rewritten, and its arrival earns `route`'],
+    ['service', 'verdictChip', 'the Service-range verdict is the same nat decision as the rewrite beside it, made where the packet already stands at entry'],
+    ['podcidr', 'verdictChip', 'the route lookup ran when the packet reached `route` at the end of `service`, and the ball here leaves it. `default` binds its own verdict to the arrival on route, so the card is consistent'],
+  ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-packet-classification', where: [step, chip], why })),
+  // network-service-clusterip, ruled in its record: one dataplane decision, made where the packet
+  // already stands. `balance` binds the same decision to its own send arrival.
+  ...[
+    ['dnat', 'dnatChip', 'the packet reached the dataplane on `send`, which picks the backend and rewrites the destination before the rewritten packet leaves. The ball carries the address the chip names'],
+    ['dnat', 'ctChip', 'the conntrack entry is recorded in the same dataplane decision, before the rewritten packet leaves for Pod X'],
+    ['dnat', 'backChip', 'the chosen backend is that same decision. The arrival at Pod X earns its pulse, not the choice'],
+  ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-service-clusterip', where: [step, chip], why })),
+  { axis: 'FORM-B', card: 'network-pod-egress-snat', where: ['rule', 'ruleChip'],
+    why: 'the walk verdict is decided when `send` lands on the rule box in step 1. The one ball of this '
+      + 'step is the exempt road NOT taken (T-35), which cannot earn the verdict' },
+
   // ---------------------------------------------------------------------------------------
   // R2-STEP. All seven are ONE class: the chip TEXT changed while the FACT it reports did not,
   // so a cue would announce a change that did not happen. Anything outside this set is work.
@@ -1759,6 +2148,22 @@ const ENTRIES = [
       + 'port row is lit and the slice row stays dark, and lighting this chip would light both rows' },
   { axis: 'R2-STEP', card: 'network-service-debugging', where: ['4', 'serving'],
     why: 'same restoration, the endpoint the healthy step served' },
+
+  // workloads-probes, a second class, ruled in its record: in a `chips` category `lit` names the
+  // step subject, and these five are background probe states beside it (P-09).
+  ...[
+    ['3', 'livenessProbe', 'livenessProbe reaching `passing` on the step whose subject is readiness'],
+    ['5', 'startupProbe', 'startupProbe going to `reset` on the step whose subject is the kill'],
+    ['5', 'readinessProbe', 'readinessProbe going to `reset` on the step whose subject is the kill'],
+    ['6', 'livenessProbe', 'livenessProbe recovering on the step whose subject is the fresh container'],
+    ['6', 'readinessProbe', 'readinessProbe recovering on the step whose subject is the fresh container'],
+  ].map(([step, chip, what]) => ({ axis: 'R2-STEP', card: 'workloads-probes', where: [step, chip],
+    why: what + '. The card record keeps it dark: lighting it closes the row by pointing the reader '
+      + 'at the wrong chip, and lighting every changed chip on a liveness step is the same as '
+      + 'lighting none' })),
+  { axis: 'R2-STEP', card: 'workloads-replicaset', where: ['5', 'ownerReferences'],
+    why: 'the owner was set on `adopt`, and the string returns from the action to the standing '
+      + 'field. Same fact, so a cue would announce a write that did not happen' },
 
   // ---------------------------------------------------------------------------------------
   // CENTRE, CENTRE-LOW and OCCLUDED. These are the `L-16` population: the rule can only be
@@ -2048,6 +2453,17 @@ const ENTRIES = [
       + 'wall left out and the chip column still uncounted. CENTRE-LOW also judges against the '
       + 'panel bottom of ONE viewport, 143 at 1600x1000, and this card measures 204.97 at 1100x800, '
       + 'which is the blind spot the block below this one states about itself.' },
+
+  { axis: 'CENTRE', card: 'workloads-probes', where: [],
+    why: 'the card record OPEN: the chip strip spans 140..450 and centring it on 600 puts it at '
+      + '445..755, across the three probe lanes at 528 / 600 / 672 that run from 120 to 476, which '
+      + 'L-10 forbids. A full-width strip is four across at 270 a cell, which WL.L-05 refuses. The '
+      + 'content bbox is 140..1060 and centres on 600 exactly' },
+  { axis: 'OCCLUDED', card: 'workloads-env-before-pid-1', where: ['ConfigMap app-config'],
+    why: 'the card record OPEN: the source row starts at 254 so the spine lands on 600 with straight '
+      + 'legs. Held to the L-03 floor of 420 the row midpoint is 766 and the card leans 166 right of '
+      + 'WL.CX. The label is cut 61% at 1280x860 and 75% at 1100x800, and the lever that would close '
+      + 'it is clamping the panel height in CSS, which is catalog-wide (L-05a)' },
 
   // ---------------------------------------------------------------------------------------
   // A-05. NET.A-03 says a fan leg nothing rides is correct, so most of this set is that.

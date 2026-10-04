@@ -151,10 +151,14 @@ export const STEPS_SPEC = [
     opacity: { podGroup: OPACITY.pending },
     lit: ['kubelet', 'layersChip'],
     chain: 2,
-    // NO Pod pulse, and that absence is the assertion: ImageStatus asks the Node about its own
-    // layer store, and nothing on this step reaches the Pod or its container.
+    // `2 of 4` is the answer of the probe, so it waits for the probe to land (P-03).
+    rewind: { chips: { layersChip: 'not probed' } },
+    // The probe is made for this Pod's container, so the still-pending Pod blinks dim on arrival,
+    // the shape workloads-probes takes on the same corridor.
     flow: [
-      F.route({ points: SPINE, name: 'probe', lights: ['nodeEl'] }),
+      F.route({ points: SPINE, name: 'probe' }),
+      F.pulse({ pod: 'podGroup', dim: true, at: 'probe' }),
+      F.set({ at: 'probe', chips: { layersChip: '2 of 4' } }),
     ],
   },
   {
@@ -166,11 +170,14 @@ export const STEPS_SPEC = [
     opacity: { podGroup: OPACITY.pending },
     lit: ['kubelet', 'layersChip'],
     chain: 3,
+    // The layers are in the store only once the 200 with them is back, so the count waits for it.
+    rewind: { chips: { layersChip: '2 of 4' } },
     flow: [
       // Blob GET reaches the registry, the 200 with the layers hops back after it lands. The
       // registry lights on the GET landing: it answers the request, it does not open the step.
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'get', lights: ['registry'] }),
-      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, after: 'get' }),
+      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, after: 'get', name: 'layers' }),
+      F.set({ at: 'layers', chips: { layersChip: '4 of 4' } }),
     ],
   },
   {
@@ -183,8 +190,11 @@ export const STEPS_SPEC = [
     opacity: { podGroup: 1 },
     lit: ['kubelet', 'statusChip'],
     chain: 4,
+    // Running is earned where StartContainer lands and the Pod lifts, not at step entry.
+    rewind: { chips: { statusChip: CREATING } },
     flow: [
       F.route({ points: SPINE, name: 'start' }),
+      F.set({ at: 'start', chips: { statusChip: 'Running' } }),
       // Container created and started: the Pod lights up and pulses on arrival.
       F.fade({ target: 'podGroup', from: OPACITY.pending, to: 1, dur: FADE.in, at: 'start', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'podGroup', at: 'start' }),

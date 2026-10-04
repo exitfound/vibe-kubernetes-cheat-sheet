@@ -129,10 +129,11 @@ WHY NOT  The ladder below the panel with the band up top. The vertical budget be
          600: CENTRE measures blocks, the ladder is chips, and CoreDNS has to stay in the middle for
          the fan to work. Same reason the band cannot move back to the top.
 NOT A DEFECT
-         `qChip` is deliberately NOT on a beat, and `report/chip-beat.test.mjs` reports the four
-         record steps as FORM-E for it. The question is the step's PREMISE rather than something an
-         arrival produces: `asking()` states the same name in the FQDN band above at entry, so
-         binding the chip alone would leave the chip and the band contradicting each other for the
-         800ms before the query even leaves the client, and binding the band too would blank the name
-         while the narration is read, which is worse than the finding.
+         `qChip` is deliberately NOT on a beat. `report/chip-beat.test.mjs` reports the four record
+         steps as FORM-E for it, and `test/fixtures/carried.mjs` carries all four on that axis, where
+         `unit/chip-beat-e.test.mjs` reads the ruling. The question is the step's PREMISE rather
+         than something an arrival produces: `asking()` states the same name in the FQDN band above
+         at entry, so binding the chip alone would leave the chip and the band contradicting each
+         other for the 800ms before the query even leaves the client, and binding the band too would
+         blank the name while the narration is read, which is worse than the finding.
 ```

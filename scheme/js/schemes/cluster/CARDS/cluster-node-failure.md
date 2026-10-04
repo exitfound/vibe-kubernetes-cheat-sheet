@@ -155,6 +155,12 @@ MOTION   THE WHOLE NODE-1 SIDE HOLDS FULL STRENGTH UNTIL THE RESCHEDULE, and goe
          says so: R2-STEP is 7 findings, 7 carried, 0 left to work, and this card is on neither
          list. The sibling `cluster-taints-tolerations` prints the identical pair on its own taint
          step for the identical construction. `evictChip` does not print, because `evict` lights it.
+         `evict` takes the same form on that chip alone. It enters at `0s · Expired`, the toleration
+         run out and the DELETE leaving (`After that time elapses, the node lifecycle controller
+         evicts the Pods from the node`, taint-and-toleration), and reads `0s · Terminating` from
+         the `del` arrival, because the deletionTimestamp is what that DELETE writes and the Pod
+         sinks to its terminating shade on the same beat. The Lease age `over 350s · Expired` stays
+         at entry: it is a clock, and the expiry it states is why the DELETE leaves at all.
          DO NOT close those two rows by dropping the rewind. That trades a frozen-reading artefact
          for a real one: the three chips would then read their end value from the moment the step
          opens, and the ball would land on a taint the picture already showed. WHY NOT `lights:

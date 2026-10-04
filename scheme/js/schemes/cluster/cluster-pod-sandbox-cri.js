@@ -96,8 +96,8 @@ export const SCENE = {
       key: 'sandboxGroup', id: 'sandboxGroup', shellKey: 'shellEl', innerKey: 'pauseBox',
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod sandbox', sublabel: ' ', containers: 0,
       inner: { dx: INNER_DX, dy: INNER_DY, w: INNER_W, h: INNER_H, label: 'pause', sublabel: 'netns · IPC · UTS' },
-      // A SECOND inner box under its own id, so it can fade and pulse on a beat of its own. Inside
-      // the shell, not beside it: pulsePod only reaches what the Pod group contains.
+      // A SECOND inner box under its own id, so it can fade on a beat of its own. Inside the shell,
+      // not beside it: the sandboxGroup pulse only reaches what the Pod group contains.
       tune: (el, refs) => {
         const appBox = box({ x: APP_X, y: INNER_Y, w: INNER_W, h: INNER_H, label: 'app', sublabel: 'ENTRYPOINT', role: 'workloads' });
         appBox.style.setProperty('--workloads-color', POD_VIOLET);
@@ -113,8 +113,8 @@ export const SCENE = {
     P.box({ key: 'runtime', x: RT_X, y: TOP_Y, w: RT_W, h: BOX_H, label: 'containerd', sublabel: 'CRI gRPC server' }),
     P.box({ key: 'cni', x: CNI_X, y: TOP_Y, w: CNI_W, h: BOX_H, label: 'CNI plugin', sublabel: 'veth + IPAM' }),
   ],
-  // Both groups DO go to clearHighlights: the card pulses each of them in turn, and the pulse has
-  // to come back off between steps.
+  // Both groups DO go to clearHighlights: the Pod pulse strokes every rect inside sandboxGroup,
+  // the app box included, and it has to come back off between steps.
   reset: {
     keys: ['kubelet', 'runtime', 'cni', 'sandboxChip', 'ipChip', 'statusChip', 'lastOpChip'],
     pods: ['sandboxGroup', 'appGroup'],
@@ -144,10 +144,13 @@ export const STEPS_SPEC = [
     opacity: { appGroup: 0, sandboxGroup: 1 },
     lit: ['statusChip', 'kubelet', 'sandboxChip', 'lastOpChip'],
     chain: 0,
+    // The sandbox id and its status are earned where the sandbox appears, on the `run` arrival.
+    rewind: { chips: { sandboxChip: 'none', statusChip: 'none' } },
     // gRPC to the runtime, then the runtime materialises the sandbox on the node.
     flow: [
       F.top({ from: KUBE_R, to: RT_X, y: CALL_Y, name: 'grpc', lights: ['runtime'] }),
       F.route({ points: SANDBOX_CONNECTOR, after: 'grpc', name: 'run' }),
+      F.set({ at: 'run', chips: { sandboxChip: SANDBOX_ID, statusChip: 'sandbox ready' } }),
       F.fade({ target: 'sandboxGroup', from: 0, to: 1, dur: FADE.in, at: 'run', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'sandboxGroup', at: 'run' }),
     ],
@@ -162,6 +165,8 @@ export const STEPS_SPEC = [
     opacity: { appGroup: 0, sandboxGroup: 1 },
     lit: ['statusChip', 'lastOpChip', 'runtime', 'ipChip'],
     chain: 1,
+    // The IP lands on the sandbox with `conf`, and the shell sublabel says so on the same beat.
+    rewind: { chips: { ipChip: 'none', statusChip: 'sandbox ready' }, podSublabels: { shellEl: 'sandbox ready' } },
     flow: [
       // Runtime execs CNI (right arrow), then the netns config lands on the sandbox.
       F.top({ from: RT_R, to: CNI_X, y: CALL_Y, name: 'exec' }),
@@ -172,6 +177,7 @@ export const STEPS_SPEC = [
       // return packet, and getAnimations() hands them back in emission order.
       F.light({ targets: ['cni'], at: 'exec' }),
       F.route({ points: SANDBOX_CONNECTOR, after: 'exec', name: 'conf' }),
+      F.set({ at: 'conf', chips: { ipChip: POD_IP, statusChip: 'sandbox ready · IP set' }, podSublabels: { shellEl: 'IP 10.244.1.5' } }),
       F.pulse({ pod: 'sandboxGroup', at: 'conf' }),
     ],
   },
@@ -187,8 +193,12 @@ export const STEPS_SPEC = [
     opacity: { appGroup: 0, sandboxGroup: 1 },
     lit: ['lastOpChip', 'kubelet', 'statusChip'],
     chain: 2,
+    rewind: { chips: { statusChip: 'sandbox ready · IP set' } },
     // Image fetch is a kubelet -> runtime gRPC only. The Pod does not change yet.
-    flow: [F.top({ from: KUBE_R, to: RT_X, y: CALL_Y, lights: ['runtime'] })],
+    flow: [
+      F.top({ from: KUBE_R, to: RT_X, y: CALL_Y, name: 'pull', lights: ['runtime'] }),
+      F.set({ at: 'pull', chips: { statusChip: 'image pulled' } }),
+    ],
   },
   {
     id: 'create',
@@ -202,14 +212,17 @@ export const STEPS_SPEC = [
     opacity: { sandboxGroup: 1, appGroup: OPACITY.pending },
     lit: ['lastOpChip', 'kubelet', 'statusChip'],
     chain: 3,
+    rewind: { chips: { statusChip: 'image pulled' } },
     flow: [
       // gRPC to the runtime, then the created (not started) container lands dim.
       F.top({ from: KUBE_R, to: RT_X, y: CALL_Y, name: 'grpc', lights: ['runtime'] }),
       // The container id the narration says comes back, on the drawn return lane.
       F.top({ from: RT_X, to: KUBE_R, y: BACK_Y, after: 'grpc' }),
       F.route({ points: SANDBOX_CONNECTOR, after: 'grpc', name: 'create' }),
+      F.set({ at: 'create', chips: { statusChip: 'created · not started' } }),
       F.fade({ target: 'appGroup', from: 0, to: OPACITY.pending, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
-      F.pulse({ pod: 'appGroup', at: 'create' }),
+      // The whole Pod blinks, shell and both containers as one (M-03), never the app box alone.
+      F.pulse({ pod: 'sandboxGroup', at: 'create' }),
     ],
   },
   {
@@ -224,12 +237,14 @@ export const STEPS_SPEC = [
     opacity: { sandboxGroup: 1, appGroup: 1 },
     lit: ['kubelet', 'statusChip', 'lastOpChip'],
     chain: 4,
+    rewind: { chips: { statusChip: 'created · not started' }, sublabels: { appBox: 'created · not started' } },
     flow: [
       // gRPC to the runtime, then the ENTRYPOINT forks and the container brightens.
       F.top({ from: KUBE_R, to: RT_X, y: CALL_Y, name: 'grpc', lights: ['runtime'] }),
       F.route({ points: SANDBOX_CONNECTOR, after: 'grpc', name: 'start' }),
+      F.set({ at: 'start', chips: { statusChip: 'running' }, sublabels: { appBox: 'running' } }),
       F.fade({ target: 'appGroup', from: OPACITY.pending, to: 1, dur: FADE.in, at: 'start', fill: 'both', easing: 'ease-out' }),
-      F.pulse({ pod: 'appGroup', at: 'start' }),
+      F.pulse({ pod: 'sandboxGroup', at: 'start' }),
     ],
   },
 ];

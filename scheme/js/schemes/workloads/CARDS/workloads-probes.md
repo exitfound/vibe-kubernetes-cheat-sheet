@@ -75,8 +75,8 @@ LANES    TEN paths, and the rule that arranges them is ONE PER STEP PER DIRECTIO
          act at once and therefore the only one that needs three positions.
          THE THREE HELD RELATIONS STAND ON THE POSTER FRAME AND NOWHERE ELSE. That frame is the
          card's opening statement, three probes and two of them shut, and every step after it is
-         about one probe at a time. epRel is the fourth: on liveness-fails the endpoint goes
-         ready=false with the container and no ball runs to the slice, so the relationship is drawn
+         about one probe at a time. epRel is the fourth: on liveness-fails the endpoint stays
+         ready=false through the restart and no ball runs to the slice, so the relationship is drawn
          rather than left blank. Four relations keeps the `relations` lever kin.mjs reports, which
          no sibling in this section carries.
          The down lanes end on the Node FRAME face at the spine and not on the Pod inside it, which
@@ -103,18 +103,27 @@ LANES    TEN paths, and the rule that arranges them is ONE PER STEP PER DIRECTIO
          midpoint.
 MOTION   Seven steps over two beat shapes. The up-arrow steps put the Pod first and the report
          leaves at BEAT.afterPulse (M-15). The down-arrow steps send the probe first and pulse `at:
-         'probe'`.
+         'probe'`, and on both of them Kubelet ACTS FIRST: it is in `lit` and the probe waits
+         BEAT.lead (M-18a), so no ball leaves a dark box.
+         EVERY RESULT CHIP TURNS OVER ON THE ARRIVAL THAT EARNS IT, through a `rewind` to what the
+         step before left and one F.set: the three gate-opens chips on the `pass` reaching Kubelet,
+         readiness on the report on `ready` and `readiness-fails`, all four chips on the kill beat of
+         `liveness-fails`, and the three probe chips on the `probe` of `fresh-container`. The
+         EndpointSlice sublabel flips on its own arrival the same way on `ready`, `readiness-fails`
+         and `fresh-container`, so the slice never reads ready=true before the verdict that earns it.
          `dim` follows the Pod opacity at the moment the pulse fires and never the step subject:
-         startup-gating and gate-opens take it because the Pod is still OPACITY.pending, the other
-         four take the plain pulse.
+         startup-gating, gate-opens and ready take it because the Pod is still OPACITY.pending, the
+         other three take the plain pulse. On `ready` the Pod comes to full on the `report` arrival,
+         with the verdict, so it never reads Ready while the chip still says running.
          GATE-OPENS IS THE ONE STEP THIS COMPOSITION EXISTS FOR and it is three routes: the startup
          answer climbs, and on its arrival the two released probes descend TOGETHER on their own
-         lanes. The release is MOTION rather than a chip going from `not running` to `running`,
-         which is what the three-lane composition buys. Duration is 3600 for it, the longest on the
-         card, and it carries TWO Pod pulses, at d0 for the report leaving and at d2482 for the two
-         released probes landing. Both are required: without the second the step ends with two balls
-         arriving on a Pod that does not react, which is the `M-15` down-arrow shape unwritten, and
-         `motion.mjs` is what shows it since a seeked frame cannot.
+         lanes. The release is MOTION, which is what the three-lane composition buys, and the chips
+         going from `held` to `running` ride that same arrival rather than stand in for it. Duration
+         is 3600 for it, the longest on the card, and it carries TWO Pod pulses, at d0 for the
+         report leaving and at d2482 for the two released probes landing. Both are required: without
+         the second the step ends with two balls arriving on a Pod that does not react, which is the
+         `M-15` down-arrow shape unwritten, and `motion.mjs` is what shows it since a seeked frame
+         cannot.
          PACE, from `timing.mjs` against a catalog median of 10.04 ms per character over 619 steps:
          9.32 / 9.63 / 10.18 / 10.51 / 10.58 / 12.29, so every step reads within about two ms of the
          median and gate-opens is the only slow one, which is what three hops buys. `startup-gating`
@@ -175,6 +184,14 @@ CONTENT  The `ready` step carries the readinessGates qualifier, and it is there 
          failureThreshold on that step, and a drawn `3/3` beside livenessProbe `3/3` claims two
          independent thresholds are reached where one is. Both read the same as startupProbe,
          `reset`, for that reason.
+         THE ENDPOINT STAYS ready=false ON liveness-fails AND DOES NOT GO THERE. readiness-fails
+         already left it ready=false, and the kill cannot flip it back: the API reference defines
+         ContainerStatus `ready` as `whether the container is currently passing its readiness
+         check`, and the kubelet prober seeds every new container instance with a readiness result
+         of Failure (`pkg/kubelet/prober/worker.go`, readiness `initialValue = results.Failure`,
+         where the docs are silent), so the replacement reads not ready until its own readinessProbe
+         passes on fresh-container. `the endpoint goes ready=false with it` is rejected because it
+         states a transition the slice, ready=false since readiness-fails, never makes.
          VERIFIED AND UNCHANGED, read against k8sVersion 1.35: a startupProbe disables BOTH other
          probes until it succeeds (Pod Lifecycle, `If a probe is defined, all other probes are
          disabled until it succeeds`), Kubelet never runs it again for that container instance, the
@@ -199,7 +216,8 @@ OPEN     CENTRE, `report/geometry-soft.test.mjs`: `chip strip spans 140..450, ce
          cost, 79 chip collisions. The longest pair here is `readinessProbe` against `held
          (startupProbe)`.
          The strip stays left. What the metric measures is the CHIP STRIP alone: the content bbox of
-         the card is 140..1060 and centres on 600 exactly. R2-ENTRY and R2-STEP,
+         the card is 140..1060 and centres on 600 exactly. CARRIED in `test/fixtures/carried.mjs`.
+         R2-ENTRY and R2-STEP,
          `report/arrival.test.mjs`: five chip values change with no `.highlight`, on steps 3, 5 and
          6. CARRIED, and the reason is what the cue is FOR. Workloads is a `chips` category and not
          a `chipsCued` one (P-09, P-10), so a cue here is the step field `lit` and nothing else, and

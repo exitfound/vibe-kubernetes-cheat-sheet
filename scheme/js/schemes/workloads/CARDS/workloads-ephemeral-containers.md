@@ -74,7 +74,10 @@ MOTION   Four balls over six steps. The two outer fan runs are 172 units and the
          card-review/tools/pace.mjs ranks them. The spine is 240 units, also clamped, at 0.343 u/ms.
          Step 5 is the catalog down-arrow order: the ball lands, then the region and the debug box
          fade up over FADE.in together and the Pod pulses at the same arrival, so the blink carries
-         the new box already inside the boundary.
+         the new box already inside the boundary. The door that accepted the write ACTS FIRST and
+         sends it, so it is in that step's `lit` and the ball waits BEAT.lead (M-18a). The status
+         chip holds `none` until that write lands and turns to Running with the debug box, cued
+         there, so it never reports a container the picture has not drawn yet.
          `contract` is the one step with no ball and no Pod acting. Its beat is four contract chips
          lighting under the door that refuses them, which `M-27` asks for
          and which the CSS transition on .scheme-chip-rect carries over 300ms. The four light as a

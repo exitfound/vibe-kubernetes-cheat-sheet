@@ -199,11 +199,14 @@ export const STEPS_SPEC = [
       hideSlotText(s);
       LIST_EVENTS.forEach((ev, i) => setSlot(s.refs[SLOT_KEYS[i]], ev[0], ev[1]));
     },
+    // The informer holds rv=842 and three objects only once the set lands in the Indexer.
+    rewind: { chips: { rvChip: 'none', cacheChip: '0' } },
     // Leaves the API AT ONCE, gated on nothing. Gating it on the ETCD return draws this request
     // being read through, contradicting the panel that says no quorum read happened.
     flow: [
       F.segment({ from: WATCH_LANE[0], to: WATCH_LANE[1], name: 'stream', lights: ['informer'] }),
       F.segment({ from: FEED_LANE[0], to: FEED_LANE[1], after: 'stream', name: 'toCache', lights: ['cache'] }),
+      F.set({ at: 'toCache', chips: { rvChip: '842', cacheChip: '3' } }),
       // The API keeping its own cache current, running ALONGSIDE the answer rather than under it.
       // Background traffic: nothing waits on it and it waits on nothing.
       F.route({ points: API_TO_ETCD, name: 'ask', lights: ['etcdC'] }),
@@ -236,12 +239,16 @@ export const STEPS_SPEC = [
     opacity: { ...SHOWN, slot3: 1 },
     lit: ['etcdC', 'rvChip', 'cacheChip', 'watchChip', 'slot3'],
     enter(s) { setSlot(s.refs.slot3, 'ADDED', 'pod-d · rv=843'); },
+    // The watch reads streaming once the event reaches the informer, rv and size once it is stored.
+    rewind: { chips: { rvChip: '842', watchChip: 'open · chunked HTTP', cacheChip: '3' } },
     // The ADDED event as three sequenced hops on their real arrows. Each stage lights as the
     // event reaches it, so the row of lit blocks tracks the ball.
     flow: [
       F.route({ points: ETCD_TO_API, name: 'ret', lights: ['api'] }),
       F.segment({ from: WATCH_LANE[0], to: WATCH_LANE[1], after: 'ret', name: 'stream', lights: ['informer'] }),
+      F.set({ at: 'stream', chips: { watchChip: 'open · streaming' } }),
       F.segment({ from: FEED_LANE[0], to: FEED_LANE[1], after: 'stream', name: 'toCache', lights: ['cache'] }),
+      F.set({ at: 'toCache', chips: { rvChip: '843', cacheChip: '4' } }),
       F.fade({ target: 'slot3', from: 0, to: 1, dur: FADE.in, at: 'toCache', fill: 'both', easing: 'ease-out' }),
       // ...and lights as it lands. This card draws no Pod, so nothing here pulses.
       F.light({ targets: ['slot3'], at: 'toCache' }),
@@ -255,10 +262,24 @@ export const STEPS_SPEC = [
     wires: { watch: 'HTTP 410 Gone', req: 're-LIST · fresh rv' },
     opacity: HIDDEN,
     lit: ['api', 'watchChip', 'rvChip', 'cacheChip'],
-    enter: hideSlotText,
+    // The stream stays on screen until the 410 lands, so the slots carry the four events into the fade.
+    enter(s) {
+      LIST_EVENTS.forEach((ev, i) => setSlot(s.refs[SLOT_KEYS[i]], ev[0], ev[1]));
+      setSlot(s.refs.slot3, 'ADDED', 'pod-d · rv=843');
+    },
+    // Until the 410 lands the informer is still streaming at 843, and nothing has asked for a re-LIST.
+    rewind: { chips: { rvChip: '843', watchChip: 'open · streaming', cacheChip: '4' }, wires: { req: '' } },
     // The 410 Gone arrives on the open watch (Api -> Informer, down the watch arrow), not on the
     // top client lane. The informer then drops the watch and re-LISTs (shown via the chips/wire).
-    flow: [F.segment({ from: WATCH_LANE[0], to: WATCH_LANE[1], lights: ['informer'] })],
+    flow: [
+      F.segment({ from: WATCH_LANE[0], to: WATCH_LANE[1], name: 'gone', lights: ['informer'] }),
+      F.set({
+        at: 'gone',
+        chips: { rvChip: 'reset', watchChip: '410 Gone · re-listing', cacheChip: 're-syncing' },
+        wires: { req: 're-LIST · fresh rv' },
+      }),
+      ...[...SLOT_KEYS, 'streamLabel'].map(target => F.fade({ target, from: 1, to: 0, dur: FADE.out, at: 'gone', fill: 'both' })),
+    ],
   },
   {
     id: 'crd',

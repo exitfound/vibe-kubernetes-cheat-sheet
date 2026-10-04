@@ -202,5 +202,5 @@ OPEN     L-03 IS DELIBERATELY BROKEN AND THE FIRST SOURCE BOX PAYS FOR IT.
          every viewport against one label the panel eats on the two narrow ones. Reordering the
          three sources does not help, because any label centred in the first box inks from about 298
          whatever it says. The lever that would close it is clamping the panel height in CSS, which
-         is catalog-wide and not a change one card makes.
+         is catalog-wide and not a change one card makes. CARRIED in `test/fixtures/carried.mjs`.
 ```

@@ -225,8 +225,8 @@ function census() {
       if (podTargets.length) {
         pu.steps++;
         pu.sites += podTargets.length;
-        // A name an escape hook creates counts as a Pod here: `cluster-pod-sandbox-cri` pulses
-        // `appGroup`, built by a `tune` and by no `key:`, and it is a Pod pulse either way.
+        // A name an escape hook creates counts as a Pod here: a group built by a `tune` and by no
+        // `key:` is a Pod pulse either way.
         const lit = new Set(step.reducedLit || []);
         for (const e of step.flow || []) {
           for (const k of (e.verb === 'light' ? (e.p.targets || []) : (e.p.lights || []))) lit.add(k);

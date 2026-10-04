@@ -185,12 +185,16 @@ export const STEPS_SPEC = [
     narration: 'MASQUERADE rewrites the source to the address of the interface the packet leaves by, 192.168.1.20. The flow it just translated goes into conntrack, and the packet leaves looking like it came from the Node, an address the reply can be routed to.',
     chips: { srcChip: NODE_IP, dstChip: DST, ruleChip: 'MASQUERADE', ctChip: 'entry stored' },
     wires: { branch: KEPT },
-    lit: ['ruleBox', 'srcChip', 'ruleChip', 'ctChip'],
+    lit: ['ruleBox', 'srcChip', 'ruleChip'],
+    // The rewrite is made in the rule box the packet stands in, so src and rule read it from entry.
+    // The entry exists only once the store ball lands, so ctChip turns over and lights there (P-03).
+    rewind: { chips: { ctChip: 'none' } },
     // The store is written first and the packet leaves after that arrival, which is the order the
     // narration states: conntrack records the translation, then the translated packet goes out. The
     // rewritten source rides the out leg, whose 208 units are the only clear run on the card.
     flow: [
-      F.segment({ from: CT_WRITE[0], to: CT_WRITE[1], lights: ['ctStore'], name: 'store' }),
+      F.segment({ from: CT_WRITE[0], to: CT_WRITE[1], lights: ['ctStore', 'ctChip'], name: 'store' }),
+      F.set({ at: 'store', chips: { ctChip: 'entry stored' } }),
       F.segment({ from: OUT_PATH[0], to: OUT_PATH[1], after: 'store', name: 'out' }),
       F.tag({ text: `src ${NODE_IP}`, points: OUT_PATH, after: 'store', easing: 'linear', dy: TAG_UP }),
       F.light({ targets: ['net'], at: 'out' }),

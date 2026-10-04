@@ -50,8 +50,10 @@ SIZES    The owners and the collector are the catalog sizes (NET.L-01): Pod web-
          The row pitch is 184: a row 0 Delete verdict inks down to 403.7 at 1100x800 and the
          caption over the row 1 Delete cell starts at 433, 29.3 apart, while that caption stands
          8.3 over its own frame, so it reads as the row 1 header and not as a second verdict line.
-         A tag on the Pod lane rides 76 right of it: `mounts data-web-2` and `StatefulSet web` ink
-         to 652.1 at 1100x800 and a six letter tag is 36.8 wide, 5.5 clear.
+         A tag on the Pod lane hugs its ball, 34 right of the lane and 16 below the ball, and
+         emerges 250 after departure, once it has cleared the StatefulSet top: shown from the
+         start it would print over `StatefulSet web`. It lands under the Pod bottom, clear of
+         `mounts data-web-2`.
 LANES    Three lanes, each array built ONCE and read by the lane and the ball (A-02): web -> Pod up
          the centre, stopping on the Pod shell; GC -> the row 0 Delete frame top, level with the
          data-web-2 slot; GC -> the row 1 Delete frame right face, round a gutter 30 right of the

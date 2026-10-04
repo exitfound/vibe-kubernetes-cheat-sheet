@@ -251,7 +251,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'unscheduled',
-    duration: 3700,
+    // 4400, the reading `orphan` takes: the blink and the fade behind it put the span at 4242.
+    duration: 4400,
     narration: 'Second rule, and it needs no Node at all. Pod web-3 carries a deletionTimestamp and never got a nodeName, so there is no Kubelet anywhere to confirm the delete and short of a force delete by hand the object would sit in the API. PodGC deletes unscheduled terminating Pods itself, which is what closes that record.',
     chips: { countChip: '12500', thrChip: THRESHOLD },
     wires: { req: 'PATCH status · Failed · then DELETE .../pods/web-3' },
@@ -264,13 +265,16 @@ export const STEPS_SPEC = [
       F.top({ ...DELETE, delay: BEAT.lead, name: 'del', lights: ['apiBox'] }),
       F.route({ points: LANE(2), after: 'del', name: 'gc' }),
       F.set({ at: 'gc', labels: { state3: 'Failed' }, sublabels: { state3: 'never scheduled' } }),
-      F.fade({ target: 'pod3', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', fill: 'both', easing: 'ease-in' }),
-      F.fade({ target: 'tap3', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', fill: 'both', easing: 'ease-in' }),
+      // The same two-write shape `orphan` blinks for: the live Pod blinks on the patch, then goes.
+      F.pulse({ pod: 'pod3', at: 'gc' }),
+      F.fade({ target: 'pod3', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', plus: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
+      F.fade({ target: 'tap3', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', plus: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
     ],
   },
   {
     id: 'out-of-service',
-    duration: 4400,
+    // 5000, the reading `threshold` takes: the blink and the fade behind it put the span at 4856.
+    duration: 5000,
     narration: 'Third rule, and it is the one an operator triggers. Pod web-4 is terminating on a Node that is not ready, and someone has decided the Node is really gone and tainted it node.kubernetes.io/out-of-service. PodGC reads that taint as the answer it was waiting for and deletes the Pod rather than holding the object for an acknowledgement that is not coming.',
     chips: { countChip: '12500', thrChip: THRESHOLD },
     wires: { req: 'PATCH status · Failed · then DELETE .../pods/web-4' },
@@ -283,11 +287,12 @@ export const STEPS_SPEC = [
       F.top({ ...DELETE, delay: BEAT.lead, name: 'del', lights: ['apiBox'] }),
       F.route({ points: LANE(3), after: 'del', name: 'gc' }),
       F.set({ at: 'gc', labels: { state4: 'Failed' }, sublabels: { state4: 'Node out-of-service' } }),
-      F.fade({ target: 'pod4', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', fill: 'both', easing: 'ease-in' }),
-      F.fade({ target: 'tap4', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', fill: 'both', easing: 'ease-in' }),
-      F.fade({ target: 'seg3', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', fill: 'both', easing: 'ease-in' }),
-      F.fade({ target: 'seg4', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', fill: 'both', easing: 'ease-in' }),
-      F.fade({ target: 'trunk', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', fill: 'both', easing: 'ease-in' }),
+      F.pulse({ pod: 'pod4', at: 'gc' }),
+      F.fade({ target: 'pod4', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', plus: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
+      F.fade({ target: 'tap4', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', plus: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
+      F.fade({ target: 'seg3', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', plus: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
+      F.fade({ target: 'seg4', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', plus: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
+      F.fade({ target: 'trunk', from: LIVE, to: GONE, dur: FADE.out, at: 'gc', plus: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
     ],
   },
 ];

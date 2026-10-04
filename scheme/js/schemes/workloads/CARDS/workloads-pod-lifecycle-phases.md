@@ -17,15 +17,18 @@ LAYOUT   A state machine BOARD, and the section's only card carrying no node() f
          raw0`, byte for byte the signature of workloads-container-states, the sibling it sits
          beside in the grid AND the one it is most confusable with. Two cards teaching the
          difference between a phase and a container state must not look like one card.
-           machine  176..1024, y 100..310, the strip minus 20 a side, so the board sits INSIDE the
+           machine  176..1024, y 208..418, the strip minus 20 a side, so the board sits INSIDE the
                     Kubelet..Pod width. Pending 176..366 (190), edgeRun gap 100, Running 466..726
                     (260, 150 tall, because CrashLoopBackOff is drawn INSIDE it at 491..701), fork
-                    trunk at x 776 with 50 to each wall, Succeeded 826..1024 at y 100..158 and
-                    Failed at y 252..310, both on the machine centre line's fork.
+                    trunk at x 776 with 50 to each wall, Succeeded 826..1024 at y 208..266 and
+                    Failed at y 360..418, both on the machine centre line's fork. Every y of the
+                    machine is an offset from ROW_CY 313, so the board moves down as one piece.
                     Running is EQUIDISTANT: 100 from the Pending wall and 100 from the terminal
                     pair, so the row reads as one measure. A 130 / 70 split reads as pushed right.
-           register 156..1044 below the panel: Kubelet 156..388 at y 435..515, Pod 644..1044 at
-                    420..530, and the three chips on the same 156..1044 at y 570..604.
+           register 156..1044 below the machine: Kubelet 156..388 at y 465..545, Pod 644..1044 at
+                    450..560, and the three chips on the same 156..1044 at y 590..624. The
+                    status.phase corridor runs at y 434, midway from the Failed floor at 418 to the
+                    Pod top at 450, which is the one gap the two bands leave each other.
          BOTH bands are measured off the STRIP, and the strip is centred on CX because that is the
          only placement geometry-soft accepts: its CENTRE rule holds a chip strip on 600 to +-6,
          against a CENTRE_TOL of 40 for everything else. Kubelet, the Pod, the container box and the
@@ -46,13 +49,20 @@ LAYOUT   A state machine BOARD, and the section's only card carrying no node() f
          narrated. Every one of those five steps says the same thing again in its `pwire`.
 PANEL    x<=397 catalog-wide (`L-02`). Bottom per viewport:
          `OVERLAY_IDS=workloads-pod-lifecycle-phases node --test report/overlay.test.mjs`. Deepest
-         at 1100x800, shallowest at 1600x1000. It binds the machine's LEFT end, which the OPEN block
-         states, and nothing else: the register band clears it on Y (y>=400), so no y in this card
-         is derived from `PANEL_B` and the constant is not carried. The narration is held to three
-         sentences a step, and that is what keeps the panel off 504, the depth at which only 136
-         units of full width are left and Layout C is forced. The fourth paragraph a step could take
-         is the one on an unreachable Node, Terminating and DisruptionTarget, and it belongs to
-         `cluster-node-failure`: a pointer is not duplication.
+         at 1100x800 on `terminal`, 279.51, shallowest at 1600x1000. IT PINS THE MACHINE ROW: the
+         board is centred inside the strip, so Pending starts at x 176, under the panel on X at every
+         viewport, and the only way out is down. ROW_CY 313 puts the Pending top at 284, 4.49 clear
+         of the deepest reading, so `extents.mjs` finds no string under the panel on any step at any
+         of the three viewports and `report/geometry-soft.test.mjs` prints no row for this card.
+         That drop is what sets the register at 450 and the chips at the 624 floor: the corridor
+         needs the gap between the Failed floor and the Pod top. The machine on the L-03 line
+         instead (Pending at 420 or later) is the arrangement the LAYOUT block refuses, and it would
+         not fit the 848 of the board in the 720 right of that line. No y here reads a `PANEL_B`
+         constant, because only ROW_CY depends on it and the comment beside it carries the number.
+         The narration is held to three sentences a step, and that is what keeps the panel off 504,
+         the depth at which only 136 units of full width are left and Layout C is forced. The
+         fourth paragraph a step could take is the one on an unreachable Node, Terminating and
+         DisruptionTarget, and it belongs to `cluster-node-failure`: a pointer is not duplication.
 SIZES    Kubelet is 232, the pair width workloads-pod-startup-conditions and
          workloads-pod-pending-init-states both draw their actor boxes at, and the reason this card
          carries it too: its longest string, `syncs the container`, inks 116.6 at 1100x800, so 232
@@ -122,7 +132,7 @@ LANES    Five, and they carry TWO weights, which is what separates a route from 
          does not make a lane shout. Nothing on this card reads a lane's brightness for meaning, and
          the two things a reader might look to a lane for, whether Kubelet is working and which edge
          is live, are both said by the blocks and by the two wire labels instead. The chip strip
-         sits at the FLOOR, y 570, and not one panel gap below the panel where the category's C
+         sits at the FLOOR, y 590, and not one panel gap below the panel where the category's C
          layout puts it. A full-width strip anywhere higher cuts the only corridor between the Pod
          and the machine it belongs to, and `edgeEnter` would then cross a chip.
 MOTION   ONE choreography, seven rules, and every step is an instance of it. Nothing here is decided
@@ -235,11 +245,11 @@ MOTION   ONE choreography, seven rules, and every step is an instance of it. Not
 WIRE LABELS
          All three captions sit DIRECTLY over the thing they name, and each is derived from that
          thing rather than typed, so none of them can drift when the geometry moves.
-           pwire      x 596, y 114: centred on Running and 12.6 above its top face, measured at
+           pwire      x 596, y 222: centred on Running and 12.6 above its top face, measured at
                       1600x1000 on the longest string, `phase stays Pending` at 130.9.
-           cwire      x 516, y 455: centred on the sync lane and 16.6 above it, in the 256 unit
+           cwire      x 516, y 485: centred on the sync lane and 16.6 above it, in the 256 unit
                       corridor between the Kubelet right wall and the Pod left wall.
-           fieldTag   x 557.5, y 338: the MIDPOINT of the relation's horizontal run, 271 to 844, and
+           fieldTag   x 557.5, y 422: the MIDPOINT of the relation's horizontal run, 271 to 844, and
                       8.6 above it. Hanging it off the Pod's own vertical at `POD_CX + 12` with
                       `anchor: 'start'` puts it beside one LEG of the path rather than over the run,
                       which is why the midpoint is derived rather than typed.
@@ -325,10 +335,4 @@ SCOPE    The backoff ladder and its ceiling are workloads-crashloopbackoff's: th
          slot and let the strip run three across instead of four. Container state as a subject is
          workloads-container-states's: this card draws it only to show it moving while the phase
          does not. An unreachable Node, Terminating and DisruptionTarget are cluster-node-failure's.
-OPEN     Pending 176..366 at y 176..234 lies inside the panel's band on every viewport: at 1600x1000
-         the panel (x<=290.77, y<=194.89) covers its top-left corner, at 1280x860 (377.76, 235.17)
-         its whole left half, and at 1100x800 (396.55, 279.51) all of it but the right 30 units, so
-         the word Pending is not on screen there. Known, accepted with the move, to be closed
-         separately: a lower machine (which costs the status.phase corridor) or a narrower panel are
-         the two candidates.
 ```

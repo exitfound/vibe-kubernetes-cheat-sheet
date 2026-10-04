@@ -98,7 +98,7 @@ export const SCENE = {
       inner: { dx: (POD_W - APP_W) / 2, dy: APP_DY, w: APP_W, h: APP_H, label: 'app', sublabel: 'read/write' },
     }),
     P.box({ key: 'sts', x: STS_X, y: STS_Y, w: STS_W, h: STS_H, label: 'StatefulSet web', sublabel: 'replicas: 3' }),
-    P.box({ key: 'gc', x: GC_X, y: GC_Y, w: GC_W, h: GC_H, label: 'garbage collector', sublabel: 'kube-controller-manager' }),
+    P.box({ key: 'gc', x: GC_X, y: GC_Y, w: GC_W, h: GC_H, label: 'Garbage collector', sublabel: 'kube-controller-manager' }),
     P.lane({ key: 'podLane', points: POD_LANE, dashed: true, dim: true }),
     P.lane({ key: 'gcS', points: GC_S, dashed: true, dim: true }),
     P.lane({ key: 'gcD', points: GC_D, dashed: true, dim: true }),
@@ -158,8 +158,10 @@ const ROW_D_GONE = { dR: 'all three kept, no owner', dD: 'claims and disks delet
 // Every tag lives exactly as long as its ball (M-30a): in before departure, out as it lands.
 const tagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
 // A tag rides right of its vertical lane and TRAILS its ball, below it up the Pod lane and above it
-// down the collector lane. 76 clears the owner strings the Pod lane passes (record, SIZES).
-const POD_TAG = { dx: 76, dy: 16 }, GC_TAG = { dx: 34, dy: -10 };
+// down the collector lane. The Pod lane tag hugs its ball and emerges once clear of the StatefulSet,
+// so it never prints over `StatefulSet web` (record, SIZES).
+const podTagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true });
+const POD_TAG = { dx: 34, dy: 16, fn: podTagFn, emerge: 250 }, GC_TAG = { dx: 34, dy: -10 };
 
 // How long a deleted block stays lit after its cue, so the reader sees what was hit before it goes.
 const LIGHT_HOLD = 260;
@@ -238,7 +240,7 @@ export const STEPS_SPEC = [
       F.reveal({ target: 'ownS', delay: BEAT.lead - REVEAL_MS, from: 0, name: 'own' }),
       F.set({ on: 'sDc2', at: 'own', lit: ['sDc2'], sublabels: { sDc2: 'owner: web-2' } }),
       F.route({ points: POD_LANE, after: 'own', name: 'del' }),
-      F.tag({ text: 'delete', points: POD_LANE, after: 'own', ...POD_TAG, fn: tagFn }),
+      F.tag({ text: 'delete', points: POD_LANE, after: 'own', ...POD_TAG }),
       ...removePod('del', ['podLane', 'ownS']),
       // Both cells answer the same event on the same beat: the Retain one by doing nothing at all.
       F.set({ at: 'del', plus: BEAT.afterPulse + FADE.out, wires: { vsR: ROW_S_DOWN.sR } }),
@@ -267,7 +269,7 @@ export const STEPS_SPEC = [
       // The controller creates the claim before the Pod, then the Pod, then the new volume is bound.
       F.reveal({ target: 'sDc2', delay: BEAT.lead, from: T, name: 'mint', lights: ['sDc2'] }),
       F.route({ points: POD_LANE, after: 'mint', name: 'make' }),
-      F.tag({ text: 'create', points: POD_LANE, after: 'mint', ...POD_TAG, fn: tagFn }),
+      F.tag({ text: 'create', points: POD_LANE, after: 'mint', ...POD_TAG }),
       // The Pod blinks as the create lands, as it does when the delete lands on scale-down.
       F.pulse({ pod: 'pod', at: 'make' }),
       F.reveal({ target: 'pod', at: 'make', from: OPACITY.pending, name: 'up' }),

@@ -230,11 +230,15 @@ export const STEPS_SPEC = [
     chips: { hookChip: 'FORWARD, POSTROUTING', dstChip: BACKEND, srcChip: '10.244.1.5 (no SNAT)', ctChip: 'DNAT recorded' },
     wires: { exit: 'to Node-2' },
     sublabels: { ct: FLOW_DNAT },
-    lit: ['fw', 'hookChip', 'srcChip'],
+    lit: ['fw'],
+    // The packet stands in FORWARD at entry and MASQUERADE is decided at POSTROUTING one hop later, so
+    // `hook` and `src` hold their entry values until that arrival and turn over and light there (P-03).
+    rewind: { chips: { hookChip: 'FORWARD', srcChip: POD_IP } },
     // Two chained hops: through POSTROUTING and out onto the wire. The source rides the ball on the last
     // leg, because that is the value MASQUERADE would have changed and here deliberately does not.
     flow: [
-      F.segment({ from: FW_TO_PO[0], to: FW_TO_PO[1], name: 'toPo', lights: ['po'] }),
+      F.segment({ from: FW_TO_PO[0], to: FW_TO_PO[1], name: 'toPo', lights: ['po', 'hookChip', 'srcChip'] }),
+      F.set({ at: 'toPo', chips: { hookChip: 'FORWARD, POSTROUTING', srcChip: '10.244.1.5 (no SNAT)' } }),
       F.segment({ from: PO_TO_ETH[0], to: PO_TO_ETH[1], after: 'toPo', name: 'exit' }),
       tag({ text: `src ${POD_IP}`, points: PO_TO_ETH, after: 'toPo', easing: 'linear', dy: HOOK_TAG_DY }),
       F.light({ targets: ['eth'], at: 'exit' }),

@@ -224,14 +224,25 @@ export function entryChips(spec) {
   return out;
 }
 
-// What the animated path LEAVES BEHIND: entry plus every F.set in flow order. This is the value the
-// next step starts from, and it is NOT `chips`: an F.set can carry a key past its static value,
-// which section 4 of report/chip-beat.test.mjs counts.
-export function settledChips(spec) {
+// What the animated path LEAVES BEHIND: entry plus every F.set in the order it FIRES. This is the
+// value the next step starts from, and it is NOT `chips`: an F.set can carry a key past its static
+// value, which section 4 of report/chip-beat.test.mjs counts.
+//
+// FIRING order, not source order. runFlow calls a delay-0 F.set on the spot and hangs every other
+// one on the onfinish of an empty animation, so the runtime applies them by delay, and two with the
+// same delay in creation order, which is flow order: a stable sort on max(delay, 0) is exactly that.
+// Read in source order, an F.set written first and landing last loses to one written after it, and
+// workloads-daemonset `place` (ranks 3, 1, 2 landing at 2529, 1916, 1916) read as ending on 2 while
+// every live frame ends on 3. The kit is required because the delays are arithmetic over it; a flow
+// timelineOf cannot resolve falls back to source order, and unit/spec-steps.test.mjs owns that case.
+export function settledChips(spec, kit) {
+  if (!kit) throw new Error('settledChips(spec, kit): the F.sets apply in the order they fire, which needs the kit constants');
   const out = entryChips(spec);
-  for (const e of spec.flow || []) {
-    if (e.verb !== 'set') continue;
-    Object.assign(out, e.p.chips, e.p.chipsCued);
-  }
+  const rows = timelineOf(spec.flow, kit);
+  const sets = rows
+    ? rows.map((r, i) => ({ r, i })).filter(({ r }) => r.verb === 'set')
+      .sort((a, b) => (Math.max(a.r.delay, 0) - Math.max(b.r.delay, 0)) || (a.i - b.i)).map(({ r }) => r.p)
+    : (spec.flow || []).filter(e => e.verb === 'set').map(e => e.p);
+  for (const p of sets) Object.assign(out, p.chips, p.chipsCued);
   return out;
 }

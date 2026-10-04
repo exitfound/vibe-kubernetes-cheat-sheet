@@ -54,7 +54,7 @@ scheme/
     app.js    router, grid, modal lifecycle, keyboard, hash routing (card AND grid filter, D-16)
     data.js   barrel: CATEGORIES registry + the four manifests as SCHEMES / SUBCATEGORIES
     posters.js  barrel: the four poster maps merged into POSTERS
-    lib/      svg, primitives, timeline, motion, sidebar, inspector,
+    lib/      svg, primitives, timeline, motion, sidebar, keys, fresh, inspector,
               tokens.js       magnitudes: PULSE_POD, PULSE_BLOCK, OPACITY, BEAT, FADE
               scheme-kit.js   the shared BASE kit, carries no category and no card imports it
               layout.js       geometry formulas: laneY, ladder, strip, spread, midX
@@ -213,7 +213,8 @@ because every step states every chip (`P-01`).
 
 `chips` is the state after the STATIC block, which is not the end of the
 step: `rewind` and an `F.set` inside `flow` can both carry a key past it, so a reader after a final
-value plays `chips`, then `enter`, then `rewind`, then every `F.set` in flow order.
+value plays `chips`, then `enter`, then `rewind`, then every `F.set` in firing order (by delay,
+ties in flow order), which is how the runtime applies them.
 
 `rewind` and `duration` are the two things deliberately not derived. `rewind` would need the
 previous step's values, which `S-13` forbids. `duration` is copied verbatim, and only
@@ -262,6 +263,30 @@ reads them off the spec with no browser. The poster-first model is `D-14`, the s
 in-dialog keys are `D-15`, and the hash contract (a filter and a search are both
 state, a scroll reset belongs to each, and the root hub matches on the `#scheme=` / `#at=` prefixes)
 is `D-16`.
+
+**The page chrome around the cards**, all in `js/app.js`. The dialog header carries the title, the
+category and section, the `N / M` position, then three `.dialog-tool` buttons and close: a star
+(`.dialog-star`, the same `starred` Set as the grid star, kept in step by `syncDialogStar()`), a
+report link (`.dialog-report`, a GitHub issue prefilled by `reportUrl()` with the card, the current
+step and a link to that step, rewritten on every step change) and fullscreen (`.dialog-full`, also
+`F`). There is deliberately NO copy-link button: the address bar already holds the card and its step.
+Each grid section header carries a `.section-link` that copies `#at=<key>`, always visible as on
+`/cli/` (the `_other` bucket links its category). **Fullscreen goes on the PAGE, not the dialog**:
+Chrome refuses `requestFullscreen()` on a `<dialog>`, and the fullscreen page then joins the top
+layer ABOVE the open modal and paints the grid over the card, so `syncFullscreenBtn()` closes and
+re-`showModal()`s the dialog on entry (nothing listens for `close`, the DOM is not moved, the
+animation keeps running) and sets `.is-fullscreen`, which stretches the panel and hides the flip
+arrows. The keys themselves are `D-15`.
+
+**Two grid views.** A `.view-toggle` after Starred switches `body.view-compact` on and off,
+remembered under `kube-how:scheme-view:v1` (default: detailed). Compact keeps the poster and one row
+of title and star, hides the description, tag and version, puts the description in the card's
+`title` tooltip, and fits 5 cards a row at 1440 instead of 4 (about 12 on screen instead of 4).
+It is CSS over the same `renderCard()` markup, so a card change never needs two templates.
+
+**New cards.** A card this browser had not seen on its previous visit (`js/lib/fresh.js`, see the
+root `CLAUDE.md`) gets a `NEW` pill in the poster's top-left corner and its section an `N new`
+chip before the count. Opening the card clears both (`clearNew()` in `openScheme()`).
 
 ## Adding a card
 
@@ -408,15 +433,15 @@ stay `review`.
 
 ## The findings that are left open
 
-**The `OPEN` findings in the four card records are not to be closed without a reason**: **46** today
-(cluster 0, storage 13, workloads 15, network 18), counted as `OPEN` BLOCKS, and a block may hold
+**The `OPEN` findings in the four card records are not to be closed without a reason**: **45** today
+(cluster 0, storage 13, workloads 14, network 18), counted as `OPEN` BLOCKS, and a block may hold
 more than one finding where a record states each at most once. Each carries its own measurement and
 an explanation of why the rule can only be satisfied by making the picture worse (`L-16`). The cluster record carries
 none: its design record holds measurements and the reasons behind them, and a parked defect is not one
 of the things it is for.
 
-**That is not the same population as the soft geometry findings, which number 54** (CENTRE 33,
-CENTRE-LOW 16, OCCLUDED 5, printed by `report/geometry-soft.test.mjs`). The `OPEN` entries cover more
+**That is not the same population as the soft geometry findings, which number 52** (CENTRE 30,
+CENTRE-LOW 14, OCCLUDED 8, printed by `report/geometry-soft.test.mjs`). The `OPEN` entries cover more
 than geometry, so the two are counted separately. The full list of
 deliberate exceptions, including the ones that are not `OPEN` findings, is the last section of
 `./CANON.md`.

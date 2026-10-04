@@ -1,4 +1,4 @@
-import { P, F, defineCard, ladder, midX, WL, FADE, OPACITY } from './workloads-kit.js';
+import { P, F, defineCard, ladder, midX, WL, FADE, BEAT, OPACITY } from './workloads-kit.js';
 import { g, rect, text } from '../../lib/svg.js';
 import { box } from '../../lib/primitives.js';
 
@@ -242,10 +242,15 @@ export const STEPS_SPEC = [
     wires: { spine: 'start debugger-8xzrl in the running Pod' },
     opacity: STARTED,
     sublabels: doors({ ephemDoor: 'appended · never removed', kubectlEl: 'debug -it --image … --target app', appBox: APP_KEPT, debugBox: PRESENT }),
+    // The door ACTS FIRST, sending the write it accepted, so it is lit and the ball waits (M-18a).
+    // The status reads Running only once the container is up, so it waits for the write too.
+    lit: ['ephemDoor'],
+    rewind: { chips: { statusChip: 'none' } },
     flow: [
       // The order the down-arrow takes catalog-wide: the ball lands first, then the region and the
       // container inside it come up, and the Pod blinks with the new box already in it.
-      F.route({ points: SPINE, name: 'write', lights: ['statusChip', 'targetChip'] }),
+      F.route({ points: SPINE, delay: BEAT.lead, name: 'write', lights: ['statusChip', 'targetChip'] }),
+      F.set({ at: 'write', chips: { statusChip: 'Running' } }),
       F.fade({ target: 'nsRegion', from: OPACITY.notready, to: 1, dur: FADE.in, at: 'write', fill: 'both', easing: 'ease-out' }),
       F.fade({ target: 'debugBox', from: OPACITY.terminated, to: 1, dur: FADE.in, at: 'write', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'podGroup', at: 'write' }),

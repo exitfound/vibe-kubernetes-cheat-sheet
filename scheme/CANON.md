@@ -320,7 +320,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | D-12 | A deep-linkable card gets a `<url>` in the repo-root `sitemap.xml` | test:catalog/D-12 | `sitemap.xml` |
 | D-13 | Adding a CATEGORY touches twelve places, and the ORDER that makes them land is the checklist in `scheme/CLAUDE.md` | review | `scheme/CLAUDE.md`, new-category checklist |
 | D-14 | The poster-first model applies to every card: idle is a static poster, step 1 auto-plays after about 1s, the poster previews step 1's TEXT immediately, and `Next` from the last step wraps to poster then step 1 | test:skeleton/D-14 | `lib/timeline.js` |
-| D-15 | Search filters `title + desc + category`, debounced 80ms. Inside a dialog: `Space` play/pause, arrows prev/next, `R` reset, `Esc` close | review | `js/app.js` |
+| D-15 | Search filters `title + desc + category`, debounced 80ms. Grid keys: `/`, `Enter`, `?`. Dialog keys: `Space`, arrows, `Shift`+arrows, `R`, `L`, `F`, `Esc`. Every key matches through `lib/keys.js` and has its row in the `?` sheet | review | `js/app.js`, `js/lib/keys.js` |
 | D-16 | The hash holds the GRID as well as the card: `#at=<key>&q=<search>` is the state the grid is in, and `#scheme=<id>&step=<n>&at=<key>&q=<search>` carries it through an open card. A filter or a search change resets the scroll | test:hash/D-16 | `js/app.js`, root `index.html` |
 
 ## R: posters

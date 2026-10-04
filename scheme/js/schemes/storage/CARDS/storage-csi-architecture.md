@@ -90,8 +90,9 @@ MOTION   NO Pod at all, on purpose, so nothing pulses anywhere and that is corre
          PKT_SPEED, then the mount after it, floor-bound at 700ms, landing at 2951 and rippling to a
          span of 3511ms against 3700. That is 189ms of headroom and 749ms of rest after the disk
          lands, at 12.80 ms/char over 289 characters, between the card's one-hop and mute steps
-         (9.13 to 9.70) and translate (15.88), above the catalog median of 11.0. Held to 12 ms/char
-         the step would stop at 3468, under the span, so the motion sets the duration here.
+         (9.13 to 9.70) and translate (15.88), above the catalog median that
+         `report/baselines.test.mjs` prints. Held to 12 ms/char the step would stop at 3468, under
+         the span, so the motion sets the duration here.
          A route's flight time comes from its LENGTH, so moving a block here is silently a timing
          change: anything added has to be re-checked by `render/duration.test.mjs`.
 WIRE LABELS

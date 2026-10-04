@@ -44,6 +44,8 @@ MOTION   Three blocks are born on three different beats and their lanes with the
          later. The object dies when the DELETE reaches the API at 700, not when the 200 reaches
          kubectl at 1500, and 4700 would still hold the longer version, so the duration is not what
          decides it.
+         `mirrorChip` on drain reads `drain skips it` lit from entry, carried on FORM-B: it restates
+         the `top` wire, which states the drain policy at entry before any ball moves (`P-04`).
 WIRE LABELS
          TWO slots. `top` is centred at x=744 over the API and kubectl gap and sits at y=26,
          ABOVE the row rather than between the two lanes, because 24 units of lane separation cannot

@@ -59,9 +59,9 @@ carry a hard character ceiling and nothing in `npm test` enforces one (`L-08`).
 
 Twelve records carry a `900x650` reading, a hand sample stricter than anything the harness takes,
 and where the two disagree the card takes the stricter number and says so (`STO.L-04`). Over the
-sampled viewports storage's own deepest panel is 329.20, on
-`storage-volume-detach-on-node-loss` at 1100x800, and the catalog maximum of 378.90 belongs to
-`workloads-pod-qos-classes`.
+sampled viewports storage's own deepest panel stands on `storage-fsgroup-ownership` at 1100x800,
+short of the catalog maximum, and the overlay section of `npm run report` prints both readings
+against `L-04`.
 
 A new card takes a new file in `./CARDS/` and a row in the index below, in the place the grid gives
 it: **the index is in GRID ORDER**, subcategory by subcategory in the `SUBCATEGORIES` order

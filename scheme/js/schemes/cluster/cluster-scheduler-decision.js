@@ -177,9 +177,14 @@ export const STEPS_SPEC = [
     opacity: { n1: 1, n2: 1, n3: 1, n4: 1 },
     lit: ['candChip', 'api', 'queueChip'],
     chain: 0,
+    // The Pod enters the queue when its watch event lands, so both chips turn over on that arrival.
+    rewind: { chips: { queueChip: 'none', candChip: 'none' } },
     // Watch event flows Api -> Scheduler on the return lane at y=115. The queue and the three
     // stages below it are the Scheduler's own work, so nothing travels down to the ladder.
-    flow: [F.segment({ from: [API_X, BACK_Y], to: [SCHED_R, BACK_Y], lights: ['sched'] })],
+    flow: [
+      F.segment({ from: [API_X, BACK_Y], to: [SCHED_R, BACK_Y], name: 'watch', lights: ['sched'] }),
+      F.set({ at: 'watch', chips: { queueChip: POD, candChip: '4 of 4' } }),
+    ],
   },
   {
     id: 'filter',
