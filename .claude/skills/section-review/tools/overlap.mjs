@@ -1,26 +1,7 @@
 #!/usr/bin/env node
-// overlap.mjs: the three questions about a section that need the WHOLE catalog to answer, no
-// browser. What this section teaches that somewhere else also teaches, what it leans on and never
-// teaches anywhere, and which card outside it reads more like a member than like its own neighbours.
-//
-//   node .claude/skills/section-review/tools/overlap.mjs <category>/<section>
-//     --min=3     how many cards must lean on a term before it counts as implicit (default 3)
-//     --json      the same data as one object
-//
-// Runs from anywhere. Reads every card in the catalog, so it takes a few seconds rather than one.
-//
-// WHY THIS EXISTS. A gap found by reading one section is a gap you already suspected. The two
-// findings that only a catalog-wide read produces are the DUPLICATE, where two sections cite the
-// same upstream page because they teach the same thing twice, and the IMPLICIT TOPIC, where six
-// cards say `finalizer` in passing and nothing in the catalog ever explains one. Neither is visible
-// from inside the section, and neither needs the network.
-//
-// WHAT IT IS BLIND TO, and section 3 is the weakest of the three by a wide margin. A signature
-// centroid is ONE number on ONE axis: two cards can share a centre and have nothing else in common,
-// and a card is reported here as a CANDIDATE for a human to open, never as a misplacement. Section 1
-// cannot tell a shared page that means duplication from one that means two cards correctly citing
-// the same reference. Section 2 defines "teaches a term" as "carries it in the TITLE", which misses
-// a card that teaches a thing under another name. All three are leads, not verdicts.
+// overlap.mjs: catalog-wide reads for one section: pages shared with another section, terms leaned on that no card owns, outside cards that fit here.
+// usage: node .claude/skills/section-review/tools/overlap.mjs <category>/<section> [--min=3] [--json]
+// All three are leads, not verdicts: section 3 is one coarse number on one axis, and "owns" means "carries it in the title".
 import { schemes, subcategories, ROOT } from '../../../../scheme/test/fixtures/catalog.mjs';
 import { walkStrings, signature, centre, sourcePath, NOT_A_TOPIC } from './bands.mjs';
 import { readFileSync } from 'node:fs';
@@ -38,9 +19,7 @@ if (!target || !target.includes('/')) {
 }
 const MIN = Number(flags.min || 3);
 
-// How much nearer this section a card must sit before it is worth naming. The axis is one coarse
-// number, so a small margin reports a third of the catalog: at 0.4 control-plane drew seven
-// candidates and every one of them was a false lead. 0.9 is most of a band.
+// How much nearer this section a card must sit before it is named: the axis is coarse, and 0.9 is most of a band.
 const DRIFT_MARGIN = Number(flags.margin || 0.9);
 
 const [cat, sec] = target.split('/');
@@ -54,9 +33,7 @@ if (!SUBS[cat].some(s => s.key === sec)) {
 const ALL = await schemes();
 const label = (k) => Object.values(SUBS).flat().find(s => s.key === k)?.label || k;
 
-// The curated domain vocabulary, taken from the harness rather than invented: `terms.json` is the
-// dictionary `T-06` holds narration to, so its keys are exactly the words this project has decided
-// are technical terms. Nothing here needs a second list.
+// The vocabulary is terms.json, the dictionary `T-06` holds narration to.
 const TERMS = JSON.parse(readFileSync(join(ROOT, 'test', 'fixtures', 'terms.json'), 'utf8'));
 const VOCAB = [...Object.keys(TERMS.hard || {}), ...Object.keys(TERMS.hardLower || {}), ...Object.keys(TERMS.soft || {})]
   .filter(t => !NOT_A_TOPIC.has(t));
@@ -99,8 +76,7 @@ for (const [page, list] of bySource) {
 out.shared.sort((a, b) => (b.here.length + b.away.length) - (a.here.length + a.away.length));
 
 // ---- 2. terms this section leans on that no card anywhere owns --------------------------------
-// "Owns" means the term is in a card TITLE. A card whose title carries the word is the card a
-// reader lands on when they want to know what it is, which is the whole question being asked.
+// "Owns" means the term is in a card TITLE, the card a reader lands on to learn it.
 for (const term of VOCAB) {
   const re = rx(term);
   const leaners = mine.filter(c => re.test(c.text));
@@ -112,9 +88,7 @@ for (const term of VOCAB) {
 out.implicit.sort((a, b) => b.cards - a.cards);
 
 // ---- 3. cards elsewhere whose centre sits nearer this section than their own ------------------
-// ONE number on ONE axis, and the weakest signal in this file. It is here because it costs nothing
-// and because the one thing it is good at, a card sitting a whole band away from its neighbours,
-// is exactly the thing a reader of one section cannot see.
+// One number on one axis, the weakest signal here, good only at a card a whole band away from its neighbours.
 const mean = (list) => {
   const vals = list.map(c => c.centre).filter(v => v !== null);
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;

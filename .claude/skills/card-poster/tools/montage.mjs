@@ -1,21 +1,7 @@
 #!/usr/bin/env node
-// montage.mjs: a poster is judged NEXT TO ITS SIBLINGS and at the size a reader sees it (R-05,
-// R-06). Nothing else in this repository renders a poster, which is why posters keep shipping with
-// defects that are invisible in the source and obvious on the grid.
-//
-//   node .claude/skills/card-poster/tools/montage.mjs <card-id> [--out=DIR] [--base=URL]
-//   node .claude/skills/card-poster/tools/montage.mjs --ids=a,b,c [--out=DIR]
-//   node .claude/skills/card-poster/tools/montage.mjs --sheet=<category> [--out=DIR]
-//
-// Writes two images per run, and BOTH are the point:
-//   <name>-actual.png    device scale 1: the poster at the size the grid actually paints it, about
-//                        200px wide. A speck, a track dimmed under its siblings and a quarter of
-//                        the canvas left as empty air only show up here.
-//   <name>-montage.png   device scale 3: the same layout with enough pixels to judge composition,
-//                        which is the reading R-05 asks for.
-//
-// Both are CLIPPED to the cards themselves, so the sheet holds posters and nothing else. Runs from
-// any directory. Needs a server at the base URL and Playwright from scheme/test.
+// montage.mjs: posters beside their siblings (R-05, R-06), as <name>-actual.png at grid size and <name>-montage.png at 3x.
+// usage: node .claude/skills/card-poster/tools/montage.mjs <card-id> | --ids=a,b,c | --sheet=<category> [--out=DIR] [--base=URL]
+// Needs a server at the base URL and Playwright from scheme/test.
 import { mkdir } from 'node:fs/promises';
 import { launch, DEFAULT_BASE } from '../../../../scheme/test/fixtures/render.mjs';
 
@@ -52,8 +38,7 @@ async function shoot(scale, file) {
     if (idList) keep = cards.filter(c => idList.split(',').includes(idOf(c)));
     else if (sheet) keep = cards.filter(c => idOf(c).startsWith(sheet + '-'));
     else {
-      // The card plus a neighbour on each side. Catalog order IS the editorial order, so those are
-      // the posters a reader's eye actually lands next to.
+      // The card plus a neighbour on each side: catalog order is the order a reader sees.
       const i = cards.findIndex(c => idOf(c) === cardId);
       if (i < 0) return null;
       keep = cards.slice(Math.max(0, i - 1), i + 2);

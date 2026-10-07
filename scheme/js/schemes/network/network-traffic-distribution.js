@@ -1,42 +1,45 @@
-import { P, F, defineCard, makeRidingLabel, shade, strip, BEAT, OPACITY } from './network-kit.js';
+import { P, F, defineCard, shade, strip, BEAT, OPACITY } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-traffic-distribution.md
 
-
-// The two setting chips are a full-width bottom strip across this span, the grammar the rest of the
-// category uses. Narrow it and the strip centres on the client column instead of on 600.
+// The two setting chips are a full-width bottom strip across this span, centred on 600.
 const SCHEME_L = 60, SCHEME_R = 1140;        // content edges, mirrored about x=600
 const FLOW_Y = 320;                          // central flow line
 
 const CLIENT_X = SCHEME_L, CLIENT_W = 200, CLIENT_H = 110;
-const CLIENT_OUT = [CLIENT_X + CLIENT_W, FLOW_Y];   // 260: client right edge
+const CLIENT_OUT = [CLIENT_X + CLIENT_W, FLOW_Y];   // client right edge
 // The control column: the Node dataplane on the flow line over kube-proxy, both NET.L-01 232x80. Its
-// right edge 588 stands 10 short of a riding tag on the rail: the record LAYOUT says why it is not 420.
+// right edge stands clear of a riding tag on the rail.
 const COL_X = 356, COL_W = 232;
-const COL_CX = COL_X + COL_W / 2;            // 472: the relation from kube-proxy lands here
+const COL_CX = COL_X + COL_W / 2;            // the relation from kube-proxy lands here
 const DP_H = 80, KP_H = 80, REL_GAP = 44;
-const DP_TOP = FLOW_Y - DP_H / 2;            // 280
-const KP_Y = DP_TOP + DP_H + REL_GAP;        // 404: under the dataplane, clear of the panel
+const DP_TOP = FLOW_Y - DP_H / 2;
+const KP_Y = DP_TOP + DP_H + REL_GAP;        // under the dataplane, clear of the panel
 const DP_IN = [COL_X, FLOW_Y];               // dataplane left edge (connection arrives)
-const DP_OUT = [COL_X + COL_W, FLOW_Y];      // 588: dataplane right edge, where the fan leaves
-const RAIL_X = 700;                          // shared vertical fan rail, left of the zones (740)
-const ZONE_X = 740, ZONE_W = SCHEME_R - 740, ZONE_H = 240;   // 740..1140
-const ZONE_A_Y = 60, ZONE_B_Y = 340;         // mirrored about FLOW_Y
-const POD_W = 240, POD_H = 96;
-const POD_L = ZONE_X + 92;                   // 832: 12 right of centre, so the frame label ends 13 short of it
-const POD_PAD = (ZONE_H - 2 * POD_H) / 3;    // 16: equal padding above, between and below the two Pods
+const DP_OUT = [COL_X + COL_W, FLOW_Y];      // dataplane right edge, where the fan leaves
+const RAIL_X = 700;                          // shared vertical fan rail, left of the zones
+const POD_W = 240, POD_H = 96, POD_GAP = 16;
+// A zone holds its two Pods on the catalog padding, 34 of label band over them and 12 of floor.
+const ZONE_X = 740, ZONE_W = SCHEME_R - 740, ZONE_H = 34 + 2 * POD_H + POD_GAP + 12;
+// The Pod rows, not the frames, mirror about FLOW_Y, so the fan stays balanced: the padding is
+// uneven, so frames mirrored would put their Pods off the mirror.
+const POD_TOP_CY = 34 + POD_H / 2, POD_LOW_CY = POD_TOP_CY + POD_H + POD_GAP;   // under a zone top
+const ZONE_GAP = 40;
+const ZONE_A_Y = FLOW_Y - POD_LOW_CY - (ZONE_H - POD_LOW_CY + ZONE_GAP + POD_TOP_CY) / 2;
+const ZONE_B_Y = ZONE_A_Y + ZONE_H + ZONE_GAP;
+const POD_L = ZONE_X + 92;                   // right of centre, to clear the zone label
 // Backend Pod centre rows: zone-a stacked on top (a1, a2), zone-b below (b1, b2), symmetric about
 // FLOW_Y so the fan is balanced.
-const A1Y = ZONE_A_Y + POD_PAD + POD_H / 2;  // 124
-const A2Y = A1Y + POD_H + POD_PAD;           // 236
-const B1Y = ZONE_B_Y + POD_PAD + POD_H / 2;  // 404
-const B2Y = B1Y + POD_H + POD_PAD;           // 516
+const A1Y = ZONE_A_Y + POD_TOP_CY;
+const A2Y = ZONE_A_Y + POD_LOW_CY;
+const B1Y = ZONE_B_Y + POD_TOP_CY;
+const B2Y = ZONE_B_Y + POD_LOW_CY;
 
 // Bottom strip: two equal chips spanning the composition, so the row centres on 600 like the rest.
-const CHIP_Y = 592, CHIP_H = 34, CHIP_GAP = 20;
-const CHIPS = strip({ from: SCHEME_L, to: SCHEME_R, count: 2, gap: CHIP_GAP });   // 530 wide each
-// Every leg ends on its zone frame face at x 740, never on a Pod inside it (A-21), at the mirrored
-// offsets +-56 about each face midpoint (L-12).
+const CHIP_Y = ZONE_B_Y + ZONE_H + 12, CHIP_H = 34, CHIP_GAP = 20;
+const CHIPS = strip({ from: SCHEME_L, to: SCHEME_R, count: 2, gap: CHIP_GAP });
+// Every leg ends on its zone frame face at x 740, never on a Pod inside it (A-21), level with the
+// centre of the Pod it addresses (L-11).
 const FAN_A1 = [DP_OUT, [RAIL_X, FLOW_Y], [RAIL_X, A1Y], [ZONE_X, A1Y]];
 const FAN_A2 = [DP_OUT, [RAIL_X, FLOW_Y], [RAIL_X, A2Y], [ZONE_X, A2Y]];
 const FAN_B1 = [DP_OUT, [RAIL_X, FLOW_Y], [RAIL_X, B1Y], [ZONE_X, B1Y]];
@@ -55,7 +58,7 @@ export const SCENE = {
   parts: [
     P.defs(),
     // `in zone-a`, not `zone-a`: the frame is the endpoints in that zone, and the client in zone-a
-    // stands outside it. It inks 67 wide at 1600x1000, so the Pods sit at 832 rather than centred.
+    // stands outside it. The Pods sit right of centre to clear it.
     P.node({ key: 'zoneA', x: ZONE_X, y: ZONE_A_Y, w: ZONE_W, h: ZONE_H, label: 'in zone-a' }),
     P.node({ key: 'zoneB', x: ZONE_X, y: ZONE_B_Y, w: ZONE_W, h: ZONE_H, label: 'in zone-b' }),
     backend('a1', A1Y, '10.244.2.7'),
@@ -88,17 +91,15 @@ export const SCENE = {
   },
 };
 
-// The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: hold 260
-// keeps the source IP up while the backend pulses, so the address and the chosen zone read as one.
-const ridingLabel = makeRidingLabel({ role: 'network', inMs: 160, outMs: 200, hold: 260 });
-const tag = (p) => F.tag({ fn: ridingLabel, ...p });
+// The source IP rides into the chosen backend and fades with its ball.
+const tag = (p) => F.tag({ ...p });
 // The tag is up from departure and trails LEFT of the rail, above the dataplane on an up ride and below
 // it on a down ride, parking past the rail end. The inner legs a2 and b1 have no such clear end.
 const TAG_UP = { dx: -56, dy: -52 };
 const TAG_DOWN = { dx: -56, dy: 60 };
 
-// Two connections landing on ONE Pod are held a whole PULSE_POD.ms (900) apart, so the second blink
-// starts on the millisecond the first one ends. The 540 of the default step is for two DIFFERENT Pods.
+// Two connections landing on ONE Pod are held a whole PULSE_POD.ms apart, so the second blink starts
+// as the first one ends.
 const SAME_POD_GAP = 900;
 
 const CLIENT_IP = 'src 10.244.2.50';
@@ -109,8 +110,7 @@ const PINNED = 'ClientIP · .2.50 pinned to .2.7 · 10800s';
 // that pick the backend run there.
 const arrive = (name, delay) => F.segment({ from: CLIENT_OUT, to: DP_IN, delay, name, lights: ['dp'] });
 
-// One fan leg: the ball, the source-IP tag riding its routeDur so it stays glued to it (M-30), then
-// the backend Pod pulsing on arrival.
+// One fan leg: the ball, the source-IP tag, then the backend Pod pulsing on arrival.
 const fan = (points, pod, name, after, plus) => [
   F.route({ points, after, plus, name }),
   tag({ text: CLIENT_IP, points, after, plus, ...(points === FAN_A1 ? TAG_UP : TAG_DOWN) }),
@@ -152,7 +152,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'session-affinity',
-    // Motion: the first connection reaches a1 at 2373 and the second at 3273, whose blink ends at 4173.
     duration: 4900,
     narration: 'First lever, per client: set sessionAffinity to ClientIP. The opening connection still picks a backend freely, and the dataplane pins source 10.244.2.50 to the Pod it picked, 10.244.2.7. Later connections from that client return there while that Pod stays in the rules and the client reconnects within the sticky window, 10800 seconds by default.',
     chips: { modeChip: 'unset · all zones', pinChip: PINNED },
@@ -202,8 +201,7 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'client' }),
       arrive('arr', BEAT.afterPulse),
-      F.route({ points: FAN_B1, after: 'arr', name: 'fb1' }),
-      F.pulse({ pod: 'b1', at: 'fb1' }),
+      F.route({ points: FAN_B1, after: 'arr', pulse: 'b1' }),
     ],
   },
 ];

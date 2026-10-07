@@ -1,10 +1,6 @@
-// "New since your last visit". A copy lives in scheme/js/lib/fresh.js, duplicated like sidebar.js so
-// each path prefix stays self-contained, and the hub reads the same storage to count what is new.
-//
-// Storage holds { key: firstSeenMs } for every item this browser has seen. The FIRST visit records
-// everything as 0, a baseline that is never new, so a newcomer sees no badges at all. An item that
-// turns up on a later visit is stamped with that visit's time and reads NEW for FRESH_DAYS, until
-// the reader opens or copies it. Keys that left the catalog are dropped on every load.
+// "New since your last visit". A copy lives in scheme/js/lib/fresh.js, and the hub reads its storage.
+// Storage maps key to firstSeenMs. The first visit records everything as 0, a baseline that is never
+// new. A later arrival reads NEW for FRESH_DAYS until opened or copied. Departed keys drop on load.
 
 export const FRESH_DAYS = 14;
 const DAY_MS = 864e5;

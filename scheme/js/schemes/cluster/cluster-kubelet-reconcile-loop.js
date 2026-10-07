@@ -1,45 +1,41 @@
-import { P, F, defineCard, LAYOUT, laneY, ladder, midX } from './cluster-kit.js';
+import { LANE_DY, P, F, defineCard, CLU, LAYOUT, laneY, ladder, midX } from './cluster-kit.js';
 
 // Design notes for this card: ./CARDS/cluster-kubelet-reconcile-loop.md
 
-// Laid out on the L. Panel x<=397 y<=255 (269 at 1024x768) against the API box at y=300, so the
-// CEILING is 360 characters per narration: 362 costs one more line and lands 1024x768 on 296.
+// Laid out on the L. The API box at y=300 caps narration at 360 characters.
 const M = 60;
-const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
+const CONTENT_L = M, CONTENT_R = 1200 - M;
 
-const TOP_Y = 40, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;// 40 / 120
-const TOP_CY = midX(TOP_Y, TOP_BOTTOM);                  // 80
-const LANE_DY = 15;
-const { out: OUT_Y, back: BACK_Y } = laneY(TOP_CY, LANE_DY);  // 65 / 95
-const KUBE_X = 560, KUBE_W = 220, KUBE_R = KUBE_X + KUBE_W;  // 560..780
-const RT_W = 240, RT_X = CONTENT_R - RT_W;  // 900..1140
+const TOP_Y = 40, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;
+const TOP_CY = midX(TOP_Y, TOP_BOTTOM);
+const { out: OUT_Y, back: BACK_Y } = laneY(TOP_CY, LANE_DY);
+const KUBE_X = 554, KUBE_W = 232, KUBE_R = KUBE_X + KUBE_W;
+const RT_W = 232, RT_X = CONTENT_R - RT_W;
 
-const API_X = CONTENT_L, API_W = 240, API_H = 80;
-const API_Y = 300, API_R = API_X + API_W;                // 60..300, 300..380
-const API_CY = midX(API_Y, API_Y + API_H);               // 340
+const API_X = CONTENT_L, API_W = 232, API_H = 80;
+const API_Y = 300, API_R = API_X + API_W;
+const API_CY = midX(API_Y, API_Y + API_H);
 // Two risers, out left of back, so the vertical legs never share an x and never cross. Both clear
 // the panel, each offset by LANE_DY from its face centre.
 const RISER_OUT_X = 412, RISER_BACK_X = 436;
-const { out: API_OUT_Y, back: API_BACK_Y } = laneY(API_CY, LANE_DY);   // 325 / 355
+const { out: API_OUT_Y, back: API_BACK_Y } = laneY(API_CY, LANE_DY);
 const API_TO_KUBE = [[API_R, API_OUT_Y], [RISER_OUT_X, API_OUT_Y], [RISER_OUT_X, OUT_Y], [KUBE_X, OUT_Y]];
 const KUBE_TO_API = [[KUBE_X, BACK_Y], [RISER_BACK_X, BACK_Y], [RISER_BACK_X, API_BACK_Y], [API_R, API_BACK_Y]];
 
-const LADDER_X = LAYOUT.B.ladder.x, LADDER_W = LAYOUT.B.ladder.w;   // 660..1140
-const LADDER_Y = 190, ROW_H = 32, ROW_GAP = 10;          // 5 rows -> 190..390
+const LADDER_X = LAYOUT.B.ladder.x, LADDER_W = LAYOUT.B.ladder.w;
+const LADDER_Y = 190, ROW_H = 32, ROW_GAP = 10;
 
-// The Kubelet owns EVERY ladder row, so the tie is a RELATIONSHIP: no ball, no arrowhead. Face
-// midpoint to face midpoint, turn halfway between, and the whole band stays free for it.
-const KUBE_CX = midX(KUBE_X, KUBE_R);                    // 670
-const LADDER_CX = midX(LADDER_X, CONTENT_R);             // 900
-const TIE_JOG_Y = midX(TOP_BOTTOM, LADDER_Y);            // 155
+// The Kubelet owns every ladder row, so the tie is a RELATIONSHIP: no ball, no arrowhead.
+const KUBE_CX = midX(KUBE_X, KUBE_R);
+const LADDER_CX = midX(LADDER_X, CONTENT_R);
+const TIE_JOG_Y = midX(TOP_BOTTOM, LADDER_Y);
 const KUBE_TO_CHAIN = [[KUBE_CX, TOP_BOTTOM], [KUBE_CX, TIE_JOG_Y], [LADDER_CX, TIE_JOG_Y], [LADDER_CX, LADDER_Y]];
 
-const CHIP_X = LAYOUT.B.chips.x, CHIP_W = LAYOUT.B.chips.w;         // 60..540
+const CHIP_X = LAYOUT.B.chips.x, CHIP_W = LAYOUT.B.chips.w;
 const CHIP_H = 34, CHIP_GAP = 8;
-const CHIP_Y = ladder({ y: 430, rowH: CHIP_H, gap: CHIP_GAP });   // 430 / 472 / 514 / 556
+const CHIP_Y = ladder({ y: 430, rowH: CHIP_H, gap: CHIP_GAP });
 
-// The list order IS the append order, so it is the z-order. Everything hangs off one wrapper group,
-// arrowDefs included, so the whole drawing can be shifted with a single transform.
+// Append order is z-order. One wrapper group, arrowDefs included, so a single transform shifts it all.
 export const SCENE = {
   'aria-label': 'Kubelet sync loop: watch, PLEG, SyncPod, CRI, status',
   parts: [
@@ -47,28 +43,23 @@ export const SCENE = {
       transform: 'translate(0, 0)',
       parts: [
         P.defs(),
-        // Top arrows, symmetric about each box centre (y=80, so +/-15 -> 65 and 95):
         // Api <-> Kubelet (watch + status PATCH), Kubelet <-> Runtime (CRI calls).
         P.lane({ points: API_TO_KUBE, dim: true, dashed: true }),
         P.lane({ points: KUBE_TO_API, dim: true, dashed: true }),
         P.arrow({ x1: KUBE_R, y1: OUT_Y, x2: RT_X, y2: OUT_Y, dim: true, dashed: true }),
         P.arrow({ x1: RT_X, y1: BACK_Y, x2: KUBE_R, y2: BACK_Y, dim: true, dashed: true }),
-        // Kubelet.bottom -> ladder.top: the loop below belongs to this box. See KUBE_TO_CHAIN above.
+        // The loop below belongs to the Kubelet.
         P.relation({ points: KUBE_TO_CHAIN }),
-        // Wire labels between top row and pipeline, right-anchored left of the out riser: the longest
-        // string is 193 units against a 112 unit gap, so a centred label runs through both risers.
+        // Right-anchored left of the out riser: a centred label would run through both risers.
         P.wire({ key: 'api', x: RISER_OUT_X - 8, y: API_Y - 12, anchor: 'end' }),
-        // ABOVE the top row, not below it: the band below belongs to the Kubelet-to-ladder tie.
-        // TOP_Y - 14 is where cluster-node-drain, cluster-oom-kill and cluster-node-failure put theirs.
+        // Above the top row: the band below belongs to the Kubelet-to-ladder tie.
         P.wire({ key: 'rt', x: midX(KUBE_R, RT_X), y: TOP_Y - 14 }),
-        // State chips column on the right.
         P.chip({ key: 'podChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'Pod', value: 'none' }),
         P.chip({ key: 'desiredChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: CHIP_H, name: 'desired', value: 'none' }),
         P.chip({ key: 'observedChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: CHIP_H, name: 'observed', value: 'none' }),
         P.chip({ key: 'lastOpChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'last CRI op', value: 'none' }),
         P.packets(),
-        // Chain LAST among middle blocks so it renders on top of packet layer.
-        // Pipeline chain: 5 stages of the Kubelet sync cycle.
+        // After the packet layer, so the chain renders on top of it.
         P.chain({
           key: 'chain', x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: ROW_H, gap: ROW_GAP,
           items: [
@@ -92,8 +83,7 @@ export const SCENE = {
 // Every chip reports what the Kubelet has LEARNED or DONE, so each waits for the packet that earns
 // it. Every enter() writes EVERY one, or clicking Next mid-flight loses whatever at() was holding.
 const POD_NAME = 'my-app-7d4-abc', SPEC = '1 container';
-// One packet per call the narration names, in order, and the chip names each as it lands: the
-// step is a SEQUENCE, so a chip reading StartContainer from entry skips three quarters of it.
+// One packet per call, in order, and the chip names each as it lands: the step is a SEQUENCE.
 const CALLS = ['RunPodSandbox', 'PullImage', 'CreateContainer', 'StartContainer'];
 
 export const STEPS_SPEC = [
@@ -111,8 +101,7 @@ export const STEPS_SPEC = [
     wires: { api: 'watch ADDED' },
     lit: ['api', 'podChip', 'desiredChip'],
     chain: 0,
-    // podManager holds the spec once the event REACHES the Kubelet, so both chips wait for the
-    // ball rather than describing a desired state the Node has not been told about yet.
+    // Both chips wait for the event to reach the Kubelet.
     rewind: { chips: { podChip: 'none', desiredChip: 'none' } },
     flow: [
       F.route({ points: API_TO_KUBE, name: 'added', lights: ['kubelet'] }),
@@ -147,8 +136,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'cri',
-    // Four calls, four packets on the top-row lane: each hop is HOP_MS 700 plus BEAT.afterHop 100,
-    // so the fourth leaves at 2400 and its ripple closes the span at 3660.
     duration: 3800,
     narration: 'Kubelet issues CRI gRPC calls in sequence: RunPodSandbox creates the pause container with shared namespaces, PullImage fetches the image, which imagePullPolicy can skip when it is already on the Node, then CreateContainer and StartContainer launch each container in the spec. Details of the sandbox setup are covered in the Pod Sandbox via CRI card.',
     chips: { podChip: POD_NAME, desiredChip: SPEC, observedChip: '0 containers', lastOpChip: 'StartContainer' },
@@ -167,16 +154,13 @@ export const STEPS_SPEC = [
   },
   {
     id: 'status',
-    // Motion: the PLEG round trip to the runtime (700 out, 700 back with a beat between), then
-    // the PATCH down the riser to the API, ending at 3316.
     duration: 3600,
     narration: 'Next PLEG cycle observes the running container, observed state catches up to desired state, and SyncPod finds nothing left to create or start. Kubelet PATCHes Pod status (containerStatuses) back to the API. The loop is ready for the next change.',
     chips: { podChip: POD_NAME, desiredChip: SPEC, observedChip: '1 container running', lastOpChip: 'ListContainers' },
     wires: { rt: 'ListContainers', api: 'PATCH .../pods/{name}/status' },
     lit: ['lastOpChip', 'kubelet', 'observedChip'],
     chain: 4,
-    // The sentence OPENS with the next PLEG cycle observing the container and only THEN PATCHes,
-    // so both ride. The chips carry the same order: the step starts holding what CRI left.
+    // The next PLEG cycle observes first, then the PATCH rides, and the chips follow that order.
     rewind: { chips: { observedChip: '0 containers', lastOpChip: 'StartContainer' } },
     flow: [
       F.top({ from: KUBE_R, to: RT_X, y: OUT_Y, name: 'list', lights: ['runtime'] }),

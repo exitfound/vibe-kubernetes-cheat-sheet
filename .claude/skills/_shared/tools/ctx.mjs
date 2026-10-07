@@ -1,39 +1,7 @@
 #!/usr/bin/env node
-// ctx.mjs: the whole phase-1 read set of ONE card, printed in a single run.
-//
-//   node .claude/skills/_shared/tools/ctx.mjs <card-id>
-//     --siblings=all    print the prose of EVERY resolved sibling, record-only ones included
-//     --siblings=full   print the sibling card SOURCES whole
-//     --siblings=none   skip the sibling block entirely
-//     --no-source       skip the card module (when you already have it open)
-//     --no-record       skip the design record
-//     --json            the same data as one object
-//
-// Runs from anywhere: it imports scheme/test/fixtures/catalog.mjs, which reaches only node
-// builtins, so there is no playwright and no node_modules to be in the right directory for.
-//
-// WHY THIS EXISTS. Phase 1 of `card-review` is seven numbered reads, and each one used to arrive as
-// its own round trip: the category contract, the record, the source, the catalog entry, the poster
-// fragment, then every sibling the prose names. Ten turns and about 35k tokens before a single
-// finding, on a card whose whole machine pass costs eight seconds. The bytes were never the cost.
-// The TURNS were. This prints the same bytes once.
-//
-// It also does the one part of that phase a human keeps getting wrong, which is step 7: "every
-// sibling card the narration, the desc or the record names". That is prose resolution, and it is
-// where contradiction hunting starts, the technique that found 31 defects in 87 cards somebody had
-// already closed. A card is named by TITLE far more often than by id, so matching ids alone reads
-// as thorough and silently drops most of them.
-//
-// WHAT IT IS BLIND TO, and the list matters more than the dump.
-//   - It reads the DECLARED scene and the source text. It cannot see a rendered frame, and nothing
-//     in this output is evidence about geometry, motion, timing or colour. Those come from the
-//     browser tools, and no amount of reading substitutes for opening the frames.
-//   - Sibling resolution is a string match. A card referred to obliquely ("the card that times it")
-//     resolves to nothing, so every `... card` phrase it could not resolve is printed as an
-//     UNRESOLVED mention rather than dropped. Read that list: it is the half a machine cannot do.
-//   - It does not open `scheme/CLAUDE.md`, `scheme/CANON.md` or the category kit. Those are read
-//     once per session and not once per card, and section 7 of the output says so.
-//   - It states no verdict about anything it prints.
+// ctx.mjs: the whole phase-1 read set of ONE card (catalog entry, record, source, poster, named siblings) in one run.
+// usage: node .claude/skills/_shared/tools/ctx.mjs <card-id> [--siblings=all|full|none] [--no-source] [--no-record] [--json]
+// Blind to rendered frames, and sibling resolution is a string match, so unresolved "... card" phrases are printed.
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -79,10 +47,7 @@ const card = files.find(c => c.id === entry.id);
 const CAT = entry.category;
 const catDir = join(ROOT, 'js', 'schemes', CAT);
 
-// ---------------------------------------------------------------------------------------------
-// Slicing a named entry out of a file that holds many. Brace matching from the line the id is on,
-// walked BACK to the object opener first, because the id is never the first key in either file.
-// ---------------------------------------------------------------------------------------------
+// Slice a named entry by brace matching, walked BACK to the object opener because the id is never the first key.
 function sliceEntry(text, idRe, { open = '{', close = '}' } = {}) {
   const src = lines(text);
   const at = src.findIndex(l => idRe.test(l));
@@ -114,10 +79,7 @@ function slicePoster(text, id) {
   return { from: start + 1, to: end + 1, text: src.slice(start, end + 1).join('\n') };
 }
 
-// ---------------------------------------------------------------------------------------------
-// The card's own prose, off the imported module rather than off the file text, so a string built
-// by a helper is still read. Every key that can carry a drawn or spoken string is collected.
-// ---------------------------------------------------------------------------------------------
+// The card's prose off the imported module rather than the file text, so a string built by a helper is still read.
 const PROSE_KEYS = new Set(['narration', 'aria-label', 'aria', 'label', 'sub', 'name', 'value', 'text', 'title', 'chain']);
 function proseOf(value, out = []) {
   if (!value || typeof value !== 'object') return out;
@@ -140,10 +102,7 @@ const mod = await moduleOf(card);
 const SPEC = mod.STEPS_SPEC || [];
 const SCENE = mod.SCENE || null;
 
-// ---------------------------------------------------------------------------------------------
-// The record: one file in the split shape, one `## <id>` section in the monolith. Read off
-// recordFiles() so a fifth category picking either shape is covered the day it does.
-// ---------------------------------------------------------------------------------------------
+// The record: one CARDS/<id>.md file in the split shape, one `## <id>` section in the monolith.
 function recordOf(c) {
   const rf = recordFiles(c.category);
   const split = rf.find(f => f.rel.endsWith(join('CARDS', `${c.id}.md`)));
@@ -187,14 +146,10 @@ for (const other of all) {
   }
 }
 
-// Every "<Something> card" phrase, so an oblique reference is REPORTED rather than dropped. This is
-// the half of step 7 no match can close, and a review that ignores it is the review that misses the
-// contradiction.
+// Every "<Something> card" phrase, so an oblique reference is reported rather than dropped.
 const titles = new Set(all.map(s => norm(s.title)));
 const resolvedTitles = [...found.keys()].map(id => norm(all.find(s => s.id === id).title));
-// Words that make a phrase a POINTER at the card in hand rather than a reference to another one.
-// Without this the list fills with "This card", "SECOND card" and a record heading that happened to
-// end in the word, and a list of noise is a list nobody reads.
+// Words that make a phrase point at the card in hand rather than at another one.
 const DEICTIC = new Set(['this', 'the', 'that', 'a', 'an', 'its', 'our', 'one', 'same', 'other', 'every', 'each',
   'first', 'second', 'third', 'fourth', 'fifth', 'next', 'previous', 'last', 'whole', 'per', 'scope', 'what', 'layout', 'content',
   'so', 'and', 'but', 'then', 'here', 'there', 'only', 'also', 'now', 'still', 'both', 'which', 'when', 'while', 'if', 'no', 'not']);
@@ -205,18 +160,15 @@ for (const [where, text] of haystacks) {
   for (const m of text.matchAll(/\b((?:[A-Z][\w-]*\s+){1,6})card\b/g)) {
     const phrase = m[1].trim();
     if (titles.has(norm(phrase))) continue;                     // an exact title, resolved above
-    // A TAIL of a title already resolved: "... Node Failure and Pod Recovery card" matches the
-    // regex twice, and the shorter match is the same reference, not a second one. Read the window
-    // ending at the phrase rather than the phrase alone, which is where the full title sits.
+// A tail of an already resolved title matches the regex twice, so read the window ending at the phrase,
+// which is where the full title sits.
     const window = norm(text.slice(Math.max(0, m.index - 90), m.index + m[0].length));
     if (resolvedTitles.some(t => window.includes(t))) continue;
     if (phrase.split(/\s+/).every(w => DEICTIC.has(w.toLowerCase()) || /^[A-Z]{2,}$/.test(w))) continue;
     const key = `${where}|${norm(phrase)}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    // A phrase that is a PART of a real title is the common case: a narration says "the Force
-    // Deletion card" where the catalog calls it something longer. Name the candidate rather than
-    // leaving a reader to grep for it, and never silently treat the guess as the answer.
+// A phrase that is part of a longer real title: name the candidate, never treat the guess as the answer.
     const hint = all.filter(x => x.id !== card.id && norm(x.title).includes(norm(phrase)))
       .map(x => `${x.id} "${x.title}"`);
     unresolved.push({ where, phrase: `${phrase} card`, hint });
@@ -288,11 +240,8 @@ P();
 if (flags.siblings !== 'none') {
   P(rule(`6. SIBLINGS THIS CARD NAMES   ${found.size} resolved, ${unresolved.length} unresolved mention(s)`));
   if (!found.size) P('None. A card that names no sibling is ordinary, and it removes the cheapest contradiction check.');
-  // TIERED on WHERE the name appears, because the two places mean different things. A sibling
-  // named in the DESC, the aria-label or a step narration is a user-visible claim about another
-  // card, and that is where a contradiction lives, so its prose is printed whole. A sibling named
-  // only in the RECORD is a scope boundary a previous pass wrote down: worth knowing about, not
-  // worth 3k tokens unasked. `--siblings=all` promotes them, and the one-liner names the file.
+// Tiered on where the name appears: desc, aria-label or narration is a user-visible claim and prints whole,
+// a record-only mention prints one line unless --siblings=all.
   const prosey = (where) => [...where].some(w => w !== 'record');
   for (const [id, where] of found) {
     const s = all.find(x => x.id === id);

@@ -1,26 +1,9 @@
-// chip-unwritten.mjs: the walk behind the "chip nobody writes" rule, lifted out of
-// report/chip-unwritten.test.mjs on 2026-08-17 when its queue reached zero and the check was promoted.
-//
-// WHY A FIXTURE. ../unit/chip-written.test.mjs now asks the same question as a VERDICT while the
-// report keeps printing the two tiers and the carried table. Two copies of "what counts as a write"
-// would let the gate and the report describe different catalogues while both stayed green, which is
-// the drift ./spec.mjs was written against, and a test file cannot import another test file without
-// registering its tests twice.
-//
-// WHAT IT IS BLIND TO: a write inside an escape. `step.enter` and `F.run` are function bodies, so a
-// setVal() in one is a write this reader cannot see. P-11 bans exactly that, which is why the finding
-// is worth printing rather than guarding against: such a chip is a P-11 finding, not this one.
+// What counts as a chip write, shared by the report and the chip-written verdict.
+// Blind to writes inside an escape (step.enter, F.run), which P-11 bans.
 
-// The walk baseline is not typed here. Both readers derive it: the card count off the catalog they
-// already walk, the step count off `stepTotal()` in ./module.mjs. See CATALOG_BASELINE in
-// ./catalog.mjs for why a literal floor weakens as the catalog grows.
+// The walk baseline is derived by both readers, never typed here.
 
-// Rulings a human has READ and decided to carry, keyed `<card id> <chip key>`.
-// THE ENTRIES THEMSELVES LIVE IN ./carried.mjs, the one store for a report finding somebody has
-// ruled on and kept: this is the axis view of it, under the name the two readers already import.
-// Add a ruling THERE, as `{ axis: 'LIT-NOT-WRITTEN', card, where: [chipKey], why }`. Empty today,
-// and that reads correctly: nothing is reported, so nothing is carried.
-// ../unit/chip-written.test.mjs still names this file, and this is where the export is.
+// Carried LIT-NOT-WRITTEN rulings, stored in ./carried.mjs. Empty.
 import { carriedMap } from './carried.mjs';
 
 export const CHIP_CARRIED = carriedMap('LIT-NOT-WRITTEN');
@@ -37,9 +20,7 @@ export function writtenKeys(spec) {
   return out;
 }
 
-// Every key any step POINTS AT, through all four cues that put `.highlight` on an element: the
-// static `lit`, the reduced-path `reducedLit`, an F.light target list, and the `lights` a packet
-// entry hangs off its own arrival.
+// Every key a step points at through the four cues: `lit`, `reducedLit`, F.light targets, packet `lights`.
 export function cuedKeys(spec) {
   const out = new Set();
   for (const s of spec) {

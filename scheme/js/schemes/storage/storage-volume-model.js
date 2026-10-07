@@ -1,27 +1,27 @@
-import { P, F, defineCard, BEAT, OPACITY, FADE, makeRidingLabel } from './storage-kit.js';
+import { LANE_DY, P, F, defineCard, BEAT, OPACITY, FADE } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-volume-model.md
 
 
 // Three zones: the Pod spec as a ladder left under the panel, the running Pod right of it, and a
-// lifetime timeline across the floor. Panel extent measured per viewport in the record.
-const POD_X = 432, POD_Y = 60, POD_W = 736;                       // 432..1168, centre 800
+// lifetime timeline across the floor.
+const POD_X = 432, POD_Y = 60, POD_W = 736;
 const POD_CX = POD_X + POD_W / 2;
-// The container row: three 200 by 80 peers, sized by the shell (record SIZES).
+// The container row: three peers sized by the shell.
 const BOX_W = 200, BOX_H = 80, BOX_GAP = 44, ROW_IN = 24;
-const ROW_Y = POD_Y + 44, ROW_B = ROW_Y + BOX_H;                  // 104..184
-const SEED_X = POD_X + ROW_IN;                                    // 456
-const APP_X = SEED_X + BOX_W + BOX_GAP;                           // 700
-const SHIP_X = APP_X + BOX_W + BOX_GAP;                           // 944, right edge 1144
+const ROW_Y = POD_Y + 44, ROW_B = ROW_Y + BOX_H;
+const SEED_X = POD_X + ROW_IN;
+const APP_X = SEED_X + BOX_W + BOX_GAP;
+const SHIP_X = APP_X + BOX_W + BOX_GAP;
 const SEED_CX = SEED_X + BOX_W / 2, APP_CX = APP_X + BOX_W / 2, SHIP_CX = SHIP_X + BOX_W / 2;
 // One wide disk under the whole row, so every mount drops straight into the same volume.
-const VOL_X = SEED_X + ROW_IN, VOL_W = SHIP_X + BOX_W - ROW_IN - VOL_X;   // 480..1120
-const VOL_Y = ROW_B + 100, VOL_H = 80, VOL_B = VOL_Y + VOL_H;     // 284..364
+const VOL_X = SEED_X + ROW_IN, VOL_W = SHIP_X + BOX_W - ROW_IN - VOL_X;
+const VOL_Y = ROW_B + 100, VOL_H = 80, VOL_B = VOL_Y + VOL_H;
 const CAP_RY = 8;                                                 // cylinder() cap half-height
 // Where a vertical lane meets the top edge of the cap ellipse at x.
 const capTop = (x) => VOL_Y + CAP_RY - CAP_RY * Math.sqrt(1 - ((x - POD_CX) / (VOL_W / 2)) ** 2);
 // The two files sit inside the disk under the lane that writes each one.
 const FILE_W = 120, FILE_H = 28, FILE_Y = VOL_Y + 34;          // clear of a tag under the cap
-const POD_H = VOL_B + 36 - POD_Y;                                 // bottom 400, sublabel under disk
+const POD_H = VOL_B + 36 - POD_Y;                                 // sublabel under the disk
 
 // The spec ladder, left of the Pod and under the deepest panel reading.
 const SPEC_X = 32, SPEC_W = 360, SPEC_Y = 278, SPEC_ROW = 28, SPEC_GAP = 6;
@@ -31,23 +31,20 @@ const TL_LABEL_X = 40, CELL_X = 200, CELL_W = 188, CELL_GAP = 4, BAR_H = 16;
 const TL_Y = 448, TL_PITCH = 32;
 const cellX = (c) => CELL_X + c * (CELL_W + CELL_GAP);
 const rowY = (r) => TL_Y + r * TL_PITCH;
-const TL_END = cellX(4) + CELL_W;                                 // 1156
+const TL_END = cellX(4) + CELL_W;
 
 // The app pair sits LANE_DY either side of the app centre: up is the read, down the write.
-const LANE_DY = 12;
 const W_SEED = [[SEED_CX, ROW_B], [SEED_CX, capTop(SEED_CX)]];
 const W_READ = [[APP_CX - LANE_DY, capTop(APP_CX - LANE_DY)], [APP_CX - LANE_DY, ROW_B]];
 const W_WRITE = [[APP_CX + LANE_DY, ROW_B], [APP_CX + LANE_DY, capTop(APP_CX + LANE_DY)]];
 const W_SHIP = [[SHIP_CX, capTop(SHIP_CX)], [SHIP_CX, ROW_B]];
 const CAP_Y = (ROW_B + VOL_Y) / 2 + 4;                            // mountPath captions, mid-gap
 
-// The 100 unit lanes ride routeDur, on the 700ms floor, and each tag lives exactly as long as its
-// ball (M-30a), below it and on the side away from the mountPath caption: clear of the row at
-// departure, and past the cap front edge, over the disk face, on landing. Record: MOTION.
-const tagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
-const DOWN_TAG = { fn: tagFn, dy: 24 };
-const UP_TAG = { fn: tagFn, dy: 28 };
-// Every ball rides 20 percent faster than the 700ms floor routeDur puts these lanes on: 700 / 1.2.
+// Each tag rides below its ball: clear of the row at departure, and over the disk face, past the
+// cap front edge, on landing.
+const DOWN_TAG = { dy: 24 };
+const UP_TAG = { dy: 28 };
+// 20 percent faster than the 700ms floor routeDur puts these lanes on.
 const LEG_DUR = 580;
 // The Pod pulse masks a lit sender until it ends, so a ball leaves at SEND, as on storage-emptydir.
 const SEND = BEAT.afterPulse + 500;
@@ -58,8 +55,8 @@ const track = (r) => P.relation({ points: [[CELL_X, rowY(r) + BAR_H + 3], [TL_EN
 const rowLabel = (r, text) => P.tag({ x: TL_LABEL_X, y: rowY(r) + 12, anchor: 'start', text });
 const PHASES = ['on a Node', 'init', 'start', 'share', 'restart'];
 
-// Z-order (bottom -> top): the Pod group (shell, containers, disk, files) so the pulse takes it as
-// a unit, then the mount lanes and captions, the spec ladder, the timeline, then the packet layer.
+// Z-order: the Pod group (shell, containers, disk, files) so the pulse takes it as a unit, then the
+// mount lanes and captions, the spec ladder, the timeline, then the packet layer.
 export const SCENE = {
   'aria-label': 'Pod volume model: the Pod spec declares one emptyDir volume named cache under spec.volumes, and each container reaches it only through a volumeMounts entry of its own. The init container seed mounts cache at /work, writes config.json and exits. The app mounts it at /data and reads that file, the log shipper mounts it read-only at /logs and reads the app.log the app writes. When the app crashes and restarts, the new container mounts the same volume and app.log is still there. A lifetime timeline shows the volume bar starting and running with the Pod bar while every container bar is shorter, because the volume belongs to the Pod, not to any container.',
   parts: [
@@ -109,8 +106,8 @@ export const SCENE = {
   },
 };
 
-// STO.S-01 as a field: every element born mid-story, with its lanes and captions, pinned on every
-// step as a function of how far the story has got (n = the step index, idle 0).
+// STO.S-01: every element born mid-story, with its lanes and captions, is pinned on every step as
+// a function of how far the story has got (n = the step index, idle 0).
 const CELLS = { pod: [0, 1, 2, 3, 4], vol: [0, 1, 2, 3, 4], seed: [1], app: [2, 3, 4], ship: [2, 3, 4] };
 function stage(n) {
   const o = {
@@ -183,8 +180,7 @@ export const STEPS_SPEC = [
       F.reveal({ target: 'wSeed' }),
       F.reveal({ target: 'capSeed' }),
       ...openCells(['pod1', 'vol1', 'seed1']),
-      F.route({ points: W_SEED, delay: SEND, dur: LEG_DUR, name: 'write', lights: ['volume'] }),
-      F.tag({ text: 'write config.json', points: W_SEED, delay: SEND, dur: LEG_DUR, dx: 64, ...DOWN_TAG }),
+      F.route({ points: W_SEED, delay: SEND, dur: LEG_DUR, name: 'write', lights: ['volume'], tag: { text: 'write config.json', dx: 64, ...DOWN_TAG } }),
       F.reveal({ target: 'fConfig', at: 'write' }),
       F.set({ after: 'write', plus: 300, sublabels: { seedBox: 'init, Completed' } }),
       F.fade({ target: 'seedBox', to: OPACITY.terminated, dur: FADE.out, after: 'write', plus: 300, unlight: ['seedBox'] }),
@@ -216,8 +212,7 @@ export const STEPS_SPEC = [
       ...['wRead', 'wWrite', 'wShip', 'capApp', 'capShip'].map((target) => F.reveal({ target })),
       ...openCells(['pod2', 'vol2', 'app2', 'ship2']),
       F.set({ delay: 300, sublabels: RUNNING, podSublabels: RUNNING_POD }),
-      F.route({ points: W_READ, delay: SEND, dur: LEG_DUR, lights: ['appBox'] }),
-      F.tag({ text: 'read config.json', points: W_READ, delay: SEND, dur: LEG_DUR, dx: 86, ...UP_TAG }),
+      F.route({ points: W_READ, delay: SEND, dur: LEG_DUR, lights: ['appBox'], tag: { text: 'read config.json', dx: 86, ...UP_TAG } }),
     ],
   },
   {
@@ -233,11 +228,9 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'pod' }),
       ...openCells(['pod3', 'vol3', 'app3', 'ship3']),
-      F.route({ points: W_WRITE, delay: SEND, dur: LEG_DUR, name: 'write', lights: ['volume'] }),
-      F.tag({ text: 'write app.log', points: W_WRITE, delay: SEND, dur: LEG_DUR, dx: 62, ...DOWN_TAG }),
+      F.route({ points: W_WRITE, delay: SEND, dur: LEG_DUR, name: 'write', lights: ['volume'], tag: { text: 'write app.log', dx: 62, ...DOWN_TAG } }),
       F.reveal({ target: 'fLog', at: 'write' }),
-      F.route({ points: W_SHIP, after: 'write', dur: LEG_DUR, lights: ['shipBox'] }),
-      F.tag({ text: 'read app.log', points: W_SHIP, after: 'write', dur: LEG_DUR, dx: -62, ...UP_TAG }),
+      F.route({ points: W_SHIP, after: 'write', dur: LEG_DUR, lights: ['shipBox'], tag: { text: 'read app.log', dx: -62, ...UP_TAG } }),
     ],
   },
   {
@@ -259,8 +252,7 @@ export const STEPS_SPEC = [
       ...openCells(['pod4', 'vol4', 'ship4']),
       ...openCells(['app4'], 500),
       F.set({ delay: 500, sublabels: { appBox: 'restarted, count 1' } }),
-      F.route({ points: W_READ, delay: SEND, dur: LEG_DUR, lights: ['appBox'] }),
-      F.tag({ text: 'app.log intact', points: W_READ, delay: SEND, dur: LEG_DUR, dx: 80, ...UP_TAG }),
+      F.route({ points: W_READ, delay: SEND, dur: LEG_DUR, lights: ['appBox'], tag: { text: 'app.log intact', dx: 80, ...UP_TAG } }),
     ],
   },
   {

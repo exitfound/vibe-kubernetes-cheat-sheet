@@ -2,86 +2,86 @@ import { P, F, defineCard, BEAT, OPACITY, makeRidingLabel } from './storage-kit.
 // Design notes for this card: ./CARDS/storage-access-modes.md
 
 
-// The node row and the driver band share ONE span, 306..894, centred on the canvas: the row stands
-// flush over the band it feeds. Its left edge sits behind the panel on the narrower viewports.
+// The node row and the driver band share one span centred on the canvas, the row flush over the
+// band it feeds. Its left edge sits behind the panel on narrower viewports.
 const CANVAS_CX = 600;
-const ROW_W = 588;                                       // the band width, its right edge on 894
-const ROW_X = CANVAS_CX - ROW_W / 2;                     // 306
-const RIGHT_END = ROW_X + ROW_W;                         // 894
+const ROW_W = 588;
+const ROW_X = CANVAS_CX - ROW_W / 2;
+const RIGHT_END = ROW_X + ROW_W;
 
-// A Pod is 104 tall (NET.L-01) but 128 wide, not 232: three 232 Pods and their pads overrun the row.
+// A Pod is 104 tall (NET.L-01) but 128 wide: three 232 Pods and their pads overrun the row.
 const POD_W = 128, POD_H = 104, POD_Y = 104;
-const POD_BOTTOM = POD_Y + POD_H;                        // 208
-const APP_H = 44, APP_DY = 26;                           // 26 under the Pod label, as network-gateway-api
-const NODE_GAP = 30;                                     // between the two nodes
+const POD_BOTTOM = POD_Y + POD_H;
+const APP_H = 44, APP_DY = 26;
+const NODE_GAP = 30;
 // One spacing for the node pads and the gap between the two node-1 Pods, so the three Pods sit evenly.
-const NODE_PAD = (ROW_W - NODE_GAP - 3 * POD_W) / 5;     // 34.8
+const NODE_PAD = (ROW_W - NODE_GAP - 3 * POD_W) / 5;
 const POD_GAP = NODE_PAD;
-const NODE_Y = POD_Y - 27, NODE_H = 27 + POD_H + 33;    // 77 / 164, header 27 and foot 33
+const NODE_Y = POD_Y - 34, NODE_H = 34 + POD_H + 12;    // the catalog 34 label band and 12 floor
 
 const NODE_1_X = ROW_X;
-const NODE_1_W = NODE_PAD * 2 + POD_W * 2 + POD_GAP;     // 360.4
-const NODE_2_X = NODE_1_X + NODE_1_W + NODE_GAP;         // 696.4
-const NODE_2_W = RIGHT_END - NODE_2_X;                   // 197.6
+const NODE_1_W = NODE_PAD * 2 + POD_W * 2 + POD_GAP;
+const NODE_2_X = NODE_1_X + NODE_1_W + NODE_GAP;
+const NODE_2_W = RIGHT_END - NODE_2_X;
 
-const P1_X = NODE_1_X + NODE_PAD;                        // 340.8, node-1 first Pod
-const P2_X = P1_X + POD_W + POD_GAP;                     // 503.6, node-1 second Pod
-const P3_X = NODE_2_X + NODE_PAD;                        // 731.2, node-2 only Pod
+const P1_X = NODE_1_X + NODE_PAD;                        // node-1, first Pod
+const P2_X = P1_X + POD_W + POD_GAP;                     // node-1, second Pod
+const P3_X = NODE_2_X + NODE_PAD;                        // node-2, only Pod
 const P1_CX = P1_X + POD_W / 2, P2_CX = P2_X + POD_W / 2, P3_CX = P3_X + POD_W / 2;
 
-// The band is the row span, 80 tall (NET.L-01) with its bottom kept at 375.
-const DRV_H = 80, DRV_Y = 375 - DRV_H;                   // 295
-const DRV_X = ROW_X, DRV_W = ROW_W;                      // 306 / 588
-const DRV_TOP = DRV_Y, DRV_BOTTOM = DRV_Y + DRV_H;       // 295 / 375
-const DRV_CX = CANVAS_CX;                                // 600 by construction
+// The band is the row span, 80 tall (NET.L-01).
+const DRV_H = 80, DRV_Y = 375 - DRV_H;
+const DRV_X = ROW_X, DRV_W = ROW_W;
+const DRV_TOP = DRV_Y, DRV_BOTTOM = DRV_Y + DRV_H;
+const DRV_CX = CANVAS_CX;
 
 // The two disks sit symmetrically about the driver band, each roughly under the node that uses it.
-const PV_Y = 450, PV_H = 100, PV_TOP = PV_Y;             // 450
+const PV_Y = 450, PV_H = 100, PV_TOP = PV_Y;
 const PV_W = 215;
 const PV_SPREAD = 148;                                   // half-distance between the two disk centers
-const BLOCK_CX = DRV_CX - PV_SPREAD;                     // 452
-const NFS_CX = DRV_CX + PV_SPREAD;                       // 748
+const BLOCK_CX = DRV_CX - PV_SPREAD;
+const NFS_CX = DRV_CX + PV_SPREAD;
 const SPEC_GAP = 14;
-const SPEC_Y = PV_Y + PV_H / 2 + 5 + SPEC_GAP;           // 519
+const SPEC_Y = PV_Y + PV_H / 2 + 5 + SPEC_GAP;
 const VERDICT_Y = 566;
 const CHIPS_Y = 585;
 
-// One width for all four chips, sized against the accessModes + ReadWriteOncePod pair at 186,
-// neither of which can shorten. Below ~190 the name and the value touch.
+// One width for all four chips, sized for the accessModes + ReadWriteOncePod pair, neither of
+// which can shorten. Below ~190 the name and the value touch.
 const CHIP_W = 232;
 const CHIP_GAP = 16;
 const CHIP_COUNT = 4;                  // accessModes / used on / sharing / enforced by
-const CHIPS_W = CHIP_W * CHIP_COUNT + CHIP_GAP * (CHIP_COUNT - 1);   // 976
+const CHIPS_W = CHIP_W * CHIP_COUNT + CHIP_GAP * (CHIP_COUNT - 1);
 const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) =>
   CANVAS_CX - CHIPS_W / 2 + i * (CHIP_W + CHIP_GAP));
 
 
-// Each Pod drops onto a shared bus and the three enter the band on its centre line: dropping
-// straight down lands three arrows across the band's face, because the two rows have different centres.
-const BUS_Y = 260;                                       // clear of the panel bottom (230) and the band
+// Each Pod drops onto a shared bus and the three enter the band on its centre line: the two rows
+// have different centres, so dropping straight down lands three arrows across the band face.
+const BUS_Y = 260;                                       // clear of the panel bottom and the band
 const podReq = cx => [[cx, POD_BOTTOM], [cx, BUS_Y], [DRV_CX, BUS_Y], [DRV_CX, DRV_TOP]];
 const W_P1_DRV = podReq(P1_CX);
 const W_P2_DRV = podReq(P2_CX);
 const W_P3_DRV = podReq(P3_CX);
-// driver -> disk, the ball re-emerging at the disk column. The three shared-filesystem attaches fan
-// out INSIDE the PV nfs column, not off the band, so every lane leaves on a face midpoint.
+// driver -> disk. The three shared-filesystem attaches fan out INSIDE the nfs column, not off
+// the band, so every lane leaves on a face midpoint.
 const W_DRV_BLOCK = [[BLOCK_CX, DRV_BOTTOM], [BLOCK_CX, PV_TOP]];
 const NFS_LANE = 16;
-const NFS_FAN_Y = (DRV_BOTTOM + PV_TOP) / 2 - 20;        // 392, above the driver caption at 408
+const NFS_FAN_Y = (DRV_BOTTOM + PV_TOP) / 2 - 20;        // above the driver caption
 const nfsAttach = dx => [[NFS_CX, DRV_BOTTOM], [NFS_CX, NFS_FAN_Y], [NFS_CX + dx, NFS_FAN_Y], [NFS_CX + dx, PV_TOP]];
 const W_DRV_NFS_1 = nfsAttach(-NFS_LANE);   // app-1 on node-1
 const W_DRV_NFS_2 = [[NFS_CX, DRV_BOTTOM], [NFS_CX, PV_TOP]];   // app-2 on node-1
 const W_DRV_NFS_3 = nfsAttach(NFS_LANE);    // app-3 on node-2
 
-// Shell plus inner box in one wrapper, so pulsePod reaches BOTH (querySelectorAll matches
-// descendants only). Inset 14 gives a 100-wide inner box: 'read/write' is 59 units, ~20 of air a side.
+// Shell plus inner box in one wrapper, so pulsePod reaches both (querySelectorAll matches
+// descendants only).
 const podBlock = ({ key, innerKey, x, label }) => P.pod({
   key, innerKey, x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0,
   inner: { dx: 14, dy: APP_DY, w: POD_W - 28, h: APP_H, label: 'ctr', sublabel: 'read/write' },
 });
 
-// List order IS append order, which is z-order: node frames, the driver band and the disks, then the
-// Pods above their own frame, then lanes and captions, then the chip strip, then the packet layer.
+// List order is z-order: node frames, the driver band and the disks, the Pods, lanes and
+// captions, the chip strip, then the packet layer.
 export const SCENE = {
   'aria-label': 'Access modes decide who can mount a volume at once: ReadWriteOnce limits a volume to a single Node, so two Pods on that same Node can both use it while the attach controller refuses a Pod on another Node, ReadWriteOncePod narrows that to one single Pod and Kubernetes enforces it through the Scheduler, and ReadWriteMany needs a backend that can deliver it, such as a shared filesystem, because this single-attach block disk cannot be attached to many Nodes.',
   parts: [
@@ -103,7 +103,7 @@ export const SCENE = {
     P.lane({ points: W_DRV_NFS_3, dashed: true, dim: true }),
     P.wire({ key: 'block', x: BLOCK_CX, y: VERDICT_Y }),
     P.wire({ key: 'nfs', x: NFS_CX, y: VERDICT_Y }),
-    // Centered on the driver band it captions, so the caption tracks the band and not a literal x.
+    // Centred on the driver band it captions.
     P.wire({ key: 'drv', x: DRV_X + DRV_W / 2, y: 408 }),
     P.tag({ x: BLOCK_CX, y: SPEC_Y, text: 'block disk, single attach' }),
     P.tag({ x: NFS_CX, y: SPEC_Y, text: 'shared filesystem' }),
@@ -123,17 +123,15 @@ export const SCENE = {
 const chips = (mode, attach, share, enforcer) =>
   ({ modeChip: mode, attachChip: attach, shareChip: share, driverChip: enforcer });
 
-// STO.S-01 as a field: a refused Pod is dimmed and a granted one is not, so all three are stated on
-// every step and nothing is inherited from the step before it.
+// STO.S-01: all three Pods are stated on every step, nothing inherited from the step before.
 const pods = (a1, a2, b1) => ({ podA1: a1, podA2: a2, podB1: b1 });
 
-// A granted attach leaves the band floor, so a tag riding above the ball is born INSIDE the band.
-// It fades in once it has cleared the floor instead, and still parks on the disk top.
+// A granted attach leaves the band floor, so its tag fades in only once clear of it.
 const grantTag = makeRidingLabel({ role: 'storage', emergeMode: true });
 const GRANT_EMERGE = 340;
 
-// One attach that succeeds: the Pod blinks first (it is the actor), the request rises to the driver,
-// then the granted attach drops to the disk. The driver and the disk each light on arrival.
+// One attach that succeeds: the Pod blinks first (it is the actor), the request rises to the
+// driver, then the granted attach drops to the disk.
 const grantMount = ({ name, pod, reqPts, attachPts, tag, disk, lead = 0 }) => [
   F.pulse({ pod, delay: lead }),
   F.route({ points: reqPts, delay: lead + BEAT.afterPulse, name: `${name}Req`, lights: ['driver'] }),
@@ -142,21 +140,20 @@ const grantMount = ({ name, pod, reqPts, attachPts, tag, disk, lead = 0 }) => [
   F.light({ targets: [disk], at: `${name}Att` }),
 ];
 
-// All three RWX mounts park their tag within 32 units on the same disk top, so each must fade before
-// the next one lands, and the two refusals leave one bus on one beat each. See ./CARDS/storage-access-modes.md.
+// The three RWX mounts park their tags on the same disk top, so each must fade before the next
+// one lands.
 const DENY_LEAD = 450, MOUNT_LEAD = 520;
 
-// A refusal tag rides UNDER the ball: above it, it starts inside the Pod on its sublabel and runs the
-// bus on the node frame floor, 19 above. Under it, it leaves from the frame foot, rides the bus in the
-// gap over the band, and fades before the last drop into the band top.
-const DENY_TAG = { dy: 12, fn: makeRidingLabel({ role: 'storage', hold: -300 }) };
+// A refusal tag rides above the ball, clear of the band top, and emerges only once clear of the
+// Pod it starts inside.
+const DENY_EMERGE = 200;
+const DENY_TAG = { dy: -10, dx: 76, fn: grantTag, emerge: DENY_EMERGE };
 
-// A refused attach reaches the gate and stops there, and no disk lights. The Pod still blinks first,
-// in the dim variant with an opacity lift so the blink reads against the faded shade.
+// A refused attach stops at the gate and no disk lights. The dim Pod blinks with an opacity lift
+// so the blink reads against the faded shade.
 const denyMount = ({ name, pod, reqPts, tag, lead = 0 }) => [
   F.pulse({ pod, dim: true, delay: lead, from: OPACITY.pending, peak: 0.95 }),
-  F.route({ points: reqPts, delay: lead + BEAT.afterPulse, name: `${name}Req` }),
-  F.tag({ text: tag, points: reqPts, delay: lead + BEAT.afterPulse, ...DENY_TAG }),
+  F.route({ points: reqPts, delay: lead + BEAT.afterPulse, name: `${name}Req`, tag: { text: tag, ...DENY_TAG } }),
   F.light({ targets: ['driver'], at: `${name}Req` }),
 ];
 
@@ -174,8 +171,7 @@ export const STEPS_SPEC = [
     chipsCued: chips('ReadWriteOnce', 'Node-1', 'app-1', 'attach controller'),
     wires: { block: 'attached: Node-1' },
     opacity: pods(1, 1, 1),          // app-2 and app-3 are healthy, just not shown mounting
-    // Who holds the disk is what the attach ball EARNS, so the animated path starts from the idle
-    // values and turns them over when that ball lands (P-03).
+    // Who holds the disk is what the attach ball earns, so the values turn over when it lands (P-03).
     rewind: { chips: { attachChip: 'none', shareChip: 'none' }, wires: { block: '' } },
     flow: [
       ...grantMount({ name: 'a1', pod: 'podA1', reqPts: W_P1_DRV, attachPts: W_DRV_BLOCK, tag: 'mount rw', disk: 'pvBlock' }),
@@ -202,8 +198,7 @@ export const STEPS_SPEC = [
     chipsCued: chips('ReadWriteOnce', 'Node-1', 'app-1, app-2', 'attach controller'),
     wires: { block: 'attached: Node-1', drv: 'held by Node-1' },
     opacity: pods(1, 1, OPACITY.pending),        // app-3 refused: Multi-Attach
-    // The block disk stays LIT on both paths: it is still attached to node-1 and it is the REASON
-    // app-3 is refused, so leaving it unlit contradicts the wire label and the narration.
+    // The block disk stays lit: still attached to node-1, it is the reason app-3 is refused.
     lit: ['pvBlock'],
     flow: denyMount({ name: 'b1', pod: 'podB1', reqPts: W_P3_DRV, tag: 'Multi-Attach denied' }),
   },
@@ -221,13 +216,11 @@ export const STEPS_SPEC = [
     id: 'rwx-block',
     duration: 2600,
     narration: 'ReadWriteMany asks for the volume on many Nodes at once. On the block disk that request cannot be honoured at all: this block disk cannot attach to more than one Node. Kubernetes accepts the access mode on the object, but the driver is where it fails.',
-    // used on is 'none', not 'Node-1': the narration says this request cannot be honoured at all, so
-    // leaving the previous step's Node-1 in the chip would have the strip contradict the sentence.
+    // used on is 'none': this request cannot be honoured at all.
     chipsCued: chips('ReadWriteMany', 'none', 'none', 'CSI driver'),
     wires: { block: 'RWX unsupported', drv: 'block disk, no RWX' },
     opacity: pods(OPACITY.pending, OPACITY.pending, OPACITY.pending),    // RWX on a block disk: nobody gets it
-    // BOTH nodes ask, because asking from many nodes at once is what ReadWriteMany means and what
-    // this disk cannot do. A single request could not show the thing the step is about.
+    // Both nodes ask, because asking from many nodes at once is what ReadWriteMany means.
     flow: [
       ...denyMount({ name: 'a1', pod: 'podA1', reqPts: W_P1_DRV, tag: 'RWX unsupported' }),
       ...denyMount({ name: 'b1', pod: 'podB1', reqPts: W_P3_DRV, tag: 'RWX unsupported', lead: DENY_LEAD }),
@@ -235,17 +228,15 @@ export const STEPS_SPEC = [
   },
   {
     id: 'rwx-nfs',
-    // 4300, not 3800: the three mounts are spaced by MOUNT_LEAD so their tags never share the disk
-    // top, which puts the last ball 1040 later and the span at 3900.
+    // The three mounts are spaced by MOUNT_LEAD so their tags never share the disk top.
     duration: 4300,
     narration: 'Point the claim at a shared filesystem instead, PV nfs on NFS or CephFS, and ReadWriteMany works: Kubernetes lets it be used on both Nodes at once, and all three Pods mount it together, with nobody refused. The mode was always allowed by Kubernetes, what changed is a backend that can deliver it.',
     chipsCued: chips('ReadWriteMany', 'Node-1, Node-2', 'app-1, app-2, app-3', 'CSI driver'),
     wires: { nfs: 'mounted on both nodes' },
-    // Every Pod is at full opacity here: ReadWriteMany on a shared filesystem excludes nobody, so
-    // there is no Pod left in the not-holding-it state that OPACITY.pending exists to mark.
+    // Every Pod at full: ReadWriteMany on a shared filesystem excludes nobody.
     opacity: pods(1, 1, 1),
-    // Each mount turns over only what its own ball earns: the sharing list grows one Pod per landing,
-    // and Node-2 joins with app-3, the last one.
+    // Each mount turns over only what its own ball earns: the sharing list grows one Pod per
+    // landing, and Node-2 joins with app-3.
     rewind: { chips: { attachChip: 'none', shareChip: 'none' }, wires: { nfs: '' } },
     flow: [
       ...grantMount({ name: 'a1', pod: 'podA1', reqPts: W_P1_DRV, attachPts: W_DRV_NFS_1, tag: 'mount rwx', disk: 'pvNfs' }),

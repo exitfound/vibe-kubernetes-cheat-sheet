@@ -5,318 +5,212 @@ description: Design ONE scheme card and build it, ending with a green gate and a
 
 # Card new
 
-One card, from a subject to a green gate and a record. The argument is a topic (`PodDisruptionBudget`),
-sometimes with a category (`networking: gateway listeners`), sometimes the id of a card that exists
-and is being redesigned.
+One card, from a subject to a green gate and a record. The argument is a topic, sometimes with a
+category, or the id of a card being redesigned.
 
-**The contract of this skill:** the deliverable is a card a reader wants to open AFTER the ones
-beside it. A card that passes every check and looks like its neighbour with different words on it
-has failed, and nothing in the suite can see that failure. Two gates exist for it: the composition
-census in phase 3 and the concept sign-off in phase 4.
+**The deliverable is a card a reader wants to open after the ones beside it.** A card that passes
+every check and looks like its neighbour has failed, and nothing in the suite sees it. The
+composition census (phase 3) and the sign-off (phase 4) exist for that.
 
-**Nothing is written before the sign-off.** No file, no constant, no draft module. Posters are the
-biggest source of rework in this project and a whole card is the same mistake at ten times the
-price.
+**Nothing is written before the sign-off.** No file, no constant, no draft module.
 
-**When the card already exists**, read `.claude/skills/_shared/card-edit.md` before phase 3. A
-redesign lands on measurements somebody took with a browser, and that file is how they get quoted
-instead of overwritten. Everything else below runs unchanged, except that phase 7 has a catalog
-entry already and phase 9 moves fewer counts.
+**When the card already exists**, read `.claude/skills/_shared/card-edit.md` before phase 3.
 
-**The rules are `scheme/CANON.md`, and they win over anything below.** This file is the procedure,
-`reference/compositions.md` is the composition vocabulary. Neither restates a rule.
-
----
+The rules are `scheme/CANON.md`. This file is the procedure, `reference/compositions.md` the
+composition vocabulary.
 
 ## 0. Preconditions
 
-Server, loops and working directories are `.claude/skills/_shared/card-verify.md` section 0.
+Server and working directory: `.claude/skills/_shared/card-verify.md` section 0.
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run test:unit > /tmp/before.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/before.txt
+cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run test:unit > /tmp/new-before-unit.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/new-before-unit.txt
 ```
 
-**Take the BEFORE reading and keep it.** A card lands in a tree somebody else was working in, and
-the counts a new card falsifies (phase 9) fail loudly. Knowing which lines were already red is the
-difference between fixing your own damage and adopting somebody else's.
-
-It is `test:unit` and not the full gate on purpose, and the reason is what this reading is FOR. Every
-count, document and baseline a new card can falsify is computed in `unit/**`, over the whole catalog,
-in 1.4 seconds. The `render/**` half walks 126 cards in a browser for three minutes to tell you
-about cards you have not written yet: a red line there is somebody else's card and was going to be
-adopted either way, and the full gate at phase 8 will still print it. Paying three minutes twice to
-learn the same thing once is the single biggest waste this skill used to contain.
-
----
+Keep this BEFORE reading, so you know which red lines were already red. Unit only: every baseline a
+new card falsifies is computed there, and the full gate at phase 8 prints the rest.
 
 ## 1. Read before you decide anything
 
-In this order, and this phase is not skippable: a card designed without it reproduces a card that
-already exists.
-
-1. The canon, narrowed to the half that is about design:
+1. The design half of the canon:
    ```bash
    cd "$(git rev-parse --show-toplevel)"/scheme/test
-   node tools/canon.mjs --block=L,A          # layout and lanes, what geometry is allowed to do
-   node tools/canon.mjs --block=S            # the module shape a new card has to be born in
-   node tools/canon.mjs --check=review       # the rows no machine covers, which is most of design
+   node tools/canon.mjs --block=L,A          # layout and lanes
+   node tools/canon.mjs --block=S            # the module shape
+   node tools/canon.mjs --check=review       # the rows no machine covers
    ```
-2. `scheme/CLAUDE.md`: the folder contract, the declarative form, the "Adding a card" checklist.
-   That checklist is the SHORT version of this skill and the two must not disagree.
-3. `scheme/js/schemes/<category>/CLAUDE.md`: the category rules, its exemplar, its escape-hook
-   table, its subcategory admission rules.
-4. The category's exemplar card, in full. Copy its SHAPE (module order, header discipline, the
-   declarative form). Its ARRANGEMENT is a solution to its own subject and copying that is how a
-   section converges (`reference/compositions.md`, part four).
-5. The record of the two or three siblings closest to your subject. Their `SCOPE` blocks say what
-   they left to a neighbour, and one of those sentences may already name the card you are about to
-   write.
-
-**Items 3, 4 and 5 are one command per card**, and it prints the category contract with them:
+2. `scheme/CLAUDE.md`: the folder contract, the declarative form, "Adding a card". That checklist
+   is the short version of this skill.
+3. `scheme/js/schemes/<category>/CLAUDE.md`: category rules, sections, exemplar.
+4. The exemplar card in full. Copy its shape (module order, header, declarative form), never its
+   arrangement (`reference/compositions.md`, part four).
+5. The two or three closest siblings.
 
 ```bash
-node .claude/skills/_shared/tools/ctx.mjs <exemplar-id>       # the exemplar, its record, the contract
-node .claude/skills/_shared/tools/ctx.mjs <nearest-sibling>   # its SCOPE block, and who it names
+cd "$(git rev-parse --show-toplevel)"
+node .claude/skills/_shared/tools/ctx.mjs <exemplar-id>
+node .claude/skills/_shared/tools/ctx.mjs <nearest-sibling>
 ```
 
-On a REDESIGN, where the card already exists, run it on that card first: the record says what was
-measured and what must not be "fixed", and section 6 names every sibling whose prose points here,
-which is the list a new composition can falsify.
-
----
+On a redesign, run `ctx.mjs` on the card itself first: its `DEVIATES` and `OPEN` lines say what must
+not be "fixed", and its sibling list is what a new composition can falsify.
 
 ## 2. Place the card, and decide what it is NOT
 
-**Category and section first, because they decide the kit, the tint, the grammar and the id.** The
-id MUST start with the category folder (`D-02`), so getting this wrong renames every file later.
+Category and section decide the kit, the tint, the grammar and the id prefix (`D-02`).
 
 ```bash
+cd "$(git rev-parse --show-toplevel)"
 node .claude/skills/section-review/tools/section.mjs <category>/<section>
 node .claude/skills/section-review/tools/overlap.mjs <category>/<section>
 ```
 
-The admission rule for each section is in that folder's `CLAUDE.md` subcategory table, and each one
-carries a line saying where the boundary runs. Read it rather than guessing from the title.
+The admission rule for each section is in the folder `CLAUDE.md` section table. Then write down:
 
-Then write down, before any drawing:
+- **the subject**, one sentence, in the user's language
+- **what it leaves to a named sibling**, said in the `desc` where a reader needs it
+- **the sibling it will be confused with**, and the one difference
 
-- **the subject**, in one sentence, in the user's language
-- **what it deliberately leaves to a named sibling**, which becomes the `SCOPE` block of the record
-- **the sibling it will be confused with**, and the one difference that separates them
+A sentence that needs an "and" is two cards (`R-02` says it for posters). Let the user choose.
+"What is missing in this section" is `section-review`, not this skill.
 
-If the user asked for "a card about X" and X is really two cards, say so now and let them choose.
-A card whose sentence needs an "and" is two cards, exactly as a poster is (`R-02` says it for the
-thumbnail and it is truer at full size).
-
-**When the question is "what is missing in this section" rather than "build this card", that is
-`section-review`, not this skill.** Run it, bring back a subject, then start here.
-
----
-
-## 3. The sentence, the step spine, and the composition census
-
-Three things, in this order. Geometry is last, and every attempt to do it first has produced a card
-looking for a subject.
+## 3. The sentence, the spine, the census
 
 ### 3a. The sentence
 
-One line, in words, no elements in it. Not "how a PVC binds" but "a claim waits until something
-makes a volume that fits it, and the binding is what makes them exclusive". This sentence is the
-card's `WHAT` block, the seed of its `desc` and what the poster will have to say later.
+One line, no elements in it. Not "how a PVC binds" but "a claim waits until something makes a
+volume that fits it, and the binding makes them exclusive". It becomes the `WHAT` line, the seed
+of the `desc`, and what the poster says later.
 
 ### 3b. The step spine
 
-Five to seven beats, one line each, before any block exists. The count is a real choice rather than
-a default: `kin.mjs` prints the step count of every sibling, and the `long` and `short` levers say
-where this section already sits against the rest of the catalog.
+Five to seven beats, one line each, before any block exists. `kin.mjs` prints every sibling's step
+count. Each beat states who acts, what travels, what changes.
 
-Each beat states WHO acts, WHAT travels and WHAT changes as a result. A beat with no actor and
-nothing travelling ends up as a step with no animation, which is legal (`M-27`) and expensive: it
-has to be earning its hold in reading instead.
+- every actor a beat names is on the canvas (`T-21`)
+- every ball is traffic a beat narrates (`M-10`)
+- an added hop costs about 800ms (`M-34`)
+- step 0 is a pure reset, not a beat (`S-09`)
 
-Rules that bite here, before a line of code:
-
-- every actor a beat names has to be on the canvas (`T-21`), so the spine decides the cast
-- every ball has to be traffic a beat narrates (`M-10`), so decoration is decided against here
-- an added hop costs about 800ms (`M-34`), so a seven-hop beat is a step nobody can watch
-- step 0 is not a beat: it is a pure reset that draws nothing (`S-09`)
-
-### 3c. The composition census. This is the gate the catalog needs
+### 3c. The composition census
 
 ```bash
+cd "$(git rev-parse --show-toplevel)"
 node .claude/skills/card-new/tools/kin.mjs <category>/<section>
 node .claude/skills/card-new/tools/kin.mjs --levers
 ```
 
-The first prints every sibling as a composition SIGNATURE, the horizontal bands it uses, its chip
-layout and the special elements it carries, then three things a designer cannot get any other way:
-which signatures are already shared inside the section, which levers the section leans on, and
-which levers it has NEVER used with the catalog-wide count beside each.
+It prints each sibling as a signature, the bands, the chip layout and the special elements, then
+the signatures already shared, the levers the section leans on, and the levers it never used.
 
-Read it and answer, in writing:
+Answer in writing:
 
-1. Which family in `reference/compositions.md` says this card's KIND of sentence?
-2. Which signature would a straight copy of the exemplar land on, and how crowded is it already?
+1. Which family in `reference/compositions.md` says this kind of sentence?
+2. Which signature would a straight copy of the exemplar land on, and how crowded is it?
 3. Which levers does this card take that its siblings do not?
 
-**The bar: at least one lever no sibling in the section carries, and a reason it belongs to this
-subject.** A lever chosen to be different is decoration. A lever chosen because the subject has a
-budget in it, or two Nodes in it, or no Pod in it, is a composition.
+**The bar: at least one lever no sibling carries, and a reason the subject wants it.** A lever
+chosen to be different is decoration.
 
-The tool reports and never fails, and it is blind to whether the picture is any good: two cards
-with one signature often look nothing alike. It says what a reader of that section has already
-seen, which is the thing no check in the suite knows.
+## 4. Sign-off. Not optional
 
----
-
-## 4. Sign-off. This gate is not optional
-
-**Describe the whole card in ONE block and get approval BEFORE creating any file.** Same gate as
-`R-01` for a poster, and for the same reason: a card is cheap to describe and expensive to build.
-
-The block is six lines and nothing else:
+Describe the card in one block and get approval before creating any file:
 
 > **Subject**: what the card teaches, one sentence
 > **Section**: `<category>/<subcategory>`, and the sibling it sits next to
 > **Steps**: the spine, one clause per beat
 > **Composition**: the family, the bands, the cast, where the chips go
 > **What makes it differ**: the lever no sibling carries, and why the subject wants it
-> **Record rulings**: the measurement or constraint this composition re-opens, quoted, and what it
-> costs to overrule. On a card being born this reads "no record yet"
+> **Record rulings**: the `DEVIATES` or `OPEN` line this composition re-opens, quoted, and what
+> overruling costs. On a new card: "no record yet"
 
-That last line is the whole cost of the ruling check, and it sits here rather than in a phase of its
-own because a sign-off is what the user actually reads: a gate they approve cannot be silently
-skipped, and a phase can.
-
-Wait for a yes. If the answer is no, propose a different COMPOSITION or a different SPINE, not a
-redrawn version of the same one.
-
-**The exception, and it is narrow:** when the user hands over a fully specified card (the steps, the
-blocks and the layout all named in their request), the sign-off is already given. Say so and go.
-
----
+Wait for a yes. On a no, propose a different composition or spine, not a redraw of the same one.
+When the user hands over a fully specified card, the sign-off is given: say so and go.
 
 ## 5. Geometry, in the one order that works
 
-**Narration first, panel second, blocks third.** The panel bottom is a per-card measurement
-(`L-04`), it moves with the PROSE (`L-08`), and it is what the whole content band hangs off. Writing
-geometry before the narration exists means measuring it twice.
+Narration first, panel second, blocks third. The panel bottom is per card (`L-04`) and moves with
+the prose (`L-08`).
 
-1. **Draft every narration string.** Real sentences, not placeholders: a placeholder measures the
-   panel at the wrong depth and every y below it is then wrong.
-2. **Estimate the panel from a sibling** whose longest narration is about the same length. Take its
-   `PANEL_B` out of its header comment (`L-07`) as a starting number, never as the answer.
-3. **Lay out against the L-shaped safe zone** (`L-01`): the whole width is free below the panel
-   bottom, and the whole height is free right of `x=420` (`L-03`). A cramped card usually has the
-   room already.
-4. **Take the category grammar** rather than typing coordinates: the A/B/C column presets where the
-   category has them (`L-08a`, `WL.L-06`), the vertical stack where it does not (`STO.L-01`), the
-   frame family from the category record (`L-23`, `CLU.L-01`).
-   **A block's SIZE comes from the same place as its position, and the height is half of it.** An
-   actor block is 232 by 80 and a Pod 232 by 104 with a 192 by 44 app box (`NET.L-01`; measured
-   catalog-wide, 41 of the 132 modules type 80 as a block height and 14 type 104). Taking the width
-   from the rule and inventing the height is the half that gets skipped, and it makes a block read
-   as a different KIND of object beside its neighbours. A departure carries the string or the column
-   that forced it, in the record, exactly as a width departure does.
-5. **Derive, do not type.** Measured inputs stay as literals with the comment that says where they
-   came from (`L-07`); everything else comes through the kit formulas. A constant nothing reads is
-   a defect the catalog has zero of.
-6. **Re-measure the panel on the real card** as soon as it renders, and move the band if it moved.
-   The panel is deepest and widest on the SMALLEST viewport, so 1600x1000 alone proves nothing.
+1. Draft every narration string for real.
+2. Estimate the panel from a sibling with a similar longest narration (`L-07`), as a start only.
+3. Lay out against the L-shaped safe zone (`L-01`, `L-03`).
+4. Take the category grammar: column presets (`L-08a`, `WL.L-06`), the vertical stack
+   (`STO.L-01`), the frame family (`L-23`, `CLU.L-01`). Block sizes come from the same place, height
+   included (`NET.L-01`: actor 232 by 80, Pod 232 by 104 with a 192 by 44 app box). A departure
+   becomes a `DEVIATES` line.
+5. Derive, do not type. Measured inputs stay literals with their comment (`L-07`).
+6. Re-measure the panel on the rendered card at the smallest viewport, and move the band if needed.
 
-Text clearances are MEASURED, never estimated from character counts (`L-20`, `L-21`). The tools are
-in `_shared/card-verify.md` section 3.
-
----
+Text clearances are measured (`L-20`, `L-21`), with the tools in `card-verify.md` section 3.
 
 ## 6. Write the module
 
-`scheme/js/schemes/<category>/<card-id>.js`, in the declarative form and no other (`S-02`). The
-hand-written `class Scene` form is a regression rather than an alternative (`S-01`).
+`scheme/js/schemes/<category>/<card-id>.js`, in the declarative form only (`S-01`, `S-02`).
 
-The file order, which every card follows:
-
-1. one import line from `./<category>-kit.js`, plus `../../lib/svg.js` and
-   `../../lib/primitives.js` only if a `raw` needs them (`S-21`)
-2. the record pointer comment (`S-36`), in the shape that category's record is in
-3. the geometry header: measured literals with their comments, then everything derived
-4. `SCENE`, whose `parts` list order IS the z-order (`S-07`)
-5. step-local constants and any small factory the steps share
+1. one import from `./<category>-kit.js`, plus `../../lib/svg.js` and `../../lib/primitives.js`
+   only if a `raw` needs them (`S-21`)
+2. the record pointer comment (`S-36`)
+3. the geometry header: measured literals with comments, then everything derived
+4. `SCENE`, whose `parts` order is the z-order (`S-07`)
+5. step-local constants and small shared factories
 6. `STEPS_SPEC`
 7. `export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });`
 
-What a first card gets wrong, in the order it gets caught:
+Balls carry their own tag and arrival pulse:
+`F.route({ points, tag: { text, dx, dy }, pulse: 'podKey' })`, the same for `F.segment` and
+`F.top`. Both expand in `scheme/js/lib/step-spec.js` (`expandFlow`), so the tag shares the ball's
+path and timing and the pulse fires on its arrival. Every ball and tag fades in 200ms (`M-30a`). A
+separate `F.tag` is only for a tag emerging from a block.
 
-- **an apostrophe in a narration string.** The write hook exits 2 and hard-fails the edit (`T-01`).
-  Semicolons and dashes fail in the suite instead (`T-03`, `T-04`).
-- **`reset.keys` and `reset.pods` left to be inferred.** They are written out, never derived, and a
-  `.highlight` on a Pod inner box has to be named in `keys` or it accumulates (`S-19`).
-- **a chip a step forgot to state.** Every step states every chip (`P-01`), which is the shape of
-  the data and not a habit.
-- **state animated but not pinned above the guard** (`S-13`, `S-15`). Everything above the reduced
-  split is the complete static end state.
-- **a wire label written only by the animation**, which leaves prev and reset showing a blank lane
-  while the narration names the string (`T-30`).
-- **`duration` shorter than the motion** (`M-19`). Raise the duration, never shorten the motion.
-- **a lane with an arrowhead that nothing rides** (`A-05`), and its mirror, a ball on a lane no step
-  narrates (`M-10`).
-- **a ball leaving a block that is DARK** (`M-18a`). The receiver is cued at the call site, in
-  `lights:`, and the sender is written nowhere, so it is the half a card forgets. Per step, name the
-  block that ACTS FIRST in `lit` and give its ball `BEAT.lead`, or let the hop before it light it
-  through `lights` and send `after` that arrival. `report:arrival/R4` is the queue.
-- **a missing import**, which throws a `ReferenceError` the Timeline swallows: the step plays its
-  first packet and stops silently (`S-33`). Only the browser smoke sees it.
+What a first card gets wrong:
 
-Which chip writer the card uses is inherited from its CATEGORY, not chosen (`P-09`, `P-10`), and
-the escape hooks are narrow: read the category's hook table before reaching for one, and if the card
-seems to need a new flow verb, stop and say so (`S-27`).
+- an apostrophe in a narration: the write hook hard-fails the edit (`T-01`). Semicolons and dashes
+  fail in the suite (`T-03`, `T-04`)
+- `reset.keys` and `reset.pods` left implicit (`S-19`)
+- a chip a step forgot to state (`P-01`)
+- animated state not pinned above the reduced guard (`S-13`, `S-15`)
+- a wire label written only by the animation (`T-30`)
+- `duration` shorter than the motion (`M-19`): raise the duration
+- an arrowhead nothing rides (`A-05`), a ball no step narrates (`M-10`)
+- a ball leaving a dark block (`M-18a`): put the sender in `lit` with `BEAT.lead`, or light it
+  through the previous hop's `lights`
+- a missing import: the Timeline swallows the `ReferenceError` and the step stops (`S-33`)
 
----
+The chip writer comes from the category (`P-09`, `P-10`). If the card seems to need a new flow
+verb, stop and say so (`S-27`).
 
 ## 7. Wire it into the catalog
 
-One folder, plus two files outside it. A redesign of an existing card already has the first row and
-usually the fourth.
-
 | File | What it gets | Rule |
 |---|---|---|
-| `js/schemes/<cat>/cards.js` | the `SCHEMES` entry: eight fields, `desc` 410 to 460 characters in 3 sentences | `D-01`, `D-04`, `D-05` |
-| `js/schemes/<cat>/posters.js` | the grid thumbnail | `D-06`, and `card-poster` owns the drawing |
-| the category record | the `## <card-id>` section, or its own `CARDS/<id>.md` plus an index row | `S-45`, `S-43` |
-| repo-root `sitemap.xml` | a `<url>` if the card should be deep-linkable | `D-12` |
+| `js/schemes/<cat>/cards.js` | the `SCHEMES` entry | `D-01`, `D-04`, `D-05` |
+| `js/schemes/<cat>/posters.js` | the thumbnail, drawn by `card-poster` | `D-06` |
+| `js/schemes/<cat>/CARDS/<id>.md` | the record, plus a row in the folder's `CARDS.md` index | `S-45`, `S-43` |
+| `scheme/card/<id>/index.html`, `sitemap.xml` | run `node tools/pages/build.mjs`, never hand-edit | `D-12` |
 
-**The poster is not drawn here.** Hand it to `card-poster`, which starts from its own one-line
-sign-off (`R-01`) and judges the result against the siblings (`R-05`). A card with no poster falls
-back to a shape that breaks the poster idiom on purpose (`R-11`), so shipping without one is visible.
-
-The `desc` opens with the question the card answers. It is prose a search box reads (`D-15`), so it
-carries the words a reader would type.
-
----
+The poster is not drawn here: hand it to `card-poster` (`R-01`). The `desc` opens with the question
+the card answers and carries the words a reader would search for (`D-15`).
 
 ## 8. Verify by looking
 
-The loops, the frame protocol and the measurement tools are `_shared/card-verify.md` sections 1 to 3.
-Run them. Two things belong to a NEW card and to nothing else:
+Loops, frames and measurement: `card-verify.md` sections 1 to 3. On a new card open the `-0` of
+every step at every viewport, not only 1100x800.
 
-**Open every frame the triage names, at all three viewports, including the poster frame.** On a
-brand new card the ordinary case is that a rule is satisfied and the picture is ruined, so the
-triage floor is higher here than on a review of a card that has shipped: open the `-0` of every step
-at every viewport, not only at 1100x800.
-
-**Then the question this skill exists for, and it is asked at the montage rather than in the source:**
+Then the question this skill exists for:
 
 ```bash
+cd "$(git rev-parse --show-toplevel)"
 node .claude/skills/card-poster/tools/montage.mjs <card-id> --out=/tmp/card-new
 node .claude/skills/card-new/tools/kin.mjs --id=<card-id>
 ```
 
-Put a frame of the new card beside a frame of the two siblings it will sit next to in the grid.
-**Cover the narration panel. Is it obvious which card is which?** If the answer is no, the levers
-line from `kin.mjs` says which axis is still shared, and the fix is a composition change, not a
-relabel.
+Put a frame of the new card beside its two grid neighbours. **Cover the panel. Is it obvious which
+card is which?** If not, the levers line says which axis is still shared, and the fix is a
+composition change, not a relabel.
 
-Then the full gate, once, and the report:
+Then the full gate and the report, once. Inside a `card-cycle` run, skip it and end on the filtered
+loop and its debt list.
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run all > /tmp/all.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/all.txt
@@ -324,134 +218,47 @@ grep -n '<card-id>' /tmp/all.txt
 grep -nE 'queue to work|left to work|finding\(s\)' /tmp/all.txt
 ```
 
-`npm run all` and not `npm test` then `npm run report`: both halves assert over ONE walk of the
-catalog, so run together they cost 105 seconds against 196 for the two separately. The walk is the
-cost and it is paid once.
+A new card entering a report queue with no ruling is an open defect.
 
-A report file cannot fail, and a new card is exactly what its queues are for: an uncued chip whose
-value changed, a soft geometry finding, a panel extent, a link that does not resolve. **A new card
-entering a queue with no ruling is an open defect nobody has looked at.**
+## 9. Counts and baselines
 
----
-
-## 9. Every count a new card falsifies
-
-**A new card is the single most count-breaking change this repository has.** `S-49` makes the
-guarded ones fail loudly, and the failure message names the document, the claim and the number, so
-the procedure is to run the gate and answer what it prints rather than to reason about which files
-are affected. A REDESIGN of an existing card moves far fewer: the card count does not move at all,
-and only a changed spine moves the step baseline.
-
-```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run test:unit 2>&1 | grep -A4 'CENSUS'
-```
-
-Guarded, so `npm run test:unit` is the whole answer: `test/fixtures/catalog.mjs` (`CATALOG_BASELINE`, a
-baseline rather than a floor, and changing it is how a new card is acknowledged on purpose),
-`scheme/CANON.md` headline counts, `scheme/CLAUDE.md` catalog size and category tables, and the
-folder `CLAUDE.md` rows.
-
-Unguarded, so they go stale in silence and are yours to sweep: the folder `CLAUDE.md` table row for
-how many `SCHEMES` entries `cards.js` holds, the record's index row, the root `README.md` counts,
-and a number stated in a SIBLING card's record or in these skill files.
-
-The full sweep procedure and its three verdicts are `_shared/card-verify.md` section 4.
-
----
+A new card moves `CATALOG_BASELINE` and `PER_CATEGORY` and the README headline counts.
+`card-verify.md` section 4 is the procedure. A redesign moves only the step baseline, and only if
+the spine changed.
 
 ## 10. The record
 
-The card's own section, in `js/schemes/<category>/CARDS.md` or `CARDS/<card-id>.md`. Every card has
-one, and a card with no record is how a measurement gets lost (`S-45`). The vocabulary, the present
-tense rule and the anchor rule are `_shared/card-verify.md` section 5.
+`js/schemes/<category>/CARDS/<card-id>.md`, in the form of `card-verify.md` section 5:
 
-What a NEW card owes beyond what a review would add:
-
-- `WHAT`: the sentence from phase 3a
-- `LAYOUT`: the composition family, and why the subject wanted it rather than the section default.
-  **This is the block that stops the next card from being a copy of this one.**
-- `PANEL`: the measured extent per viewport, and what it pins
-- `SIZES`, `LANES`, `MOTION`: the numbers that were measured rather than chosen
-- `SCOPE`: what this card leaves to a named sibling, from phase 2
-
-In all four categories that is the whole record: one `### layout` section, one fenced block, every
-label used at most once and in the canon's order, and no other heading. That is `S-51` and `S-52`,
-and `npm test` holds it through `unit/docs.test.mjs` G1, G2 and G3, so a record off the form fails
-the gate rather than a review. The poster note is not in the record: `card-poster` writes it as the
-comment above the poster in `posters.js` (`R-12`).
-
----
+- `WHAT`: the sentence from 3a
+- `DEVIATES`: every rule the card breaks on purpose, including a block size off the category
+  default, with the reason in one line
+- `OPEN`: anything left unresolved, with the reason
+- `CONTENT` is written by `card-facts`
 
 ## 11. Truth, delegated
 
-**Run the `card-facts` skill on the finished card** and fold its verdict table into the deliverable.
-It owns the claim inventory, the sources, the prose-against-animation reconciliation, the absolutes
-sweep (`T-19`), the validity of every drawn value, the `aria-label`, and the `CONTENT` block of the
-record plus `desc`, `k8sVersion` and `sources` in `cards.js`.
+Run `card-facts` on the finished card and fold its verdict table into the deliverable. Inside a
+`card-cycle` run, name the technical questions in the handover instead. Without a network, do the
+offline half: contradiction between sentence and picture, between steps, against the owning
+sibling.
 
-A new card is the highest-risk input that skill ever gets: every string in it is new, and a card
-built from memory rather than from the documentation is exactly the failure it exists to catch.
-Without a network, do the offline half: internal contradiction between a sentence and the picture,
-between two steps, and against the sibling that owns the mechanism.
-
-Then ship: `_shared/card-verify.md` section 6, container rebuild included. Do not commit unless the
-user says so.
-
----
+Then ship: `card-verify.md` section 6.
 
 ## 12. Deliverable
 
-- the sentence, the section, and the sibling it sits beside
+- the sentence, the section, the sibling it sits beside
 - the composition family, and the lever no sibling carries
-- the FULL gate result with numbers, plus how many frames were opened at which viewports
-- the montage path, and the answer to the covered-panel question
-- what `card-facts` returned, and what `card-poster` drew
-- the count sweep from phase 9, as a table with a verdict and a number per file
+- the full gate result, and frames opened per viewport
+- the montage path, and the covered-panel answer
+- what `card-facts` returned and what `card-poster` drew
+- the count check, with a verdict per item
 - what stays open, with the reason
 - the tree state (uncommitted unless the user asked)
 
----
-
-## Appendix A: what no check can see about a NEW card
-
-Every item here passes a green gate. They are the reason phases 3, 4 and 8 exist.
-
-- **that the card looks like its neighbour.** Nothing in the suite compares two cards as pictures.
-  `kin.mjs` compares their declared scenes, which is the closest anything gets.
-- **that the composition argues against the sentence**: a symmetric drawing of an asymmetric
-  mechanism, a hub whose spokes talk to each other, a fan whose legs are not real alternatives.
-- **that a block is on the canvas that no step ever mentions.** `T-21` is a review row.
-- **that a step is long enough to READ.** Only `span <= duration` has a machine, and how long the
-  step then stands STILL has none at all (`M-19a`).
-- **that the six beats are the right six.** A spine that skips the step a reader would ask about is
-  invisible to every check and obvious to anyone who knows the subject.
-- **that the card belongs in this section**, or that it duplicates one three sections away.
-- **that a value is TRUE.** That is `card-facts`, and a card built from memory is where it earns
-  its keep.
-
-## Appendix B: the first-card failure list
-
-Ranked by how often each one costs a rebuild rather than an edit.
-
-1. **Geometry before narration.** The panel bottom is a function of the prose, so every y is
-   provisional until the sentences are real.
-2. **The exemplar copied whole.** Its arrangement solved its own subject.
-3. **A cast decided before the spine.** Blocks appear, then steps are invented to justify them, and
-   the tell is a block nothing narrates.
-4. **Too many hops.** Six beats with three hops each is a card nobody watches to the end.
-5. **A ladder that restates the narration.** The panel already carries the sentence.
-6. **Four chips because the last card had four.** The chip strip is the cheapest thing on the
-   canvas to make specific and the most often left generic.
-7. **A poster drawn to match the diagram.** It is a different sentence at a different size, and it
-   has its own skill and its own sign-off.
-8. **The counts left for later.** They fail loudly, they fail in files nobody opened, and they are
-   part of the card rather than an afterthought.
-
-## Appendix C: tools
-
-The full table is `_shared/card-verify.md`. The two this skill owns:
+## Tools
 
 | Tool | What it answers |
 |---|---|
-| `tools/kin.mjs <cat>/<sec>` | what the neighbours already look like, as signatures and levers, and which levers a section has never used |
-| `tools/kin.mjs --id=<card>` | one card's own signature, and whether any sibling shares it |
+| `tools/kin.mjs <cat>/<sec>` | the neighbours as signatures and levers, and the levers a section never used |
+| `tools/kin.mjs --id=<card>` | one card's signature, and whether a sibling shares it |

@@ -1,6 +1,24 @@
 // The DERIVED half of a card header. A MEASURED input stays in the card that measured it (L-07):
 // these take such numbers, never hold them.
 
+// Half-gap of an out/back lane pair (A-23).
+export const LANE_DY = 12;
+
+// The X grid cluster and workloads share: margins, centre, the two columns, the top row, chip rows.
+export const GRID = Object.freeze({
+  M: 60, L: 60, R: 1140, CX: 600, W: 1080,
+  TOP_Y: 40, BOX_H: 80, TOP_BOTTOM: 120, SPINE_X: 600,
+  COL_L: Object.freeze({ x: 60, w: 480 }), COL_R: Object.freeze({ x: 660, w: 480 }),
+  ROW_H: 32, ROW_GAP: 10, CHIP_H: 34, LANE_DY,
+});
+
+// Which column holds what: A and B put the ladder and the chips side by side, C strips the chips.
+export const LAYOUT = Object.freeze({
+  A: Object.freeze({ ladder: GRID.COL_L, chips: GRID.COL_R }),
+  B: Object.freeze({ chips: GRID.COL_L, ladder: GRID.COL_R }),
+  C: Object.freeze({ ladder: GRID.COL_R, strip: Object.freeze({ two: 532, three: 350.7 }) }),
+});
+
 // Mirrored offsets, which is what L-12 reads as a deliberate pair and not two stray endpoints.
 export const laneY = (centre, dy) => ({ out: centre - dy, back: centre + dy });
 

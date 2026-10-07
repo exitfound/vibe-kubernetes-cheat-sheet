@@ -1,32 +1,7 @@
 #!/usr/bin/env node
-// kin.mjs: what the neighbours of a card you have not written yet already look like, as data, with
-// no browser. Every sibling in the section, its composition SIGNATURE, the horizontal bands it puts
-// content on, the chip layout it uses, the special elements it carries, and which of those a
-// section has never used.
-//
-//   node .claude/skills/card-new/tools/kin.mjs <category>/<subcategory>
-//   node .claude/skills/card-new/tools/kin.mjs <category>          every section of it
-//   node .claude/skills/card-new/tools/kin.mjs --levers            the rarity table, catalog-wide
-//     --id=<card-id>   judge ONE existing card against its own section, after it is written
-//     --json           the same data as one object, for diffing two runs
-//
-// Runs from anywhere: it imports scheme/test/fixtures/catalog.mjs, which reaches only node
-// builtins, so there is no playwright and no node_modules to be in the right directory for.
-//
-// WHY THIS EXISTS. A new card is written by copying the exemplar, and the exemplar is the same
-// exemplar every time, so a category converges on one picture with different words on it. That
-// convergence is MEASURABLE off the declared scene and nothing was measuring it: the signature
-// census below is the only reader of it in the tree. A crowded signature is not a defect in any of
-// the cards that share it, and this tool never says it is. It says what a reader of that section
-// has already seen four times, so the next card can be built to be worth opening.
-//
-// WHAT IT IS BLIND TO, and the list matters more than the table. It counts PART KINDS off
-// `SCENE.parts` and reads x/y off the literals a part carries, so a group transform, a `raw` shape
-// and anything a `tune` builds are invisible to it: `cluster-cpu-throttling` draws six gauge bars
-// and this reads six `raw`. It cannot see whether a picture is any good, whether two cards sharing
-// a signature actually look alike (they often do not), or whether a card that differs on every
-// count is a jumble. It has no opinion about narration, motion, timing or truth. The signature is
-// EVIDENCE for a design argument, never the argument.
+// kin.mjs: a section's composition signatures, content bands and levers as data, so a new card can differ from its siblings.
+// usage: node .claude/skills/card-new/tools/kin.mjs <category>[/<subcategory>] | --levers | --id=<card-id> [--json]
+// Counts part kinds off SCENE.parts: group transforms, raw shapes and tune output are invisible, and it never judges a picture.
 import { schemes, subcategories, ROOT } from '../../../../scheme/test/fixtures/catalog.mjs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -43,10 +18,7 @@ if (!target && !flags.levers && !flags.id) {
   process.exit(1);
 }
 
-// ---------------------------------------------------------------------------------------------
-// Reading a scene. `parts` is a tree because groups nest, and a group is a part like any other, so
-// the walk flattens it and keeps the group in the count: a `P.group` is a composition decision.
-// ---------------------------------------------------------------------------------------------
+// A group is a part like any other, so the walk flattens nested groups and keeps each group in the count.
 function flatten(parts, out = []) {
   for (const p of parts || []) {
     if (!p) continue;
@@ -59,8 +31,7 @@ function flatten(parts, out = []) {
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const uniqSorted = (xs) => [...new Set(xs.filter(x => x !== null))].sort((a, b) => a - b);
 
-// The SPECIAL elements: what a card carries beyond box + pod + lane + chip. These are the levers a
-// new card differs by, so each is named rather than folded into a count.
+// The special elements a new card differs by, beyond box + pod + lane + chip.
 const LEVERS = [
   ['chain', 'stepped ladder of rows (P.chain)', s => s.kinds.chain > 0],
   ['cylinder', 'a disk, one or more (P.cylinder)', s => s.kinds.cylinder > 0],
@@ -108,7 +79,7 @@ function readCard(entry, ns) {
     steps: Array.isArray(ns.STEPS_SPEC) ? ns.STEPS_SPEC.length : 0,
     kinds,
     lanes: kinds.lane + kinds.arrow,
-    // A BAND is a distinct y a body element starts on: how many horizontal tiers the picture has.
+    // A band is a distinct y a body element starts on.
     bands: uniqSorted(bodies.map(b => num(b.y))),
     frames: of('node').map(n => [num(n.x), num(n.y), num(n.w), num(n.h)]),
     chipCols: chipX.length,
@@ -116,8 +87,7 @@ function readCard(entry, ns) {
     chipX,
   };
   s.levers = LEVERS.filter(([, , test]) => test(s)).map(([key]) => key);
-  // The signature is the COUNTS a reader sees as shapes, and nothing positional: two cards with one
-  // signature may still look different, which is exactly why the tool reports and never fails.
+  // The signature is counts only, nothing positional, so two cards sharing one may still look different.
   s.sig = `box${kinds.box} pod${kinds.pod} node${kinds.node} chip${kinds.chip} cyl${kinds.cylinder} chain${kinds.chain} raw${kinds.raw}`;
   return s;
 }
@@ -156,8 +126,7 @@ function printSection(label, rows, all) {
     P(pad(r.id, 40), pad(r.steps, 3), pad(r.sig, 46), pad(r.bands.join(','), 30), r.levers.join(' '));
   }
 
-  // CROWDING. A signature two or more cards in this section share is what the next card should not
-  // reach for by default. Named, so the argument is about those cards and not about a number.
+  // A signature two or more cards in this section share is what the next card should not reach for by default.
   const bySig = new Map();
   for (const r of rows) {
     if (!bySig.has(r.sig)) bySig.set(r.sig, []);
@@ -169,8 +138,7 @@ function printSection(label, rows, all) {
   if (!crowded.length) P('    no signature is shared inside this section.');
   for (const [sig, ids] of crowded) P(`    ${ids.length}x  ${sig}\n         ${ids.join(', ')}`);
 
-  // WHAT THIS SECTION HAS NEVER DONE. The catalog-wide count beside it is what says whether a lever
-  // is unused here because it is rare everywhere or because this section never reached for it.
+  // The catalog-wide count says whether an unused lever is rare everywhere or just never reached for here.
   const used = new Set(rows.flatMap(r => r.levers));
   P('');
   P('--- levers this section has never used (catalog-wide users in brackets)');
@@ -243,8 +211,7 @@ if (flags.id) {
   process.exit(0);
 }
 
-// SUBCATEGORIES is a LIST per category, and the order is an editorial argument (`D-10`), so a
-// walk over a category follows it rather than sorting.
+// SUBCATEGORIES order is editorial (`D-10`), so a category walk follows it rather than sorting.
 const SUBS = await subcategories();
 const labelOf = (cat, sub) => ((SUBS[cat] || []).find(s => s.key === sub) || {}).label || '';
 if (target.includes('/')) {

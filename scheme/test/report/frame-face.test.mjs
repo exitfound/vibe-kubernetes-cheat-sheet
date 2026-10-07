@@ -1,64 +1,17 @@
-// frame-face.test.mjs: WL.A-03, where a lane coming DOWN from the actor row into a Node band is
-// allowed to stop. Read off the SPEC, so it needs no browser.
-//
-// ===========================================================================================
-// WHY THIS FILE HAD TO BE WRITTEN, AND WHY NO EXISTING CHECK COULD HAVE CAUGHT IT
-// ===========================================================================================
-// The rule is that such a lane ends on the FRAME FACE MIDPOINT and never on a Pod inside the
-// frame: an endpoint on the Pod makes the lane pierce the frame it crosses, which draws the
-// Kubelet reaching THROUGH the Node rather than acting on it.
-//
-// Two rules in the L block look like they already ask this and neither does:
-//
-//   L-10 (THROUGH)  no segment crosses a block it does not terminate on. A `node` is deliberately
-//                   NOT in the block set: ../unit/spec-scene.test.mjs states the reason in its own
-//                   scoping comment, "lanes are supposed to run inside it to reach what it holds,
-//                   so it is never an obstacle". That sentence is the OPPOSITE policy from
-//                   WL.A-03, and it is the one that runs.
-//   L-11 (OFFEDGE)  an endpoint sits on a block FACE MIDPOINT. A Pod IS a block and `POD_Y` IS its
-//                   top face midpoint, so the defective form satisfies this rule exactly.
-//
-// So both endpoints of the defective lane are legal to every machine in the tree, the rule lived
-// only as prose in `js/schemes/workloads/CLAUDE.md`, and the debt count inside that prose was a
-// number somebody had to re-measure by hand. A card review that ran the whole gate green could
-// still ship the shape, and did. This file is that count, computed.
-//
-// ===========================================================================================
-// THE POPULATION IS NARROWER THAN "A LANE THAT CROSSES A FRAME", AND THAT IS THE WHOLE CARE
-// ===========================================================================================
-// Crossing a frame edge is not the defect. Three shapes cross one and only the first is the rule:
-//
-//   FROM ABOVE, onto a Pod   the actor row acting on the Node band. THE QUEUE.
-//   FROM ABOVE, into the interior   it lands on something the frame HOLDS that is not a Pod, a
-//                   box drawn inside the Node. Printed apart, because whether the frame face is
-//                   the right stop for it is a per-card argument this file cannot settle.
-//   NOT FROM ABOVE  the two ends are both on the ground: a Pod reaching a Pod on another Node, a
-//                   PV mounting into a Pod, a Service reaching its endpoints. The traffic really
-//                   does arrive at the Pod, so WL.A-03 does not reach it. Counted, never queued.
-//
-// ===========================================================================================
-// WHAT THIS FILE IS BLIND TO
-// ===========================================================================================
-//   - A LANE SPELLED AS A `d` STRING or built inside a `P.raw` escape. Only `lane` points and
-//     `arrow` endpoints are read. A card carrying a raw escape is named on its row so the reader
-//     knows the walk may be short there.
-//   - WHETHER THE FACE IT LANDS ON IS THE MIDPOINT. That is L-11's question and L-11 already runs
-//     over frames, which are in its face set even though they are out of L-10's obstacle set.
-//   - CURVES. A frame is a rect and a segment is read as its two ends, so a lane that bows over an
-//     edge and back is not a crossing here.
+// WL.A-03: a lane coming down from the actor row into a Node band stops on the frame face, not on a
+// Pod inside it, which L-10 (node is no obstacle) and L-11 (Pod top is a face midpoint) both let through.
+// Blind to `d` strings and P.raw lanes, to whether the face is the midpoint, and to curves.
 import { test } from 'node:test';
 import { cards } from '../fixtures/catalog.mjs';
 import { carriedBlock, shapeProblems, staleKeys } from '../fixtures/carried.mjs';
 import { importAll, stepTotal } from '../fixtures/module.mjs';
 
-// Half a unit, the tolerance the sibling geometry readers use: coordinates here are integers or
-// exact thirds and nothing is meant to sit near an edge, so it only has to survive float noise.
+// Coordinates are integers or exact thirds, so this only has to survive float noise.
 const EPS = 0.5;
 
 const TRANSLATE_RE = /^translate\(\s*(-?[\d.]+)(?:\s*[ ,]\s*(-?[\d.]+))?\s*\)$/;
 
-// The part tree with group translates applied, which is what puts a lane and a frame declared in
-// different groups into one coordinate space.
+// Group translates applied, so lanes and frames from different groups share one space.
 function flatten(SCENE) {
   const out = [];
   const walk = (parts, dx, dy) => {
@@ -84,7 +37,6 @@ const strictlyOutside = (x, y, r) =>
   x < r.x - EPS || x > r.x + r.w + EPS || y < r.y - EPS || y > r.y + r.h + EPS;
 const onRect = (x, y, r) =>
   x >= r.x - EPS && x <= r.x + r.w + EPS && y >= r.y - EPS && y <= r.y + r.h + EPS;
-// The converted form: the endpoint sits ON the frame outline, so it is neither inside nor outside.
 const onFace = (x, y, r) => onRect(x, y, r) && !strictlyInside(x, y, r);
 
 function readCard(SCENE) {
@@ -138,7 +90,7 @@ test('WL.A-03, a lane from the actor row stops on the Node FRAME face and not on
       const a = s.pts[0];
       const b = s.pts[s.pts.length - 1];
       for (const fr of frames) {
-        // The converted form first: an end ON the outline while the other end is clear of it.
+        // The converted form first: one end on the outline while the other is clear of it.
         for (const [end, other] of [[b, a], [a, b]]) {
           if (onFace(end[0], end[1], fr) && strictlyOutside(other[0], other[1], fr)) {
             onFaceRows.push({ card: c.id, key: s.key || '(unkeyed)' });

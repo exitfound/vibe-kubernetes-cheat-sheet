@@ -2,59 +2,54 @@ import { P, F, defineCard, makeRidingLabel, laneY, midX, shade, OPACITY } from '
 
 // Design notes for this card: ./CARDS/network-hostnetwork-hostport.md
 
-
-// The Node frame is the outer extent and the three column centres are spaced inside it. NODE_Y 305
-// puts the frame just under the panel, and the client above it sits at x >= 450 only because of
-// that. Raising the frame puts its top-left corner and the portmap box under the overlay.
-const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 265;
+// NODE_Y puts the frame just under the panel, which is what lets the client sit at x >= 450.
+// Raising the frame puts its top-left corner and the portmap box under the overlay.
+const NODE_X = 40, NODE_Y = 305, NODE_W = 1120;
 
 const COL1_CX = 240, COL2_CX = 600, COL3_CX = 960;
 
-// The client takes the catalog object width (NET.L-01) at the 232 x 80 the two top blocks of
-// `network-ipam-pod-cidr` carry, and stays centred on COL2_CX, which puts it at the same x 484.
+// The client takes the catalog object width (NET.L-01), centred on COL2_CX.
 const CLIENT_W = 232, CLIENT_H = 80, CLIENT_Y = 56;
-const CLIENT_X = COL2_CX - CLIENT_W / 2;       // 484
-const CLIENT_BOTTOM = CLIENT_Y + CLIENT_H;     // 136
+const CLIENT_X = COL2_CX - CLIENT_W / 2;
+const CLIENT_BOTTOM = CLIENT_Y + CLIENT_H;
 
-// Row 1: the Node NIC and the rule that sits on its ingress path, both on one baseline.
-const R1_Y = 330, R1_H = 64;
-const R1_CY = R1_Y + R1_H / 2;                 // 362
-const R1_BOTTOM = R1_Y + R1_H;                 // 394
+// Row 1: the Node NIC and the rule on its ingress path, on one baseline under the frame label band.
+const R1_Y = NODE_Y + 34, R1_H = 64;
+const R1_CY = R1_Y + R1_H / 2;
+const R1_BOTTOM = R1_Y + R1_H;
 
 const ETH_W = 240;
-const ETH_X = COL2_CX - ETH_W / 2;             // 480
-const ETH_RIGHT = ETH_X + ETH_W;               // 720
+const ETH_X = COL2_CX - ETH_W / 2;
+const ETH_RIGHT = ETH_X + ETH_W;
 
 const PM_W = 260;
-const PM_X = COL1_CX - PM_W / 2;               // 110
-const PM_RIGHT = PM_X + PM_W;                  // 370
+const PM_X = COL1_CX - PM_W / 2;
+const PM_RIGHT = PM_X + PM_W;
 
-// Row 2: the two Pods and the bridge between them, all centred on one line.
-const R2_Y = 440, POD_H = 110, POD_W = 210;
-const POD_CY = R2_Y + POD_H / 2;               // 495
-const APP_X = COL1_CX - POD_W / 2;             // 135
-const APP_RIGHT = APP_X + POD_W;               // 345
-const AGENT_X = COL3_CX - POD_W / 2;           // 855
+// Row 2: the two Pods and the bridge between them, centred on one line.
+const R2_Y = R1_Y + 110, POD_H = 110, POD_W = 210;
+const POD_CY = R2_Y + POD_H / 2;
+const NODE_H = R2_Y + POD_H + 12 - NODE_Y;
+const APP_X = COL1_CX - POD_W / 2;
+const APP_RIGHT = APP_X + POD_W;
+const AGENT_X = COL3_CX - POD_W / 2;
 
 const BR_W = 200, BR_H = 60;
-const BR_X = COL2_CX - BR_W / 2;               // 500
-const BR_TOP = POD_CY - BR_H / 2;              // 465
+const BR_X = COL2_CX - BR_W / 2;
+const BR_TOP = POD_CY - BR_H / 2;
 // Two routes reach the bridge from above, and they land as a MIRRORED PAIR either side of its
 // midpoint rather than one on it and one beside it.
 const BR_IN_DX = 20;
-const { out: BR_IN_PM, back: BR_IN_ORD } = laneY(COL2_CX, BR_IN_DX);   // 580 portmap, 620 ordinary
+const { out: BR_IN_PM, back: BR_IN_ORD } = laneY(COL2_CX, BR_IN_DX);   // portmap, ordinary
 
-const BUS_Y = (R1_BOTTOM + R2_Y) / 2;          // 417, the lane between the two rows
-const VETH_MID_X = midX(BR_X, APP_RIGHT);      // 422.5, the label sits over the middle of its wire
+const BUS_Y = (R1_BOTTOM + R2_Y) / 2;          // the lane between the two rows
+const VETH_MID_X = midX(BR_X, APP_RIGHT);      // the label sits over the middle of its wire
 const CHIP_Y = 590, CHIP_H = 34;
-const SCHEME_LEFT = NODE_X;                    // 40
-const SCHEME_RIGHT = NODE_X + NODE_W;          // 1160
+const SCHEME_LEFT = NODE_X;
+const SCHEME_RIGHT = NODE_X + NODE_W;
 
-
-// Each static wire and the ball that rides it share the same points array. The three NIC exits are one
-// per direction, and the rule rejoins the ordinary path on the bus between the rows.
-// NET.A-02: traffic from the LAN is delivered TO the Node, so the entry stops on the frame top face
-// midpoint at NODE_Y and the NIC 25 units below it lights on arrival. It never crosses the border.
+// The rule rejoins the ordinary path on the bus between the rows. NET.A-02: the LAN entry stops on
+// the frame top face, and the NIC lights on arrival.
 const ENTRY = [[COL2_CX, CLIENT_BOTTOM], [COL2_CX, NODE_Y]];             // LAN client -> the Node frame
 const TO_PM = [[ETH_X, R1_CY], [PM_RIGHT, R1_CY]];                       // NIC -> the portmap rule
 const TO_AGENT = [[ETH_RIGHT, R1_CY], [COL3_CX, R1_CY], [COL3_CX, R2_Y]];// NIC -> the hostNetwork Pod
@@ -62,15 +57,12 @@ const TO_BRIDGE = [[BR_IN_ORD, R1_BOTTOM], [BR_IN_ORD, BR_TOP]];         // NIC 
 const PM_TO_BRIDGE = [[COL1_CX, R1_BOTTOM], [COL1_CX, BUS_Y], [BR_IN_PM, BUS_Y], [BR_IN_PM, BR_TOP]];
 const VETH = [[BR_X, POD_CY], [APP_RIGHT, POD_CY]];                      // bridge -> Pod app, the veth pair
 
-// The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: emergeMode
-// floats the DNAT-ed address out of the portmap rule, and hold 0 clears each address as its hop lands.
-const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
-const tag = (p) => F.tag({ fn: ridingLabel, ...p });
-// The hostNetwork hop starts on the NIC right face, so at the default -14 the tag tail sits inside
-// Node eth0 and its border strikes the first character for 100ms. -40 parks it level with the frame
-// caption, between the Node frame top (305) and the NIC row (330): 6.7 under the frame, 5.4 over
-// the row, clear on all four viewports. A dx offset overlaps by 4.4 units at 1600x1000 and 8.4 at
-// 900x650, so the clear dx set starts at +10 there and stops reading as the address of its own ball.
+// Only the DNAT-ed address emerges, out of the portmap rule: at departure it prints over the rule
+// sublabel.
+const emergeLabel = makeRidingLabel({ role: 'network', emergeMode: true });
+const tag = (p) => F.tag({ ...p });
+// The hostNetwork tag rides level with the frame caption, between the frame top and the NIC row:
+// at the default it strikes Node eth0, and any dx stops reading as the address of its own ball.
 const AGENT_TAG_DY = -40;
 
 const POD_INNER = { dx: 20, dy: 30, w: POD_W - 40, h: 48, label: 'app', sublabel: 'eth0' };
@@ -150,7 +142,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'hostnetwork',
-    // Motion: entry(700) + hop beat(100) + lane(707) = 1507, then the Pod pulse (900) ends at 2407.
     duration: 3800,
     narration: 'With hostNetwork true the Pod gets no namespace of its own at all. It runs inside the Node namespace, so there is no veth, no Pod IP and no bridge in the path: the container binds straight to the Node interfaces. A client that dials 192.168.1.20:80 is served by the Pod with no NAT anywhere, which is exactly how kube-proxy, the CNI agent and node-exporter run.',
     chips: { nsChip: 'the Node one', ipChip: '192.168.1.20 (Node)', vethChip: 'none', portChip: 'Node IP :80' },
@@ -166,9 +157,7 @@ export const STEPS_SPEC = [
       F.segment({ from: ENTRY[0], to: ENTRY[1], name: 'inb' }),
       tag({ text: 'dst 192.168.1.20:80', points: ENTRY, easing: 'linear' }),
       F.light({ targets: ['eth'], at: 'inb' }),
-      F.route({ points: TO_AGENT, after: 'inb', name: 'out' }),
-      tag({ text: 'dst 192.168.1.20:80', points: TO_AGENT, after: 'inb', dy: AGENT_TAG_DY }),
-      F.pulse({ pod: 'podAgent', at: 'out' }),
+      F.route({ points: TO_AGENT, after: 'inb', tag: { text: 'dst 192.168.1.20:80', dy: AGENT_TAG_DY }, pulse: 'podAgent' }),
     ],
   },
   {
@@ -185,8 +174,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'hostport',
-    // Motion: entry(700) + beat + rule hop(700) + beat + rewrite route(913) + beat + veth(700) = 3313,
-    // then the Pod pulse (900) ends at 4213. The floor leaves a settle.
     duration: 4400,
     narration: 'The hostPort field is the smaller hammer. The Pod keeps its own namespace, its Pod IP and its veth, and the CNI portmap plugin only adds a port mapping on the Node: anything arriving at 192.168.1.20:8080 is DNAT-ed to 10.244.1.5:80 and then delivered down the ordinary bridge and veth. The Pod is reachable from the LAN and its socket still only ever sees its own address and port.',
     chips: { nsChip: 'own', ipChip: '10.244.1.5', vethChip: 'yes', portChip: 'Node IP :8080' },
@@ -203,10 +190,9 @@ export const STEPS_SPEC = [
       F.light({ targets: ['eth'], at: 'inb' }),
       F.segment({ from: TO_PM[0], to: TO_PM[1], after: 'inb', name: 'toPm', lights: ['portmap'] }),
       F.route({ points: PM_TO_BRIDGE, after: 'toPm', name: 'toBr' }),
-      tag({ text: 'dst 10.244.1.5:80', points: PM_TO_BRIDGE, after: 'toPm', emerge: 150 }),
+      F.tag({ fn: emergeLabel, text: 'dst 10.244.1.5:80', points: PM_TO_BRIDGE, after: 'toPm', emerge: 150 }),
       F.light({ targets: ['bridge'], at: 'toBr' }),
-      F.segment({ from: VETH[0], to: VETH[1], after: 'toBr', name: 'toPod' }),
-      F.pulse({ pod: 'podApp', at: 'toPod' }),
+      F.segment({ from: VETH[0], to: VETH[1], after: 'toBr', pulse: 'podApp' }),
     ],
   },
   {

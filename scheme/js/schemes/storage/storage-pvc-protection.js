@@ -2,47 +2,45 @@ import { P, F, defineCard, BEAT, OPACITY, makeRidingLabel } from './storage-kit.
 // Design notes for this card: ./CARDS/storage-pvc-protection.md
 
 
-// The identity spine, and TIER is the one vertical pitch on the card. storage-volume-expansion reuses
-// both numbers so the two cards in this subcategory read as one family.
-const CX = 600;                                                // canvas + identity-spine center
-const TIER = 162;                                              // the one vertical pitch
+// The identity spine and TIER, the one vertical pitch. storage-volume-expansion reuses both so the
+// two cards read as one family.
+const CX = 600;                                                // canvas and identity-spine centre
+const TIER = 162;
 
 // Every actor is 232 by 80 and the Pod 232 by 104 around a 192 by 44 app box (NET.L-01).
 const BOX_W = 232, BOX_H = 80;
 const POD_W = BOX_W, POD_H = 104, POD_X = CX - POD_W / 2, POD_Y = 56;
-const POD_BOTTOM = POD_Y + POD_H, POD_MID = POD_Y + POD_H / 2, POD_RIGHT = POD_X + POD_W; // 160 / 108 / 716
-const APP_W = 192, APP_H = 44, APP_DY = 26;         // 26 under the Pod label, as network-gateway-api
+const POD_BOTTOM = POD_Y + POD_H, POD_MID = POD_Y + POD_H / 2, POD_RIGHT = POD_X + POD_W;
+const APP_W = 192, APP_H = 44, APP_DY = 26;
 
-const PVC_W = BOX_W, PVC_H = BOX_H, PVC_X = CX - PVC_W / 2, PVC_Y = POD_MID + TIER - PVC_H / 2;   // 230
-const PVC_BOTTOM = PVC_Y + PVC_H, PVC_MID = PVC_Y + PVC_H / 2, PVC_RIGHT = PVC_X + PVC_W; // 310 / 270 / 716
+const PVC_W = BOX_W, PVC_H = BOX_H, PVC_X = CX - PVC_W / 2, PVC_Y = POD_MID + TIER - PVC_H / 2;
+const PVC_BOTTOM = PVC_Y + PVC_H, PVC_MID = PVC_Y + PVC_H / 2, PVC_RIGHT = PVC_X + PVC_W;
 
 const DISK_W = 230, DISK_H = 86, DISK_Y = 389;
-const DISK_TOP = DISK_Y;  // 389
+const DISK_TOP = DISK_Y;
 
-// Two actors of one footprint, one each side of the identity spine so the card is not a stack
-// hanging off its right, the left one the mirror of the right about CX. Both at or below the claim
-// tier, which clears the panel floor at 230.
+// Two actors of one footprint, mirrored about CX one each side of the identity spine, both at or
+// below the claim tier, which clears the panel floor.
 const ACT_W = BOX_W, ACT_H = BOX_H;
-const ACT_R_X = 850, ACT_R_CX = ACT_R_X + ACT_W / 2;           // 850..1082 / 966
-const ACT_L_X = 2 * CX - ACT_R_X - ACT_W, ACT_L_CX = ACT_L_X + ACT_W / 2;   // 118..350 / 234
-const KUBECTL_Y = PVC_MID - ACT_H / 2;                         // 230
-const CTRL_MID = PVC_MID + TIER, CTRL_Y = CTRL_MID - ACT_H / 2;             // 432 / 392
+const ACT_R_X = 850, ACT_R_CX = ACT_R_X + ACT_W / 2;
+const ACT_L_X = 2 * CX - ACT_R_X - ACT_W, ACT_L_CX = ACT_L_X + ACT_W / 2;
+const KUBECTL_Y = PVC_MID - ACT_H / 2;
+const CTRL_MID = PVC_MID + TIER, CTRL_Y = CTRL_MID - ACT_H / 2;
 
 const MOUNT_LBL_X = CX + 16, MOUNT_LBL_Y = 204;
-// Under the claim rather than beside it: the controller lane now runs into the claim's left face.
-const VERDICT_LBL_X = PVC_X - 16, VERDICT_LBL_Y = PVC_BOTTOM + 20;  // 468 / 330, anchored end
+// Under the claim rather than beside it, where the controller lane runs into the claim left face.
+const VERDICT_LBL_X = PVC_X - 16, VERDICT_LBL_Y = PVC_BOTTOM + 20;  // anchored end
 // cylinder() draws its own name on the baseline h/2+5, so the spec line goes 14 below it.
-const SPEC_Y = DISK_Y + DISK_H / 2 + 5 + 14;                   // 451
-const CHIP_Y = 545, CHIP_H = 34;                               // strip ends at 579
+const SPEC_Y = DISK_Y + DISK_H / 2 + 5 + 14;
+const CHIP_Y = 545, CHIP_H = 34;
 
-// Four chips over the card's own width, and NOT one width: the first carries both the longest
-// name and the longest value, and at a shared 252 the two strings meet with one unit to spare.
-const CHIP_GAP = 24, CHIP_WS = [312, 232, 244, 220];   // 1008 + 3 gaps = the full 60..1140 strip
-const chipX = i => 60 + CHIP_WS.slice(0, i).reduce((a, w) => a + w + CHIP_GAP, 0);   // 60 / 396 / 652 / 920
+// Four chips over the card width and not one width: the first carries both the longest name and
+// the longest value.
+const CHIP_GAP = 24, CHIP_WS = [312, 232, 244, 220];
+const chipX = i => 60 + CHIP_WS.slice(0, i).reduce((a, w) => a + w + CHIP_GAP, 0);
 
 
-// Each lane and its ball share one points array, so the two cannot drift apart, and every endpoint
-// sits on a block edge so no ball ever travels underneath a box.
+// Each lane and its ball share one points array, and every endpoint sits on a block edge.
 const W_MOUNT_LOW  = [[CX, DISK_TOP], [CX, PVC_BOTTOM]];       // disk -> claim, upward
 const W_MOUNT_HIGH = [[CX, PVC_Y], [CX, POD_BOTTOM]];          // claim -> Pod, upward
 // kubectl deletes the claim it is level with: straight horizontal, no turn. Deleting the Pod climbs
@@ -53,38 +51,31 @@ const W_DEL_POD = [[ACT_R_CX, KUBECTL_Y], [ACT_R_CX, POD_MID], [POD_RIGHT, POD_M
 // are never drawn on the same run of canvas.
 const W_RM_FINAL = [[ACT_L_CX, CTRL_Y], [ACT_L_CX, PVC_MID], [PVC_X, PVC_MID]];
 
-// Both requests travel at PVC_MID, half a box height below the claim top, so at -14 each tag rides
-// inside the boxes at its ends: 800ms for the delete, 400ms for the finalizer patch. Half the box
-// height plus 4 is the least that clears the box tops, and it is large because the lane is at their
-// middle.
-const DEL_TAG_DY = -(BOX_H / 2) - 4, RM_TAG_DY = DEL_TAG_DY;   // -44
-// The 70-unit mount ascent is too short for a tag between two boxes, so the tag TRAILS the ball, 20
-// under it and left of the lane, away from the mount caption: it lands under the Pod floor and lives
-// exactly as long as its ball (M-30a), emerging once clear of the claim top (./CARDS/storage-pvc-protection.md).
-// Both tagged ascents ride MOUNT_DUR rather than the 700 floor, the catalog pace for a tagged ball
-// into a Pod, so the tag is up long enough to read (registered in `PACING`, `render/motion.test.mjs`).
-const MOUNT_DUR = 1500;
-const MOUNT_TAG = { dy: 20, dur: MOUNT_DUR, emerge: 600, fn: makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true }) };
-// The Pod delete climbs kubectl's column and ends on the Pod right face, where a centred tag parks
-// half over the Pod and the app box. Beside the ball, right of the climb and past the face, it rides
-// clear of its own lane and stops 8 short of the Pod.
+// Both requests travel at PVC_MID, the middle of the boxes at their ends, so each tag rides half a
+// box height plus 4 up to clear the box tops.
+const DEL_TAG_DY = -(BOX_H / 2) - 4, RM_TAG_DY = DEL_TAG_DY;
+// The mount ascent is too short for a tag between two boxes, so the tag trails the ball, under it
+// and emerging once clear of the claim top. LEG_DUR is the catalog pace for a tagged ball into a
+// Pod (registered in `PACING`, `render/motion.test.mjs`).
+const LEG_DUR = 1500;
+const MOUNT_TAG = { dy: 20, dur: LEG_DUR, emerge: 600, fn: makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true }) };
+// The Pod delete ends on the Pod right face, so its tag rides beside the ball, right of the climb,
+// clear of its own lane and short of the Pod.
 const DEL_POD_TAG_DX = 57;
-// The three request tags live exactly as long as their ball too (M-30a).
-const rideTag = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
+// Each request ball leaves at t=0, where a route ball does not fade in, so its tag shows at once.
+const rideTag = makeRidingLabel({ role: 'storage', inMs: 0, outMs: 200, hold: 0 });
 
-// Every lane in this card is a ROUTE: something travels all of them, so they are all dashed, all
-// carry a head, and all are built from the same points array as their ball.
+// Every lane here is a route: dashed, headed, and built from the same points array as its ball.
 const lane = (key, points, opacity) => P.lane({ key, points, dashed: true, dim: true, opacity });
 
-// Z-order: the blocks and the disk, then the lanes and their captions, then the Pod above its own
-// half of the axis, then the disk caption, then the chip strip, then the packet layer.
+// Z-order: the blocks and the disk, the lanes and their captions, the Pod, the disk caption, the
+// chip strip, then the packet layer.
 export const SCENE = {
   'aria-label': 'Why a deleted PersistentVolumeClaim sits in Terminating. The pvc-protection finalizer on PVC data-claim means a delete only writes a deletionTimestamp, so the object stays and Pod web-0 keeps its mount, while the status phase reads Bound the whole time and Terminating is only a display derived from the deletionTimestamp. Once the last consuming Pod is gone the controller removes the finalizer, and only then does the API server take the object out of ETCD.',
   parts: [
     P.defs(),
     P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'phase Bound' }),
-    // Both actors appear only on the steps they act on, so the card is never crossed by a lane
-    // belonging to somebody who is not on stage.
+    // Both actors appear only on the steps they act on, so no lane crosses the card for an absent actor.
     P.box({ key: 'kubectl', x: ACT_R_X, y: KUBECTL_Y, w: ACT_W, h: ACT_H, label: 'kubectl delete', sublabel: 'issues the request', opacity: 0 }),
     P.box({ key: 'ctrl', x: ACT_L_X, y: CTRL_Y, w: ACT_W, h: ACT_H, label: 'PVC protection', sublabel: 'the controller', opacity: 0 }),
     P.cylinder({ key: 'disk', x: CX - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'PV data-vol' }),
@@ -96,8 +87,8 @@ export const SCENE = {
     lane('lRmFinal', W_RM_FINAL, 0),
     P.wire({ key: 'mount', x: MOUNT_LBL_X, y: MOUNT_LBL_Y, anchor: 'start' }),
     P.wire({ key: 'verdict', x: VERDICT_LBL_X, y: VERDICT_LBL_Y, anchor: 'end' }),
-    // A Pod is a shell plus an inner box, wrapped in a g so pulsePod reaches BOTH. querySelectorAll
-    // matches descendants only, so pulsing a bare shell would fire at half strength.
+    // A Pod is a shell plus an inner box wrapped in a g, so pulsePod reaches both (querySelectorAll
+    // matches descendants only).
     P.pod({
       key: 'web', x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'volumes: data-claim', containers: 0,
       inner: { dx: (POD_W - APP_W) / 2, dy: APP_DY, w: APP_W, h: APP_H, label: 'app', sublabel: 'writes to /data' }, innerKey: 'app',
@@ -120,8 +111,8 @@ export const SCENE = {
 const chips = (ts, shown, finalizers, users) =>
   ({ tsChip: ts, shownChip: shown, finalChip: finalizers, usersChip: users });
 
-// STO.S-01 as a field: every step pins EVERY opacity that any step can change, so a step can never
-// inherit a stale one and a cancel mid-flight always lands on this step's own end state.
+// STO.S-01: every step pins every opacity any step can change, so a cancel mid-flight lands on
+// this step's own end state.
 const stage = ({ web, pvc, kubectl, ctrl, mountLow, mountHigh, delPvc, delPod, rmFinal }) => ({
   web, pvc, kubectl, ctrl,
   lMountLow: mountLow, lMountHigh: mountHigh, lDelPvc: delPvc, lDelPod: delPod, lRmFinal: rmFinal,
@@ -133,8 +124,7 @@ const STACK = stage({ web: 1, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHig
 
 const PROT = 'pvc-protection', TERMINATING = 'Terminating', DELETING = 'phase Bound, deleting';
 
-// Fades an object out of existence when the delete that removes it lands. The `unlight` is
-// defensive: none of the four is lit on the step that removes it, and see ./CARDS/storage-pvc-protection.md for why.
+// Fades an object out when the delete that removes it lands. The `unlight` is defensive.
 const removeAt = (target, to, when) => F.fade({ target, to, dur: 500, fill: 'forwards', unlight: [target], ...when });
 
 export const STEPS_SPEC = [
@@ -158,7 +148,7 @@ export const STEPS_SPEC = [
     lit: ['disk'],
     flow: [
       F.route({ points: W_MOUNT_LOW, name: 'hop1', lights: ['pvc'] }),
-      F.route({ points: W_MOUNT_HIGH, after: 'hop1', dur: MOUNT_DUR, name: 'hop2' }),
+      F.route({ points: W_MOUNT_HIGH, after: 'hop1', dur: LEG_DUR, name: 'hop2' }),
       F.tag({ text: '/data', points: W_MOUNT_HIGH, after: 'hop1', ...MOUNT_TAG, dx: -24 }),
       F.pulse({ pod: 'web', at: 'hop2' }),
     ],
@@ -174,8 +164,7 @@ export const STEPS_SPEC = [
     // kubectl sends the ball, so kubectl alone is lit at entry and the claim waits for it to land.
     lit: ['kubectl'],
     flow: [
-      F.route({ points: W_DEL_PVC, name: 'del' }),
-      F.tag({ text: 'deletionTimestamp set', points: W_DEL_PVC, dy: DEL_TAG_DY, fn: rideTag }),
+      F.route({ points: W_DEL_PVC, name: 'del', tag: { text: 'deletionTimestamp set', dy: DEL_TAG_DY, fn: rideTag } }),
       F.light({ targets: ['pvc'], at: 'del' }),
     ],
   },
@@ -189,7 +178,7 @@ export const STEPS_SPEC = [
     opacity: STACK,
     lit: ['pvc'],
     flow: [
-      F.route({ points: W_MOUNT_HIGH, dur: MOUNT_DUR, name: 'write' }),
+      F.route({ points: W_MOUNT_HIGH, dur: LEG_DUR, name: 'write' }),
       F.tag({ text: 'writes continue', points: W_MOUNT_HIGH, ...MOUNT_TAG, dx: -54 }),
       F.pulse({ pod: 'web', at: 'write' }),
     ],
@@ -218,22 +207,18 @@ export const STEPS_SPEC = [
     // The Pod and its half of the axis both end this step gone.
     opacity: stage({ web: OPACITY.terminated, pvc: 1, kubectl: 1, ctrl: 0, mountLow: 1, mountHigh: 0, delPvc: 0, delPod: 1, rmFinal: 0 }),
     lit: ['kubectl'],
-    // The Pod is alive until the delete lands on it, so the motion path restores it and the fade
-    // carries it back down to the OPACITY.terminated pinned above, the consumer count with it (P-03).
+    // The Pod is alive until the delete lands on it, so the fade carries it down to the pinned
+    // OPACITY.terminated, the consumer count with it (P-03).
     rewind: {
       opacity: stage({ web: 1, pvc: 1, kubectl: 1, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 1, rmFinal: 0 }),
       chips: { usersChip: '1 Pod' },
     },
     flow: [
-      F.route({ points: W_DEL_POD, name: 'del' }),
-      F.tag({ text: 'delete pod web-0', points: W_DEL_POD, dx: DEL_POD_TAG_DX, fn: rideTag }),
-      F.pulse({ pod: 'web', at: 'del' }),
+      F.route({ points: W_DEL_POD, name: 'del', tag: { text: 'delete pod web-0', dx: DEL_POD_TAG_DX, fn: rideTag }, pulse: 'web' }),
       removeAt('web', OPACITY.terminated, { at: 'del', plus: BEAT.afterPulse, name: 'gone' }),
-      // The mount goes with the Pod, so the upper lane leaves on the same beat rather than lingering
-      // as an arrow pointing at a ghost.
+      // The mount lane leaves with the Pod rather than pointing at a ghost.
       removeAt('lMountHigh', 0, { at: 'del', plus: BEAT.afterPulse }),
-      // The last consumer is gone when the Pod has finished going (2113), not when the delete lands
-      // on it: for the 500ms of the fade the Pod is still there and still mounting.
+      // The last consumer is gone when the Pod has finished fading, not when the delete lands on it.
       F.set({ at: 'gone', chipsCued: { usersChip: '0 Pods' } }),
     ],
   },
@@ -248,8 +233,7 @@ export const STEPS_SPEC = [
     // The controller sends the ball, so the claim waits for the patch to land before it lights.
     lit: ['ctrl'],
     flow: [
-      F.route({ points: W_RM_FINAL, name: 'rm' }),
-      F.tag({ text: 'finalizers: []', points: W_RM_FINAL, dy: RM_TAG_DY, fn: rideTag }),
+      F.route({ points: W_RM_FINAL, name: 'rm', tag: { text: 'finalizers: []', dy: RM_TAG_DY, fn: rideTag } }),
       F.light({ targets: ['pvc'], at: 'rm' }),
     ],
   },
@@ -261,8 +245,7 @@ export const STEPS_SPEC = [
     wires: { verdict: 'object removed from ETCD' },
     // The claim and the rest of the axis end this step gone. The disk stays: it outlives the claim.
     opacity: stage({ web: OPACITY.terminated, pvc: OPACITY.terminated, kubectl: 0, ctrl: 0, mountLow: 0, mountHigh: 0, delPvc: 0, delPod: 0, rmFinal: 0 }),
-    // The removal is the motion of this step: the claim fades and takes its half of the axis with
-    // it, so nothing here needs a flash to look alive.
+    // The claim fades and takes its half of the axis with it, so nothing here needs a flash.
     rewind: { opacity: stage({ web: OPACITY.terminated, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHigh: 0, delPvc: 0, delPod: 0, rmFinal: 0 }) },
     flow: [
       removeAt('pvc', OPACITY.terminated, { delay: 200 }),

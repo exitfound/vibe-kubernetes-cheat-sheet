@@ -3,60 +3,49 @@ import { g, rect, text } from '../../lib/svg.js';
 
 // Design notes for this card: ./CARDS/network-kube-proxy-modes.md
 
+// Content edges mirror about 600 and the chip strip centres by construction. The chain row is the
+// one tier that does NOT centre: it has to start right of the panel edge.
+const SCHEME_L = 40, SCHEME_R = 1160;
 
-// The content edges are mirrored about the canvas centre 600, and the three 350-wide chips with even
-// gaps centre the strip on it by construction, so nothing is stretched to make the composition
-// centre. The chain row is the one tier that does NOT centre, since it has to start right of the
-// panel edge.
-const SCHEME_L = 40, SCHEME_R = 1160;  // content edges, mirrored about the canvas centre 600
-
-// Narration panel measured at bottom <= 280 (a longer narration invalidates this): the axis sits low
-// enough that the Client Pod shell clears it.
+// The axis sits low enough that the Client Pod shell clears the narration panel.
 const AXIS = 352;
 const LANE_DY = 144;             // chain lane above the axis, hash lane the same distance below
-// 208: iptables chain lane. 496: IPVS hash lane.
 const { out: TOP_Y, back: BOT_Y } = laneY(AXIS, LANE_DY);
 const ROW_H = 56;                // chain box height, centred on its lane
 const IPVS_H = 88;               // hash box height, centred on its lane
-const POD_DY = LANE_DY / 2;      // 72
-// 280: upper backend, reached from above (chain comes down). 424: lower backend, reached from below.
+const POD_DY = LANE_DY / 2;
+// Upper backend reached from above (the chain comes down), lower backend from below.
 const { out: PODA_Y, back: PODB_Y } = laneY(AXIS, POD_DY);
 
 const CLIENT_W = 196, CLIENT_H = 128;
-const CLIENT_R = SCHEME_L + CLIENT_W;  // 236: right edge, where both entry lanes leave
+const CLIENT_R = SCHEME_L + CLIENT_W;  // right edge, where both entry lanes leave
 const POD_W = 200, POD_H = 104;
-const POD_X = SCHEME_R - POD_W;        // 960: backend column left edge
+const POD_X = SCHEME_R - POD_W;        // backend column left edge
 
-// Engine row: the iptables chain and the equally wide hash box. It starts at 420 because the chain
-// boxes sit ABOVE the narration panel bottom, so they have to clear its right edge (x <= 397).
+// The engine row starts at 420: the chain boxes sit ABOVE the panel bottom, so they clear its right edge.
 const ENGINE_L = 420, ENGINE_W = 492, ENGINE_GAP = 24;
-const ENGINE_R = ENGINE_L + ENGINE_W;  // 912, shared right edge of the chain and the hash box
+const ENGINE_R = ENGINE_L + ENGINE_W;  // shared right edge of the chain and the hash box
 const KS = { x: ENGINE_L, w: 150 };
-const SVC = { x: ENGINE_L + 150 + ENGINE_GAP, w: 150 };          // 594..744
-const SEP = { x: ENGINE_L + 324 + ENGINE_GAP, w: ENGINE_R - (ENGINE_L + 348) }; // 768..912
+const SVC = { x: ENGINE_L + 150 + ENGINE_GAP, w: 150 };
+const SEP = { x: ENGINE_L + 324 + ENGINE_GAP, w: ENGINE_R - (ENGINE_L + 348) };
 const IPVS = { x: ENGINE_L, w: ENGINE_W };
 
-// The pile `scale` reveals: three fading copies of the chain row, on the SAME three x segments so a
-// copy reads as a copy. It hangs off the row at 236 with a 16 gap and closes at 346, leaving 106
-// over the hash box, which is what keeps the two lanes separate. Both tags print ABOVE their own
-// element so this band belongs to the pile alone.
+// The pile `scale` reveals: three fading copies of the chain row on the SAME x segments, so a copy
+// reads as a copy, with room left over the hash box so the two lanes stay separate.
 const STACK_TOP = 252, STACK_H = 22, STACK_GAP = 36;
 // Halving each step, so the pile RECEDES rather than reading as three more rows of equal weight.
 const STACK_FADE = [0.52, 0.26, 0.13];
 
-const ENTRY_X = midX(CLIENT_R, ENGINE_L);   // 328: entry bend, centred in the client-to-engines gap
-const TURN_X = midX(ENGINE_R, POD_X);       // 936: delivery turn, centred in the engines-to-Pod gap
+const ENTRY_X = midX(CLIENT_R, ENGINE_L);   // entry bend, centred in the client-to-engines gap
+const TURN_X = midX(ENGINE_R, POD_X);       // delivery turn, centred in the engines-to-Pod gap
 const PAUSE = 240;          // dwell inside each chain box, so the walk reads as sequential
-// The two chain gaps are 24 units, and routeDur floors every ball at PKT_DUR_MIN 700, which on a gap
-// this short is 0.034 u/ms against the 0.45 canon: ranks 1 and 2 of the catalog's 876 balls, and on
-// screen the packet oozes across 24 units for 700ms instead of hopping. M-12 allows an explicit dur
-// with the justification at the call site, and this is it. 200 crosses the gap briskly and leaves
-// PAUSE to say `stopping at each`, which is what the step is actually about.
+// The chain gaps are too short for the 700ms floor: an explicit dur crosses them briskly and leaves
+// PAUSE to say `stopping at each` (M-12).
 const GAP_MS = 200;
 
 // Three chips of a fixed width spanning the whole content band, so the strip centres on 600.
 const CHIP_Y = 590, CHIP_H = 34, CHIP_W = 350;
-const CHIPS = spread({ from: SCHEME_L, to: SCHEME_R, count: 3, w: CHIP_W });   // gap 35
+const CHIPS = spread({ from: SCHEME_L, to: SCHEME_R, count: 3, w: CHIP_W });
 
 // iptables hops: client -> KS (one zigzag), the two gaps, then SEP -> centred turn -> upper Pod.
 const IPT_H1 = [[CLIENT_R, AXIS], [ENTRY_X, AXIS], [ENTRY_X, TOP_Y], [KS.x, TOP_Y]];
@@ -164,9 +153,8 @@ export const SCENE = {
 const ALL_UP = { iptLane: 1, ipvsLane: 1, podA: 1, podB: 1, iptStack: 0 };
 // The complexity pair the two mode steps never move: only the scale step turns it over.
 const BASE_COST = { iptChip: 'rule walk O(n)', ipvsChip: 'hash O(1)' };
-// What the selection chip reads before a route has picked anything. It is the value `idle` states,
-// so a mode step entered from either direction starts from no pick rather than from the other
-// mode's answer.
+// What the selection chip reads before a route has picked anything, so a mode step entered from
+// either direction starts from no pick.
 const NO_PICK = 'one backend';
 const TAG_FADE = { keyframes: [{ opacity: 0 }, { opacity: 1 }], options: { duration: 440, fill: 'forwards', easing: 'ease-out' } };
 
@@ -179,9 +167,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'iptables',
-    // The walk is 900 of pulse, 729 across the entry, then three dwell-plus-hop beats and 700 down
-    // to the Pod, landing at 3349 with the arrival pulse closing at 4249. 4600 is that plus a beat
-    // to read on, where 5400 was the old crawl padded out.
     duration: 4600,
     narration: 'In iptables mode the packet walks a chain box by box. It enters KUBE-SERVICES, jumps to the per-Service KUBE-SVC chain that picks an endpoint by statistic random, then a KUBE-SEP chain DNATs it to that Pod, here 10.244.2.7. The kernel walks these rules in sequence, so the chain grows O(n) with the number of Services.',
     // S-13: the static block states the END. The pick does not exist until KUBE-SVC makes it, so
@@ -201,17 +186,15 @@ export const STEPS_SPEC = [
       F.route({ points: IPT_H2, at: 'h1', plus: PAUSE, dur: GAP_MS, name: 'h2', lights: ['svc', 'pickChip'] }),
       F.set({ at: 'h2', chips: { pickChip: 'statistic random' } }),
       F.route({ points: IPT_H3, at: 'h2', plus: PAUSE, dur: GAP_MS, name: 'h3', lights: ['sep'] }),
-      F.route({ points: IPT_H4, at: 'h3', plus: PAUSE, name: 'h4' }),
-      F.pulse({ pod: 'podA', at: 'h4' }),
+      F.route({ points: IPT_H4, at: 'h3', plus: PAUSE, pulse: 'podA' }),
     ],
   },
   {
     id: 'ipvs',
     duration: 3500,
     narration: 'In IPVS mode the same kind of connection skips the walk. The Service is a virtual server and its endpoints are real servers in an in-kernel hash table, so a backend is found in one constant-time lookup no matter how many Services exist, here 10.244.3.9, scheduled with real algorithms like round-robin and least-connection.',
-    // The same shape as `iptables`, deliberately: each mode step enters on NO_PICK and produces its
-    // own answer, so neither one inherits the other's. Doing this to one and not the other is worse
-    // than doing it to neither (P-04).
+    // The same shape as `iptables`, deliberately: each mode step enters on NO_PICK and produces its own
+    // answer (P-04).
     chips: { ...BASE_COST, pickChip: 'scheduler rr / lc' },
     rewind: { chips: { pickChip: NO_PICK } },
     wires: { ipvs: 'one hash lookup, any scale' },
@@ -224,16 +207,13 @@ export const STEPS_SPEC = [
       F.pulse({ pod: 'client' }),
       F.route({ points: IPVS_H1, delay: BEAT.afterPulse, name: 'v1', lights: ['ipvs', 'pickChip'] }),
       F.set({ at: 'v1', chips: { pickChip: 'scheduler rr / lc' } }),
-      F.route({ points: IPVS_H2, at: 'v1', plus: PAUSE, name: 'v2' }),
-      F.pulse({ pod: 'podB', at: 'v2' }),
+      F.route({ points: IPVS_H2, at: 'v1', plus: PAUSE, pulse: 'podB' }),
     ],
   },
   {
     id: 'scale',
-    // 400 chars, and the hold IS the reading time on a step whose only motion is the pile and two
-    // tags. 4200 is what puts it on the catalog median pace that tools/timing.mjs prints. The
-    // narration also has a PANEL ceiling: it wraps to the same line count as a 410 char one, and a
-    // line more pushes the panel past 288 and covers the Client Pod. Re-measure, never estimate.
+    // The narration has a PANEL ceiling: one line more pushes the panel over the Client Pod. Re-measure
+    // after any edit.
     duration: 4200,
     narration: 'Either mode turns the ClusterIP into a ready backend, and what scale exposes is the lookup. With thousands of Services the iptables chain is thousands of rules long and every new one slows the walk, while the IPVS hash stays one step. Large clusters long preferred IPVS for that, though Kubernetes deprecated it in v1.35, disables it by default in v1.40 and removes it in v1.43 in favour of nftables.',
     chips: { iptChip: 'thousands of rules', pickChip: 'unchanged by scale', ipvsChip: 'still one lookup' },

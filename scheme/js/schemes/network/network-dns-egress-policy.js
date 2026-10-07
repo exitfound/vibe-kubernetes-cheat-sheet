@@ -1,46 +1,40 @@
-import { P, F, defineCard, laneY, makeRidingLabel, BEAT } from './network-kit.js';
+import { LANE_DY, P, F, defineCard, laneY, makeRidingLabel, BEAT } from './network-kit.js';
 import { g, path } from '../../lib/svg.js';
 
 // Design notes for this card: ./CARDS/network-dns-egress-policy.md
 
-// One Pod inside its own egress boundary, drawn as a ring 100 units out from each face with a DOOR
-// in the wall facing each destination. RING_PAD 100 is the network-policy run-up: a refused ball
-// needs that much travel to read as refused rather than as a ball that never fired.
+// One Pod inside its own egress boundary, a ring with a DOOR in the wall facing each destination.
+// RING_PAD is the network-policy run-up: a refused ball needs that travel to read as refused.
 const WEB_X = 484, WEB_W = 232, WEB_H = 104;         // NET.L-01, the Pod form
-// 486 and not 432: the policy band has to stand BELOW the panel, because a mirrored pair of 232
-// blocks about the Pod centre reaches x=368 even at a zero gap and the panel measures 396.55 wide
-// and 244.54 deep at 1100x800. The band therefore opens at 252, as high as the panel allows, and
-// everything under it follows. Raising it further is not free room, it is an overlap.
+// The policy band has to stand BELOW the panel and everything under it follows, so FLOW_Y cannot rise.
 const FLOW_Y = 486;                                  // the Pod centre, and the axis every lane splits about
-const WEB_Y = FLOW_Y - WEB_H / 2;                    // 434
-const WEB_R = WEB_X + WEB_W;                         // 716
-const WEB_CX = WEB_X + WEB_W / 2;                    // 600, the axis the whole card mirrors about
+const WEB_Y = FLOW_Y - WEB_H / 2;
+const WEB_R = WEB_X + WEB_W;
+const WEB_CX = WEB_X + WEB_W / 2;                    // the axis the whole card mirrors about
 
 const BOX_W = 232, BOX_H = 80;                       // NET.L-01, the actor form
 const SCHEME_L = 40, SCHEME_R = 1160;                // content edges, mirrored about x=600
 
-// The ring. Its top at 374 stands under the policy band rather than under the panel: what the panel
-// pins on this card is the BAND, and the ring follows the Pod.
+// The ring follows the Pod: what the panel pins on this card is the policy BAND.
 const RING_PAD = 100, RING_VPAD = 60;
-const RING_X = WEB_X - RING_PAD, RING_R = WEB_R + RING_PAD;      // 384 .. 816
-const RING_Y = WEB_Y - RING_VPAD, RING_B = WEB_Y + WEB_H + RING_VPAD;   // 374 .. 598
+const RING_X = WEB_X - RING_PAD, RING_R = WEB_R + RING_PAD;
+const RING_Y = WEB_Y - RING_VPAD, RING_B = WEB_Y + WEB_H + RING_VPAD;
 
 // A door is the hole a rule opens: 24 wide so a ball dying in it reads as stopped, 56 tall so the
 // DNS pair passes through one door, and drawn ONLY while it is shut. The wall carries a gap of the
 // same height, so a shut door closes the ring to the unit.
 const DOOR_W = 24, DOOR_H = 56;
-const DOOR_Y = FLOW_Y - DOOR_H / 2;                  // 458
-const DOOR_B = DOOR_Y + DOOR_H;                      // 514
-const DNS_DOOR_X = RING_X - DOOR_W / 2;              // 372
-const DB_DOOR_X = RING_R - DOOR_W / 2;               // 804
+const DOOR_Y = FLOW_Y - DOOR_H / 2;
+const DOOR_B = DOOR_Y + DOOR_H;
+const DNS_DOOR_X = RING_X - DOOR_W / 2;
+const DB_DOOR_X = RING_R - DOOR_W / 2;
 
 // The DNS pair, out and back about FLOW_Y at the house delta, and one lane to the database.
-const LANE_DY = 12;
-const { out: Q_Y, back: A_Y } = laneY(FLOW_Y, LANE_DY);          // 474 query, 498 answer
+const { out: Q_Y, back: A_Y } = laneY(FLOW_Y, LANE_DY);
 
-const DNS_X = SCHEME_L, DNS_R = DNS_X + BOX_W;       // 40 .. 272
-const DNS_Y = FLOW_Y - BOX_H / 2;                    // 446
-const DB_X = SCHEME_R - WEB_W;                       // 928: flush right, so the road spans the width
+const DNS_X = SCHEME_L, DNS_R = DNS_X + BOX_W;
+const DNS_Y = FLOW_Y - BOX_H / 2;
+const DB_X = SCHEME_R - WEB_W;                       // flush right, so the road spans the width
 
 // Every lane carries a WAYPOINT at the centre of the door it meets. The points are collinear, so
 // the drawn line does not move by a unit, and L-10 reads the road as terminating on the door
@@ -48,43 +42,34 @@ const DB_X = SCHEME_R - WEB_W;                       // 928: flush right, so the
 const QUERY = [[WEB_X, Q_Y], [RING_X, Q_Y], [DNS_R, Q_Y]];
 const ANSWER = [[DNS_R, A_Y], [RING_X, A_Y], [WEB_X, A_Y]];
 const TO_DB = [[WEB_R, FLOW_Y], [RING_R, FLOW_Y], [DB_X, FLOW_Y]];
-// Where a refused query stops: inside the door that refused it, 100 units out from the Pod.
+// Where a refused query stops: inside the door that refused it.
 const QUERY_REFUSED = [[WEB_X, Q_Y], [RING_X, Q_Y]];
 
-// The policy band, above the ring. The two objects are a MIRRORED PAIR about WEB_CX at a 32 gap,
-// because they are two policies of equal standing on one Pod and a reader who sees one nearer the
-// centre reads it as the nearer cause. 252 is what buys that mirror: below 244.54 the panel takes
-// no width, so the left block may stand at 352, which is 44.55 left of what L-03 allows above it.
-// 7.46 of clearance, the floor, against the 7.34 network-pod-to-pod-cross-node closed its own
-// finding at. The panel reads 244.54 deep on every step but `fix`, so the band cannot rise.
-const POL_Y = 252, POL_B = POL_Y + BOX_H;            // 252 .. 332
+// The policy band, above the ring: two policies of equal standing on one Pod, so a MIRRORED PAIR
+// about WEB_CX, since a block nearer the centre reads as the nearer cause. The panel pins POL_Y.
+const POL_Y = 252, POL_B = POL_Y + BOX_H;
 const POL_GAP = 32;
-const EG_POL_X = WEB_CX - POL_GAP / 2 - BOX_W, EG_POL_CX = EG_POL_X + BOX_W / 2;     // 352, 468
-const DNS_POL_X = WEB_CX + POL_GAP / 2, DNS_POL_CX = DNS_POL_X + BOX_W / 2;          // 616, 732
-// Both selections take the SAME shape, a drop into the corridor and a mirrored run onto the Pod
-// top: two policies that select one Pod cannot be drawn with one leg straight and one bent, which
-// is what a block standing off centre forces. The landings are WEB_CX -+ SEL_DY.
+const EG_POL_X = WEB_CX - POL_GAP / 2 - BOX_W, EG_POL_CX = EG_POL_X + BOX_W / 2;
+const DNS_POL_X = WEB_CX + POL_GAP / 2, DNS_POL_CX = DNS_POL_X + BOX_W / 2;
+// Both selections take the SAME shape, a drop into the corridor and a mirrored run onto the Pod top,
+// landing at WEB_CX -+ SEL_DY.
 const SEL_DY = 64;                                   // the mirrored pair the two selections land on
-const SEL_DNS_Y = POL_B + 20;                        // 352, the corridor between the band and the ring
+const SEL_DNS_Y = POL_B + 20;                        // the corridor between the band and the ring
 const selectPod = (fromCx, dx) => [
   [fromCx, POL_B], [fromCx, SEL_DNS_Y], [WEB_CX + dx, SEL_DNS_Y], [WEB_CX + dx, WEB_Y],
 ];
 const SEL_EGRESS = selectPod(EG_POL_CX, -SEL_DY);
 const SEL_DNS = selectPod(DNS_POL_CX, SEL_DY);
 
-// Captions. Each door is named OUTSIDE the ring, in the 112 unit CORRIDOR between the wall and the
-// block that door faces, and on exactly the steps that door exists: a caption over a wall nobody
-// has raised names nothing. The corridor is what forces TWO lines: a rule written on one runs out
-// of it and ends up under the ring, reading as a label of the boundary instead of of the door.
-const DNS_CAP_CX = (DNS_R + RING_X) / 2;             // 328, centred in 272..384
-const DB_CAP_CX = (RING_R + DB_X) / 2;               // 872, centred in 816..928
-// 20 under the block bottoms and 32 under the door, which is the first line clear of the query and
-// answer lanes; 22 apart is the house line step for a stacked caption.
-const CAP_Y = DNS_Y + BOX_H + 20, CAP_Y2 = CAP_Y + 22;           // 546, 568
-// The address the query is really sent to sits directly UNDER the Pods that answer it, on the same
-// line as the first caption line: the two never meet, because the caption stands in the corridor
-// right of the block and this one is centred on the block itself.
-const SVC_TAG_Y = CAP_Y;                             // 546
+// Each door is named OUTSIDE the ring, in the corridor between the wall and the block it faces, on
+// exactly the steps that door exists. The corridor width forces TWO lines.
+const DNS_CAP_CX = (DNS_R + RING_X) / 2;             // centred in the DNS corridor
+const DB_CAP_CX = (RING_R + DB_X) / 2;               // centred in the database corridor
+// The first line clear of the query and answer lanes, at the house line step for a stacked caption.
+const CAP_Y = DNS_Y + BOX_H + 20, CAP_Y2 = CAP_Y + 22;
+// The address the query is really sent to sits directly UNDER the Pods that answer it, on the line
+// of the first caption line.
+const SVC_TAG_Y = CAP_Y;
 // The boundary names itself centred on the ring, inside its bottom wall and under the Pod: both
 // selections come down onto the Pod top, so the bottom is the one face no road reaches.
 const RING_CAP = [WEB_CX, RING_B - 16];
@@ -168,8 +153,7 @@ const stage = ({ ring = 0, dns = 0, db = 0, policies = 0 }) => ({
 });
 
 const RING_CAPTION = 'egress boundary of Pod web';
-// Every door caption is a PAIR, the rule on line one and what it opens on line two, because the
-// corridor it stands in is 112 wide. Each step states both halves of both captions.
+// Every door caption is a PAIR, the rule on line one and what it opens on line two.
 const DB_RULE = ['to app=db', '5432/TCP'];
 const NO_DNS_RULE = ['no rule for', 'port 53'];
 const TCP_ONLY = ['port 53', 'TCP only'];
@@ -181,19 +165,15 @@ const DNS_RULE_BOTH = 'to kube-dns, 53/UDP and 53/TCP';
 const Q_TAG = 'UDP 53, db.shop';
 const TCP_Q_TAG = 'TCP 53, db.shop';
 
-// An answer leaves 100ms after its query lands, so the two tags are in flight together over the
-// same 212 units. The answer tag rides UNDER its lane to keep 56 units between them.
+// The answer tag rides UNDER its lane, apart from the query tag still in flight.
 const tagUnder = makeRidingLabel({ role: 'network', dy: 18 });
 
 // The query leaves the Pod that asked, so web pulses first and its ball leaves on the next beat
 // (M-18a). CoreDNS is a block and lights on arrival, and the answer lands on a Pod, which pulses.
 const lookup = ({ answerTag }) => [
   F.pulse({ pod: 'web' }),
-  F.route({ points: QUERY, delay: BEAT.afterPulse, name: 'q', lights: ['coredns'] }),
-  F.tag({ text: Q_TAG, points: QUERY, delay: BEAT.afterPulse }),
-  F.route({ points: ANSWER, after: 'q', name: 'a' }),
-  F.tag({ fn: tagUnder, text: answerTag, points: ANSWER, after: 'q' }),
-  F.pulse({ pod: 'web', at: 'a' }),
+  F.route({ points: QUERY, delay: BEAT.afterPulse, name: 'q', lights: ['coredns'], tag: { text: Q_TAG } }),
+  F.route({ points: ANSWER, after: 'q', name: 'a', tag: { fn: tagUnder, text: answerTag }, pulse: 'web' }),
 ];
 
 export const STEPS_SPEC = [
@@ -212,9 +192,7 @@ export const STEPS_SPEC = [
     reducedLit: ['webBox', 'dbBox'],
     flow: [
       ...lookup({ answerTag: 'A 10.244.2.7' }),
-      F.route({ points: TO_DB, after: 'a', name: 'conn' }),
-      F.tag({ text: '10.244.2.7:5432', points: TO_DB, after: 'a' }),
-      F.pulse({ pod: 'db', at: 'conn' }),
+      F.route({ points: TO_DB, after: 'a', name: 'conn', tag: { text: '10.244.2.7:5432' }, pulse: 'db' }),
     ],
   },
   {
@@ -229,8 +207,7 @@ export const STEPS_SPEC = [
     reducedLit: ['webBox'],
     flow: [
       F.pulse({ pod: 'web' }),
-      F.route({ points: QUERY_REFUSED, delay: BEAT.afterPulse, name: 'q' }),
-      F.tag({ text: Q_TAG, points: QUERY_REFUSED, delay: BEAT.afterPulse }),
+      F.route({ points: QUERY_REFUSED, delay: BEAT.afterPulse, name: 'q', tag: { text: Q_TAG } }),
     ],
   },
   {
@@ -243,13 +220,9 @@ export const STEPS_SPEC = [
     reducedLit: ['webBox', 'dbBox'],
     flow: [
       F.pulse({ pod: 'web' }),
-      // Both balls leave on the same beat, out of the one Pod that pulsed: the contrast IS the
-      // step, and a connection sent 700 later would leave a Pod whose pulse is over (M-18a).
-      F.route({ points: QUERY_REFUSED, delay: BEAT.afterPulse, name: 'q' }),
-      F.tag({ text: Q_TAG, points: QUERY_REFUSED, delay: BEAT.afterPulse }),
-      F.route({ points: TO_DB, delay: BEAT.afterPulse, name: 'conn' }),
-      F.tag({ text: '10.244.2.7:5432', points: TO_DB, delay: BEAT.afterPulse }),
-      F.pulse({ pod: 'db', at: 'conn' }),
+      // Both balls leave on the same beat out of the one Pod that pulsed: the contrast IS the step (M-18a).
+      F.route({ points: QUERY_REFUSED, delay: BEAT.afterPulse, name: 'q', tag: { text: Q_TAG } }),
+      F.route({ points: TO_DB, delay: BEAT.afterPulse, name: 'conn', tag: { text: '10.244.2.7:5432' }, pulse: 'db' }),
     ],
   },
   {
@@ -263,8 +236,7 @@ export const STEPS_SPEC = [
     reducedLit: ['webBox'],
     flow: [
       F.pulse({ pod: 'web' }),
-      F.route({ points: QUERY_REFUSED, delay: BEAT.afterPulse, name: 'q' }),
-      F.tag({ text: Q_TAG, points: QUERY_REFUSED, delay: BEAT.afterPulse }),
+      F.route({ points: QUERY_REFUSED, delay: BEAT.afterPulse, name: 'q', tag: { text: Q_TAG } }),
     ],
   },
   {
@@ -289,13 +261,9 @@ export const STEPS_SPEC = [
     reducedLit: ['webBox'],
     flow: [
       ...lookup({ answerTag: 'truncated' }),
-      // The retry waits 300 past the ordinary gap: the truncated tag holds 160 and fades over 180,
-      // and a TCP tag leaving earlier stands across it on the face the answer just reached.
-      F.route({ points: QUERY, after: 'a', plus: 300, name: 'q2', lights: ['coredns'] }),
-      F.tag({ text: TCP_Q_TAG, points: QUERY, after: 'a', plus: 300 }),
-      F.route({ points: ANSWER, after: 'q2', name: 'a2' }),
-      F.tag({ fn: tagUnder, text: 'the full answer', points: ANSWER, after: 'q2' }),
-      F.pulse({ pod: 'web', at: 'a2' }),
+      // The retry waits past the ordinary gap so its tag never stands across the truncated one.
+      F.route({ points: QUERY, after: 'a', plus: 300, name: 'q2', lights: ['coredns'], tag: { text: TCP_Q_TAG } }),
+      F.route({ points: ANSWER, after: 'q2', tag: { fn: tagUnder, text: 'the full answer' }, pulse: 'web' }),
     ],
   },
 ];

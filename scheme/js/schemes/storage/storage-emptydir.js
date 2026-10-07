@@ -1,36 +1,33 @@
-import { P, F, defineCard, setCylinderLabel, BEAT, OPACITY, FADE, chipStrip, makeRidingLabel } from './storage-kit.js';
+import { P, F, defineCard, setCylinderLabel, BEAT, OPACITY, FADE, chipStrip } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-emptydir.md
 
 
 // Two Nodes side by side: the directory is born, shared and deleted on Node-1, and the replacement
-// Pod finds a new one on Node-2. Node-1 starts left of the panel edge, so its top and its label
-// clear the deepest panel (measured in the record).
-const NODE_W = 520, NODE_Y = 216, NODE_H = 336;                          // 216..552
-const NODE_1_X = 40, NODE_2_X = 1200 - NODE_1_X - NODE_W;                // 40..560 / 640..1160
+// Pod finds a new one on Node-2. Node-1 starts left of the panel edge, below the deepest panel.
+// Each frame holds the catalog padding, the Pod 34 under its top and the directory 12 over its floor.
+const NODE_W = 520, NODE_Y = 222, NODE_H = 326;
+const NODE_1_X = 40, NODE_2_X = 1200 - NODE_1_X - NODE_W;
 
-// The catalog Pod height and container box, two containers side by side (the SIZES line).
-const POD_W = 480, POD_H = 104, POD_DX = 20, POD_Y = NODE_Y + 40;        // 256..360
+// The catalog Pod height and container box, two containers side by side.
+const POD_W = 480, POD_H = 104, POD_DX = 20, POD_Y = NODE_Y + 34;
 const POD_BOTTOM = POD_Y + POD_H;
 const C_W = 192, C_H = 44, C_DY = 34, C_GAP = 56;
-const APP_DX = 20, SIDE_DX = APP_DX + C_W + C_GAP;                       // 20 / 268 inside the Pod
+const APP_DX = 20, SIDE_DX = APP_DX + C_W + C_GAP;
 
-// The directory under the Pod centre, as low in the frame as it sits, so the lanes from the Pod
-// floor down to its side faces run 152 units.
-const ED_W = 176, ED_H = 96, ED_Y = NODE_Y + NODE_H - 16 - ED_H;          // 440..536
-const ED_MY = ED_Y + ED_H / 2;                                           // 488
+// The directory under the Pod centre, as low in the frame as it sits.
+const ED_W = 176, ED_H = 96, ED_Y = NODE_Y + NODE_H - 12 - ED_H;
+const ED_MY = ED_Y + ED_H / 2;
 const ED_LABEL_Y = ED_H / 2 + 10;
-const LANE_DX = ED_W / 2 + 24;                                           // 112: each lane 24 out from a face
+const LANE_DX = ED_W / 2 + 24;                                           // each lane 24 out from a face
 
 const CHIP_Y = 580, CHIP_H = 34;
-// The ledger spans the two frames exactly, outer face to outer face (40..1160).
+// The ledger spans the two frames exactly, outer face to outer face.
 const CH_COUNT = 6, CH_GAP = 16;
 const CH = chipStrip({ w: (NODE_2_X + NODE_W - NODE_1_X - (CH_COUNT - 1) * CH_GAP) / CH_COUNT, gap: CH_GAP, count: CH_COUNT });
 
-// One Node's geometry: the Pod and its two lanes, each written in its one traffic direction. A lane
-// ends on the Pod floor, never on a container inside it, and the container that acts is the one
-// lit: every request the Pod sends (a write, or the ls) goes down the left lane, and every read, by
-// the app or the sidecar, comes up the right one. The pair is mirrored about the Pod floor midpoint (L-12) and enters each cylinder side
-// face at its midpoint (L-11). Neither lane nests inside the other, so each tag rides OUTSIDE its lane.
+// A lane ends on the Pod floor, never on a container inside it: every request the Pod sends goes
+// down the left lane and every read comes up the right one, mirrored about the Pod floor midpoint
+// (L-12) and entering each cylinder side face at its midpoint (L-11).
 const site = (nodeX) => {
   const cx = nodeX + NODE_W / 2;
   return {
@@ -41,20 +38,15 @@ const site = (nodeX) => {
 };
 const N1 = site(NODE_1_X), N2 = site(NODE_2_X);
 
-// The 152 unit legs ride routeDur, which puts them on the 700ms floor. Each tag lives exactly as long
-// as its ball (M-30b): the same fade in before departure, the same glide, and the same 200ms fade as
-// the ball dissolves on arrival, as on network-dualstack. It rides outside its lane and below the
-// ball, so it is clear of the Pod floor at departure and of the directory at arrival.
-// `ls /cache` and `no files` are wider, so they sit further out.
-const tagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
-const WRITE_TAG = { dx: -32, dy: 16, fn: tagFn };
+// Each tag rides outside its lane and below the ball, clear of the Pod floor at departure and of
+// the directory at arrival. `ls /cache` and `no files` are wider, so they sit further out.
+const WRITE_TAG = { dx: -32, dy: 16 };
 const LS_TAG = { ...WRITE_TAG, dx: -41 };
-const READ_TAG = { dx: 32, dy: 16, fn: tagFn };
+const READ_TAG = { dx: 32, dy: 16 };
 const NO_FILES_TAG = { ...READ_TAG, dx: 38 };
 
-// When the app sends as its Pod blinks, the 900ms pulse runs on the boxes inside the Pod group and
-// masks the app highlight until it ends. So the app's ball leaves at SEND: the lit app shows from 900
-// and the ball fades in at 1100, never before the sender reads as lit (M-18a).
+// The 900ms Pod pulse masks the app highlight until it ends, so the app ball leaves at SEND, never
+// before the sender reads as lit (M-18a).
 const SEND = BEAT.afterPulse + 500;
 
 // A Pod is its shell plus two peer containers in one group, so the pulse takes the whole Pod.
@@ -73,8 +65,8 @@ const lanes = (n, s) => [
 ];
 const chip = (key, i, name, value) => P.chip({ key, x: CH.x(i), y: CHIP_Y, w: CH.w, h: CHIP_H, name, value });
 
-// Z-order (bottom -> top): the two frames, the Pods, the directories, the lanes and the
-// counterfactual caption, the chip ledger, then the packet layer.
+// Z-order: the two frames, the Pods, the directories, the lanes and the counterfactual caption,
+// the chip ledger, then the packet layer.
 export const SCENE = {
   'aria-label': 'emptyDir lifetime across two Nodes: Pod web-a is assigned to Node-1 and the Kubelet creates its emptyDir there, empty, before any container starts. The app and the sidecar mount it at /cache, so the sidecar reads the part-1 file the app writes, and after the app container crashes and restarts it reads part-1 back. Node-1 is cordoned and web-a is evicted, the emptyDir is deleted with it, and the replacement Pod web-b lands on Node-2 with a new, empty emptyDir. With medium Memory the emptyDir would be a tmpfs whose bytes count against the memory limit of the container that writes them, capped at a sizeLimit of 256Mi, or at the Pod memory limit if that is lower.',
   parts: [
@@ -105,8 +97,8 @@ export const SCENE = {
   },
 };
 
-// STO.S-01 and A-16 as one factory: a Pod, its directory and the lanes between them are ONE
-// construction, so a lane is live only while both of its ends are (A-14, STO.S-02).
+// STO.S-01 and A-16: a Pod, its directory and the lanes between them are one construction, so a
+// lane is live only while both of its ends are (A-14, STO.S-02).
 const stage = ({ p1 = 1, e1 = 1, p2 = 0, e2 = 0, memory = 0 } = {}) => {
   const l1 = p1 === 1 && e1 === 1 ? 1 : 0, l2 = p2 === 1 && e2 === 1 ? 1 : 0;
   return {
@@ -165,11 +157,9 @@ export const STEPS_SPEC = [
     // then sends the file on to the sidecar.
     flow: [
       F.pulse({ pod: 'pod1' }),
-      F.route({ points: N1.write, delay: SEND, name: 'w', lights: ['ed1'] }),
-      F.tag({ text: 'part-1', points: N1.write, delay: SEND, ...WRITE_TAG }),
+      F.route({ points: N1.write, delay: SEND, name: 'w', lights: ['ed1'], tag: { text: 'part-1', ...WRITE_TAG } }),
       F.set({ at: 'w', chips: { cacheChip: 'part-1' }, lights: ['cacheChip'] }),
-      F.route({ points: N1.read, after: 'w', lights: ['sideBox1'] }),
-      F.tag({ text: 'part-1', points: N1.read, after: 'w', ...READ_TAG }),
+      F.route({ points: N1.read, after: 'w', lights: ['sideBox1'], tag: { text: 'part-1', ...READ_TAG } }),
     ],
   },
   {
@@ -187,8 +177,7 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'pod1' }),
       F.set({ delay: 0, chips: { restartChip: '1' }, lights: ['restartChip'] }),
-      F.route({ points: N1.read, delay: BEAT.afterPulse, lights: ['appBox1'] }),
-      F.tag({ text: 'part-1', points: N1.read, delay: BEAT.afterPulse, ...READ_TAG }),
+      F.route({ points: N1.read, delay: BEAT.afterPulse, lights: ['appBox1'], tag: { text: 'part-1', ...READ_TAG } }),
     ],
   },
   {
@@ -200,8 +189,8 @@ export const STEPS_SPEC = [
     opacity: GONE_1,
     rewind: { chips: { podChip: 'web-a, Node-1', edChip: 'on Node-1', cacheChip: 'part-1' } },
     enter: face('emptyDir'),
-    // The evicted Pod blinks at full FIRST and goes at afterPulse (M-08), its mounts with it, and
-    // the directory follows 250 later, each chip on the beat that earns it.
+    // The evicted Pod blinks at full first and goes at afterPulse (M-08), its mounts with it, and
+    // the directory follows, each chip on the beat that earns it.
     flow: [
       F.pulse({ pod: 'pod1' }),
       ...['pod1', 'write1', 'read1'].map((target, i) => F.fade({
@@ -231,10 +220,8 @@ export const STEPS_SPEC = [
       F.set({ at: 'made', chips: { edChip: 'on Node-2', cacheChip: 'empty' }, lights: ['edChip', 'cacheChip'] }),
       F.pulse({ pod: 'pod2', at: 'made' }),
       F.light({ targets: ['appBox2'], at: 'made' }),
-      F.route({ points: N2.write, at: 'made', plus: SEND, name: 'ls' }),
-      F.tag({ text: 'ls /cache', points: N2.write, at: 'made', plus: SEND, ...LS_TAG }),
-      F.route({ points: N2.read, after: 'ls' }),
-      F.tag({ text: 'no files', points: N2.read, after: 'ls', ...NO_FILES_TAG }),
+      F.route({ points: N2.write, at: 'made', plus: SEND, name: 'ls', tag: { text: 'ls /cache', ...LS_TAG } }),
+      F.route({ points: N2.read, after: 'ls', tag: { text: 'no files', ...NO_FILES_TAG } }),
     ],
   },
   {
@@ -250,11 +237,9 @@ export const STEPS_SPEC = [
     // The same share as on Node-1, into the tmpfs: the app sends, the directory hands it on.
     flow: [
       F.pulse({ pod: 'pod2' }),
-      F.route({ points: N2.write, delay: SEND, name: 'w', lights: ['ed2'] }),
-      F.tag({ text: 'part-2', points: N2.write, delay: SEND, ...WRITE_TAG }),
+      F.route({ points: N2.write, delay: SEND, name: 'w', lights: ['ed2'], tag: { text: 'part-2', ...WRITE_TAG } }),
       F.set({ at: 'w', chips: { cacheChip: 'part-2' }, lights: ['cacheChip'] }),
-      F.route({ points: N2.read, after: 'w', lights: ['sideBox2'] }),
-      F.tag({ text: 'part-2', points: N2.read, after: 'w', ...READ_TAG }),
+      F.route({ points: N2.read, after: 'w', lights: ['sideBox2'], tag: { text: 'part-2', ...READ_TAG } }),
     ],
   },
 ];

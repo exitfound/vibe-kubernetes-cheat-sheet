@@ -2,81 +2,69 @@ import { P, F, defineCard } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-service-cidr.md
 
-
-// Two extents, and the whole card derives from them. Everything that is a FACT ABOUT THE RANGE
-// stands in one right-hand column of RANGE_W wide parts, so the two ServiceCIDR objects, the
-// address ladder and the chip column share one left edge and one width.
+// Everything that is a FACT ABOUT THE RANGE stands in one right-hand column of RANGE_W wide parts,
+// so the two ServiceCIDR objects, the address ladder and the chip column share one left edge.
 const SCHEME_L = 130, SCHEME_R = 1140;     // content edges
 const RANGE_X = 700;                       // left edge of the range column
-const RANGE_W = SCHEME_R - RANGE_X;        // 440
+const RANGE_W = SCHEME_R - RANGE_X;
 
-// Top of the range column: two ServiceCIDR objects side by side, the second born hidden. Their
-// width is solved from the column rather than typed, so the pair always spans it exactly.
+// Two ServiceCIDR objects side by side, the second born hidden, their width solved from the column.
 const CIDR_Y = 44, CIDR_H = 72, CIDR_GAP = 16;
-const CIDR_W = (RANGE_W - CIDR_GAP) / 2;   // 212
-const CIDR2_X = RANGE_X + CIDR_W + CIDR_GAP;  // 928
-const CIDR_CY = CIDR_Y + CIDR_H / 2;       // 80: both feeds leave a SIDE face, so this is the one y
+const CIDR_W = (RANGE_W - CIDR_GAP) / 2;
+const CIDR2_X = RANGE_X + CIDR_W + CIDR_GAP;
+const CIDR_CY = CIDR_Y + CIDR_H / 2;       // both feeds leave a SIDE face, so this is the one y
 
 // The address ladder: the Service range read top to bottom in address order, low band first.
 const LADDER_Y = 152, ROW_H = 34, ROW_GAP = 16, ROWS = 4;
-const rowCY = (i) => LADDER_Y + i * (ROW_H + ROW_GAP) + ROW_H / 2;     // 169, 219, 269, 319
-const DYN_ROW = ROWS - 1;                  // 3: the dynamic band, the row every allocation lands in
+const rowCY = (i) => LADDER_Y + i * (ROW_H + ROW_GAP) + ROW_H / 2;
+const DYN_ROW = ROWS - 1;                  // the dynamic band, the row every allocation lands in
 
-// The chip column, one x for both, which is what makes it a column rather than a strip. It carries
-// only what the ladder cannot: a chain row and a value chip render as the same rect, so a chip
-// restating a row would turn the whole right column into one run of identical bars. It stands on
-// the Service band rather than under the ladder, for the same reason.
+// The chip column carries only what the ladder cannot: a chip restating a row would read as one more
+// identical bar. It stands on the Service band rather than under the ladder for the same reason.
 const CHIP_H = 34, CHIP_PITCH = 44, CHIP_Y0 = 510;
-const CHIP_Y = [0, 1].map(i => CHIP_Y0 + i * CHIP_PITCH);   // 510, 554
+const CHIP_Y = [0, 1].map(i => CHIP_Y0 + i * CHIP_PITCH);
 
-// The allocation side is a HUB with one job per face, which is what keeps every lane straight. The
-// API server is pinned to the dynamic row so the pick is a single horizontal segment, the Service
-// stands directly under it so the claim and the answer are plain verticals, and the store hangs off
-// the free left face. Both actor blocks take the family width AND the family height (`NET.L-01`).
-const ACTOR_W = 232, ACTOR_H = 80;         // the 232 of `NET.L-01`, and the catalog block height
+// The allocation side is a HUB with one job per face, which keeps every lane straight: the API
+// server pinned to the dynamic row, the Service under it, the store off the free left face (NET.L-01).
+const ACTOR_W = 232, ACTOR_H = 80;         // NET.L-01 width, catalog block height
 const API_CX = 420;                        // the L-03 line: the range lane drops on it clear of the panel
-const API_X = API_CX - ACTOR_W / 2;        // 304
+const API_X = API_CX - ACTOR_W / 2;
 const API_W = ACTOR_W, API_H = ACTOR_H;
-const API_CY = rowCY(DYN_ROW);             // 319: pinned to the dynamic row, which straightens the pick
-const API_Y = API_CY - API_H / 2;          // 279
-const API_RIGHT = API_X + API_W;           // 536
-const API_BOTTOM = API_Y + API_H;          // 359
+const API_CY = rowCY(DYN_ROW);             // pinned to the dynamic row, which straightens the pick
+const API_Y = API_CY - API_H / 2;
+const API_RIGHT = API_X + API_W;
+const API_BOTTOM = API_Y + API_H;
 
 // The Service shares the API server's centre line, so the two lanes between them are verticals.
 const SVC_CX = API_CX, SVC_W = ACTOR_W, SVC_H = ACTOR_H;
-const SVC_X = SVC_CX - SVC_W / 2;          // 304
-const SVC_Y = CHIP_Y0;                     // 510: the Service stands on the chip band
+const SVC_X = SVC_CX - SVC_W / 2;
+const SVC_Y = CHIP_Y0;                     // the Service stands on the chip band
 
-// The store, at the catalog size (`cluster-list-watch-informers`, `workloads-graceful-shutdown`),
-// with the cylinder overhanging the Service band by 10 a side the way those two draw it.
+// The store at the catalog size, the cylinder overhanging the Service band by 10 a side.
 const ETCD_W = 140, ETCD_H = 100;
-const ETCD_CX = SCHEME_L + ETCD_W / 2;     // 200
-const ETCD_X = SCHEME_L, ETCD_Y = SVC_Y - 10;   // 130, 500
+const ETCD_CX = SCHEME_L + ETCD_W / 2;
+const ETCD_X = SCHEME_L, ETCD_Y = SVC_Y - 10;
 
-// One corner apiece on the only two lanes that need one, and each turn is a right angle onto a face
-// midpoint. CREATE_SPINE is the store's own centre line, so the write drops straight onto its cap.
-const CREATE_SPINE = ETCD_CX;   // 200
+// CREATE_SPINE is the store's own centre line, so the write drops straight onto its cap.
+const CREATE_SPINE = ETCD_CX;
 const EXT_RAIL_X = 1180;        // the add-on leaves SIDEWAYS and comes back in outside the column
 
-// Two faces carry a MIRRORED PAIR about their midpoint (`L-12`) rather than two strays: the claim
-// arrives left of centre and the answer leaves right of it, on the API server bottom and on the
-// Service top alike, so the two verticals run parallel down one shared corridor.
-const FACE_DX = 20;
-const LANE_ASK = API_CX - FACE_DX, LANE_SET = API_CX + FACE_DX;   // 400, 440
+// The API server bottom and the Service top each carry a MIRRORED PAIR (L-12): the claim left of
+// centre, the answer right of it, so the two verticals run parallel down one corridor.
+const FACE_DX = 12;
+const LANE_ASK = API_CX - FACE_DX, LANE_SET = API_CX + FACE_DX;
 
 const L_RANGE  = [[RANGE_X, CIDR_CY], [API_CX, CIDR_CY], [API_CX, API_Y]];
 const L_PICK   = [[API_RIGHT, API_CY], [RANGE_X, API_CY]];
 const L_CLAIM  = [[LANE_ASK, SVC_Y], [LANE_ASK, API_BOTTOM]];
 const L_SET    = [[LANE_SET, API_BOTTOM], [LANE_SET, SVC_Y]];
 const L_CREATE = [[API_X, API_CY], [CREATE_SPINE, API_CY], [CREATE_SPINE, ETCD_Y]];
-// The add-on joins the ladder at the DYNAMIC row and not at the ladder centre: the centre falls in
-// the gap between the two well-known rows, where the arrowhead reads as pointing at kube-dns.
+// The add-on joins the ladder at the DYNAMIC row: at the ladder centre the arrowhead would read as
+// pointing at kube-dns.
 const L_EXTEND = [[SCHEME_R, CIDR_CY], [EXT_RAIL_X, CIDR_CY], [EXT_RAIL_X, rowCY(DYN_ROW)], [SCHEME_R, rowCY(DYN_ROW)]];
 
-// Every wire here is an allocation route a ball rides on some step, so each takes the category role
-// from the kit and both the line and its arrowhead read cyan. `dashed` says the link is an address
-// being carved out of a range rather than a packet on a network, and `dim` is the 1.4 stroke WEIGHT
-// that keeps the bright ball readable over the line it travels on.
+// `dashed` says an address is being carved out of a range rather than a packet on a network. `dim`
+// is a stroke weight only, the role stays cyan.
 const WIRE = { dashed: true, dim: true };
 
 // A part that comes into existence mid-card: born hidden, revealed by its own 350ms fade.
@@ -183,8 +171,7 @@ export const STEPS_SPEC = [
     sublabels: { svcWeb: WEB_IP },
     opacity: { cidr2: 0, aExtend: 0, ipaddrChip: 1 },
     chain: [DYN_ROW],
-    // The store is NOT in `lit`: the ball reaches it at 700ms and `lights` cues it there. The two
-    // that are lit from the top act first, the allocator sending and the chip about to be written.
+    // The store is NOT in `lit`: the ball reaches it later and `lights` cues it there.
     lit: ['api', 'ipaddrChip'],
     // Both halves of the allocation end the step present, which is what the static path shows. The
     // animated path winds both back so each lands on the hop the narration gives it: the object on

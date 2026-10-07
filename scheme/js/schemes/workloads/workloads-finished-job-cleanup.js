@@ -2,63 +2,54 @@ import { P, F, defineCard, ladder, laneY, midX, WL, LAYOUT, FADE, BEAT } from '.
 
 // Design notes for this card: ./CARDS/workloads-finished-job-cleanup.md
 
-// An object stack read top to bottom, and NOT the A / B / C column preset: there is no ladder and
-// no flanking chip column for A / B / C to choose between. The argument is in the record.
-// Panel worst case x<=396.55, y<=269.39 at 1100x800; a longer narration invalidates that.
+// An object stack read top to bottom, not the A / B / C column preset: no ladder, no chip column.
 
-// Band 1, the actor row. The API is centred on WL.CX because BOTH corridors leave its bottom face
-// midpoint (WL.L-07), so the controller takes the right end of the row instead of the usual left.
-const API_W = 232, API_X = WL.CX - API_W / 2;            // 484..716, centred on CX for the spine
-const CTRL_W = 232, CTRL_X = WL.R - CTRL_W;              // 908..1140, right edge on the chip strip
-const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;                  // 80
+// Band 1: the API on WL.CX because both corridors leave its bottom face midpoint (WL.L-07), so the
+// controller takes the right end of the row.
+const API_W = 232, API_X = WL.CX - API_W / 2;  // centred on CX for the spine
+const CTRL_W = 232, CTRL_X = WL.R - CTRL_W;  // right edge on the chip strip
+const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
 const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
-const WIRE_X = midX(API_X + API_W, CTRL_X);              // 812
-const WIRE_Y = WL.TOP_Y - 12;                            // above the actor row, off the spine
+const WIRE_X = midX(API_X + API_W, CTRL_X);
+const WIRE_Y = WL.TOP_Y - 12;  // above the actor row, off the spine
 
-// Band 2, the Job object itself. It is the subject of the card, so it is a block and not a chip
-// value, and it sits ON the spine between the API that holds it and the Pods that belong to it.
-const JOB_W = 360, JOB_X = WL.CX - JOB_W / 2;            // 420..780, clear of the panel by 23
-const JOB_Y = 176, JOB_H = 80;                           // 176..256
+// Band 2: the Job is the subject, so it is a block on the spine, not a chip value.
+const JOB_W = 232, JOB_X = WL.CX - JOB_W / 2;
+const JOB_Y = 176, JOB_H = 80;
 
-// Band 3, the Node carrying the two finished Pods. Full width, so the content bbox centres on CX
-// by construction (WL.L-02).
-const NODE_Y = 312, NODE_H = 152;                        // 312..464, 42.6 under the deepest panel
+// Band 3: a full-width Node, so the content bbox centres on CX (WL.L-02).
+const NODE_Y = 312;
 const POD_W = 380, POD_H = 106, POD_GAP = 100;
-const POD_Y = NODE_Y + 24;                               // 336..442, clear of the frame label
-const POD_XS = [WL.CX - POD_GAP / 2 - POD_W, WL.CX + POD_GAP / 2];   // 170..550, 650..1030
+const NODE_H = 34 + POD_H + 12;
+const POD_Y = NODE_Y + 34;
+const POD_XS = [WL.CX - POD_GAP / 2 - POD_W, WL.CX + POD_GAP / 2];
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
 const POD_NAMES = ['Pod pi-9k4x2', 'Pod pi-t7m1c'];
 
-// Band 4, six chips as a full-width strip TWO across, which is the two-per-row width WL.L-05
-// sanctions. The gap is what the canon width leaves rather than a number of its own.
-const CHIP_W = LAYOUT.C.strip.two;                       // 532
-const CHIP_GAP = WL.W - CHIP_W * 2;                      // 16
+// Band 4: six chips two across (WL.L-05). The gap is what the canon width leaves.
+const CHIP_W = LAYOUT.C.strip.two;
+const CHIP_GAP = WL.W - CHIP_W * 2;
 const CHIP_VGAP = 8;
-const CHIPS_TOP = 492;                                   // three rows -> 492..610
+const CHIPS_TOP = 492;
 const CHIP_ROW = ladder({ y: CHIPS_TOP, rowH: WL.CHIP_H, gap: CHIP_VGAP });
 const CHIP_X = (i) => WL.L + (i % 2) * (CHIP_W + CHIP_GAP);
 const CHIP_Y = (i) => CHIP_ROW(Math.floor(i / 2));
 
-// Two corridors on one spine. The upper one carries the delete down onto the Job and nothing else,
-// so it is a single lane. The lower one runs BOTH ways (the exit report up, the cascade down), so
-// it is the exemplar's pair: exactly one direction is visible per step.
+// The upper corridor carries only the delete, so it is one lane. The lower runs both ways, so it is
+// a pair with exactly one direction visible per step.
 const SPINE_A = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, JOB_Y]];
 const SPINE_B = [[WL.SPINE_X, JOB_Y + JOB_H], [WL.SPINE_X, NODE_Y]];
 const SPINE_B_UP = [...SPINE_B].reverse();
 
-// The top-row hops, stated once. 192 units apart, so both sit on the routeDur floor at 700ms and
-// a fixed HOP_MS would agree with routeDur here anyway.
 const WATCH = { from: API_X + API_W, to: CTRL_X, y: RESP_Y };
 const DELETE = { from: CTRL_X, to: API_X + API_W, y: REQ_Y };
 
-// The list order IS the append order, so it is the z-order: the top lanes, the wire label and the
-// six chips first, then the corridors and the packet layer, then Node / Pods / Job / actors on top.
+// List order is z-order: top lanes, wire label and chips, corridors and packets, then Node, Pods, Job, actors.
 export const SCENE = {
   'aria-label': 'Automatic cleanup for finished Jobs: a Job that has completed and its two Pods stay in the API as records, and the ttl-after-finished controller inside kube-controller-manager deletes the Job once ttlSecondsAfterFinished has elapsed since the completion stamp, taking the Pods with it through their ownerReferences',
   parts: [
     P.defs(),
-    // Both top lanes carry a ball: the watch delivers the finished Job, the request carries the
-    // delete back. The API sits LEFT here, so the request runs right to left.
+    // The API sits left here, so the request runs right to left.
     P.arrow({ x1: CTRL_X, y1: REQ_Y, x2: API_X + API_W, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }),
     P.arrow({ x1: API_X + API_W, y1: RESP_Y, x2: CTRL_X, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }),
     // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
@@ -69,12 +60,11 @@ export const SCENE = {
     P.chip({ key: 'clockChip', x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'controller clock', value: '12:00:00' }),
     P.chip({ key: 'statusChip', x: CHIP_X(4), y: CHIP_Y(4), w: CHIP_W, h: WL.CHIP_H, name: 'job status', value: 'Running · 2 active' }),
     P.chip({ key: 'podsChip', x: CHIP_X(5), y: CHIP_Y(5), w: CHIP_W, h: WL.CHIP_H, name: 'pods owned', value: '2 Running' }),
-    // The delete lane, ridden on the expire step alone, and the corridor pair under the Job.
     P.lane({ key: 'connA', points: SPINE_A, dim: true, dashed: true, role: 'cluster' }),
     P.lane({ key: 'connDown', points: SPINE_B, dim: true, dashed: true, role: 'cluster' }),
     P.lane({ key: 'connUp', points: SPINE_B_UP, dim: true, dashed: true, role: 'cluster', opacity: 0 }),
     P.packets(),
-    // Appended AFTER the packet layer, so the ball runs under the frame, the Pods and the blocks.
+    // After the packet layer, so the ball runs under the frame, the Pods and the blocks.
     P.node({ key: 'nodeEl', x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' }),
     ...[0, 1].map(i => P.pod({
       key: `pod${i + 1}`, id: `pod${i + 1}`, innerKey: `pod${i + 1}Box`,
@@ -91,13 +81,11 @@ export const SCENE = {
   },
 };
 
-// Values that recur, named once so a six-key chips block stays readable.
 const STAMP = '12:00:31', DUE = '12:02:11', DONE = 'Complete · 2 succeeded', KEPT = '2 Succeeded';
 
 // The corridor pair as FIELDS, so no step can leave both directions on or neither.
 const corridor = (dir) => ({ connDown: dir === 'up' ? 0 : 1, connUp: dir === 'up' ? 1 : 0 });
-// The two Pods and the lane that feeds them, pinned by one helper: a cascade that outlives its
-// Pods would land an arrowhead in an empty Node frame.
+// One helper pins the Pods and their lane: a cascade that outlives its Pods would point into an empty frame.
 const pods = (v) => ({ pod1: v, pod2: v, connDown: v });
 
 export const STEPS_SPEC = [
@@ -118,11 +106,9 @@ export const STEPS_SPEC = [
     podSublabels: { pod1: 'Succeeded · object kept', pod2: 'Succeeded · object kept' },
     opacity: { pod1: 1, pod2: 1, jobEl: 1, connA: 1, ...corridor('up') },
     lit: ['compChip', 'eligChip', 'clockChip', 'statusChip', 'podsChip'],
-    // The step STARTS from a Job with no completion stamp, and the stamp turns over when the exit
-    // report lands, which is the instant the whole card is measured from.
+    // The stamp turns over when the exit report lands, the instant the card is measured from.
     rewind: { chips: { compChip: 'none', eligChip: 'not finished', statusChip: 'Running · 2 active', podsChip: '2 Running' } },
     flow: [
-      // Up-arrow: both Pods blink first, the report leaves at BEAT.afterPulse.
       F.pulse({ pod: 'pod1' }),
       F.pulse({ pod: 'pod2' }),
       F.route({ points: SPINE_B_UP, delay: BEAT.afterPulse, name: 'exit', lights: ['jobEl'] }),
@@ -138,11 +124,10 @@ export const STEPS_SPEC = [
     sublabels: { pod1Box: 'exit 0', pod2Box: 'exit 0' },
     podSublabels: { pod1: 'Succeeded · object kept', pod2: 'Succeeded · object kept' },
     opacity: { pod1: 1, pod2: 1, jobEl: 1, connA: 1, ...corridor('down') },
-    // The API is the source of the watch and is lit from entry. The controller RECEIVES it, so it
-    // stays dark until the event lands.
+    // The API sources the watch, lit from entry. The controller receives it and lights on arrival.
     lit: ['apiEl', 'jobEl', 'clockChip'],
     flow: [
-      // The watch event is self-initiated by the API, so it waits BEAT.lead before it leaves.
+      // Self-initiated by the API, so it waits BEAT.lead.
       F.top({ ...WATCH, delay: BEAT.lead, lights: ['ctrlEl'] }),
     ],
   },
@@ -154,8 +139,7 @@ export const STEPS_SPEC = [
     sublabels: { pod1Box: 'exit 0', pod2Box: 'exit 0' },
     podSublabels: { pod1: 'Succeeded · object kept', pod2: 'Succeeded · object kept' },
     opacity: { pod1: 1, pod2: 1, jobEl: 1, connA: 1, ...corridor('down') },
-    // M-27: a packet-less, pod-less step carries its beat with .highlight alone. The three values
-    // the controller is comparing are what the beat is, so they are what lights.
+    // M-27: a packet-less, pod-less step carries its beat with .highlight alone.
     lit: ['ctrlEl', 'ttlChip', 'compChip', 'eligChip', 'clockChip'],
   },
   {
@@ -168,11 +152,10 @@ export const STEPS_SPEC = [
     podSublabels: { pod1: 'Succeeded · object kept', pod2: 'Succeeded · object kept' },
     opacity: { pod1: 1, pod2: 1, jobEl: 1, connA: 1, ...corridor('down') },
     lit: ['ctrlEl', 'clockChip', 'statusChip'],
-    // The clock reading is the PREMISE of the step and stands at entry. The Job status is what the
-    // delete produces, so it winds back and turns over when that delete lands on the object.
+    // The clock reading is the premise, at entry. The status is what the delete produces.
     rewind: { chips: { statusChip: DONE } },
     flow: [
-      // Self-initiated: the controller reaches the deadline on its own, so the ball waits BEAT.lead.
+      // Self-initiated, so the ball waits BEAT.lead.
       F.top({ ...DELETE, delay: BEAT.lead, name: 'del', lights: ['apiEl'] }),
       F.route({ points: SPINE_A, after: 'del', name: 'apply', lights: ['jobEl'] }),
       F.set({ at: 'apply', chips: { statusChip: 'Complete · delete issued' } }),
@@ -185,22 +168,19 @@ export const STEPS_SPEC = [
     chips: { ttlChip: '100', compChip: STAMP, eligChip: DUE, clockChip: DUE, statusChip: 'deleted', podsChip: '0' },
     sublabels: { pod1Box: 'exit 0', pod2Box: 'exit 0' },
     podSublabels: { pod1: 'Succeeded · object kept', pod2: 'Succeeded · object kept' },
-    // A-14: the Job goes, so both lanes that terminate on it go to 0 rather than to a dim shade.
+    // A-14: the Job goes, so both lanes that end on it go to 0, not to a dim shade.
     opacity: { ...pods(0), jobEl: 0, connA: 0, connUp: 0 },
-    // The Job carries no entry highlight on the step that kills it. S-18 makes a fade to 0 give a
-    // lit key back in its own onfinish, and the static path has no field for a class that is on at
-    // entry and off at the end, so the two paths could not agree. What lights is the two values
-    // the cascade produces.
+    // No entry highlight on the Job: S-18 gives a lit key back when it fades to 0, which the static
+    // path cannot express, so the two paths would disagree.
     lit: ['statusChip', 'podsChip'],
-    // Both values are what the cascade produces, so they wind back and turn over on its arrival.
     rewind: { chips: { statusChip: 'Complete · delete issued', podsChip: KEPT } },
     flow: [
-      // Down-arrow: the ball lands on the Node frame face, THEN both Pods blink and dissolve.
+      // Down-arrow: the ball lands on the Node frame face, then both Pods blink and dissolve.
       F.route({ points: SPINE_B, delay: BEAT.lead, name: 'casc' }),
       F.set({ at: 'casc', chips: { statusChip: 'deleted', podsChip: '0' } }),
       F.pulse({ pod: 'pod1', at: 'casc' }),
       F.pulse({ pod: 'pod2', at: 'casc' }),
-      // M-08: the blink comes first, the dissolve hangs off it one beat later.
+      // M-08: blink first, the dissolve one beat later.
       F.fade({ target: 'pod1', from: 1, to: 0, dur: FADE.out, at: 'casc', plus: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
       F.fade({ target: 'pod2', from: 1, to: 0, dur: FADE.out, at: 'casc', plus: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
       F.fade({ target: 'connDown', from: 1, to: 0, dur: FADE.out, at: 'casc', plus: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),

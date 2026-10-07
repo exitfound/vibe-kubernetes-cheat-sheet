@@ -1,477 +1,193 @@
 # CLAUDE.md `/scheme/` (Animated architecture diagrams)
 
-The contract for the `scheme/` sub-app: what it is, where everything lives, what a folder and a
-module owe, and where to go for the rest. The root `../CLAUDE.md` has the repo overview, running,
-shipping, the chrome this page inherits, and the working discipline that applies to all three
-sub-apps.
+A card grid of Kubernetes concepts. Clicking a card opens a native `<dialog>` that plays an SVG
+diagram step by step, with narration, play/pause, prev/next, restart, loop and speed. Plain ES
+modules, the Web Animations API and SVG built through a small `createElementNS` helper. No
+framework, no D3, no GSAP, no canvas.
 
-**The rules are not here. `./CANON.md` is the rulebook**: every rule true of a card catalog-wide,
-one row each, with a stable id and a column saying which check (if any) enforces it. Load it before
-you design, build, review or repair a card. This file routes you; the canon rules you. Where a
-sentence below would restate a canon row, it cites the id instead, because the row IS the text.
-
-A card grid of Kubernetes architecture concepts. Click a card, a native `<dialog>` opens, an SVG
-diagram plays a step-by-step animation with narration and play/pause/prev/next/reset/speed controls.
-Static only: ES modules + Web Animations API + native `<dialog>`. Deliberately **not** used:
-React/Vue/Svelte, D3, Three.js, Canvas/WebGL, Mermaid, GSAP, Lottie, Rive. SVG is hand-built through
-a tiny `createElementNS` helper.
+The root `../CLAUDE.md` covers running, shipping, the shared chrome and the working discipline.
+**The rules live in `./CANON.md`**, one row per rule with a stable id: load it before designing,
+reviewing or repairing a card. This file says where things are and how to verify.
 
 ## Where to look
 
-Every command below runs from `scheme/test/`. The harness is a `node:test` suite, `npm test` must
-be green and `npm run report` is advisory.
+Every command runs from `scheme/test/`.
 
 | Task | Read | Edit | Verify |
 |---|---|---|---|
-| add a card | `./CANON.md`, then `js/schemes/<cat>/CLAUDE.md` | `cards.js`, `<id>.js`, `posters.js`, the record | `npm test` |
-| add a category | "Adding a category" below | see that checklist | `npm test` |
-| change a card's geometry | `./CANON.md` L and A, then that card's section in the record | `<id>.js` | `npm test`, then **the rendered frames** |
-| change motion or timing | `./CANON.md` M | `<id>.js` | `npm test` (`duration` is seen by ONE file, see below) |
-| change narration or a label | `./CANON.md` T | `<id>.js` | `npm test`, plus `npm run report` for the panel extent |
-| touch a shared helper | the JSDoc beside it | `js/lib/*` | `npm test`, then `tools/settled-dump.mjs` against a snapshot of the tree before the change |
-| retint a category | `./CANON.md` C, "Catalog and categories" below | `css/tokens.css`, `css/styles.css`, the kit | `npm test` (`render/palette.test.mjs`) |
-| draw a poster | `./CANON.md` R | `js/schemes/<cat>/posters.js` | montage against two siblings |
-| review a card | `./CANON.md`, narrowed with `tools/canon.mjs --check=review` to the rows no machine covers | whatever the findings name | `npm test`, then **the rendered frames** |
-| write or debug a check | the test file itself, `test/fixtures/*` | `test/{unit,render,report}/*.test.mjs` | that file alone: `node --test '<path>'` |
+| add a card | `./CANON.md`, the category `CLAUDE.md` | `<id>.js`, `cards.js`, `posters.js`, `CARDS/<id>.md` | `npm test`, then the frames |
+| change geometry | CANON `L`, `A` | `<id>.js` | `npm test`, then the frames |
+| change motion or timing | CANON `M` | `<id>.js` | `npm test`, then the frames |
+| change narration or a label | CANON `T` | `<id>.js` | `npm test` |
+| touch a shared helper | the comment beside it | `js/lib/*` | `npm test`, then `tools/settled-dump.mjs` against the tree before |
+| draw a poster | CANON `R` | `js/schemes/<cat>/posters.js` | a montage beside two siblings |
+| write or debug a check | the test file header | `test/{unit,render,report}/*.test.mjs` | `node --test '<path>'` |
 
-**Verification ends at the rendered frames, never at the suite.** Most of what goes wrong here (a
-lane ending in empty space, a composition pushed off centre, a tag drifting off its ball) is
-invisible to every rule in it. The root `../CLAUDE.md` records what assuming otherwise cost.
-
-**A step's declared `duration` reaches neither WAAPI nor the DOM.** It is the `Timeline` hold
-before auto-advance, so no dump of animations or of serialised markup can see it, and a clean run of
-either is not evidence the timings survived: `render/duration.test.mjs` is the only guard. The same
-applies to a step `id`, its `narration`, and the key order of `STEPS`.
+**Verification ends at the rendered frames, never at the suite.** A lane ending in empty space, a
+composition off centre or a tag drifting off its ball is invisible to every check. A step's
+`duration` reaches neither WAAPI nor the DOM: only `render/duration.test.mjs` sees it.
 
 ## Directory layout
 
 ```
 scheme/
-  index.html  favicon.svg
-  CANON.md      the card rulebook: every catalog-wide rule, with ids
-  css/        tokens.css (category colors), styles.css (layout/dialog), diagrams.css (SVG classes)
+  index.html  CANON.md
+  card/        generated static page per card (tools/pages/build.mjs), never edited by hand
+  css/         tokens.css (category colours), styles.css (layout, dialog, chrome copy),
+               diagrams.css (SVG classes), page.css (static card pages)
   js/
-    app.js    router, grid, modal lifecycle, keyboard, hash routing (card AND grid filter, D-16)
-    data.js   barrel: CATEGORIES registry + the four manifests as SCHEMES / SUBCATEGORIES
-    posters.js  barrel: the four poster maps merged into POSTERS
-    lib/      svg, primitives, timeline, motion, sidebar, keys, fresh, inspector,
-              tokens.js       magnitudes: PULSE_POD, PULSE_BLOCK, OPACITY, BEAT, FADE
-              scheme-kit.js   the shared BASE kit, carries no category and no card imports it
-              layout.js       geometry formulas: laneY, ladder, strip, spread, midX
-              scene-spec.js   the scene as data: makePartKinds, buildScene, makeScene, makeResetStep
-              step-spec.js    the steps as data: makeFlowKinds, makeSteps, flowLights, defineCardWith
-    schemes/<category>/       one folder per category, the unit of context
-      CLAUDE.md               what is true of THIS category only, as <CAT>.* rules
-      CARDS.md                the preamble and grid-order index of THIS category's records, or
-                              the whole record for a category in the one-file shape (none today)
-      CARDS/<id>.md           the SPLIT shape: one record file per card. all four categories
-      cards.js posters.js     that category's SCHEMES + SUBCATEGORIES, and its grid thumbnails
-      <category>-kit.js       the tint, pulsePod/pulsePodDim, the P / F / defineCard bindings
-      <id>.js                 one module per diagram
-  test/       the harness: unit/ render/ report/ hold the checks, fixtures/ feeds them, and
-              tools/ holds three probes the checks do not contain. Never shipped (S-41)
+    app.js       router, grid, dialog, keyboard, hash routing (card and filter, D-16)
+    data.js      CATEGORIES + the four manifests as SCHEMES / SUBCATEGORIES
+    posters.js   the four poster maps merged
+    contacts.js  header GitHub / Contacts / Sponsor config
+    lib/         svg, primitives, timeline, motion, sidebar, keys, fresh, poster, inspector,
+                 tokens.js (PULSE_POD, PULSE_BLOCK, OPACITY, FADE, BEAT),
+                 layout.js (LANE_DY, GRID, LAYOUT, laneY, ladder, strip, spread, midX, shade),
+                 scheme-kit.js (the shared base kit), scene-spec.js, step-spec.js
+    schemes/<category>/
+      CLAUDE.md          rules true of this category only, as <CAT>.* ids
+      CARDS.md           record preamble and index
+      CARDS/<id>.md      one record per card
+      cards.js           SCHEMES + SUBCATEGORIES for the category
+      posters.js         grid thumbnails
+      <category>-kit.js  tint, pulses, the P / F / defineCard bindings
+      <id>.js            one module per card
+  test/        the harness, never shipped (S-41)
 ```
-
-**A record lives in the folder it describes.** One category's card notes are its `CARDS.md`, or
-its `CARDS/` folder of per-card files where the category has split them: two SHAPES of one record,
-and every reader decides which by looking for the folder rather than by knowing the category.
-Anything that is NOT one card (the barrels, `js/lib/`, the kits, the CSS) is a JSDoc note beside the
-code, and what a check catches and is blind to is in that test file's own header.
 
 ## The folder contract
 
-`js/schemes/<category>/` is the unit of context. Adding a card is a one-folder operation.
+`js/schemes/<category>/` is the unit of context: adding a card is a one-folder change. A folder
+holds only its cards, its kit, `cards.js` and `posters.js` (`S-20`). A card imports its own kit and
+nothing past it, plus `lib/svg.js` or `lib/primitives.js` for raw elements (`S-21`). The kit
+re-export list is the card-facing API (`S-22`). Anything that would be a defect if it differed
+between two categories belongs in CANON, not in a category `CLAUDE.md`.
 
-A folder may hold exactly four kinds of `.js`: its cards, its `<category>-kit.js`, its `cards.js`
-and its `posters.js` (`S-20`). A module no entry lists is a module no check reads and no grid
-renders, which is why `D-03` reports it rather than ignoring it.
+| Folder | Tint | Kit adds |
+|---|---|---|
+| `cluster/` | violet | `CLU` (shared GRID plus BOX_W and NODE), `LAYOUT` |
+| `workloads/` | sky blue | `WL` (the shared GRID), `LAYOUT` |
+| `network/` | cyan | `BRISK_HOP_MS` |
+| `storage/` | jade | `STO`, `chipStrip`, `setCylinderLabel` |
 
-**A card imports its own kit and nothing past it** (`S-21`): `../../lib/svg.js`,
-`../../lib/primitives.js`, `./<category>-kit.js`. `lib/` holds only what every category shares, and
-the kit is what binds it to a category.
+`js/data.js` exports `SCHEMES`, `CATEGORIES` and `SUBCATEGORIES`. Entry fields are `D-01`, the id
+convention `D-02`, keys and labels `D-07`, the three `CATEGORY_*` maps are projections of one
+registry (`D-08`, `D-09`), and the order of each list is editorial (`D-10`).
 
-Each folder's `CLAUDE.md` carries what is true of that category ALONE, as `<CAT>.*` rules that
-`./CANON.md` indexes by id and subject label only. The rule that keeps those four files from
-becoming four copies of this one: **anything that would be a DEFECT if it differed between two
-categories belongs in the canon, not there.** A pointer is not duplication; a paragraph is.
+## The card module
 
-**The shared re-export list is the card-facing API, not a mirror of `lib/scheme-kit.js`** (`S-22`):
-a name is on it because a card imports it, and a helper only `lib/` calls stays in `lib/` and is not
-re-exported. `flashChips` is the one name on it with no importer, and `S-25` is why. Taking a name
-off the list therefore removes nothing: `scene-spec.js` and `step-spec.js` go on calling what they
-called, so the picture cannot move.
-
-On top of that list every kit adds the SAME own set: `P`, `F`, `defineCard`,
-`POD_VIOLET`, the six `lib/layout.js` formulas, its `<CAT>_TINT` and the two pulses bound to that
-tint. The column below is what a kit carries beyond even that.
-
-| Folder | Cards | Tint | Kit surface beyond the common set |
-|---|---|---|---|
-| `cluster/` | 28 | violet `rgb(192, 176, 255)` | `CLU`, `LAYOUT` |
-| `workloads/` | 32 | sky blue `rgb(91, 184, 255)` | `WL`, the X layout canon |
-| `network/` | 44 | cyan `rgb(79, 229, 255)` | none |
-| `storage/` | 39 | jade `rgb(94, 202, 148)` | `setCylinderLabel`, `STO`, `chipStrip` |
-
-The size of the SHARED list is deliberately written down nowhere: `S-22` makes the four kits
-compared against each other the source of truth, in `unit/module.test.mjs`.
-
-## Catalog and categories
-
-`js/data.js` exports `SCHEMES` (143 entries), `CATEGORIES`, and `SUBCATEGORIES`. An entry's fields
-are `D-01`, the id-to-folder convention is `D-02`, the key and label constraints are `D-07`, and the
-three `CATEGORY_*` maps are projections of one registry (`D-08`, `D-09`).
-
-| Label | key | color | cards | subcategories (`key` to label) |
-|---|---|---|---|---|
-| Cluster | `cluster` | `#7d86ff` indigo | 28 | `control-plane`, `node-runtime`, `node-lifecycle` |
-| Workloads | `workloads` | `#5bb8ff` sky blue | 32 | `pods-bootstrap`, `pods-lifecycle`, `controllers` |
-| Networking | `network` | `#4fe5ff` cyan | 44 | `network-foundations`, `pod-networking`, `services-endpoints`, `external-traffic`, `dns-service-discovery` |
-| Storage | `storage` | `#5eca94` jade | 39 | `volume-foundations`, `volumes-claims`, `csi-mount-path`, `stateful-data` |
-
-Labels for the subcategory keys live in each folder's `cards.js` and `CLAUDE.md`. The ORDER of each
-list is an editorial argument, not a set (`D-10`), and it is recorded beside the list it orders.
-
-## Scheme module contract
-
-Each `js/schemes/<category>/<id>.js` is lazy-imported on dialog open. **There is exactly ONE legal
-export surface** (`S-02`), and `unit/module.test.mjs` prints the count on every run: **143 migrated,
-0 legacy**. That surface is the declarative form below, and a hand-written one is a regression
-rather than an alternative this contract admits. What NAMES a card slipping back is the DETECTOR
-described below.
-
-### The declarative form, which every card uses
-
-The card states its scene and its steps as DATA, and the kit turns them into the `Scene` class and
-`STEPS` array the runtime wants:
+Each `<id>.js` is lazy-imported when its dialog opens and has one export surface (`S-02`):
 
 ```js
-export const SCENE = { 'aria-label': '...', parts: [ /* ordered */ ], reset: { keys: [...] } };
-export const STEPS_SPEC = [ { id, duration, narration, /* ... */ }, /* ... */ ];
+export const SCENE = { 'aria-label': '...', parts: [ /* ordered */ ], reset: { keys: [...], pods: [...] } };
+export const STEPS_SPEC = [ { id, duration, narration, /* ... */ } ];
 export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });
-// init returns { play, pause, reset, step('next'|'prev'), setSpeed, isPlaying, destroy }
 ```
 
-`P`, `F` and `defineCard` come from the category kit, which binds the category role, the Pod role
-and the Pod tint ONCE. That is why a card writes no `role:` anywhere and cannot pick up a
-neighbouring category's colour by default, which is the narrow reading of `S-42` that holds.
+`P`, `F` and `defineCard` come from the category kit, which binds the role, Pod role and tint once,
+so a card never writes `role:`.
 
-**`SCENE.parts` is an ordered list, and the order is the append order, which is the z-order**: what
-a hand-written `build()` said by where a line sat, the list says by position. Groups nest, so a
-wrapper is a part like any other and not an escape. The part kinds are `defs group box cylinder node
-chip tag chain arrow lane relation wire packets raw pod`, and `P.pod` builds the whole tinted Pod
-block in the byte order the hand-written copies used. What a `node` frame cannot do, and what the
-panel does to its label, are the last section of this file.
+**`SCENE.parts` is ordered, and the order is the z-order.** Part kinds: `defs group box cylinder
+node chip tag chain arrow lane relation wire packets raw pod`. `reset.keys`, `reset.pods` and
+`reset.extra` are written out, never inferred.
 
-`reset.keys`, `reset.pods` and `reset.extra` are written out and never inferred. Inferring pods adds
-a `clearPodHighlight` that wipes inline styles the picture depends on.
-
-A step is data plus one ordered motion PROGRAM:
+A step is data plus one ordered motion program:
 
 ```js
 {
   id, duration, narration,
   chips: {}, chipsCued: {}, wires: {}, labels: {}, sublabels: {}, podSublabels: {},
-  opacity: {}, lit: [], chain: 0 | [0,1] | 'all' | -1,
-  enter(s, ctx) {},        // escape, runs on BOTH paths, last in the static block
-  reducedLit: [],          // a highlight the reduced path shows INSTEAD of motion it cannot show
-  rewind: {},              // winds a key back before the flow runs, animated path only
-  flow: [ ... ],           // F.route / segment / top / pulse / fade / reveal / set / light / anim / run / tag / ripple / flash
-  motion(s, ctx) {},       // escape, animated path only, after flow
+  opacity: {}, lit: [], chain: 0 | [0, 1] | 'all' | -1,
+  enter(s, ctx) {},   // escape, both paths, last in the static block
+  reducedLit: [],     // a highlight the reduced path shows instead of motion
+  rewind: {},         // winds a key back before the flow, animated path only
+  flow: [ ... ],      // F.route segment top pulse fade reveal set light anim run tag ripple flash
 }
 ```
 
-Everything above the reduced-motion guard is written on BOTH paths, so "a step that does not change
-a chip still writes it" (`P-01`) becomes the shape of the data instead of a habit.
+- The static fields are written on both paths, so every step states every chip (`P-01`).
+  `chips` writes through `setVal`, `chipsCued` through `setChip` (lights on change), always in that
+  order.
+- `flow` runs strictly in list order: creation order is observable through `getAnimations()`.
+- Delays: `delay: N`, `at: '<name>'` (that entry's arrival), `after: '<name>'` (arrival plus
+  `BEAT.afterHop`), `plus: N` on top. `name:` labels an entry, `lights: [...]` cues a box on arrival.
+- **A ball carries its tag and its landing pulse:** `F.route({ points, tag: { text, dx, dy },
+  pulse: 'podKey' })`, the same on `F.segment` and `F.top`. `expandFlow` in `lib/step-spec.js` turns
+  them into a plain `F.tag` with the ball's path, start and travel time, and an `F.pulse` at the
+  ball's arrival. Every ball and tag fades 200ms. A standalone `F.tag` is for a tag that emerges
+  from a block (`emerge`) or a deliberate mismatch.
+- Ball speed comes from path length (`routeDur`, 0.45 units per ms, floor 700, ceiling 2600). An
+  explicit `dur` needs a reason at the call site (`M-12`).
+- The reduced-motion path is derived from `lights` lists. `reducedLit` covers what a pulse shows.
+- Escape hooks (`part.raw`, `part.tune`, `step.enter`, `F.run`) exist for what no field reaches. A
+  card that seems to need a new verb is a reason to stop and ask.
 
-`flow` entries emit strictly in list order, with no batching, no sorting and no de-duplication,
-because that order is observable: `getAnimations()` hands it back in creation order and the
-`onfinish` callbacks fire in it. Delays are a small closed vocabulary: `after: '<name>'` is that
-entry's arrival plus `BEAT.afterHop`, `at: '<name>'` is the arrival itself, `delay: N` is a literal,
-and `plus: N` adds to whichever of the three was used. An entry earns a name with `name:`, and
-`lights: [...]` cues a receiver at whatever arrival the entry just computed.
+`ctx.reduced` is true under `prefers-reduced-motion` and when prev or reset replays a step,
+`ctx.register(animation)` tracks an animation for cancel on step change. Prev resets the scene and
+replays steps 0..n reduced.
 
-**The reduced-motion guard is derived.** `flowLights(flow)` collects the ordered union of every
-`lights` list, so a card writes no `if (ctx.reduced)` at all. What it cannot derive is a highlight
-the static path shows INSTEAD of a pulse, because no `lightBoxAt` names it: that is `reducedLit`,
-declared on **177 steps** (network 141, workloads 34, cluster 2, storage 0). It is the ordinary shape
-of the static path wherever a Pod pulses instead of lighting, not an exception. A wrong derivation
-lands on the HIGHLIGHT axis of `render/reduced.test.mjs`, which is enforced along with the other
-three (`S-16`), so `npm test` is what catches it.
-
-Two chip fields, because there are two writers that draw differently: `chips` goes through `setVal`
-(the value is replaced and nothing lights), `chipsCued` through `setChip` (`setVal` plus `.highlight`
-when the value CHANGED). **The two are written in one FIXED order, `chips` first and `chipsCued`
-second**, so a key named by both lands on the cued write whatever order the author typed the fields
-in. Do not reorder those two lines in `writeStatics`: a step is free to state a key in both fields,
-and without a fixed order the picture would depend on the shape of the literal. Which writer a card
-uses is inherited from the primitive it already called and swapping them is a VISIBLE change
-(`P-09`), so the split runs per CATEGORY rather than per card: cluster, workloads and network are
-`chips` throughout, save the one `workloads-poststart-prestop-hooks` card with 4 cued steps, and
-storage is the `chipsCued` category, 200 of the cued steps, with
-`storage-container-filesystem`, `storage-emptydir` and `storage-hostpath` the three files mixing both. Read off the migrated data: **649 steps carry `chips` and 204 carry `chipsCued`**,
-because every step states every chip (`P-01`).
-
-`chips` is the state after the STATIC block, which is not the end of the
-step: `rewind` and an `F.set` inside `flow` can both carry a key past it, so a reader after a final
-value plays `chips`, then `enter`, then `rewind`, then every `F.set` in firing order (by delay,
-ties in flow order), which is how the runtime applies them.
-
-`rewind` and `duration` are the two things deliberately not derived. `rewind` would need the
-previous step's values, which `S-13` forbids. `duration` is copied verbatim, and only
-`render/duration.test.mjs` can see it at all.
-
-**The escapes, and how narrow they are.** **87 of the 143 cards are fully declarative**; 56 carry at least one hook, **248 hooks in all** (`part.raw` 111, `step.enter` 49, `part.tune` 76, `F.run` 12,
-`reset.extra` 0, `step.motion` 0), and each exists for something with no honest general verb:
-`part.tune` reaches an element the builder already made, to capture a nested ref, write an SVG
-*attribute* or an inline `style.fill` no field reaches, build extra children inside a part (a second
-inner box in a Pod, a row of slot rects), or file a `P.wire` into the main ref bucket as well.
-Three of its 76 sites accumulate an ARRAY ref, and those three are READ, by the seven `enter`
-hooks of `storage-fsgroup-ownership`. Three more on `storage-volume-attach-limits` build one the same
-way, the slot rects of its three Node frames, read by its eight `enter` hooks. An array ref nothing
-reads does not belong in `tune`: every element already carries its own `key:`.
-`part.raw` draws a bare `<rect>` or a free text node, `step.enter` writes text or an attribute no
-field reaches, and `F.run` at delay 0 is an imperative beat standing inside the flow order. Nine of
-the twelve `F.run` are that delay-0 form; the three on `cluster-cpu-throttling` carry a real delay
-and are genuine deferred callbacks, the only ones in the catalogue.
-Storage carries a hook on 11 of its 39 cards, and its folder `CLAUDE.md` accounts for them BY HOOK
-KIND in four rows, naming every card inside each row the way cluster's does, where network and
-workloads table them per card. If a
-card looks like it needs a new VERB, stop and say so: three categories out of four grew the DSL zero
-times, and its three additions were each serialised through the coordinator: `F.tag` and `F.ripple`
-for network, and `F.flash`, which is the declarative door to `flashChips` and the only reason
-`S-25` kept that export alive (`M-27`).
-
-### The form that must not come back, and the detector that names it
-
-A hand-written `class Scene` with `build()` and `reset()` (`S-01`), a copied `resetStep(s)`
-prologue, a hand-written `STEPS` array whose every `enter(s, ctx)` splits on `ctx.reduced` by hand,
-and `export const init = makeInit(Scene, STEPS, { posterFirst: true });`. `defineCard` produces
-exactly that shape, so `makeInit`, `Timeline` and `app.js` cannot tell the two apart: **no
-compatibility layer stands between them**. Writing a new card in this form is a
-regression, not a choice, and `S-02` says so rather than listing it as an alternative.
-`LEGACY_EXPORTS` stays in `test/fixtures/module.mjs` for exactly one reason: a
-regression has to be NAMED, and a surface of `init` alone is what names it.
-
-Both forms share `ctx`: `ctx.reduced` is true under `prefers-reduced-motion` and when prev or reset
-replays a step, `ctx.speed` is the current multiplier, `ctx.register(animation)` tracks a WAAPI
-animation for cancel-on-step-change. `Scene.build()` paints the idle / step-0 visual state, and
-going prev calls `scene.reset()` then replays steps 0..target with `ctx.reduced = true` so they snap
-to their final state without animating.
-
-The shape rules for both forms are the `S-` block of `./CANON.md`, and `unit/skeleton.test.mjs`
-reads them off the spec with no browser. The poster-first model is `D-14`, the search and the
-in-dialog keys are `D-15`, and the hash contract (a filter and a search are both
-state, a scroll reset belongs to each, and the root hub matches on the `#scheme=` / `#at=` prefixes)
-is `D-16`.
-
-**The page chrome around the cards**, all in `js/app.js`. The dialog header carries the title, the
-category and section, the `N / M` position, then three `.dialog-tool` buttons and close: a star
-(`.dialog-star`, the same `starred` Set as the grid star, kept in step by `syncDialogStar()`), a
-report link (`.dialog-report`, a GitHub issue prefilled by `reportUrl()` with the card, the current
-step and a link to that step, rewritten on every step change) and fullscreen (`.dialog-full`, also
-`F`). There is deliberately NO copy-link button: the address bar already holds the card and its step.
-Each grid section header carries a `.section-link` that copies `#at=<key>`, always visible as on
-`/cli/` (the `_other` bucket links its category). **Fullscreen goes on the PAGE, not the dialog**:
-Chrome refuses `requestFullscreen()` on a `<dialog>`, and the fullscreen page then joins the top
-layer ABOVE the open modal and paints the grid over the card, so `syncFullscreenBtn()` closes and
-re-`showModal()`s the dialog on entry (nothing listens for `close`, the DOM is not moved, the
-animation keeps running) and sets `.is-fullscreen`, which stretches the panel and hides the flip
-arrows. The keys themselves are `D-15`.
-
-**Two grid views.** A `.view-toggle` after Starred switches `body.view-compact` on and off,
-remembered under `kube-how:scheme-view:v1` (default: detailed). Compact keeps the poster and one row
-of title and star, hides the description, tag and version, puts the description in the card's
-`title` tooltip, and fits 5 cards a row at 1440 instead of 4 (about 12 on screen instead of 4).
-It is CSS over the same `renderCard()` markup, so a card change never needs two templates.
-
-**New cards.** A card this browser had not seen on its previous visit (`js/lib/fresh.js`, see the
-root `CLAUDE.md`) gets a `NEW` pill in the poster's top-left corner and its section an `N new`
-chip before the count. Opening the card clears both (`clearNew()` in `openScheme()`).
+**The page around the cards** lives in `js/app.js`: the dialog header (title, section, position,
+star, report link, fullscreen), the grid with its detailed and compact views
+(`kube-how:scheme-view:v1`), the `NEW` badges (`lib/fresh.js`), the hash contract (`D-16`), the keys
+(`D-15`) and the poster-first model (`D-14`). Fullscreen goes on the page, not the dialog: Chrome
+refuses `requestFullscreen()` on a `<dialog>`, so `syncFullscreenBtn()` re-opens the modal on top.
 
 ## Adding a card
 
-1. Read `./CANON.md`, then the folder's `CLAUDE.md` for its `<CAT>.*` rules and its exemplar. Copy
-   the exemplar's shape rather than inventing one.
-2. Create `js/schemes/<category>/<id>.js` in the declarative form above, importing only the three
-   paths `S-21` allows. The id MUST start with the category, which is the folder name (`D-02`).
-3. Add the `SCHEMES` entry in that folder's `cards.js` (`D-01`). Target **410-460 characters, 3
-   sentences**; `D-04` and `D-05` fail outside 400-470 and 2-4.
-4. Add the poster to that folder's `posters.js` (`D-06`). Get the concept signed off first (`R-01`).
-5. Put the design record under `## <id>` in its own `js/schemes/<category>/CARDS/<id>.md`, the
-   shape all four categories are in, plus a row in that folder's `CARDS.md` index.
-   Leave the single pointer comment under the card's imports (`S-36`).
-6. Add a `<url>` to the repo-root `sitemap.xml` if it should be deep-linkable (`D-12`).
-7. `cd test && npm test`, then open the rendered frames.
+1. Read `./CANON.md` and the category `CLAUDE.md`. Copy the category exemplar's shape.
+2. Write `js/schemes/<category>/<id>.js`. The id starts with the category (`D-02`).
+3. Add the entry to `cards.js`: 410-460 characters, 3 sentences (`D-04`, `D-05`).
+4. Add the poster to `posters.js` (`D-06`) after the concept is signed off (`R-01`).
+5. Write `CARDS/<id>.md` (`WHAT`, and `DEVIATES` / `CONTENT` / `OPEN` when they apply), add its row
+   to `CARDS.md`, and leave the pointer comment under the card's imports (`S-36`).
+6. `npm run pages` here, which writes the static page and the sitemap entry (`D-12`).
+7. `npm test`, then open the rendered frames at 1600x1000, 1280x860 and 1100x800.
 
 ## Adding a category
 
-`D-13` names what a fifth category touches. What follows is the ORDER that makes them all land, and
-the half nothing checks.
+`D-13` lists what a fifth category touches. Order: folder, kit (shared re-export block unchanged,
+tint, pulses, bindings), `cards.js`, `posters.js`, `CLAUDE.md`, `CARDS.md`, then `js/data.js` and
+`js/posters.js`, then `css/tokens.css` and the tint block in `css/styles.css` (`C-16`), then
+`POSTER_COLORS` in `js/lib/poster.js` and the `<CAT>.*` index in CANON. Nothing checks the CSS and
+poster steps: re-read them.
 
-1. `js/schemes/<cat>/` folder.
-2. `<cat>-kit.js`: the re-export block copied from a sibling kit **unchanged** (`S-22`), plus
-   `<CAT>_TINT`, the two `pulsePod` wrappers, and the `P` / `F` / `defineCard` bindings built from
-   `makePartKinds`, `makeFlowKinds` and `defineCardWith` with this category's role and tint.
-3. `cards.js`, then `posters.js`, then `CLAUDE.md` on the shared template, then the record with the
-   standard preamble.
-4. `js/data.js` (the `CATEGORIES` entry) and `js/posters.js` (import and merge the poster map).
-5. `css/tokens.css`, then the tint block in `css/styles.css`: four opaque colours as channel lists
-   and nothing else (`C-16`).
-6. `js/app.js` `POSTER_COLORS`, the `<CAT>.*` block in `./CANON.md`, and this file's two tables.
-
-`unit/catalog.test.mjs` and `unit/module.test.mjs` cover steps 1 to 4. **Nothing covers step 5 or
-step 6**, so re-read them before calling it done.
-
-## Where the record lives
-
-A card file carries code, not prose. The comment budget is `S-34` and where everything longer than
-it goes is `S-35`; the table below is the same split from the other side.
+## Where notes live
 
 | Material | Home |
 |---|---|
-| a rule true of the whole catalog | `./CANON.md`, as a numbered row |
-| a rule true of one category | that folder's `CLAUDE.md`, as a `<CAT>.*` row, indexed by the canon |
-| a measurement, a rejected alternative with the number that kills it, a `DO NOT` with the defect it prevents | that card's `## <id>` section, in `js/schemes/<category>/CARDS.md` or `js/schemes/<category>/CARDS/<id>.md` |
-| a note on anything that is not one card | a JSDoc block beside the code it describes |
-| what a check catches, and what it is blind to | the header of that test file |
-| how a number was derived, in two lines | a trailing comment on the constant |
-| history: dates, "used to", reverted decisions, review vocabulary | deleted |
-
-Card-scoped notes go to that category's record, keyed by card id, with one exception: a poster's
-note is the comment directly above that poster in the folder's `posters.js` (`R-12`). Each card
-links to its section with one pointer under its imports, and the pointer follows the shape that
-category is in:
-
-```js
-// Design notes for this card: ./CARDS/storage-multi-attach-error.md    // one file per card
-// Design notes for this card: ./CARDS.md#<card-id>                     // one file per category
-```
-
-All four categories carry the first form today. The second is what `recordPointer` in
-`test/fixtures/catalog.mjs` derives for a category holding its records in one `CARDS.md`, and no
-category does.
-
-**The record holds what the code cannot say**: measured overlay extents per viewport, why a width is
-what it is, which numbers are hard floors and what binds them, which alternatives were tried and
-dropped. Deleting a note deletes a measurement someone took with a browser. `unit/docs.test.mjs`
-anchors each note to a line of code with ``### before `<line>` ``, so **an anchor is DATA: never
-reword one**, and when a card is renamed, rename its heading too.
-
-The label vocabulary a `### layout` block uses (`WHAT`, `LAYOUT`, `LANES`, `MOTION` and the rest) is
-one list for all four records, in `./CANON.md` under "The record vocabulary".
+| a rule true of the whole catalog | `./CANON.md` |
+| a rule true of one category | that folder's `CLAUDE.md`, as a `<CAT>.*` row |
+| a deliberate rule break, a forced wording, an open defect | `CARDS/<id>.md` |
+| a poster's design note | the comment above that poster in `posters.js` (`R-12`) |
+| anything about shared code | a comment beside it, at most 3 lines |
+| what a check catches and misses | the header of that test file |
+| history, dates, counts | nowhere |
 
 ## The checks
 
-The harness is a `node:test` suite in `test/`, and each test file carries its own header saying what
-it asserts and what it is BLIND to. There is no separate reference document: the test IS the
-reference, and a rule with no test says so in `./CANON.md`'s `Check` column.
-
 ```
 cd scheme/test
-npm test        must be green before a change lands
-npm run report  advisory: the soft geometry rules, the panel extent, arrival cues, link liveness
+npm test         the gate: unit + render over one browser walk, must be green
+npm run report   advisory findings a human rules on
+npm run all      both over one walk
+npm run test:unit  the no-browser half, seconds
 ```
 
-Two levels, deliberately. `npm test` is what cannot land broken. `npm run report` prints findings a
-human rules on, including the ones `L-16` keeps open on purpose. **A report file never fails on a
-finding, so it must announce its own invalidity**: no network, a fallback font, a short walk.
+The browser tiers need `python3 -m http.server 8888` from the repo root (the container on `:8080`
+serves a snapshot, never test against it). `SCHEME_IDS=<id>[,<id>]` narrows the walk to some cards
+and turns the catalog floors off: that is not the gate.
 
-**The report run is minutes long, so a redirected file is INCOMPLETE until it exits.** Reading one
-mid-write is how a whole section comes back missing and gets filed as a harness fault. The run emits
-one `===== end of report =====` per report file, so count them against the file list before reading
-any verdict off it: `grep -c 'end of report' <file>` has to equal the number of files in `report/`.
+`test/tools/` holds the scripts that are not checks: `walk.mjs` (the one browser walk every render
+and report file asserts over), `docs-sync.mjs` (rewrites the README headline counts),
+`settled-dump.mjs` and `buildframe.mjs` (print a card's settled state or its poster frame, for
+diffing two trees), `canon.mjs` (queries CANON, `--check=review` for the rows only a human checks)
+and `mutate.mjs` (`npm run selftest`: breaks a card one known defect at a time and requires the
+named check to go red, run it after editing a check).
 
-**`test/tools/` holds three probes, and none of them is a check.** Two print a card's state as
-text so two trees can be diffed against each other, which is what a refactor needs and no assertion
-gives. The third reads the rulebook rather than a card:
+## Constraints a card cannot close
 
-```
-cd scheme/test
-node tools/settled-dump.mjs --all --out=DIR --base=http://localhost:8888
-node tools/buildframe.mjs   --all --out=DIR --base=http://localhost:8888
-node tools/canon.mjs --check=review --block=L,A
-```
-
-**`tools/mutate.mjs` is the fourth thing in that directory and it is none of the three.** It
-asserts, it is not run by `npm test`, and its subject is the SUITE rather than a card: it breaks a
-real card one known defect at a time and requires the check `./CANON.md` names for that rule to go
-red on it, on its named axis.
-
-```
-cd scheme/test
-npm run selftest                # every mutation. needs the server, minutes
-node tools/mutate.mjs --list    # what they are, no card touched
-node tools/mutate.mjs offedge   # one of them
-```
-
-Run it after writing or editing a check, and after a rule changes hands between `review` and a
-machine. A `BLIND` verdict is a real finding: a rule cites a check that does not see its defect,
-which no green run can show, because a check that sees nothing and a check that finds nothing print
-the same thing. `WRONG` and `ANCHOR` are defects in `mutate.mjs` itself, not in the suite: the
-mutation grew too broad, or the card moved under it and it needs re-aiming. It edits a card in the
-working tree and restores it from memory in a `finally` and from an `exit` handler, never with
-`git checkout --`.
-
-`settled-dump` plays every step in REAL TIME and reads the frame it leaves behind: glyphs, the
-`.highlight` set, the opacities. Freezing a card hides a deferred callback (`at()` schedules its
-work as the onfinish of an empty animation, and a paused animation never fires one), so this is the
-only thing that sees WHAT such a callback wrote. `buildframe` reads the frame BEFORE step 0, the
-poster the reader looks at for the first second, which nothing else in the tree opens.
-
-Two cautions, both paid for. An element is named by its ref KEY, so renaming a ref reddens every
-line it appears on with the picture unmoved: compare the VALUES before believing the names. And
-`BASE` is not cosmetic: the container on `:8080` serves the tree as it was at build time, so a run
-against it reads stale content and agrees with itself. Serve the live tree with
-`python3 -m http.server 8888`, and a second tree (a `git archive` of some commit) on its own port.
-
-The `Check` column of `./CANON.md` is the same information from the other side: given a rule, which
-machine (if any) would notice it breaking, as `test:<file>/<name>`, `report:<file>/<name>` or
-`skill:<tool>/<name>`. The third names a tool under `.claude/skills/*/tools/` that decides the rule
-and emits a finding: it runs when a skill or a human asks it to, never on its own, so a rule
-carrying one still has to be RUN. A tool that only prints numbers is not one of these and its rules
-stay `review`.
-
-## The findings that are left open
-
-**The `OPEN` findings in the four card records are not to be closed without a reason**: **45** today
-(cluster 0, storage 13, workloads 14, network 18), counted as `OPEN` BLOCKS, and a block may hold
-more than one finding where a record states each at most once. Each carries its own measurement and
-an explanation of why the rule can only be satisfied by making the picture worse (`L-16`). The cluster record carries
-none: its design record holds measurements and the reasons behind them, and a parked defect is not one
-of the things it is for.
-
-**That is not the same population as the soft geometry findings, which number 52** (CENTRE 30,
-CENTRE-LOW 14, OCCLUDED 8, printed by `report/geometry-soft.test.mjs`). The `OPEN` entries cover more
-than geometry, so the two are counted separately. The full list of
-deliberate exceptions, including the ones that are not `OPEN` findings, is the last section of
-`./CANON.md`.
-
-## The constraints a card cannot close
-
-Three facts about the narration panel and about `node()`. Each is a property of the house rather than
-a defect of whichever card met it last, so it is stated once, here, and a record that runs into one
-cites this section instead of re-deriving it.
-
-**The band the panel gives back at a wide viewport cannot be filled.** A card's geometry is pinned to
-its DEEPEST panel, because `L-03` allows a block left of x=420 only below that card's own panel
-bottom and the deepest reading is the narrowest viewport: `cluster-pod-priority-preemption` measures
-279.51 at 1100x800 against 177.44 at 1600x1000. The hundred-odd units the panel vacates as the dialog
-widens therefore stand empty on any card reaching that far left, whatever layout it took, and filling
-them on one card alone makes it the one member of its family that differs. `L-05a` is why the panel
-moves and why clamping its height does not touch this.
-
-**A `node()` frame takes no cue.** `diagrams.css` carries a `.highlight` rule for `.scheme-pod`,
-`.scheme-box`, `.scheme-cylinder` and `.scheme-chip`, and none for `.scheme-node`, so a step
-narrating a Node's own state changing has nothing on screen to react. It fails SILENTLY: five steps
-on three cards in two categories already name a frame in `lit` or in a `lights` list and render no
-difference. Closing it is one catalog-wide CSS rule reaching every frame in the tree, which is not a
-change one card makes.
-
-**A `node()` frame's label sits in the panel column.** `primitives.js` prints it at `x: 12, y: 18`
-inside the frame, so it inks from `NODE_X + 12` against a panel right edge of `x<=397` (`L-02`), and
-a frame starting left of about 385 whose top is above that card's panel bottom loses the label
-outright. Worst case is the Control plane frame at (150, 90) that `cluster-architecture`,
-`cluster-object-create-path` and `cluster-cascading-deletion` share, covered on every measured
-viewport. `OCCLUDED` never reports it, because `report/geometry-soft.test.mjs` skips frames, and
-walking one card's label to the far corner through `tune` is not the fix: it buys one card a position
-every other frame in the catalogue reads from.
+- The narration panel covers the top left (`x<=397`, `L-02`) and its depth changes with the
+  viewport. A card is laid out against its deepest panel, so the band a wide viewport frees stays
+  empty.
+- A `node()` frame label prints at `x: 12, y: 18` inside the frame, so a frame starting left of
+  about 385 above the panel bottom loses its label under the panel.

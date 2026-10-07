@@ -2,64 +2,59 @@ import { P, F, defineCard, BEAT, makeRidingLabel, chipStrip } from './storage-ki
 // Design notes for this card: ./CARDS/storage-image-volume.md
 
 
-// Two frames: the Node right of the panel (x<=397), the Registry left of it, below the panel floor.
-// Panel extent measured per viewport in the record. The Registry is CENTRED on the Node, so the two
-// frames share one midline and the pull crosses between their faces on it. Their outer faces sit 60
-// off each canvas edge, so the whole drawing spans 60..1140 and centres on 600.
-const NODE_X = 440, NODE_Y = 150, NODE_W = 700, NODE_H = 430;              // 440..1140, 150..580
-const REG_X = 60, REG_W = 272, REG_H = 254;                                // 60..332
-const FRAME_MID = NODE_Y + NODE_H / 2;                                     // 365: both frame faces
-const REG_Y = FRAME_MID - REG_H / 2;                                       // 238: 238..492
+// Two frames: the Node right of the panel, the Registry left of it below the panel floor. The
+// Registry is centred on the Node, so the pull crosses between their faces on one midline, and
+// their outer faces sit 60 off each canvas edge.
+const NODE_X = 440, NODE_W = 700;
 
-// The catalog block: 232 by 80, a Pod 232 by 104. Two columns inside the Node, one in the Registry.
-// ONE PADDING, 24, holds inside EACH frame: from its floor up to its bottom row, and from the band
-// its node() label occupies down to its top row. The Node columns sit 42 off each frame face.
+// The catalog frame padding holds inside each frame: 34 of label band over the topmost content
+// (in the Node, the `start app` tag riding over its lane) and 12 of floor under the lowest.
+const NODE_Y = 148;
+const HEAD = 34, FOOT = 12, REG_GAP = 24;
+
+// The catalog block and Pod. Two columns inside the Node, one in the Registry.
 const BLOCK_W = 232, BLOCK_H = 80, POD_H = 104;
-const PAD = 24;
-const L_COL = 482, R_COL = 866, REG_COL = REG_X + (REG_W - BLOCK_W) / 2;  // 482 / 866 / 80
-const L_CX = L_COL + BLOCK_W / 2, R_CX = R_COL + BLOCK_W / 2;             // 598 / 982
-const ROW_Y = NODE_Y + NODE_H - PAD - BLOCK_H;                            // 476: store, volume
-const ROW_MID = ROW_Y + BLOCK_H / 2;                                      // 516
-const REG_LOW_Y = REG_Y + REG_H - PAD - BLOCK_H;                          // 388: llm:v1
-const REG_TOP_Y = REG_LOW_Y - PAD - BLOCK_H;                              // 284: app:v3 over llm:v1
+const L_COL = 482, R_COL = 866;
+const L_CX = L_COL + BLOCK_W / 2, R_CX = R_COL + BLOCK_W / 2;
+const ROW_Y = 476;                                                        // store, volume
+const ROW_MID = ROW_Y + BLOCK_H / 2;
+const NODE_H = ROW_Y + BLOCK_H + FOOT - NODE_Y;
 const TOP_MID = 248;                                                      // Kubelet and Pod
-const KUB_Y = TOP_MID - BLOCK_H / 2, POD_Y = TOP_MID - POD_H / 2;         // 208, 196
+const KUB_Y = TOP_MID - BLOCK_H / 2, POD_Y = TOP_MID - POD_H / 2;
+
+const REG_X = 60, REG_W = 272, REG_H = HEAD + 2 * BLOCK_H + REG_GAP + FOOT;
+const FRAME_MID = NODE_Y + NODE_H / 2;
+const REG_Y = FRAME_MID - REG_H / 2;
+const REG_COL = REG_X + (REG_W - BLOCK_W) / 2;
+const REG_TOP_Y = REG_Y + HEAD;                                           // app:v3 over llm:v1
+const REG_LOW_Y = REG_TOP_Y + BLOCK_H + REG_GAP;
 
 const CHIP_Y = 596;
 const CH = chipStrip({ count: 3 });
 
 // Each static wire and its ball share one array. Every lane is one way and ridden once.
 const L_ASK   = [[L_CX, KUB_Y + BLOCK_H], [L_CX, ROW_Y]];                    // Kubelet -> store
-// The pull is traffic between two PLACES, so it runs face midpoint to face midpoint on the shared
-// midline and touches no inner block at either end: pullPolicy is a question of WHERE the object
-// already is, the registry or the host.
+// The pull is traffic between two places, so it runs face midpoint to face midpoint on the shared
+// midline and touches no inner block: pullPolicy is a question of where the object already is.
 const L_PULL  = [[REG_X + REG_W, FRAME_MID], [NODE_X, FRAME_MID]];            // Registry -> Node
 const L_MOUNT = [[L_COL + BLOCK_W, ROW_MID], [R_COL, ROW_MID]];               // store -> volume
 const L_START = [[L_COL + BLOCK_W, TOP_MID], [R_COL, TOP_MID]];               // Kubelet -> Pod
 const L_READ  = [[R_CX, ROW_Y], [R_CX, POD_Y + POD_H]];                       // volume -> Pod
 
-// EVERY ball rides routeDur, as on storage-emptydir. All five legs are 108 to 188 units, under the
-// 315 routeDur needs, so every one lands on the 700ms PKT_DUR_MIN floor and one leg is one beat
-// wherever it is on the card.
-const tagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
-// The level legs carry their tag above the ball and above the box tops at both ends, so it rides
-// the whole leg and dissolves with its ball on arrival (M-30a).
-const RUN_TAG = { dy: -48, fn: tagFn };
-// The two vertical legs end head-on in a block edge, so each tag TRAILS its ball on the side away
-// from the block it heads for and lands in the gap. Trailing, it would start inside the block the
-// ball leaves, so it emerges once clear of that face: 170 of the 700ms leg is the 360 of 1500 this
-// card measured, carried across to the new duration at the same fraction of the flight.
+// The level legs carry their tag above the ball and above the box tops at both ends.
+const RUN_TAG = { dy: -48 };
+// The two vertical legs end head-on in a block edge, so each tag trails its ball on the side away
+// from the block it heads for, and emerges once clear of the block the ball leaves.
 const EMERGE = { fn: makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true }), emerge: 170 };
 const ASK_TAG = { ...EMERGE, dx: 52, dy: -14 }, READ_TAG = { ...EMERGE, dx: -40, dy: 20 };
-// The pull leg has no box top at either end, only frame faces, so its tag takes the storage-emptydir
-// grammar instead of emerging: it rides the whole flight, 16 AHEAD of the ball so its box clears
-// app:v3 at departure, and fades in before the ball leaves rather than out of the Registry.
-const PULL_TAG = { dx: 16, dy: -48, fn: tagFn };
+// The pull leg has only frame faces at its ends, so its tag rides the whole flight, 16 ahead of
+// the ball so it clears app:v3 at departure.
+const PULL_TAG = { dx: 16, dy: -48 };
 
 const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 
-// Z-order (bottom -> top): the two frames, the blocks and the Pod, the lanes and the mount caption,
-// the chip strip, then the packet layer.
+// Z-order: the two frames, the blocks and the Pod, the lanes and the mount caption, the chip
+// strip, then the packet layer.
 export const SCENE = {
   'aria-label': 'Image volumes: Pod llm-server runs app image app:v3 and declares an image volume named model with reference llm:v1, an OCI image holding model weights, and pullPolicy IfNotPresent. At Pod startup Kubelet asks the container runtime to resolve the volume, before any container starts. llm:v1 is not on the Node, so it is pulled from the registry the same way a container image is, with the same pull credentials. As Kubelet creates the app container, the runtime mounts it as one read-only directory at /models, and only then does the container start. The app reads the weights but cannot write them. A recreated Pod resolves the volume again, but under IfNotPresent a Node already holding llm:v1 does not pull it again.',
   parts: [
@@ -121,8 +116,7 @@ export const STEPS_SPEC = [
     opacity: STAGE,
     lit: ['kubelet'],
     flow: [
-      F.route({ points: L_ASK, delay: BEAT.lead, lights: ['store'] }),
-      F.tag({ text: 'resolve llm:v1', points: L_ASK, delay: BEAT.lead, ...ASK_TAG }),
+      F.route({ points: L_ASK, delay: BEAT.lead, lights: ['store'], tag: { text: 'resolve llm:v1', ...ASK_TAG } }),
     ],
   },
   {
@@ -138,8 +132,7 @@ export const STEPS_SPEC = [
     // Every value this step earns turns over when the ball that earns it lands (P-03).
     rewind: { sublabels: STORE_OLD, chips: { onNode: 'not present' } },
     flow: [
-      F.route({ points: L_PULL, delay: BEAT.lead, name: 'pull', lights: ['store'] }),
-      F.tag({ text: 'llm:v1', points: L_PULL, delay: BEAT.lead, ...PULL_TAG }),
+      F.route({ points: L_PULL, delay: BEAT.lead, name: 'pull', lights: ['store'], tag: { text: 'llm:v1', ...PULL_TAG } }),
       F.set({ sublabels: STORE_NEW, chipsCued: { onNode: 'pulled' }, at: 'pull' }),
     ],
   },
@@ -155,8 +148,7 @@ export const STEPS_SPEC = [
     lit: ['store'],
     rewind: { sublabels: VOL_OLD, chips: { models: 'not mounted' }, wires: NO_WIRE },
     flow: [
-      F.route({ points: L_MOUNT, delay: BEAT.lead, name: 'mount', lights: ['vol'] }),
-      F.tag({ text: 'mount ro', points: L_MOUNT, delay: BEAT.lead, ...RUN_TAG }),
+      F.route({ points: L_MOUNT, delay: BEAT.lead, name: 'mount', lights: ['vol'], tag: { text: 'mount ro', ...RUN_TAG } }),
       F.set({ sublabels: VOL_NEW, chipsCued: { models: 'read-only' }, wires: WIRE, at: 'mount' }),
     ],
   },
@@ -172,12 +164,9 @@ export const STEPS_SPEC = [
     lit: ['kubelet'],
     rewind: { podSublabels: WAIT, chips: { appState: 'waiting' } },
     flow: [
-      // The Pod is the receiver and its pulse IS the arrival cue: pulsePod brightens every rect
-      // inside the shell, app box included, so a `lights` on top of it would double the cue and
-      // then stand as a highlight until the step ends.
-      F.route({ points: L_START, delay: BEAT.lead, name: 'start' }),
-      F.tag({ text: 'start app', points: L_START, delay: BEAT.lead, ...RUN_TAG, dy: -56 }),
-      F.pulse({ pod: 'pod', at: 'start' }),
+      // The Pod is the receiver and its pulse is the arrival cue: a `lights` on top of it would double
+      // the cue and then stand as a highlight until the step ends.
+      F.route({ points: L_START, delay: BEAT.lead, name: 'start', tag: { text: 'start app', ...RUN_TAG, dy: -56 }, pulse: 'pod' }),
       F.set({ podSublabels: RUN, chipsCued: { appState: 'running' }, at: 'start' }),
     ],
   },
@@ -192,9 +181,7 @@ export const STEPS_SPEC = [
     opacity: STAGE,
     lit: ['vol'],
     flow: [
-      F.route({ points: L_READ, delay: BEAT.lead, name: 'read' }),
-      F.tag({ text: 'weights', points: L_READ, delay: BEAT.lead, ...READ_TAG }),
-      F.pulse({ pod: 'pod', at: 'read' }),
+      F.route({ points: L_READ, delay: BEAT.lead, name: 'read', tag: { text: 'weights', ...READ_TAG }, pulse: 'pod' }),
     ],
   },
 ];

@@ -1,30 +1,5 @@
-// walk.mjs: open every card ONCE and take every panel and geometry reading the report tier needs,
-// into `.snapshot/panel.json`. `report/overlay.test.mjs` and `report/geometry-soft.test.mjs` then
-// assert over the file instead of each driving its own browser.
-//
-// WHY. Measured on 2026-09-01, quiet machine, 123 cards and 750 steps: a browser launch costs 0.1s,
-// the grid load 0.3s, and `openCard` 85ms x 123 = 10.5s. Thirteen browser-driven test files pay
-// that 10.5s each, so 137 of the suite's 265 seconds is spent re-opening cards that were already
-// open in another process a moment earlier. Nothing is shareable across those processes, because
-// `node --test` forks one per file. So the sharing has to happen BEFORE them, here.
-//
-// These two files in particular walked the SAME two extra viewports with the SAME panel probe:
-// `overlay` reads all three viewports for the panel numbers it prints, `geometry-soft` reads the
-// two extra ones only to feed OCCLUDED. 1500 duplicated step probes and 246 duplicated viewport
-// resizes, and 84 of the report's 135 seconds.
-//
-// STALENESS IS NOT A RISK HERE, because this is a pipeline stage and not a cache: `npm run report`
-// runs it first, every time, and it keys nothing and reuses nothing. There is no mode in which a
-// test reads a snapshot of a tree that has since changed. If that ever stops being true the
-// `generatedAt` and `base` in the file are what a reader checks first.
-//
-// ONE PROBE WHERE THERE WERE TWO. `geometry-soft` computed the panel rect inline with the same six
-// lines of arithmetic as `fixtures/render.mjs overlayProbe`, and the two differed only in their
-// guards: `overlayProbe` returns null on a zero-width svg or viewBox, the inline one did not, and
-// it returned two edges where the shared one returns four. Both readings are taken and both are
-// stored, `panel` under the shared guards and `panelSoft` under the inline ones, so neither
-// consumer's behaviour moves by a step. Two copies of one measurement is the defect this file was
-// written to remove, not one to carry forward.
+// Opens every card once and takes every reading the render and report files assert over, into
+// `.snapshot/panel.json`. A pipeline stage, not a cache: every script runs it first.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -43,17 +18,8 @@ import { PAINTED, probePaint } from '../fixtures/palette.mjs';
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SNAPSHOT = join(HERE, '..', '.snapshot', 'panel.json');
 
-// -------------------------------------------------------------------------------------------
-// INFINITY SURVIVES THE ROUND TRIP, and it has to. An empty accumulator in these probes is
-// `[Infinity, -Infinity]`: a card that draws no chip leaves its strip at exactly that, and every
-// consumer relies on the comparison against it being FALSE so no finding is made. `JSON.stringify`
-// writes `null` for a non-finite number, `Math.min(Infinity, null)` is 0, and the strip then reads
-// `0..0, centre 0` and fires CENTRE on six cards that have nothing wrong with them. Caught by
-// diffing the printed report against the run before the change, which is the only thing that could
-// have caught it: every one of those six was a plausible-looking finding.
-// -------------------------------------------------------------------------------------------
-// `decode` is the only half of this pair anyone else needs: `fixtures/snapshot.mjs` hands it to
-// JSON.parse. `encode` has one caller, the write below.
+// JSON writes null for a non-finite number, and an empty accumulator is [Infinity, -Infinity]
+// that consumers compare against, so non-finite values are encoded as tagged strings.
 const INF = '@Infinity', NEG_INF = '@-Infinity', NAN = '@NaN';
 const encode = (_k, v) =>
   typeof v !== 'number' || Number.isFinite(v) ? v
@@ -61,7 +27,7 @@ const encode = (_k, v) =>
 export const decode = (_k, v) =>
   v === INF ? Infinity : v === NEG_INF ? -Infinity : v === NAN ? NaN : v;
 
-// L-06, and the same three rows both consumers declare. Stated once here now.
+// L-06.
 export const VIEWPORTS = [
   { width: 1600, height: 1000 },
   { width: 1280, height: 860 },
@@ -69,18 +35,13 @@ export const VIEWPORTS = [
 ];
 export const vpName = vp => `${vp.width}x${vp.height}`;
 
-// render/chipfit.test.mjs owns the rule this feeds and the tolerance with it. Stated here because
-// the reading is taken here; the file that judges it re-states nothing and imports the rows.
+// Owned by render/chipfit.test.mjs, stated here because the reading is taken here.
 export const STACK_TOL = 4;
 
-// The other consumers' constants, in the file that applies them, imported by the files that judge
-// them. Each was typed once in the test that owned the walk and is typed once here now.
+// Constants applied here and imported by the files that judge them.
 export const HIT_TOL = 16;               // report/arrival: a ball is AT a target within this
 const TERMINATED = OPACITY.terminated;  // render/opacity: the shade a terminated element holds
-// How far past its own span a step is seeked before render/reduced's played snapshot. 400 has one
-// job: put every delayed effect of the step behind the playhead, deferred handlers included. It
-// costs nothing because the seek is instant, so the only way this number is wrong is by being too
-// small. Local, because the seek that applies it is here and nobody else asks.
+// Puts every delayed effect of the step, deferred handlers included, behind the playhead. The seek is instant.
 const SETTLE_PAST_SPAN_MS = 400;
 const SELECTORS = {
   els: '.scheme-box, .scheme-pod, .scheme-cylinder, .scheme-node, .scheme-chip, .scheme-arrow',
@@ -88,8 +49,7 @@ const SELECTORS = {
   transient: '#packetLayer',
 };
 
-// Runs IN THE PAGE, so no free variables. Lifted verbatim out of report/geometry-soft.test.mjs
-// except for the panel half, which is described in the header above.
+// Runs in the page, no free variables.
 const fullProbe = () => {
   const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
   if (!svg) return null;
@@ -125,8 +85,7 @@ const fullProbe = () => {
   return { blocks, content: [cx0, cx1], contentNoFrames: [fx0, fx1], chips: [px0, px1] };
 };
 
-// geometry-soft's inline panel reading, kept under ITS guards: two edges, and null only when the
-// overlay element is absent.
+// geometry-soft's two-edge panel reading under its own guards: null only when the overlay is absent.
 const softPanel = () => {
   const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
   const ov = document.querySelector('.narration-overlay');
@@ -149,15 +108,8 @@ async function walk({ base = DEFAULT_BASE } = {}) {
     await installGeometryHelpers(page);
     await installOpacityHelpers(page);
     await installKeyHelpers(page);
-    // The readings are installed as page globals under a `__w` prefix and taken in ONE evaluate per
-    // step. The prefix is not decoration: `installOpacityHelpers` already owns `window.__opacity`
-    // (a namespace with `.own` and `.effective` on it) and a probe installed under that name
-    // silently replaced it, so the first played step died on `window.__opacity.own is not a
-    // function`. Everything this file puts on the page is `__w`-prefixed for that reason. Three
-    // separate evaluates would be three CDP round trips, and a round trip is 3.3ms against a probe
-    // that costs 8: at 750 steps by three viewports that is the difference between 11 seconds and
-    // 34. `overlayProbe` is serialised from the SHARED function in fixtures/render.mjs rather than
-    // copied, so the file that owns it stays the only place it is written.
+    // Page globals are `__w`-prefixed so they cannot replace `window.__opacity`. One evaluate per step,
+    // not three CDP round trips. overlayProbe is serialised from fixtures/render.mjs, not copied.
     await page.addInitScript(`window.__wFull = ${fullProbe.toString()};` +
                              `window.__wPanel = ${overlayProbe.toString()};` +
                              `window.__wSoftPanel = ${softPanel.toString()};` +
@@ -174,10 +126,7 @@ async function walk({ base = DEFAULT_BASE } = {}) {
 
     const cards = {};
     for (const id of ids) {
-      // Page errors are collected across the whole visit, because two consumers read them and both
-      // are about a card that never came up: render/inline reports the module that would not parse
-      // (an apostrophe in a narration ends the string and app.js logs "Failed to load scheme"), and
-      // render/smoke reports anything the console said while both paths were driven.
+      // Collected across the whole visit for render/inline (module that would not parse) and render/smoke.
       const collector = collectPageErrors(page);
       let openError = null;
       try {
@@ -188,9 +137,7 @@ async function walk({ base = DEFAULT_BASE } = {}) {
         cards[id] = { openError, errors: collector.errors.slice(), steps: 0, byVp: {} };
         continue;
       }
-      // Two face sets, because two consumers guard different ones: most files want both diagram
-      // faces, render/chipfit wants only the mono one its chips are drawn in (its CHIP_FACES).
-      // Cheap: fallbackFaces is 130ms a card and this is one extra probe on the same open page.
+      // render/chipfit guards only the mono face, everything else both.
       const fellBack = await fallbackFaces(page);
       const fellBackMono = await fallbackFaces(page, [FACE_MONO]);
       const total = await stepCount(page);
@@ -202,8 +149,7 @@ async function walk({ base = DEFAULT_BASE } = {}) {
         const name = vpName(vp);
         if (name !== vpName(VIEWPORTS[0])) await page.setViewportSize(vp);
         const rows = [];
-        // The full geometry is viewBox space and does not move with the viewport, so it is taken
-        // once, on the row where it is judged. The panel is a pixel box and is taken on all three.
+        // Geometry is viewBox space, taken once. The panel is a pixel box, taken on all three viewports.
         const wantGeom = name === vpName(VIEWPORTS[0]);
         for (let i = 0; i < total; i++) {
           await gotoStep(page, i);
@@ -212,32 +158,21 @@ async function walk({ base = DEFAULT_BASE } = {}) {
             lanes: g ? window.__wGeometry() : null,
             chips: g ? window.__wChips({ stackTol }) : null,
             inline: g ? window.__wInline({ sel }) : null,
-            // render/reduced's other half: the same step applied STATICALLY, the way prev and reset
-            // replay it, against the played frame the pass below takes.
+            // render/reduced's static frame, the way prev and reset replay the step.
             snap: g ? window.__wSnap(selectors) : null,
-            // report/arrival's SECOND reading of a step: the static path, where gotoStep replays
-            // with ctx.reduced so every deferred branch has already run. Its settled end state.
+            // report/arrival's settled reading: gotoStep with ctx.reduced runs every deferred branch.
             arrival: g ? window.__wArrival({ tol }) : null,
             panel: window.__wPanel(),
             panelSoft: window.__wSoftPanel(),
           }), { g: wantGeom, stackTol: STACK_TOL, sel: DIAGRAM, selectors: SELECTORS, tol: HIT_TOL });
           let row = await take();
-          // ONE RETRY when the diagram is momentarily absent, carried over from
-          // report/geometry-soft.test.mjs and load-bearing there. `Scene.build()` empties the host
-          // and appends a NEW `<svg.diagram>`, so a step change has an instant with no diagram in
-          // the dialog and a probe landing in it reads null. Measured in that file: without the
-          // retry the walk came back one step short of the mandatory file doing the same walk, and
-          // in a report that never fails it went unnoticed. Every consumer of this snapshot inherits
-          // the guarantee, so it is taken here once instead of by each of them.
-          // Both consumers carried a retry and they guarded different halves: geometry-soft's fired
-          // on a null GEOMETRY, overlay's on a null PANEL. The union fires on either, so neither
-          // loses its guarantee, and the `catch` is overlay's: a selector that times out leaves the
-          // row null and the consumer says so in its notes, rather than taking the whole walk down.
+          // One retry when a reset has momentarily removed the diagram, on a null geometry or a null panel.
+          // A selector timeout leaves the row null for the consumer to report.
           if ((wantGeom && !row.geom) || !row.panel) {
             try {
               await page.waitForSelector(DIAGRAM, { timeout: SELECTOR_TIMEOUT_MS });
               row = await take();
-            } catch (_) { /* leave the row as it came back; the consumer reports it */ }
+            } catch (_) { /* leave the row as it came back. The consumer reports it */ }
           }
           rows.push(row);
         }
@@ -245,22 +180,8 @@ async function walk({ base = DEFAULT_BASE } = {}) {
       }
       await page.setViewportSize(VIEWPORTS[0]);
 
-      // -------------------------------------------------------------------------------------
-      // THE PLAYED PASS, at VIEWPORTS[0], once for the six files that each used to take it.
-      //
-      // The ORDER below is the union of theirs and it is load-bearing, so it is written out:
-      //   enterStep(i)                     the step's animations exist and are frozen at t=0
-      //   motion / arrival at t=0          three files read the plan and the positions here
-      //   captureDeferred                  render/reduced collects the onfinish callbacks and the
-      //                                    pulse targets while the pulse animations still exist
-      //   stepSpan                         render/duration's number, and the seek distance below
-      //   seek(span + 1)      -> opacity   render/opacity reads one millisecond past the end
-      //   seek(span + SETTLE) -> runDeferred, snap   render/reduced's played frame
-      // Every reading before the first seek is a READ, so sharing one enterStep between them
-      // changes nothing; the two seeks are monotonic, so the earlier read cannot see the later
-      // position. `runDeferred` is the only mutation and it runs last, after everything that
-      // would have been disturbed by it.
-      // -------------------------------------------------------------------------------------
+      // Played pass, order load-bearing: enterStep, reads at t=0, captureDeferred, stepSpan, seek(span + 1)
+      // for opacity, seek(span + SETTLE) then runDeferred and snap for reduced. runDeferred is the only mutation.
       const played = [];
       for (let i = 0; i < total; i++) {
         const live = await enterStep(page, i);
@@ -269,9 +190,7 @@ async function walk({ base = DEFAULT_BASE } = {}) {
           arrival: window.__wArrival({ tol }),
         }), { tol: HIT_TOL });
         let atZero = await takeZero();
-        // render/motion carried its own one-retry `sample()` for the same reason the static pass
-        // has one: the scene is torn down and rebuilt on every reset, so a null is a race and not a
-        // broken card. Union again, so neither consumer loses its guarantee.
+        // One retry, as above: a null at t=0 is a rebuild race, not a broken card.
         if (!atZero.motion || !atZero.arrival) {
           try {
             await page.waitForSelector(DIAGRAM, { timeout: SELECTOR_TIMEOUT_MS });
@@ -280,9 +199,7 @@ async function walk({ base = DEFAULT_BASE } = {}) {
         }
         const pulsed = await page.evaluate(captureDeferred, SELECTORS);
         const span = await stepSpan(page);
-        // The seek only happens on a live step, but the READING is taken either way: render/opacity
-        // probes an unplayed step too, and a walk that returned null there would silently drop it
-        // from that file's `sampled` census.
+        // Read even on an unplayed step, which render/opacity's `sampled` census counts.
         if (live) await seekStep(page, span + 1);
         const opacity = await page.evaluate(opacityProbe, { terminated: TERMINATED });
         await seekStep(page, span + SETTLE_PAST_SPAN_MS);
@@ -298,15 +215,8 @@ async function walk({ base = DEFAULT_BASE } = {}) {
       };
     }
 
-    // -----------------------------------------------------------------------------------------
-    // THE REDUCED-MOTION PASS, in a SECOND CONTEXT, for render/palette and report/palette-steps.
-    //
-    // It cannot share the page above, and that is the one thing here that is not a cost decision:
-    // `reducedMotion` is a CONTEXT option, not a per-page one, and both palette files set it for
-    // the same stated reason, that a pulse mid-flight repaints the stroke and sampling one turns a
-    // motion magnitude into a colour finding. So the two of them share a context with each other
-    // and with nobody else. The played rows override it per step through enterStep's reduced:false,
-    // which is the route those files already took.
+    // reducedMotion is a context option, so the palette files get a second context: a mid-flight
+    // pulse would turn a motion magnitude into a colour finding.
     const rmContext = await browser.newContext({ viewport: VIEWPORTS[0], reducedMotion: 'reduce' });
     const rmPage = await rmContext.newPage();
     await rmPage.addInitScript(initPage, 'expose');
@@ -327,7 +237,7 @@ async function walk({ base = DEFAULT_BASE } = {}) {
           await gotoStep(rmPage, i);
           stat.push(await rmPage.evaluate(probePaint, PAINTED));
         }
-        // Step 0 is the static poster and has no play path of its own, so its slot stays null.
+        // Step 0 is the static poster with no play path.
         play.push(null);
         for (let i = 1; i < total; i++) {
           await enterStep(rmPage, i);
@@ -340,13 +250,7 @@ async function walk({ base = DEFAULT_BASE } = {}) {
     }
     await rmContext.close();
 
-    // A WALK THAT OPENED NOTHING IS A FAILED RUN, NOT AN EMPTY ONE. Written after a real incident:
-    // the static server stopped answering mid-run, every `openCard` threw, and the walk wrote a
-    // 18KB snapshot in which every card carried an `openError`. Nothing downstream failed on it.
-    // report/palette-steps printed "cards sampled 0 of 123" and passed, because it never fails, and
-    // the mandatory files would have compared empty lists to empty lists. This is the same rule
-    // fixtures/catalog.mjs states about readdir and every walker states with census(): a green run
-    // over an empty set is worse than a red one.
+    // A walk that opened nothing is a failed run, not an empty one.
     const opened = Object.values(cards).filter(c => !c.openError).length;
     if (!opened) {
       throw new Error(
@@ -354,14 +258,7 @@ async function walk({ base = DEFAULT_BASE } = {}) {
         `openCard, which is a run failure and not a catalog finding: check that the server at ` +
         `${base} is still answering. First error: ${Object.values(cards)[0].openError}`);
     }
-    // AND A PARTIAL FAILURE IS ALSO A RUN FAILURE, for the same reason one line up and against the
-    // same temptation. A warning here was the first version of this and it was wrong: nothing reads
-    // stderr, and what the twelve consumers WOULD do with a snapshot missing 23 cards is report 23
-    // broken cards each, in twelve different vocabularies, none of which says "the server dropped
-    // requests". That reads as a catalog full of defects, which is the most expensive possible way
-    // to be told the harness had a bad afternoon. A card that genuinely cannot open is a red gate
-    // either way, so nothing that used to be catchable stops being caught: what changes is that it
-    // is reported ONCE, here, as itself.
+    // A partial failure fails the run too, reported once here instead of as broken cards in every consumer.
     if (opened < ids.length) {
       const broken = Object.entries(cards).filter(([, c]) => c.openError).slice(0, 5);
       throw new Error(
@@ -384,7 +281,6 @@ async function walk({ base = DEFAULT_BASE } = {}) {
   }
 }
 
-// Written only when this file is the entry point, so a test can import `walk` without a side effect.
 if (process.argv[1] && process.argv[1].endsWith('walk.mjs')) {
   const t0 = Date.now();
   const snap = await walk();

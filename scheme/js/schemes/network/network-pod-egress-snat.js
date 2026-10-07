@@ -1,54 +1,48 @@
-import { P, F, defineCard, laneY, BEAT } from './network-kit.js';
+import { LANE_DY, P, F, defineCard, laneY, BEAT } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-pod-egress-snat.md
 
-
-// Three bands rather than one line. The masqueraded path is the middle band and owns EGRESS_Y, the
-// exempt destination sits in the top band reached from the rule box TOP face, and the conntrack
-// store sits in the bottom band under the rule box. The whole content spans x 80..1120, centred on
-// x=600 exactly, and the chip strip takes the same two extremes.
+// Three bands: the masqueraded path in the middle owns EGRESS_Y, the exempt destination in the top
+// band is reached from the rule box top face, and the conntrack store sits in the bottom band.
 const EGRESS_Y = 390;               // the masqueraded path: Client Pod, POSTROUTING and Internet share it
-const LANE_DY = 12;                 // half-gap between the out and back lanes of every pair
-// 378 forward (Pod -> Internet) above the centre, 402 return (Internet -> Pod) below it.
+// Forward above the centre, return below it.
 const { out: FWD_Y, back: RET_Y } = laneY(EGRESS_Y, LANE_DY);
 
-const NODE_X = 80, NODE_Y = 215, NODE_W = 620, NODE_H = 335;   // 80..700 x 215..550
-const NODE_RIGHT = NODE_X + NODE_W;  // 700: the host boundary the masqueraded lanes cross
+const NODE_X = 80, NODE_Y = 215, NODE_W = 620;   // the height closes 12 under the store below
+const NODE_RIGHT = NODE_X + NODE_W;  // the host boundary the masqueraded lanes cross
 
-// 200 and not 232: the width this category's own client Pods run at, and the number
-// `network-packet-classification` cites in its own SIZES block.
+// 200, a client Pod width of this card's own, cited by `network-packet-classification`.
 const POD_X = 100, POD_W = 200, POD_H = 120;
-const POD_Y = EGRESS_Y - POD_H / 2;  // 330: shell centred on the egress line so both lanes meet it symmetrically
-const POD_EDGE = POD_X + POD_W;      // 300: right edge of the client Pod SHELL, where the wires meet the block
+const POD_Y = EGRESS_Y - POD_H / 2;  // shell centred on the egress line so both lanes meet it symmetrically
+const POD_EDGE = POD_X + POD_W;      // right edge of the client Pod shell, where the wires meet the block
 const APP_H = 52;
-// The app box is centred on the egress line inside the shell, so its own middle is 390 too.
+// The app box is centred on the egress line inside the shell.
 const POD_INNER = { dx: 20, dy: (POD_H - APP_H) / 2, w: POD_W - 40, h: APP_H, label: 'app', sublabel: 'eth0' };
 
-// The rule box is the LAST thing on the host, so it sits 20 inside the Node right edge rather than
-// floating mid-frame: the packet crossing x=700 is the packet leaving the host. 232 is the
-// `NET.L-01` default and it holds here: the widest string the box ever draws inks 168.8, which
-// leaves 31.6 a side, measured with extents.mjs at 1600x1000.
-const RULE_W = 232, RULE_H = 62;
-const RULE_X = NODE_RIGHT - 20 - RULE_W;   // 448
-const RULE_Y = EGRESS_Y - RULE_H / 2;      // 359: 359..421
-const RULE_RIGHT = RULE_X + RULE_W;        // 680
-const RULE_CX = RULE_X + RULE_W / 2;       // 564: the top and bottom face midpoints, which the exempt leg and the store both use
-const RULE_BOTTOM = RULE_Y + RULE_H;       // 421
+// The rule box is the last thing on the host, 20 inside the Node right edge: the packet crossing
+// x=700 is the packet leaving the host.
+const RULE_W = 232, RULE_H = 80;
+const RULE_X = NODE_RIGHT - 20 - RULE_W;
+const RULE_Y = EGRESS_Y - RULE_H / 2;
+const RULE_RIGHT = RULE_X + RULE_W;
+const RULE_CX = RULE_X + RULE_W / 2;       // the top and bottom face midpoints, which the exempt leg and the store both use
+const RULE_BOTTOM = RULE_Y + RULE_H;
 
 // The right-hand column, outside the Node, holds the two destinations the rule chooses between.
 // Both end on x=1120, which is also where the chip strip ends.
-const COL_X = 888, COL_W = 232, COL_RIGHT = COL_X + COL_W;   // 1120
-const NET_H = 62;
-const NET_Y = EGRESS_Y - NET_H / 2;        // 359: level with the rule box, so the masqueraded path is one straight band
+const COL_X = 888, COL_W = 232, COL_RIGHT = COL_X + COL_W;
+const NET_H = 80;
+const NET_Y = EGRESS_Y - NET_H / 2;        // level with the rule box, so the masqueraded path is one straight band
 // The exempt destination shares the Node frame top, which is what makes the top band read as a band.
 const PEER_Y = NODE_Y, PEER_H = 110;
-const PEER_MID = PEER_Y + PEER_H / 2;      // 270: the left face midpoint the exempt leg lands on
+const PEER_MID = PEER_Y + PEER_H / 2;      // the left face midpoint the exempt leg lands on
 const PEER_INNER = { dx: 20, dy: (PEER_H - APP_H) / 2, w: COL_W - 40, h: APP_H, label: 'app', sublabel: 'eth0' };
 
 // The conntrack store, in the band under the rule box, centred on the same RULE_CX.
 const CT_W = 160, CT_H = 60;
-const CT_X = RULE_CX - CT_W / 2;   // 484
-const CT_Y = 470;                  // 470..530, leaving 20 inside the Node bottom
+const CT_X = RULE_CX - CT_W / 2;
+const CT_Y = 470;
+const NODE_H = CT_Y + CT_H + 12 - NODE_Y;   // the 12 floor under the store
 
 // Lane pairs. Every pair is +-LANE_DY about a face midpoint, which is the L-12 shape.
 const POD_TO_RULE = [[POD_EDGE, FWD_Y], [RULE_X, FWD_Y]];
@@ -62,12 +56,9 @@ const EXEMPT_PATH = [[RULE_CX, RULE_Y], [RULE_CX, PEER_MID], [COL_X, PEER_MID]];
 const CT_WRITE = [[RULE_CX - LANE_DY, RULE_BOTTOM], [RULE_CX - LANE_DY, CT_Y]];
 const CT_READ = [[RULE_CX + LANE_DY, CT_Y], [RULE_CX + LANE_DY, RULE_BOTTOM]];
 
-// The caption stands over the part of the exempt run that is OUTSIDE the Node, not over the whole
-// run: centred on the run midpoint (719) its longer form inked across the Node right edge at 700 and
-// the comma of its shorter form sat on the dashed frame line. 794 is the midpoint of 700..888, which
-// leaves 17 units a side on the widest of the two strings at 6.94 units a glyph.
-const BRANCH_X = (NODE_RIGHT + COL_X) / 2;   // 794
-const BRANCH_Y = PEER_MID - 12;              // 258
+// The caption stands over the part of the exempt run outside the Node, so it clears the Node edge.
+const BRANCH_X = (NODE_RIGHT + COL_X) / 2;
+const BRANCH_Y = PEER_MID - 12;
 
 // Chip strip: the first chip starts on the Node left edge and the last ends on the column right
 // edge, so the readout spans exactly the same width as the picture and both centre on x=600.
@@ -125,13 +116,9 @@ const NODE_IP = '192.168.1.20';
 const PEER_IP = '10.244.2.7';
 const DST = '1.1.1.1:443';
 const KEPT = 'RETURN, source kept';
-// The default -14 puts a riding address INSIDE the block it is arriving at, which is where the two
-// addresses this card used to cut were lost. Measured at the two arrivals rather than mid-flight,
-// because a riding tag holds for 160ms after the ball stops: the out tag clears into the 34-unit
-// band between the peer Pod bottom (325) and the Internet top (359), and the return tag goes BELOW
-// its lane instead, into the band between the rule box bottom (421) and the store top (470).
-const TAG_UP = -38;
-const TAG_DOWN = 38;
+// Riding tags offset off their lanes, so at each arrival they stand in clear bands rather than inside
+// the block the ball reaches, and left of the ball, clear of the frame edge.
+const TAG_UP = -38, TAG_DOWN = 42, TAG_DX = -36;
 
 export const STEPS_SPEC = [
   {
@@ -150,9 +137,8 @@ export const STEPS_SPEC = [
     lit: ['srcChip'],
     // The animated path says the Pod SENT by pulsing it, which no lights list can name.
     reducedLit: ['eth0'],
-    // Up-arrow: the Pod pulses first, the packet leaves at BEAT.afterPulse and reaches the rule box,
-    // which lights on arrival. The run is 110 units, too narrow for a riding address, and it does
-    // not need one: the packet src chip is the readout this card rebuilt itself around.
+    // Up-arrow: the Pod pulses first, the packet leaves at BEAT.afterPulse and lights the rule box on
+    // arrival. No riding address: the run is too short, and the src chip is the readout.
     flow: [
       F.pulse({ pod: 'podGroup' }),
       F.segment({ from: POD_TO_RULE[0], to: POD_TO_RULE[1], delay: BEAT.afterPulse, name: 'send' }),
@@ -170,13 +156,10 @@ export const STEPS_SPEC = [
     lit: ['ruleBox', 'ruleChip'],
     // A pulse names nothing `flowLights` can derive, so the static path states the inner box itself.
     reducedLit: ['peerApp'],
-    // The ball arrives INTO a Pod, so the receiver blinks as a whole Pod rather than lighting its
-    // inner box alone (`M-03`): a highlight on `peerApp` left the shell dark and read as the packet
-    // reaching a box that happens to sit inside a Pod. Down-arrow order, so the packet travels first
-    // and the pulse fires on its arrival.
+    // The ball arrives into a Pod, so the whole Pod blinks rather than its inner box alone (`M-03`).
+    // Down-arrow order: packet first, pulse on arrival.
     flow: [
-      F.route({ points: EXEMPT_PATH, name: 'exempt' }),
-      F.pulse({ pod: 'peerPod', at: 'exempt' }),
+      F.route({ points: EXEMPT_PATH, pulse: 'peerPod' }),
     ],
   },
   {
@@ -189,14 +172,12 @@ export const STEPS_SPEC = [
     // The rewrite is made in the rule box the packet stands in, so src and rule read it from entry.
     // The entry exists only once the store ball lands, so ctChip turns over and lights there (P-03).
     rewind: { chips: { ctChip: 'none' } },
-    // The store is written first and the packet leaves after that arrival, which is the order the
-    // narration states: conntrack records the translation, then the translated packet goes out. The
-    // rewritten source rides the out leg, whose 208 units are the only clear run on the card.
+    // The store is written first and the packet leaves after that arrival, the order the narration
+    // states. The rewritten source rides the out leg, the only clear run on the card.
     flow: [
       F.segment({ from: CT_WRITE[0], to: CT_WRITE[1], lights: ['ctStore', 'ctChip'], name: 'store' }),
       F.set({ at: 'store', chips: { ctChip: 'entry stored' } }),
-      F.segment({ from: OUT_PATH[0], to: OUT_PATH[1], after: 'store', name: 'out' }),
-      F.tag({ text: `src ${NODE_IP}`, points: OUT_PATH, after: 'store', easing: 'linear', dy: TAG_UP }),
+      F.segment({ from: OUT_PATH[0], to: OUT_PATH[1], after: 'store', name: 'out', tag: { text: `src ${NODE_IP}`, dx: TAG_DX, dy: TAG_UP } }),
       F.light({ targets: ['net'], at: 'out' }),
     ],
   },
@@ -214,8 +195,7 @@ export const STEPS_SPEC = [
     // `rewind` carries what the reply actually arrives with, and one F.set writes both on arrival.
     rewind: { chips: { dstChip: NODE_IP, ctChip: 'entry matched' } },
     flow: [
-      F.segment({ from: BACK_PATH[0], to: BACK_PATH[1], lights: ['ruleBox'], name: 'back' }),
-      F.tag({ text: `dst ${NODE_IP}`, points: BACK_PATH, easing: 'linear', dy: TAG_DOWN }),
+      F.segment({ from: BACK_PATH[0], to: BACK_PATH[1], lights: ['ruleBox'], name: 'back', tag: { text: `dst ${NODE_IP}`, dx: TAG_DX, dy: TAG_DOWN } }),
       F.segment({ from: CT_READ[0], to: CT_READ[1], at: 'back', name: 'read' }),
       F.set({ at: 'back', chips: { dstChip: POD_IP, ctChip: 'translation reversed' } }),
     ],
@@ -230,8 +210,7 @@ export const STEPS_SPEC = [
     // The animated path says the Pod was SERVED by pulsing it, which no lights list can name.
     reducedLit: ['eth0'],
     flow: [
-      F.segment({ from: RULE_TO_POD[0], to: RULE_TO_POD[1], name: 'into' }),
-      F.pulse({ pod: 'podGroup', at: 'into' }),
+      F.segment({ from: RULE_TO_POD[0], to: RULE_TO_POD[1], pulse: 'podGroup' }),
     ],
   },
 ];

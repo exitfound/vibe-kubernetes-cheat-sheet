@@ -2,72 +2,72 @@ import { P, F, defineCard, BEAT, OPACITY, makeRidingLabel } from './storage-kit.
 // Design notes for this card: ./CARDS/storage-volumeattachment.md
 
 
-// One margin both sides, so CONTENT_L / CONTENT_R and CX fall out of it. LEFT_X is a separate wall at
-// 400 that only the TOP band obeys: the usable area is an L and the disk lives in its free
-// bottom-left corner.
+// One margin both sides. LEFT_X is a separate wall that only the TOP band obeys: the usable area is
+// an L and the disk lives in its free bottom-left corner.
 const M = 60;
-const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140, midpoint 600
+const CONTENT_L = M, CONTENT_R = 1200 - M;
 
-// Every solid block on the card is ONE size, the catalog actor block (NET.L-01), and the Pod is the
-// catalog Pod, 232 by 104 around a 192 by 44 app box.
+// Every solid block is the catalog actor block (NET.L-01), and the Pod is the catalog Pod.
 const BOX_W = 232, BOX_H = 80;
 
 const LEFT_X = 400;
 const NODE_W = 300;
-const COL_L_X = LEFT_X;                                  // 400..700, the node frame
-const COL_L_CX = COL_L_X + NODE_W / 2;                   // 550
-const COL_R_X = CONTENT_R - BOX_W;                       // 908..1140, the control-plane column
-const COL_R_CX = COL_R_X + BOX_W / 2;                    // 1024
-const CORRIDOR_X = (COL_L_X + NODE_W + COL_R_X) / 2;     // 804: the one lane that crosses the columns
+const COL_L_X = LEFT_X;  // the node frame
+const COL_L_CX = COL_L_X + NODE_W / 2;
+const COL_R_X = CONTENT_R - BOX_W;  // the control-plane column
+const COL_R_CX = COL_R_X + BOX_W / 2;
+const CORRIDOR_X = (COL_L_X + NODE_W + COL_R_X) / 2;  // the one lane that crosses the columns
 
-const NODE_Y = 24, NODE_H = 396;                         // 24..420
-const NODE_RIGHT = COL_L_X + NODE_W, NODE_BOTTOM = NODE_Y + NODE_H;  // 700 / 420
 const POD_W = BOX_W, POD_H = 104;
-const POD_X = COL_L_CX - POD_W / 2;                      // 434
+const POD_X = COL_L_CX - POD_W / 2;
 const POD_Y = 64;
-const POD_BOTTOM = POD_Y + POD_H;                        // 168
-const APP_W = 192, APP_H = 44, APP_DY = 26;              // 26 under the Pod label, as network-gateway-api
+const POD_BOTTOM = POD_Y + POD_H;
+const APP_W = 192, APP_H = 44, APP_DY = 26;  // 26 under the Pod label
 const KUBE_W = POD_W, KUBE_H = BOX_H;
-const KUBE_X = COL_L_CX - KUBE_W / 2;                    // 434, flush with the Pod above it
-const KUBE_Y = NODE_Y + NODE_H - 20 - KUBE_H;            // 320
-const KUBE_TOP = KUBE_Y;                                 // 320, the foot 20 clear of the frame bottom
-const KUBE_CY = KUBE_Y + KUBE_H / 2;                     // 360
+const KUBE_X = COL_L_CX - KUBE_W / 2;  // flush with the Pod above it
+const KUBE_Y = 320;
+const KUBE_TOP = KUBE_Y;
+const KUBE_CY = KUBE_Y + KUBE_H / 2;
+// The frame holds the catalog padding: a label band over the Pod and a floor under Kubelet. The
+// control-plane column spans the same height.
+const NODE_Y = POD_Y - 34, NODE_H = KUBE_Y + KUBE_H + 12 - NODE_Y;
+const NODE_RIGHT = COL_L_X + NODE_W, NODE_BOTTOM = NODE_Y + NODE_H;
 
 const ROWS = 3;
-const ROW_GAP = (NODE_H - ROWS * BOX_H) / (ROWS - 1);    // 78
-const ROW_Y = i => NODE_Y + i * (BOX_H + ROW_GAP);       // 24 / 182 / 340
+const ROW_GAP = (NODE_H - ROWS * BOX_H) / (ROWS - 1);
+const ROW_Y = i => NODE_Y + i * (BOX_H + ROW_GAP);
 const ADC_Y = ROW_Y(0);
-const ADC_BOTTOM = ADC_Y + BOX_H;                        // 104
+const ADC_BOTTOM = ADC_Y + BOX_H;
 const VA_Y = ROW_Y(1);
-const VA_TOP = VA_Y, VA_BOTTOM = VA_Y + BOX_H;           // 182 / 262
-const VA_CY = VA_Y + BOX_H / 2;                          // 222
+const VA_TOP = VA_Y, VA_BOTTOM = VA_Y + BOX_H;
+const VA_CY = VA_Y + BOX_H / 2;
 const ATT_Y = ROW_Y(2);
-const ATT_TOP = ATT_Y, ATT_BOTTOM = ATT_Y + BOX_H;       // 420, level with the node frame bottom
+const ATT_TOP = ATT_Y, ATT_BOTTOM = ATT_Y + BOX_H;  // level with the node frame bottom
 
 const DISK_W = 200, DISK_H = 114;
 const DISK_X = 130;
 const DISK_Y = 400;
-const DISK_TOP = DISK_Y, DISK_BOTTOM = DISK_Y + DISK_H;  // 400 / 514
-const DISK_CX = DISK_X + DISK_W / 2;                     // 230
-const DISK_RIGHT = DISK_X + DISK_W;                      // 330
-const DISK_CY = DISK_Y + DISK_H / 2;                     // 457
-const DISK_LBL_Y = DISK_TOP - 14;                        // 386
+const DISK_TOP = DISK_Y, DISK_BOTTOM = DISK_Y + DISK_H;
+const DISK_CX = DISK_X + DISK_W / 2;
+const DISK_RIGHT = DISK_X + DISK_W;
+const DISK_CY = DISK_Y + DISK_H / 2;
+const DISK_LBL_Y = DISK_TOP - 14;
 
-const CHIPS_Y = 592, CHIP_H = 34;                        // 592..626, 14 clear of the viewBox
+const CHIPS_Y = 592, CHIP_H = 34;  // 14 clear of the viewBox
 const CHIP_GAP = 16, CHIP_COUNT = 4;
-// The strip spans the card's own margins, so it centres on 600 by construction. Hanging its left end
-// on DISK_X instead put the strip at 130..1140, whose centre is 635.
-const CHIPS_L = CONTENT_L, CHIPS_R = CONTENT_R;          // 60 / 1140
-const CHIPS_W = CHIPS_R - CHIPS_L;                                      // 1080
-const CHIP_W = (CHIPS_W - CHIP_GAP * (CHIP_COUNT - 1)) / CHIP_COUNT;    // 258
+// The strip spans the card own margins, so it centres on 600 by construction.
+const CHIPS_L = CONTENT_L, CHIPS_R = CONTENT_R;
+const CHIPS_W = CHIPS_R - CHIPS_L;
+const CHIP_W = (CHIPS_W - CHIP_GAP * (CHIP_COUNT - 1)) / CHIP_COUNT;
 const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) =>
-  CHIPS_L + i * (CHIP_W + CHIP_GAP));                    // 60 / 334 / 608 / 882, last ends 1140
+  CHIPS_L + i * (CHIP_W + CHIP_GAP));
 
-const LANE = 40;
+// The watch and the status write are an out/back pair, the catalog 24 apart about the column centre.
+const LANE = 12;
 const W_WRITE   = [[COL_R_CX, ADC_BOTTOM], [COL_R_CX, VA_TOP]];              // controller creates it
 const W_WATCH   = [[COL_R_CX - LANE, VA_BOTTOM], [COL_R_CX - LANE, ATT_TOP]];// attacher reads it
 const W_STATUS  = [[COL_R_CX + LANE, ATT_TOP], [COL_R_CX + LANE, VA_BOTTOM]];// attacher writes back
-const PUBLISH_JOG_Y = DISK_BOTTOM + 32;                  // 546
+const PUBLISH_JOG_Y = DISK_BOTTOM + 32;
 const W_PUBLISH = [[COL_R_CX, ATT_BOTTOM], [COL_R_CX, PUBLISH_JOG_Y], [DISK_CX, PUBLISH_JOG_Y], [DISK_CX, DISK_BOTTOM]];
 // Both lanes that reach kubelet end on the NODE FRAME, not on the kubelet box: the device climbs to
 // the frame floor under it and the gate stops at the frame's right face, level with its centre.
@@ -75,21 +75,22 @@ const W_ONNODE  = [[DISK_RIGHT, DISK_CY], [COL_L_CX, DISK_CY], [COL_L_CX, NODE_B
 const W_GATE    = [[COL_R_X, VA_CY], [CORRIDOR_X, VA_CY], [CORRIDOR_X, KUBE_CY], [NODE_RIGHT, KUBE_CY]];
 const W_MOUNT   = [[COL_L_CX, KUBE_TOP], [COL_L_CX, POD_BOTTOM]];
 
-// The write tag rides LEFT of its lane: anchored middle on x=1024 it is 90.4 wide, and the static
-// `create` caption starts 12 right of the lane at 1036, so at dx 0 the two overlap for about 200ms.
+// The write tag rides left of its lane, clear of the static `create` caption.
 const WRITE_TAG_DX = -46;
 
-// The publish lane leaves the attacher floor and enters the disk, so at the default -14 the driver
-// call is cut for 200 ms. Below the ball it clears from 12 to 42, and 22 also clears the ball itself.
+// The publish lane enters the disk, so the driver call tag rides below the ball.
 const DRIVER_TAG_DY = 22;
 
-// The right column's lanes are 78 long between 80-tall boxes, so a tag at any fixed offset starts or
-// ends inside a block. This one fades in only once its ball is clear: 250 covers the 252ms crossing.
+// The right column lanes are short between tall boxes, so this tag fades in only once its ball is clear.
 const emergeTag = makeRidingLabel({ role: 'storage', emergeMode: true });
-const TAG_EMERGE = 250;
-// The status write ENDS on the object it updates, where emerging cannot help: below the ball it
-// parks 14 clear of the box floor, and 22 is the offset the publish lane already uses.
+// The mount rises into the Pod floor, so its tag TRAILS the ball, under it and right of the lane, and
+// fades in once clear of the Kubelet top it starts inside.
+const MOUNT_TAG = { fn: emergeTag, emerge: 150, dx: 50, dy: 16 };
+const TAG_EMERGE = 280;
+// The status write ends on the object it updates, where emerging cannot help, so it rides below the ball.
 const STATUS_TAG_DY = DRIVER_TAG_DY;
+// The pair is 24 apart, so each tag rides OUTSIDE it, clear of the other lane.
+const WATCH_TAG_DX = -53, STATUS_TAG_DX = 56;
 
 // How long a block takes to leave on the detach step.
 const LAND_MS = 500;
@@ -223,11 +224,9 @@ export const STEPS_SPEC = [
     // written as `lights` there would stand BEFORE the tag instead of after it.
     flow: [
       F.route({ points: W_WATCH, name: 'watch', lights: ['att'] }),
-      F.route({ points: W_PUBLISH, after: 'watch', name: 'call' }),
-      F.tag({ text: 'ControllerPublish', points: W_PUBLISH, after: 'watch', dy: DRIVER_TAG_DY }),
+      F.route({ points: W_PUBLISH, after: 'watch', name: 'call', tag: { text: 'ControllerPublish', dy: DRIVER_TAG_DY } }),
       F.light({ targets: ['disk'], at: 'call' }),
-      F.route({ points: W_ONNODE, after: 'call', name: 'land' }),
-      F.tag({ text: 'vol-1 on Node-1', points: W_ONNODE, after: 'call' }),
+      F.route({ points: W_ONNODE, after: 'call', name: 'land', tag: { text: 'vol-1 on Node-1' } }),
       // Kubelet lights as the RECEIVER of the device, while its chip still reads blocked: seeing the
       // device is not permission to mount it, which is the `mount` gate.
       F.light({ targets: ['kube'], at: 'land' }),
@@ -249,7 +248,7 @@ export const STEPS_SPEC = [
     // the watch it answers, so it never reads as the watch bouncing back.
     flow: [
       F.route({ points: W_STATUS, name: 'status' }),
-      F.tag({ text: 'attached: true', points: W_STATUS, fn: emergeTag, emerge: TAG_EMERGE, dy: STATUS_TAG_DY }),
+      F.tag({ text: 'attached: true', points: W_STATUS, fn: emergeTag, emerge: TAG_EMERGE, dx: STATUS_TAG_DX, dy: STATUS_TAG_DY }),
       F.light({ targets: ['va'], at: 'status' }),
       F.set({ at: 'status', chipsCued: { attrChip: 'true' }, sublabels: { va: ATTACHED_TRUE } }),
     ],
@@ -268,12 +267,9 @@ export const STEPS_SPEC = [
     // Kubelet reads blocked, and the disk unmounted, until the mount lands in the Pod (P-03).
     rewind: { chips: { kubeChip: 'blocked' }, wires: { disk: DISK_ON_NODE } },
     flow: [
-      F.route({ points: W_GATE, name: 'gate' }),
-      F.tag({ text: 'attached: true', points: W_GATE }),
+      F.route({ points: W_GATE, name: 'gate', tag: { text: 'attached: true' } }),
       F.light({ targets: ['kube'], at: 'gate' }),
-      F.route({ points: W_MOUNT, after: 'gate', name: 'mount' }),
-      F.tag({ text: 'mount /data', points: W_MOUNT, after: 'gate' }),
-      F.pulse({ pod: 'appPod', at: 'mount' }),
+      F.route({ points: W_MOUNT, after: 'gate', name: 'mount', tag: { text: 'mount /data', ...MOUNT_TAG }, pulse: 'appPod' }),
       F.set({ at: 'mount', chipsCued: { kubeChip: 'mounted' }, wires: { disk: DISK_MOUNTED } }),
     ],
   },
@@ -310,13 +306,12 @@ export const STEPS_SPEC = [
       // unlight below takes it off again before the step settles.
       F.set({ on: 'va', lit: ['va'], at: 'del' }),
       F.route({ points: W_WATCH, after: 'del', name: 'watch' }),
-      F.tag({ text: 'deletion mark', points: W_WATCH, after: 'del', fn: emergeTag, emerge: TAG_EMERGE }),
+      F.tag({ text: 'deletion mark', points: W_WATCH, after: 'del', fn: emergeTag, emerge: TAG_EMERGE, dx: WATCH_TAG_DX }),
       F.light({ targets: ['att'], at: 'watch' }),
       // The deletion mark, not the deletion: the attacher sees deletionTimestamp and the object
       // drops to the terminating shade, still holding its finalizer.
       fade('va', 1, OPACITY.terminating, { at: 'watch' }),
-      F.route({ points: W_PUBLISH, after: 'watch', name: 'call' }),
-      F.tag({ text: 'ControllerUnpublish', points: W_PUBLISH, after: 'watch', dy: DRIVER_TAG_DY }),
+      F.route({ points: W_PUBLISH, after: 'watch', name: 'call', tag: { text: 'ControllerUnpublish', dy: DRIVER_TAG_DY } }),
       // The disk lights as the unpublish lands and stays at full: detached is the idle state it
       // opened on, `not attached to any node` at full strength.
       F.light({ targets: ['disk'], at: 'call' }),

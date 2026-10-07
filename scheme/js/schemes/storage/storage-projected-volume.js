@@ -1,56 +1,49 @@
-import { P, F, defineCard, BEAT, makeRidingLabel } from './storage-kit.js';
+import { LANE_DY, P, F, defineCard, BEAT } from './storage-kit.js';
 import { g, rect, path } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS/storage-projected-volume.md
 
 
-// One mount as three plain file rows in the middle of the canvas, the writer and its source in a
-// column right of them, the Pod left of them, and a time axis across the floor. The three columns
-// are evenly spaced: 100 of margin, 152 of gap, 232 of block, all the way across, so the row stack
-// centres on the canvas centre and the chip strip under it. Panel extent per viewport is measured
-// in the record: the Pod top at 222 is what it pins.
+// One mount as three file rows in the middle, the writer and its source in a column right of them,
+// the Pod left of them and a time axis across the floor. The columns are evenly spaced, so the row
+// stack and the chip strip centre on the canvas.
 const BOX_W = 232, BOX_H = 80;                                    // NET.L-01
-const COL_X = 868, COL_CX = COL_X + BOX_W / 2;                    // 868..1100, centre 984
-const API_Y = 38, API_B = API_Y + BOX_H;                          // 38..118
-const KUBE_Y = 234, KUBE_MY = KUBE_Y + BOX_H / 2;                 // 234..314, a 116 gap for the riding tags
-const LANE_DY = 12;                                               // the out/back pair, 24 apart
-const UP_X = COL_CX - LANE_DY, DOWN_X = COL_CX + LANE_DY;         // 972 / 996
+const COL_X = 868, COL_CX = COL_X + BOX_W / 2;
+const API_Y = 38, API_B = API_Y + BOX_H;
+const KUBE_Y = 234, KUBE_MY = KUBE_Y + BOX_H / 2;                 // the gap between the boxes holds the riding tags
+const UP_X = COL_CX - LANE_DY, DOWN_X = COL_CX + LANE_DY;
 
-// The mount, in ls order: ca.crt, namespace, token. The stack is centred on MID_Y, which is where
-// the Kubelet already sat: the middle row is level with the writer, so the write fan is 68 up,
-// straight, 68 down, and the read fan out of the rows mirrors it.
-const ROW_X = 484, ROW_W = 232, ROW_H = 56, ROW_GAP = 12;         // 484..716
-const ROW_R = ROW_X + ROW_W, ROW_CX = ROW_X + ROW_W / 2;          // 716 / 600
+// The mount, in ls order. The middle row is level with the Kubelet, so the write fan is symmetric
+// about a straight middle leg, and the read fan out of the rows mirrors it.
+const ROW_X = 484, ROW_W = 232, ROW_H = 56, ROW_GAP = 12;
+const ROW_R = ROW_X + ROW_W, ROW_CX = ROW_X + ROW_W / 2;
 const ROW_Y0 = 178;
-const rowY = (i) => ROW_Y0 + i * (ROW_H + ROW_GAP);               // 178 / 246 / 314
-const rowMY = (i) => rowY(i) + ROW_H / 2;                         // 206 / 274 / 342
+const rowY = (i) => ROW_Y0 + i * (ROW_H + ROW_GAP);
+const rowMY = (i) => rowY(i) + ROW_H / 2;
 const CA = 0, NS = 1, TOK = 2;
-const MID_Y = rowMY(NS);                                          // 274, and KUBE_MY is the same
+const MID_Y = rowMY(NS);                                          // level with KUBE_MY
 const BUS_X = 780;                                                // the write bus, rows to Kubelet
 
-// One Pod, 232 by 104 with a 192 by 44 app box (NET.L-01), centred on the row stack the way the
-// Kubelet is, so both fans leave their column on MID_Y.
+// The catalog Pod (NET.L-01), centred on the row stack like the Kubelet, so both fans leave on MID_Y.
 const POD_X = 100, POD_W = 232, POD_H = 104;
-const POD_Y = MID_Y - POD_H / 2;                                  // 222..326
-const POD_R = POD_X + POD_W;                                      // 332
+const POD_Y = MID_Y - POD_H / 2;
+const POD_R = POD_X + POD_W;
 const DROP_X = 420;                                               // the shared read drop, BUS_X mirrored about 600
 
-// The clock: one scale for every bar, 7 units a minute, so a bar length is a lifetime. The axis
-// spans the CHIP STRIP exactly, 134..1066, so the floor is one block centred on 600 with the rows
-// and the strip: the two used to sit on different spans and read as two loose rules.
+// The clock: one scale for every bar, PER_MIN units a minute, so a bar length is a lifetime. The
+// axis spans the chip strip exactly, so the floor centres on 600 with the rows and the strip.
 const T0_X = 134, PER_MIN = 7, AXIS_R = 1066;
-const tx = (min) => T0_X + min * PER_MIN;                         // 48 -> 470, 60 -> 554, 108 -> 890
+const tx = (min) => T0_X + min * PER_MIN;
 const BAR_H = 30;
 const BAR1_Y = 400, BAR2_Y = 438, LEGACY_Y = 504;
 const LEGACY_CAP_Y = 494, AXIS_Y = 554, TICK_Y = 574;
 
 const CHIP_W = 300, CHIP_GAP = 16, CHIP_H = 34, CHIPS_Y = 592;
-const chipX = (i) => 600 - (3 * CHIP_W + 2 * CHIP_GAP) / 2 + i * (CHIP_W + CHIP_GAP);   // 134 / 450 / 766
+const chipX = (i) => 600 - (3 * CHIP_W + 2 * CHIP_GAP) / 2 + i * (CHIP_W + CHIP_GAP);
 
 // Each static wire and its ball share one array.
 const W_UP = [[UP_X, KUBE_Y], [UP_X, API_B]];
 const W_DOWN = [[DOWN_X, API_B], [DOWN_X, KUBE_Y]];
-// The middle row is level with the Kubelet and with the Pod, so its write and its read are straight
-// lines and the other two turn by the same 68 either side of them.
+// The middle row's write and read are straight, the other two turn the same distance either side.
 const writeTo = (i) => (i === NS
   ? [[COL_X, KUBE_MY], [ROW_R, MID_Y]]
   : [[COL_X, KUBE_MY], [BUS_X, KUBE_MY], [BUS_X, rowMY(i)], [ROW_R, rowMY(i)]]);
@@ -60,24 +53,16 @@ const readFrom = (i) => (i === NS
   : [[ROW_X, rowMY(i)], [DROP_X, rowMY(i)], [DROP_X, MID_Y], [POD_R, MID_Y]]);
 const R_CA = readFrom(CA), R_NS = readFrom(NS), R_TOK = readFrom(TOK);
 
-// EVERY ball rides routeDur, which puts all six lane lengths (116, 152 and 220) on the 700ms floor,
-// so one leg is one beat wherever it is on the card, as on storage-emptydir.
-// A tag lives exactly as long as its ball (M-30a), the same grammar: it fades in before departure,
-// glides with the ball and fades as the ball dissolves on arrival. It rides BESIDE its lane at the
-// ball's own height, because the 116 gap between the two boxes is exactly the leg, so any vertical
-// offset would put the tag inside the box at one end or the other.
-const tagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
-const UP_TAG = { fn: tagFn, dx: -66, dy: 0 };
-const DOWN_TAG = { fn: tagFn, dx: 66, dy: 0 };
-// Neither a write nor a read carries a tag: the box on the far end of both IS the payload, ca.crt
-// out of the row labelled ca.crt. Only the vertical pair is tagged, where what rides is written on
-// neither end.
+// Every ball rides routeDur, which puts all six lanes on the 700ms floor: one leg is one beat.
+// Tags ride beside the vertical lanes at the ball's height, since the gap between the boxes is the
+// whole leg and any vertical offset would put a tag inside a box.
+const UP_TAG = { dx: -66, dy: 0 };
+const DOWN_TAG = { dx: 66, dy: 0 };
+// Writes and reads carry no tag: the row on the far end is the payload. Only the vertical pair is
+// tagged, where what rides is written on neither end.
 
-// The legacy bar is CLOSED at both ends, the same 6 unit corners as bar1 and bar2. It used to stop
-// dead at the axis end to say the token never expires, and beside two closed bars that read as a
-// clipped box rather than as an open interval. The caption inside it carries the meaning instead.
-// P.raw stays because this bar takes the soft fill and a sublabel-class string, neither of which
-// P.box gives.
+// Closed at both ends like bar1 and bar2: the caption inside carries the no-expiry meaning.
+// P.raw because P.box gives neither the soft fill nor a sublabel-class string.
 const legacyBar = () => {
   const y0 = LEGACY_Y, y1 = LEGACY_Y + BAR_H, r = 6;
   const fill = rect({ x: T0_X, y: y0, width: AXIS_R - T0_X, height: BAR_H });
@@ -89,8 +74,6 @@ const legacyBar = () => {
   return g({}, [fill, edge]);
 };
 
-// Z-order (bottom -> top): the rows, the Pod, the column, the bars, the lanes, the captions, the
-// chips, then the packet layer.
 export const SCENE = {
   'aria-label': 'Projected volume: Pod api-0 mounts one directory, /var/run/secrets/app, filled from three sources. Kubelet writes ca.crt from ConfigMap vault-ca, namespace from the Pod object through downwardAPI, and token from a serviceAccountToken source: a TokenRequest for the audience vault with a one hour lifetime, bound to the Pod. The app reads three plain files. At 80 percent of the lifetime, or after 24 hours if that comes first, here minute 48, Kubelet requests a fresh token and swaps it into the same file, and the app picks it up when it re-reads. A legacy Secret-based token never expires and never rotates.',
   parts: [
@@ -128,8 +111,7 @@ export const SCENE = {
     P.tag({ x: tx(48), y: TICK_Y, text: '48, 80%' }),
     P.tag({ x: tx(60), y: TICK_Y, text: '60' }),
     P.tag({ x: tx(108), y: TICK_Y, text: '108' }),
-    // The mount path captions the listing, so it is born with the listing: standing from step 0 it
-    // labelled an empty band, and the Pod sublabel already names the path on its own.
+    // Born with the listing it captions: the Pod sublabel already names the path.
     P.tag({ key: 'mountCap', cls: 'scheme-label code', x: ROW_CX, y: ROW_Y0 - 18, text: '/var/run/secrets/app', opacity: 0 }),
     P.wire({ key: 'legacy', x: (T0_X + AXIS_R) / 2, y: LEGACY_CAP_Y }),
     P.chip({ key: 'dirChip', x: chipX(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'dir holds', value: 'nothing yet' }),
@@ -184,8 +166,7 @@ export const STEPS_SPEC = [
     rewind: { chips: C_EMPTY, opacity: EMPTY },
     lit: ['api'],
     flow: [
-      F.route({ points: W_DOWN, delay: BEAT.lead, name: 'cm', lights: ['kubelet'] }),
-      F.tag({ text: 'ConfigMap vault-ca', points: W_DOWN, delay: BEAT.lead, ...DOWN_TAG }),
+      F.route({ points: W_DOWN, delay: BEAT.lead, name: 'cm', lights: ['kubelet'], tag: { text: 'ConfigMap vault-ca', ...DOWN_TAG } }),
       // Each row and its lanes appear together before the write into it leaves (STO.S-02, A-15),
       // and the mount-path caption comes up with the first of them.
       F.fade({ ...SHOW('mountCap'), at: 'cm' }),
@@ -212,10 +193,8 @@ export const STEPS_SPEC = [
     rewind: { chips: C_TWO, opacity: TWO },
     lit: ['kubelet'],
     flow: [
-      F.route({ points: W_UP, delay: BEAT.lead, name: 'req', lights: ['api'] }),
-      F.tag({ text: 'TokenRequest', points: W_UP, delay: BEAT.lead, ...UP_TAG }),
-      F.route({ points: W_DOWN, after: 'req', plus: 250, name: 'tok', lights: ['kubelet'] }),
-      F.tag({ text: 'token 1', points: W_DOWN, after: 'req', plus: 250, ...DOWN_TAG }),
+      F.route({ points: W_UP, delay: BEAT.lead, name: 'req', lights: ['api'], tag: { text: 'TokenRequest', ...UP_TAG } }),
+      F.route({ points: W_DOWN, after: 'req', plus: 250, name: 'tok', lights: ['kubelet'], tag: { text: 'token 1', ...DOWN_TAG } }),
       F.fade({ ...SHOW('tokRow'), at: 'tok' }),
       F.fade({ ...SHOW('wTok'), at: 'tok' }),
       F.fade({ ...SHOW('rTok'), at: 'tok' }),
@@ -235,12 +214,9 @@ export const STEPS_SPEC = [
     rewind: { chips: C_THREE },
     lit: ['caRow', 'nsRow', 'tokRow'],
     flow: [
-      F.route({ points: R_CA, delay: BEAT.lead, name: 'a' }),
-      F.pulse({ pod: 'pod', at: 'a' }),
-      F.route({ points: R_NS, after: 'a', plus: 100, name: 'b' }),
-      F.pulse({ pod: 'pod', at: 'b' }),
-      F.route({ points: R_TOK, after: 'b', plus: 100, name: 'c' }),
-      F.pulse({ pod: 'pod', at: 'c' }),
+      F.route({ points: R_CA, delay: BEAT.lead, name: 'a', pulse: 'pod' }),
+      F.route({ points: R_NS, after: 'a', plus: 100, name: 'b', pulse: 'pod' }),
+      F.route({ points: R_TOK, after: 'b', plus: 100, name: 'c', pulse: 'pod' }),
       F.set({ at: 'c', chips: C_READ }),
       F.light({ targets: ['appChip'], at: 'c' }),
     ],
@@ -255,17 +231,14 @@ export const STEPS_SPEC = [
     rewind: { chips: C_READ, opacity: THREE },
     lit: ['kubelet'],
     flow: [
-      F.route({ points: W_UP, delay: BEAT.lead, name: 'req', lights: ['api'] }),
-      F.tag({ text: 'TokenRequest', points: W_UP, delay: BEAT.lead, ...UP_TAG }),
-      F.route({ points: W_DOWN, after: 'req', plus: 250, name: 'tok', lights: ['kubelet'] }),
-      F.tag({ text: 'token 2', points: W_DOWN, after: 'req', plus: 250, ...DOWN_TAG }),
+      F.route({ points: W_UP, delay: BEAT.lead, name: 'req', lights: ['api'], tag: { text: 'TokenRequest', ...UP_TAG } }),
+      F.route({ points: W_DOWN, after: 'req', plus: 250, name: 'tok', lights: ['kubelet'], tag: { text: 'token 2', ...DOWN_TAG } }),
       F.route({ points: W_TOK, after: 'tok', plus: 250, name: 'write', lights: ['tokRow', 'bar2'] }),
       F.fade({ ...SHOW('bar2'), at: 'write' }),
       F.set({ at: 'write', chips: C_WRITTEN }),
       F.light({ targets: ['tokChip'], at: 'write' }),
       // The app holds token 1 until it opens the file again.
-      F.route({ points: R_TOK, after: 'write', plus: 400, name: 'reread' }),
-      F.pulse({ pod: 'pod', at: 'reread' }),
+      F.route({ points: R_TOK, after: 'write', plus: 400, name: 'reread', pulse: 'pod' }),
       F.set({ at: 'reread', chips: C_REREAD }),
       F.light({ targets: ['appChip'], at: 'reread' }),
     ],

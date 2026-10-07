@@ -1,84 +1,6 @@
-// geometry-soft.test.mjs: the three geometry rules that are NOT in the gate, and are not supposed
-// to be. Successor of the report half of tools/check-geometry.mjs, the half the gate never ran
-// (`--rules=diagonal,through,offedge` in tools/package.json names the other three).
-//
-//   CENTRE     (L-13)  the content bbox centres within 40 units of x=600, the chip strip within 6.
-//   CENTRE-LOW (L-14)  blocks sitting BELOW the narration panel centre on x=600 too, because the
-//                      full width is free down there.
-//   OCCLUDED   (L-15)  no block has a substantial share of its AREA under the narration panel.
-//
-// WHY THIS FILE NEVER FAILS. L-16: a finding that can only be closed by making the picture worse
-// is left OPEN, with the measurement and the reason written into the card's record. The four
-// records carry 18 such entries today (9 cluster, 5 storage, 3 workloads, 1 network). Making these
-// three rules mandatory would mean either editing those cards until the pictures are worse, or
-// carrying a permanent suppression list, and a suppression list is the thing L-12's numeric
-// whitelist already taught this project not to keep. So this file MEASURES and PRINTS. The
-// decision about a finding belongs to a person holding the card's record open, and the report
-// below is written to be read next to it.
-//
-// Read the census line at the top of the output first. A report that scanned nothing also prints
-// no findings, and that is the only way this file can lie.
-//
-// CARRIED FINDINGS. A row somebody has read and decided to keep is filed in ../fixtures/carried.mjs
-// against its rule, and this file then prints it marked CARRIED with the reason attached, counts it
-// apart from the rows left to work, and keeps it out of the per-card list and the by-category
-// tally. Nothing is hidden: the TOTAL still counts every finding these three rules produced. Every
-// entry here belongs to the `L-16` population, where the rule can only be satisfied by making the
-// picture worse, and the reason on each is the measurement that says so. Two guards come with the
-// store and both print: a ruling with no reason is BROKEN, and a ruling that matched no finding on
-// this walk is stale, which means the card moved under it.
-//
-// VIEWPORTS, and which rule uses which. The standard set is L-06: 1600x1000, 1280x860, 1100x800.
-// Only the narration panel moves with the viewport, and it moves NON-MONOTONICALLY (L-05): the
-// panel is HTML at a fraction of the dialog width while the diagram is an SVG that scales with it,
-// so a WIDER dialog gives a WIDER panel that wraps into FEWER lines and is therefore SHORTER in
-// viewBox units. Blocks and chips do not move at all, they are viewBox geometry.
-//   CENTRE      one viewport. It reads no panel.
-//   OCCLUDED    all three, worst case, exactly as the original did.
-//   CENTRE-LOW  ONE viewport, 1600x1000, and this is a BLIND SPOT reproduced on purpose. In the
-//               original, the panel bottom that decides which blocks count as "low" is accumulated
-//               only in the first walk (check-geometry.mjs:233-237); the extra viewport passes
-//               push into ovRects, which only OCCLUDED reads. So CENTRE-LOW judges against one
-//               viewport whether or not OCCLUDED is switched on. The report prints what the
-//               worst-of-three panel bottom would have changed, as a measurement, never as the
-//               verdict: reproducing a rule is not the moment to also redefine it.
-//
-// L-17 IS REPRODUCED, NOT FIXED. CENTRE counts node() frames in its content bbox and counts no
-// chips at all, while CENTRE-LOW excludes frames. That is one quantity computed two ways inside one
-// file, and it means a card balanced by a frame full of chip rows still reports. Both readings are
-// printed side by side under each CENTRE finding so a reader can see which of the two the number
-// came from, but the verdict is the original's.
-//
-// FONTS FIRST (L-21), and it matters more here than anywhere. A block's bbox is the bbox of its
-// GROUP, label and sublabel included, so the content span these three rules centre on is partly a
-// text measurement. Measured before the webfont arrives it is the fallback face, about 20 percent
-// narrower, and every span, centre and occluded area computed from it is wrong in the same
-// direction. A run that does not wait for the real face takes every count below on whatever face
-// happened to be resolved, so waiting is mandatory. document.fonts.ready alone is not enough:
-// scheme/index.html attaches the Google Fonts stylesheet from the onload handler of a
-// <link rel="preload">, so `ready` can settle before the sheet is linked. Neither is
-// document.fonts.check(), which is why the guard moved into fixtures/render.mjs as a behavioural
-// width probe: with no sheet attached there is no @font-face rule to be missing, so check() reports
-// every family available, including ones that do not exist. This file never fails, so a fallback
-// face is printed at the top of the report as loudly as a line can be printed, and it invalidates
-// everything below it.
-//
-// MEASURED, because "about 20 percent" is not a number anyone can act on. With fonts.gstatic.com
-// blocked and everything else identical:
-//   block geometry  UNCHANGED on every card. A block's bbox is its rect, and no card has a
-//                   label wider than the rect around it, so the content span does not move at all.
-//   panel bottom    SHORTER by 17.5 units, one text line, on 3 of 6 cards sampled
-//                   (cluster-cascading-deletion 194.9 -> 177.4, network-ipam-pod-cidr 177.4 -> 160,
-//                   workloads-pod-lifecycle-phases 317 -> 299.5). The panel right edge does not move.
-// So the exposure is entirely on the two rules that read the panel: a run without fonts gets a
-// SHORTER panel, which hides occluded area and moves the line CENTRE-LOW counts blocks below. Both
-// under-report, quietly, at exit 0. That is the shape of the risk L-21 describes, and without the
-// face probe nothing in a run can see it.
-//
-// The probe is a LOCAL COPY, deliberately, and it is NOT the same probe render/geometry.test.mjs
-// carries: this file reads blocks, chips and the panel, that one reads blocks and lanes. Neither is
-// a subset of the other in any useful way, and a shared fixture would be a third shape that neither
-// caller uses whole. Same call report/palette-steps.test.mjs made, same reason.
+// CENTRE (L-13), CENTRE-LOW (L-14) and OCCLUDED (L-15), reported, never failing (L-16). Carried rulings
+// print as CARRIED. CENTRE-LOW reads one viewport's panel and CENTRE counts frames but not chips (L-17),
+// both reproduced on purpose. A fallback face invalidates the panel numbers (L-21).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -88,49 +10,25 @@ import { stepTotal } from '../fixtures/module.mjs';
 import { DIAGRAM_FACES } from '../fixtures/render.mjs';
 import { readSnapshot } from '../fixtures/snapshot.mjs';
 
-// THE BROWSER IS NOT DRIVEN HERE ANY MORE. Every reading this file asserts over is taken by
-// `tools/walk.mjs`, which opens each card once and hands the same three-viewport walk to this file
-// and to report/overlay.test.mjs. The two used to drive a Chromium each and walk the SAME two extra
-// viewports with the SAME panel probe: 1500 duplicated step probes, 246 duplicated viewport
-// resizes, and 84 of the report tier's 135 seconds. `npm run report` runs the walk first, every
-// time, so nothing here is ever read from a snapshot of a tree that has since changed.
-//
-// What did NOT change: every finding, every threshold, every printed line and the order of all of
-// them. The probe that used to live in this file moved into the walk verbatim.
+// All readings come from tools/walk.mjs, shared with report/overlay.test.mjs.
 
-// Tolerances, carried over from check-geometry.mjs unchanged.
 const TOL = 6;              // chip-strip centre slack, in viewBox units
 const CENTRE_TOL = 40;      // content centre slack
 const LOW_MIN_BLOCKS = 2;   // fewer than two blocks below the panel is not a composition
 const LOW_MIN_SPAN = 200;   // a group narrower than this is not claiming the width
 const OCCLUDED_FRAC = 0.15; // share of a block's AREA under the panel before it counts as lost
-const CENTRE_X = 600;       // centre of the 1200-unit viewBox
+const CENTRE_X = 600;
 
-// L-06. The first row is where everything is measured; the other two exist for the panel.
+// L-06. Everything is measured at the first. The other two exist for the panel.
 const VIEWPORTS = [
   { width: 1600, height: 1000 },
   { width: 1280, height: 860 },
   { width: 1100, height: 800 },
 ];
 
-// TWO POPULATIONS, AND THEY ARE NOT ONE POPULATION. This file counts what its three rules can see
-// on the live catalog (CENTRE, CENTRE-LOW, OCCLUDED). The four card records separately carry the
-// `^OPEN` entries L-16 leaves open on purpose, and that census is stated in `scheme/CLAUDE.md` and
-// machine-compared there by `unit/docs-census.test.mjs`, which is its one executing home. No copy of
-// it is typed here: the records cover more than geometry (a frame label under the panel, a band
-// empty by construction, a lane pair declined), so the two populations OVERLAP and never coincide,
-// and a stale copy in this slot would have a reader comparing the report against a figure nobody
-// recounted. See the closing note the report prints.
+// The OPEN entries in the card records are a different, overlapping population, counted in docs-census.
 
-// The extra viewport passes consume ONLY the panel extent (check-geometry.mjs:262-273 pushes
-// nothing else), so they run fixtures/render.mjs overlayProbe instead of the full probe above.
-// Blocks and chips are viewBox geometry and do not move with the viewport, so nothing is lost and
-// two thirds of the walk gets cheaper. That probe is shared with report/overlay.test.mjs and
-// returns all four panel edges; this file reads `right` and `bottom` and ignores the other two.
-
-// The worst area share of block b under any measured panel rect. The panel is anchored at the
-// top-left corner of the viewBox, so the overlap is measured from 0 on both axes, exactly as the
-// original computed it.
+// The panel is anchored at the viewBox top-left, so overlap is measured from 0 on both axes.
 function worstOcclusion(b, rects) {
   let worst = 0, at = null;
   for (const o of rects) {
@@ -142,9 +40,7 @@ function worstOcclusion(b, rects) {
   return { worst, at };
 }
 
-// CENTRE-LOW's verdict, factored out because the report runs it twice: once against the panel
-// bottom the original uses (one viewport) and once against the worst of the three, to measure what
-// the blind spot costs. Returns null when the rule has nothing to say.
+// Run twice: against one viewport's panel bottom (the verdict) and against the worst of three (measurement).
 function centreLow(blockSeen, ovBottom) {
   if (!ovBottom) return null;
   const low = [...blockSeen.values()].filter(b => b.y >= ovBottom && !b.isFrame);
@@ -155,33 +51,20 @@ function centreLow(blockSeen, ovBottom) {
   return { n: low.length, lo, hi, centre: lc };
 }
 
-// The step census of a green run of the whole catalog. Printed, never asserted.
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+// Printed, never asserted.
 const EXPECTED_STEPS = await stepTotal();
 
 const catalogued = await cards();
 const fx = n => Number.isFinite(n) ? n.toFixed(0) : 'n/a';
 
-// GEOMETRY_IDS=a,b restricts the walk to those cards, the way OVERLAY_IDS already restricts the
-// panel report, and for the same workflow: a card whose geometry just moved needs THESE three rules
-// re-read, and paying a full catalog walk to learn about one card is what makes a detail change
-// cost minutes instead of seconds.
-//
-// The three rules are per-card and per-block, so a subset row is as true as a full-run row: unlike
-// the L-04 range next door, nothing here is an extreme over the catalog. What a subset cannot say
-// is anything about the POPULATION, so the totals, the by-category tally and the queue length are
-// announced as a SUBSET rather than left to read as the catalog's.
-//
-// SCHEME_IDS is answered too, for the reviewer who set it for the gate and would otherwise get a
-// full walk they did not ask for. GEOMETRY_IDS wins where both are set, being the narrower name.
+// GEOMETRY_IDS (or SCHEME_IDS) narrows the walk. Rows stay true per card, but population totals are
+// announced as a SUBSET.
 const ONLY_VAR = process.env.GEOMETRY_IDS ? 'GEOMETRY_IDS' : 'SCHEME_IDS';
 const ONLY = (process.env.GEOMETRY_IDS || process.env.SCHEME_IDS || '')
   .split(',').map(s => s.trim()).filter(Boolean);
 
 test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails)', async () => {
   const findings = { CENTRE: [], 'CENTRE-LOW': [], OCCLUDED: [] };
-  // The rulings a person has read and kept, one axis view per rule. See ../fixtures/carried.mjs.
   const CARRIED = { CENTRE: carriedMap('CENTRE'), 'CENTRE-LOW': carriedMap('CENTRE-LOW'), OCCLUDED: carriedMap('OCCLUDED') };
   const perCard = new Map();
   const lowDelta = [];          // what a worst-of-three panel bottom would add or drop
@@ -189,10 +72,7 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
   const notes = [];
   let sampledCards = 0, steps = 0, extraSteps = 0;
 
-  // `where` pins the exact row a ruling in ../fixtures/carried.mjs carries. CENTRE and CENTRE-LOW
-  // fire at most once per card, so their key is the card id alone; OCCLUDED fires once per block,
-  // so it takes the block label. A carried row is kept in `findings` (it still prints, marked
-  // CARRIED) and out of `perCard`, which is the list of what is left to work.
+  // CENTRE and CENTRE-LOW key on the card id, OCCLUDED on the block label. Carried rows still print but stay out of perCard.
   const record = (rule, id, line, where = []) => {
     const carry = carryKey(id, where);
     const why = CARRIED[rule].get(carry);
@@ -218,8 +98,7 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
         const total = card.steps;
         if (!total) { notes.push(`${id}: stepCount 0, nothing walked`); continue; }
 
-        // Pooled over every step: a block that only appears mid-story still has to sit where it
-        // belongs, and the content span is the union of what the card ever draws.
+        // Pooled over every step: the content span is the union of what the card ever draws.
         const blockSeen = new Map();
         const span = [Infinity, -Infinity], spanNoFrames = [Infinity, -Infinity], strip = [Infinity, -Infinity];
         const ovRects = [];
@@ -227,9 +106,7 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
 
         for (let i = 0; i < total; i++) {
           const row = card.byVp[vp0][i];
-          // The walk stores the two panel readings apart: `panelSoft` is the two-edge one this file
-          // has always used, under this file's guards. `panel` is the shared four-edge probe
-          // report/overlay.test.mjs reads. Neither consumer's behaviour moved.
+          // `panelSoft` is this file's two-edge reading, `panel` the four-edge one overlay reads.
           const data = row.geom && { ...row.geom, overlay: row.panelSoft };
           if (!data) { notes.push(`${id}: step ${i} had no diagram, not sampled`); continue; }
           steps++;
@@ -237,8 +114,7 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
             blockSeen.set(`${b.x.toFixed(0)},${b.y.toFixed(0)},${b.w.toFixed(0)},${b.h.toFixed(0)}`, b);
           }
           if (data.overlay) {
-            // ovRight / ovBottom accumulate HERE ONLY. That is the blind spot described in the
-            // header: CENTRE-LOW's panel bottom is this viewport's worst, never the set's.
+            // Accumulated here only: CENTRE-LOW's panel bottom is this viewport's (L-17 blind spot).
             ovRight = Math.max(ovRight, data.overlay.right);
             ovBottom = Math.max(ovBottom, data.overlay.bottom);
             ovRects.push(data.overlay);
@@ -249,17 +125,14 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
           strip[0] = Math.min(strip[0], data.chips[0]); strip[1] = Math.max(strip[1], data.chips[1]);
         }
 
-        // OCCLUDED's extra viewports. Panel only, and the same rows report/overlay.test.mjs reads.
+        // OCCLUDED's extra viewports, panel only.
         for (const vp of VIEWPORTS.slice(1)) {
           for (const row of card.byVp[`${vp.width}x${vp.height}`]) {
             if (row.panel) { ovRects.push(row.panel); extraSteps++; }
           }
         }
 
-        // CENTRE. Both readings printed, the original's judged. A card with no chips leaves the
-        // strip at [Infinity, -Infinity] and its centre is NaN, so the comparison is false and no
-        // finding is made: that is the original's behaviour and it is right, a card without chips
-        // has no strip to centre.
+        // A card with no chips has a NaN strip centre, so no finding is made.
         const cc = (span[0] + span[1]) / 2;
         const pc = (strip[0] + strip[1]) / 2;
         const ovNote = ovBottom ? ` [panel covers x<=${fx(ovRight)}, y<=${fx(ovBottom)} at ${VIEWPORTS[0].width}x${VIEWPORTS[0].height}]` : '';
@@ -275,14 +148,13 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
             `centre ${fx(ncc)}${Math.abs(ncc - CENTRE_X) > CENTRE_TOL ? '' : ', which would NOT report'}`);
         }
 
-        // CENTRE-LOW, as the original judges it: one viewport's panel bottom.
         const low = centreLow(blockSeen, ovBottom);
         if (low) {
           record('CENTRE-LOW', id,
             `${low.n} blocks below the panel span ${fx(low.lo)}..${fx(low.hi)}, centre ${fx(low.centre)} ` +
             `(want ~${CENTRE_X}, full width is free there, panel bottom ${fx(ovBottom)})`);
         }
-        // ...and what the worst-of-three panel bottom would have said instead. Measurement only.
+        // Measurement only.
         const ovBottomAll = ovRects.reduce((m, o) => Math.max(m, o.bottom), 0);
         const lowAll = centreLow(blockSeen, ovBottomAll);
         if (ovBottomAll > ovBottom && !!low !== !!lowAll) {
@@ -291,7 +163,6 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
               : 'DROP the finding above'));
         }
 
-        // OCCLUDED, over every panel rect from all three viewports.
         if (ovRects.length) {
           for (const b of blockSeen.values()) {
             if (b.isFrame) continue;
@@ -372,13 +243,7 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
   }
   out.push('');
 
-  // The carried rows, still printed and still counted, one block per rule. `L-16` is the population
-  // they belong to: the rule can only be satisfied by making the picture worse, and the reason on
-  // each is the measurement that says so.
-  // A carried ruling reads as STALE when this walk no longer reports it, and on a SUBSET that is
-  // true of every card the walk did not open. Narrowing it to the walked cards keeps the signal
-  // where it is real (a ruling on the card in hand that its own change just invalidated) and stops
-  // a one-card run from declaring the rest of the store rotten.
+  // On a SUBSET, staleness is judged only for walked cards.
   const walked = (key) => !ONLY.length || ONLY.includes(key.split(' ')[0]);
   for (const rule of ['CENTRE', 'CENTRE-LOW', 'OCCLUDED']) {
     const rows = findings[rule];
@@ -413,7 +278,7 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
     out.push(`  cards that could not be sampled: ${notes.length}`);
     notes.slice(0, 20).forEach(l => out.push(`    ${l}`));
   }
-  // The store's own shape, printed rather than asserted: this file fails on nothing at all.
+  // Printed, not asserted: this file fails on nothing.
   const ids = new Set(catalogued.map(c => c.id));
   const broken = ['CENTRE', 'CENTRE-LOW', 'OCCLUDED'].flatMap(a => shapeProblems(a, ids));
   if (broken.length) {
@@ -425,17 +290,8 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
 
   console.log(out.join('\n'));
 
-  // NO ASSERTION ON A FINDING, and one on the WALK. Every line above is a measurement, and the
-  // decision about it belongs to a person reading the card's record. What is NOT a measurement is
-  // whether this file ran at all: a browser that never launched, a server that answered nothing or
-  // a card that threw on every open leaves `notes` full, prints REPORT INCOMPLETE into a page of
-  // output nobody has to read, and exits 0. That is the failure the rest of the harness is built
-  // against (`S-46`), and it is the one thing a report may go red on.
-  //
-  // A filter is the legitimate way to walk fewer, so the expected size is what the filter asked for
-  // and not the catalog. The STEP baseline is a statement about a full walk and collapses with it,
-  // the same way `floor()` in ../fixtures/catalog.mjs collapses a catalog-scale floor under a
-  // subset: comparing a one-card walk against the catalog's step total would fail on a correct run.
+  // No assertion on a finding, one on the walk: an incomplete run must not exit 0 (S-46). The expected
+  // size is what the filter asked for.
   const wanted = ONLY.length ? ONLY.length : catalogued.length;
   assert.equal(sampledCards, wanted,
     `sampled ${sampledCards} of ${wanted} card(s) asked for. A report that scans nothing reports ` +

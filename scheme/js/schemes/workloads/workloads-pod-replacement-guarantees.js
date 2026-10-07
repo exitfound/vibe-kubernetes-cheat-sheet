@@ -2,38 +2,26 @@ import { P, F, defineCard, WL, FADE, BEAT, OPACITY, routeDur } from './workloads
 
 // Design notes for this card: ./CARDS/workloads-pod-replacement-guarantees.md
 
-// A VERDICT BOARD: five columns, one per controller kind, each an owner over the Pod it had, and
-// one event reaching all five at once from the API above. The steps are grouped by ANSWER and not
-// by controller, which is the whole reason the card is four steps rather than six.
-// Panel measured at x<=396.55 and y<=229.82, both at 1100x800 (worst of 1600/1280/1100).
+// A verdict board: five controller columns, one event reaching all five at once from the API.
+// PANEL_B is the deepest measured panel.
 const PANEL_B = 230, PANEL_GAP = 21;
-const BAND_Y = PANEL_B + PANEL_GAP;                      // 251, the first line under the panel
+const BAND_Y = PANEL_B + PANEL_GAP;
 
-// One actor, centred on WL.CX so the trunk leaves a face midpoint (WL.L-07). The event is a DELETE
-// that already happened, so the API is the only thing above the board: what each owner acts on is
-// the object leaving, which it reads off its own watch.
-const TOP_W = 232, TOP_X = WL.CX - TOP_W / 2;            // 484..716
-const BUS_Y = BAND_Y + 6;                                // 257
+// Centred on WL.CX so the trunk leaves a face midpoint (WL.L-07).
+const TOP_W = 232, TOP_X = WL.CX - TOP_W / 2;
+const BUS_Y = BAND_Y + 6;
 
-// Five columns spanning WL.L..WL.R exactly, so the middle one centres on WL.CX and the trunk drops
-// straight into it: 5 x 204 on a pitch of 219 ends on 1140.
+// Five columns spanning WL.L..WL.R exactly, so the middle one centres on WL.CX.
 const COL_W = 204, COL_PITCH = 219;
-const COL_X = [0, 1, 2, 3, 4].map(i => WL.L + i * COL_PITCH);   // 60 / 279 / 498 / 717 / 936
-const COL_CX = i => COL_X[i] + COL_W / 2;                       // 162 / 381 / 600 / 819 / 1038
+const COL_X = [0, 1, 2, 3, 4].map(i => WL.L + i * COL_PITCH);
+const COL_CX = i => COL_X[i] + COL_W / 2;
 
-// The two rows are pushed as far apart as the band allows, and the reason is the BALL rather than
-// the picture: the replacement rides the ownership spine, and `routeDur` clamps anything under 314
-// units to the 700ms floor (M-13), so a short spine crawls. 136 is the most the band holds with the
-// verdict row still clear of 624, and it puts the four replacements on 0.194 u/ms. The narrower gap
-// that was measured against it, and the number that rules it out, are in the record: MOTION.
+// Rows pushed as far apart as the band allows, so the spine is long enough to clear the routeDur floor (M-13).
 const OWNER_Y = 300, OWNER_H = 60;
 const POD_Y = 496, POD_H = 92;
 const POD_INNER = { dx: 26, dy: 20, w: COL_W - 52, h: 46 };
-const VERDICT_Y = POD_Y + POD_H + 22;                    // 610, the answer under each column
-// The caption sits OFF the spine, not on it: centred on the column it lands on the relation and the
-// dash strikes through the word. Measured at 1600x1000, where it is widest, the string inks 90.4
-// units, so 62 left of the column centre leaves it 17 clear of the line and 83 clear of the Job
-// column beside it, and it still ends well inside WL.R. Record: SIZES.
+const VERDICT_Y = POD_Y + POD_H + 22;
+// Off the spine, or the relation dash strikes through the word.
 const OWNS_TAG_X = COL_CX(4) - 62, OWNS_TAG_Y = POD_Y - 16;
 
 const TRUNK = [[WL.CX, WL.TOP_BOTTOM], [WL.CX, BUS_Y]];
@@ -43,14 +31,10 @@ const TAP = i => [[COL_CX(i), BUS_Y], [COL_CX(i), OWNER_Y]];
 const WATCH = i => (COL_CX(i) === WL.CX
   ? [[WL.CX, WL.TOP_BOTTOM], [WL.CX, OWNER_Y]]
   : [[WL.CX, WL.TOP_BOTTOM], [WL.CX, BUS_Y], [COL_CX(i), BUS_Y], [COL_CX(i), OWNER_Y]]);
-// Ownership, owner down to the Pod it had. On four of the five it also carries the replacement, so
-// it is built ONCE as an array rather than by a factory: a factory hands the drawn lane and the
-// ball two arrays that are equal and never the same object, which is what A-02 is about.
+// Built once as arrays, not by a factory, so lane and ball share the same object (A-02).
 const SPINE = [0, 1, 2, 3, 4].map(i => [[COL_CX(i), OWNER_Y + OWNER_H], [COL_CX(i), POD_Y]]);
 
-// A trunk segment carries the ball but is not its destination, so it is a LANE with the marker
-// taken off (A-06, the `workloads-replicaset` form): the arrowhead belongs on the tap that lands
-// on an owner.
+// A trunk segment carries the ball but is not its destination: a lane without its marker (A-06).
 const trunkPath = (key, points) => P.lane({
   key, points, dim: true, dashed: true, role: 'cluster',
   tune: (el) => el.removeAttribute('marker-end'),
@@ -63,26 +47,16 @@ const OWNERS = [
   { key: 'job', label: 'Job import', sub: 'completions 4' },
   { key: 'cron', label: 'CronJob report', sub: 'schedule hourly' },
 ];
-// The Pod each owner had a moment ago. A Pod carries its name in a label no field can write, so the
-// name lives in the SUBLABEL, which `podSublabels` rewrites: that is what lets the same slot show a
-// fresh name for a ReplicaSet and the identical one for a StatefulSet. Record: SIZES.
+// Pod names live in the sublabel, the one Pod text `podSublabels` can rewrite.
 const HAD = ['web-7f9c8-4mzqd', 'web-1', 'agent-9x2ld', 'import-h5trn', 'report-28114500-2q9wv'];
 const GONE = ['', '', '', '', ''];
-// The slot shade for a Pod that is not there. C-09 and not C-08: the step says the object LEAVES
-// THE API, which is the sentence `terminated` is defined by, and the board has to read as empty
-// from across the card so that a slot coming back at full is the loudest thing on it.
+// C-09, not C-08: the object leaves the API, which is what `terminated` means.
 const OFF = OPACITY.terminated;
 
-// One call states all five slots, because the row is one instrument: the five together are the
-// reading, and stating them apart is how the board drifts. The same shape carries the names and
-// the shades, so the two can never fall out of step. NO LINE IS IN either: every lane is at full
-// on every step, because A-13 would pin each spine to a slot that is empty on most of the card and
-// wash the delivery path out with it. Record: LANES.
+// One call states all five slots, so the row cannot drift. Lanes stay at full on every step.
 const perPod = (a, b, c, d, e) => ({ pod0: a, pod1: b, pod2: c, pod3: d, pod4: e });
 const verdicts = (a, b, c, d, e) => ({ v0: a, v1: b, v2: c, v3: d, v4: e });
 
-// Z-order: the lanes, then the captions and the verdicts over them, then the packet layer, then
-// the Pods and the boxes, which the ball runs under.
 export const SCENE = {
   'aria-label': 'Pod replacement guarantees: one Pod is lost under each of five controllers and the answers differ, a ReplicaSet and a Job hand back a new Pod with a new name, a StatefulSet hands back the same ordinal with the same claim and a DaemonSet a fresh name on the same Node, and nothing comes back at all when the Node is gone or when the owner is a CronJob, which owns Jobs rather than Pods',
   parts: [
@@ -91,17 +65,16 @@ export const SCENE = {
     trunkPath('busL', BUS_L),
     trunkPath('busR', BUS_R),
     ...COL_X.map((_, i) => P.lane({ key: `tap${i}`, points: TAP(i), dim: true, dashed: true, role: 'cluster' })),
-    // Four ownership spines are LANES, because a replacement rides each of them at some point.
+    // Four spines are lanes, because a replacement rides each of them.
     ...[0, 1, 2, 3].map(i => P.lane({ key: `spine${i}`, points: SPINE[i], dim: true, dashed: true, role: 'cluster' })),
-    // The fifth is a RELATION: a CronJob never creates a Pod, so nothing ever rides this line and
-    // an arrowhead on it would read as traffic (A-05).
+    // A CronJob never creates a Pod, so its spine is a relation (A-05).
     P.relation({ key: 'spine4', points: SPINE[4], role: 'cluster', dash: '4 4' }),
     P.tag({ x: OWNS_TAG_X, y: OWNS_TAG_Y, text: 'through a Job' }),
     // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
     P.wire({ key: 'event', x: WL.CX, y: WL.TOP_Y - 12 }),
     ...COL_X.map((_, i) => P.wire({ key: `v${i}`, x: COL_CX(i), y: VERDICT_Y })),
     P.packets(),
-    // Everything below is appended AFTER the packet layer, so the ball runs under it.
+    // Appended after the packet layer, so the ball runs under it.
     ...COL_X.map((_, i) => P.pod({
       key: `pod${i}`, id: `pod${i}`, innerKey: `pod${i}Box`,
       x: COL_X[i], y: POD_Y, w: COL_W, h: POD_H, label: '', sublabel: HAD[i], containers: 0,
@@ -116,8 +89,6 @@ export const SCENE = {
   },
 };
 
-// A replacement is handed back the same way every time: it rides the ownership spine into the slot
-// the Pod left, the slot comes up out of the pending shade and the name under it is rewritten.
 const handBack = (i, name, delay) => [
   F.route({ points: SPINE[i], name: `back${i}`, delay }),
   F.fade({ target: `pod${i}`, from: OFF, to: 1, dur: FADE.in, at: `back${i}`, fill: 'both', easing: 'ease-out' }),
@@ -125,16 +96,11 @@ const handBack = (i, name, delay) => [
   F.set({ at: `back${i}`, podSublabels: { [`pod${i}`]: name } }),
 ];
 
-// The five watch hops share the longest path's duration so the one event lands on the five owners
-// at one instant. At the canon speed the paths run 180 to 618 units, which puts the arrivals 673ms
-// apart and the two `web` owners 486ms apart: that draws the owners learning it in an order, the
-// one thing the step must not say. The two outer hops ARE their own routeDur, so the deviation this
-// buys is the middle three, on this step alone (M-12, registered in `PACING`). Record: MOTION.
-const WATCH_DUR = Math.max(...OWNERS.map((_, i) => routeDur(WATCH(i))));   // 1373
+// The five watch hops share the longest duration so all owners learn at one instant (M-12).
+const WATCH_DUR = Math.max(...OWNERS.map((_, i) => routeDur(WATCH(i))));
 
 const NEW_RS = 'web-7f9c8-tp8vd';
-// A DaemonSet Pod is generated the way a ReplicaSet Pod is, so its replacement takes a fresh
-// suffix. What it keeps is the NODE, which is the verdict wire and not the name. Record: CONTENT.
+// A DaemonSet replacement takes a fresh suffix: what it keeps is the Node.
 const NEW_DS = 'agent-4tk8p';
 const NEW_JOB = 'import-c4knz';
 
@@ -154,19 +120,14 @@ export const STEPS_SPEC = [
     podSublabels: perPod(...GONE),
     opacity: perPod(OFF, OFF, OFF, OFF, OFF),
     lit: ['apiserver'],
-    // The board still shows the five Pods it had when the step opens. Without this the names go
-    // and every verdict reads `gone` at t=0, which answers the step 800ms before the Pods blink
-    // and leaves the `F.set` below writing what is already written (T-30). `event` is deliberately
-    // NOT wound back: the label is the premise the step opens on, the way `none-at-all` opens on
-    // `Node-2 removed`.
+    // Names and verdicts wait for the blink (T-30). `event` is not wound back: it is the premise.
     rewind: { podSublabels: perPod(...HAD), wires: verdicts('', '', '', '', '') },
     flow: [
       // The five Pods blink before they dissolve, or the two read as one event (M-08).
       ...[0, 1, 2, 3, 4].map(i => F.pulse({ pod: `pod${i}`, delay: 0 })),
       ...[0, 1, 2, 3, 4].map(i => F.fade({ target: `pod${i}`, from: 1, to: OFF, dur: FADE.out, delay: BEAT.afterPulse, fill: 'both' })),
       F.set({ delay: BEAT.afterPulse, podSublabels: perPod(...GONE), wires: verdicts('gone', 'gone', 'gone', 'gone', 'gone') }),
-      // One event, five watches, so the five hops leave at ONE delay AND land on ONE beat.
-      // WATCH_DUR is why, and M-12 registers the deviation.
+      // One event, five watches: one delay, one landing beat (WATCH_DUR).
       ...OWNERS.map((o, i) => F.route({ points: WATCH(i), name: `w${i}`, delay: BEAT.afterPulse + 260, dur: WATCH_DUR, lights: [o.key] })),
     ],
   },
@@ -178,13 +139,11 @@ export const STEPS_SPEC = [
     podSublabels: perPod(NEW_RS, '', '', NEW_JOB, ''),
     opacity: perPod(1, OFF, OFF, 1, OFF),
     lit: ['rs', 'job'],
-    // The animated path says the Pod landed by PULSING it, which no `lights` list can name: the
-    // static path has to say it with the inner box instead.
+    // The reduced path shows the landing pulse as the inner box lit.
     reducedLit: ['pod0Box', 'pod3Box'],
     rewind: { wires: verdicts('gone', 'gone', 'gone', 'gone', 'gone'), podSublabels: perPod(...GONE) },
     flow: [
-      // Both leave at one delay: neither controller waits on the other, and a beat between them
-      // would draw an order that does not exist.
+      // One delay: neither controller waits on the other.
       ...handBack(0, NEW_RS, 0),
       ...handBack(3, NEW_JOB, 0),
       F.set({ at: 'back3', wires: verdicts('a new name', 'gone', 'gone', 'a new name', 'gone') }),
@@ -215,9 +174,7 @@ export const STEPS_SPEC = [
     narration: 'The last answer is nothing at all. Take the Node away and the DaemonSet Pod is garbage collected with it, and nothing is rescheduled elsewhere, because no other Node is short of one. A CronJob gives that answer always: it creates Jobs and owns no Pods, so the CronJob itself starts nothing until the next tick of its schedule.',
     wires: { ...verdicts('a new name', 'same ordinal, same claim', 'the Node went too', 'a new name', 'nothing until the next tick'), event: 'Node-2 removed' },
     podSublabels: perPod(NEW_RS, HAD[1], '', NEW_JOB, ''),
-    // The DaemonSet Pod goes with its Node and its OWNERSHIP spine goes with the Pod: a lane whose
-    // far end is gone reads as a rendering fault rather than as a claim (A-14). Its watch tap stays
-    // at full, because the controller is still there and still watching, and only the Pod is not.
+    // The ownership spine dies with the Pod (A-14). The watch tap stays: the controller still watches.
     opacity: { ...perPod(1, 1, OFF, 1, OFF), spine2: 0 },
     lit: ['ds', 'cron'],
     rewind: {

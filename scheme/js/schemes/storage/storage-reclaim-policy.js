@@ -1,51 +1,46 @@
-import { P, F, defineCard, OPACITY, BEAT, makeRidingLabel } from './storage-kit.js';
+import { LANE_DY, P, F, defineCard, OPACITY, BEAT, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-reclaim-policy.md
 
 
-// Every tier declares its own bottom alongside its top, so the lanes between tiers are built from
-// those edges rather than from typed y values and re-solve when a tier moves.
-// Every block is 80 tall (NET.L-01), and the three gaps between the four tiers are equal, so the
-// shelf still ends at 490 and the five text rows under it keep their room.
+// Every tier declares its bottom with its top, so the lanes between tiers re-solve when one moves.
+// Every block is 80 tall (NET.L-01) and the three tier gaps are equal.
 const BOX_H = 80, TIER_GAP = 40;
-const PVC_Y = 30, PVC_H = BOX_H, PVC_BOTTOM = PVC_Y + PVC_H;   // 110
-const PV_Y = PVC_BOTTOM + TIER_GAP, PV_H = BOX_H, PV_TOP = PV_Y, PV_BOTTOM = PV_Y + PV_H;  // 150 / 230
-const BAND_Y = PV_BOTTOM + TIER_GAP, BAND_H = BOX_H, BAND_TOP = BAND_Y, BAND_BOTTOM = BAND_Y + BAND_H;  // 270 / 350
-const DISK_Y = BAND_BOTTOM + TIER_GAP, DISK_H = 100, DISK_TOP = DISK_Y;   // 390, shelf ends at 490
-// 176 wide, not 232: two columns centred on 600 from a left edge of 400 have 400 between them.
-const COL_W = 176;
+const PVC_Y = 30, PVC_H = BOX_H, PVC_BOTTOM = PVC_Y + PVC_H;
+const PV_Y = PVC_BOTTOM + TIER_GAP, PV_H = BOX_H, PV_TOP = PV_Y, PV_BOTTOM = PV_Y + PV_H;
+const BAND_Y = PV_BOTTOM + TIER_GAP, BAND_H = BOX_H, BAND_TOP = BAND_Y, BAND_BOTTOM = BAND_Y + BAND_H;
+const DISK_Y = BAND_BOTTOM + TIER_GAP, DISK_H = 100, DISK_TOP = DISK_Y;
+// The catalog 232 (NET.L-01). Each unit of column gap moves the content centre half a unit off 600 (L-13).
+const COL_W = 232, COL_GAP = 16;
 
-const LEFT_X = 400, STACK_W = 400;                             // 400..800, so the center is 600
-const COL_GAP = STACK_W - COL_W * 2;                           // 48
-const DEL_X = LEFT_X, RET_X = LEFT_X + COL_W + COL_GAP;        // 400 / 624
-const DEL_CX = DEL_X + COL_W / 2, RET_CX = RET_X + COL_W / 2;  // 488 / 712
+const LEFT_X = 400, STACK_W = COL_W * 2 + COL_GAP;
+const DEL_X = LEFT_X, RET_X = LEFT_X + COL_W + COL_GAP;
+const DEL_CX = DEL_X + COL_W / 2, RET_CX = RET_X + COL_W / 2;
 const BAND_X = LEFT_X, BAND_W = STACK_W;
-const RET_RIGHT = RET_X + COL_W;                               // 800
+const RET_RIGHT = RET_X + COL_W;
 
-// The two actors outside the stack flank it, both 232 by 80 (NET.L-01): the StorageClass left of
-// the provisioner it feeds, which stands below the panel (L-03), and the administrator right of the
-// claims, where the panel leaves the only room level with them. Each sits one COL_GAP off the stack.
-const SIDE_W = 232;
-const SC_X = LEFT_X - COL_GAP - SIDE_W, SC_Y = BAND_Y;          // 120..352
-const SIDE_X = RET_RIGHT + COL_GAP, SIDE_CX = SIDE_X + SIDE_W / 2;   // 848, 964
+// The two outside actors flank the stack (NET.L-01): the StorageClass left of the provisioner it feeds
+// (L-03), the administrator right of the claims. Each sits one SIDE_GAP off the stack.
+const SIDE_W = 232, SIDE_GAP = 48;
+const SC_X = LEFT_X - SIDE_GAP - SIDE_W, SC_Y = BAND_Y;         // 120..352
+const SIDE_X = RET_RIGHT + SIDE_GAP, SIDE_CX = SIDE_X + SIDE_W / 2;
 const ADMIN_Y = PVC_Y;
 
 // Up and down between a volume and the provisioner are two lanes, a pair 24 apart (LANE_DY 12).
-const LANE_DY = 12;
 
 const SPEC_GAP = 14;
-const SPEC_Y = DISK_Y + DISK_H / 2 + 5 + SPEC_GAP;             // 485
-const VERDICT_Y = DISK_Y + DISK_H + 28;                        // 518
+const SPEC_Y = DISK_Y + DISK_H / 2 + 5 + SPEC_GAP;
+const VERDICT_Y = DISK_Y + DISK_H + 28;
 // The Retain lane down to the disk is never ridden, and this says so in the gap it crosses.
-const NO_CALL_X = RET_CX + 48, NO_CALL_Y = BAND_BOTTOM + TIER_GAP / 2 + 4;   // 760 / 374
+const NO_CALL_X = RET_CX + 48, NO_CALL_Y = BAND_BOTTOM + TIER_GAP / 2 + 4;
 
 const CHIP_W = COL_W;                        // each chip is exactly as wide as the column above it
 const CHIP_H = 34;
-const CHIP_ROW_1 = VERDICT_Y + 18;           // 536: the volumes
-const CHIP_ROW_2 = CHIP_ROW_1 + CHIP_H + 8;  // 578: their disks, strip ends at 612
+const CHIP_ROW_1 = VERDICT_Y + 18;           // the volumes
+const CHIP_ROW_2 = CHIP_ROW_1 + CHIP_H + 8;  // their disks
 
 
-// The same points arrays feed the static lanes and the balls, so the two cannot drift apart.
-// PV to provisioner is the policy READ, provisioner to PV the policy WRITE when a volume is made.
+// The same points feed the static lanes and the balls. PV to provisioner is the policy READ,
+// provisioner to PV the policy WRITE when a volume is made.
 const up = (cx) => [[cx - LANE_DY, BAND_TOP], [cx - LANE_DY, PV_BOTTOM]];
 const down = (cx) => [[cx + LANE_DY, PV_BOTTOM], [cx + LANE_DY, BAND_TOP]];
 const W_DEL_STAMP = up(DEL_CX), W_RET_STAMP = up(RET_CX);
@@ -54,32 +49,28 @@ const W_DEL_WIPE = [[DEL_CX, BAND_BOTTOM], [DEL_CX, DISK_TOP]];
 const W_RET_WIPE = [[RET_CX, BAND_BOTTOM], [RET_CX, DISK_TOP]];  // drawn, never travelled: that is Retain
 const W_SC = [[SC_X + SIDE_W, SC_Y + BOX_H / 2], [BAND_X, BAND_Y + BAND_H / 2]];
 const W_ADMIN_PV = [[SIDE_CX, ADMIN_Y + BOX_H], [SIDE_CX, PV_Y + PV_H / 2], [RET_RIGHT, PV_Y + PV_H / 2]];
-// Every vertical hop crosses a 40 gap from one box floor to the next box top, so a tag riding above
-// its ball is born inside the SENDER. It fades in once it has cleared that floor instead, and parks
-// in the gap above the receiver as before (./CARDS/storage-reclaim-policy.md).
+// Every vertical hop leaves a box floor, so a tag above its ball would be born inside the sender: it
+// emerges once clear of that floor. The Delete stamps rise into a box floor, so their tag trails under
+// the ball and left of the up lane, landing in the gap under the PV.
 const gapTag = makeRidingLabel({ role: 'storage', emergeMode: true });
 const GAP_TAG = { fn: gapTag, emerge: 400 };
-// The admin lane ends on the PV right face, so a centred tag parks half over it: it rides right of
-// the ball and stops 8 short of the face. It leaves the admin floor, so it emerges too, sooner.
+const STAMP_TAG = { ...GAP_TAG, dx: -36, dy: 16 };
+// The admin lane ends on the PV right face, so its tag rides right of the ball and emerges sooner.
 const ADMIN_TAG_DX = 51;
-// A policy tag rides the DOWN lane of a pair, and centred on it (86 wide at 1100x800) it would lie
-// across the up lane 24 to its left. It rides right of its ball, clear of both lanes and the column.
+// A policy tag rides the DOWN lane of a pair, so it rides right of its ball, clear of both lanes.
 const POLICY_TAG_DX = 50;
 // A lane that is born on this step fades in over this long and is whole just before its ball shows.
 const LANE_IN_MS = 300, LANE_EARLY = 400;
 
-// Shorter than FADE.out because these land ON a beat inside a step: the wipe has to read as caused
-// by the ball that just arrived. The Bound cross-fade shares it so its two halves swap at one rate.
+// Shorter than FADE.out: the wipe has to read as caused by the ball that just arrived.
 const REMOVE_MS = 500;
 
-// A block, its caption or its lane taken away exactly when the ball reaches it, dropping the
-// highlight that same ball left on it: a faded block never keeps a lit stroke.
+// Removes a block, caption or lane as its ball lands, dropping the highlight that ball left on it.
 const removeAt = (target, at, plus = 0, to = OPACITY.terminated) => F.fade({
   target, to, dur: REMOVE_MS, at, plus, fill: 'forwards', unlight: [target],
 });
 
-// A lane born mid-step, whole LANE_EARLY before the arrival its ball leaves `after`, so it stands
-// complete before that ball fades in (A-15) and points at an empty slot for as short as that allows.
+// A lane born mid-step, whole before its ball fades in (A-15).
 const laneIn = (target, at) => F.fade({ target, from: 0, to: 1, dur: LANE_IN_MS, at, plus: -LANE_EARLY - LANE_IN_MS, easing: 'ease-out' });
 
 // A relation, dashed and arrowhead-free, because a bound pair carries no traffic.
@@ -96,8 +87,7 @@ export const SCENE = {
     P.box({ key: 'delPvc', x: DEL_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-a', sublabel: 'Bound' }),
     P.box({ key: 'delPv', x: DEL_X, y: PV_Y, w: COL_W, h: PV_H, label: 'PV del', sublabel: 'reclaim: Delete' }),
     P.cylinder({ key: 'delDisk', x: DEL_X, y: DISK_Y, w: COL_W, h: DISK_H, label: 'vol-aaa' }),
-    // The claim that arrives after the first two are deleted takes the freed left column, and it,
-    // its volume and its disk are their OWN blocks, born invisible.
+    // The claim that arrives after the deletes takes the freed left column, its own blocks born invisible.
     P.box({ key: 'newPvc', x: DEL_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-c', sublabel: 'Pending', opacity: 0 }),
     P.box({ key: 'newPv', x: DEL_X, y: PV_Y, w: COL_W, h: PV_H, label: 'PV new', sublabel: 'reclaim: Delete', opacity: 0 }),
     P.cylinder({ key: 'newDisk', x: DEL_X, y: DISK_Y, w: COL_W, h: DISK_H, label: 'vol-ccc', opacity: 0 }),
@@ -142,13 +132,12 @@ export const SCENE = {
 
 const T = OPACITY.terminated;
 
-// Every step pins EVERY opacity that any step can change, so a step can never inherit a stale one
-// and a cancel mid-flight always lands on this step's own end state. The left column holds either
-// the deleted stack or the new one, so its chips and lanes follow whichever of the two is there.
+// Every step pins EVERY opacity any step can change, so a cancel mid-flight lands on this step's end
+// state. The left column holds either the deleted stack or the new one.
 const stage = ({ delPvc, delPv, delDisk, newPvc = 0, newPv = 0, newDisk = 0, retPvc, retPv = 1, admin = 0, delBound, newBound = 0, retBound }) => ({
   delPvc, delPv, delDisk, newPvc, newPv, newDisk, retPvc, retPv, admin, delBound, newBound, retBound,
   delSpec: delDisk, newSpec: newDisk, retSpec: 1,   // a caption lives and dies with its disk
-  // A lane is only as present as its fainter end, and the provisioner is drawn on every step.
+  // A lane is only as present as its fainter end.
   lDelStamp: Math.max(delPv, newPv), lDelPolicy: Math.max(delPv, newPv), lDelWipe: Math.max(delDisk, newDisk),
   lRetStamp: retPv, lRetPolicy: retPv,
   wAdminPv: admin,
@@ -192,10 +181,8 @@ export const STEPS_SPEC = [
     flow: [
       F.route({ points: W_SC, delay: BEAT.lead, name: 'cls' }),
       F.light({ targets: ['band'], at: 'cls' }),
-      F.route({ points: W_DEL_STAMP, after: 'cls', lights: ['delPv'] }),
-      F.tag({ text: 'Delete', points: W_DEL_STAMP, after: 'cls', ...GAP_TAG }),
-      F.route({ points: W_RET_STAMP, after: 'cls', lights: ['retPv'] }),
-      F.tag({ text: 'Delete', points: W_RET_STAMP, after: 'cls', ...GAP_TAG }),
+      F.route({ points: W_DEL_STAMP, after: 'cls', lights: ['delPv'], tag: { text: 'Delete', ...STAMP_TAG } }),
+      F.route({ points: W_RET_STAMP, after: 'cls', lights: ['retPv'], tag: { text: 'Delete', ...STAMP_TAG } }),
     ],
   },
   {
@@ -219,13 +206,11 @@ export const STEPS_SPEC = [
   {
     id: 'delete-pvc',
     duration: 2400,
-    // Packet-less and Pod-less, and no block flashes: the two claims going to the terminating
-    // shade under a Released chip IS the movement, so a flash would compete with it.
+    // Packet-less and Pod-less, no flash: the claims fading under a Released chip IS the movement.
     narration: 'Both claims are deleted with kubectl delete pvc. The Bound links break and both volumes move to the Released phase, which means only that the claim they belonged to is gone. Nothing has touched the disks yet. What happens next is decided by the policy each volume now carries.',
     chipsCued: chips('Released', 'holds data', 'Released', 'holds data'),
     sublabels: SUBS('reclaim: Retain', 'Pending', 'Terminating'),
     wires: { noCall: '' },
-    // The claims are on their way out, so they end this step faded but still readable.
     opacity: stage({ ...BOTH_BOUND, delPvc: OPACITY.terminating, retPvc: OPACITY.terminating, delBound: 0, retBound: 0 }),
     lit: ['delPv', 'retPv'],
   },
@@ -237,9 +222,8 @@ export const STEPS_SPEC = [
     sublabels: SUBS('reclaim: Retain', 'Pending', 'deleted'),
     wires: { noCall: '', del: 'disk deleted, PV removed' },
     opacity: stage({ ...DEL_GONE, retPvc: OPACITY.terminating }),
-    // `band` is absent from lit: F.light cues it on the arrival instead, and flowLights re-derives it
-    // for the reduced path. rewind revives the objects and lanes the balls then ride and kill, and
-    // holds the two chips and the caption until the ball that earns them lands.
+    // band is absent from lit: F.light cues it on arrival. rewind revives what the balls then ride and
+    // kill, and holds two chips and the caption until the ball that earns them lands.
     rewind: {
       opacity: { delPv: 1, delDisk: 1, delSpec: 1, lDelStamp: 1, lDelPolicy: 1, lDelWipe: 1 },
       lit: ['delPv'],
@@ -247,13 +231,10 @@ export const STEPS_SPEC = [
       wires: { del: '' },
     },
     flow: [
-      F.route({ points: W_DEL_POLICY, delay: BEAT.lead, name: 'policy' }),
-      F.tag({ text: 'policy: Delete', points: W_DEL_POLICY, delay: BEAT.lead, dx: POLICY_TAG_DX, ...GAP_TAG }),
+      F.route({ points: W_DEL_POLICY, delay: BEAT.lead, name: 'policy', tag: { text: 'policy: Delete', dx: POLICY_TAG_DX, ...GAP_TAG } }),
       F.light({ targets: ['band'], at: 'policy' }),
-      F.route({ points: W_DEL_WIPE, after: 'policy', name: 'wipe' }),
-      F.tag({ text: 'DeleteVolume', points: W_DEL_WIPE, after: 'policy', ...GAP_TAG }),
-      // An F.set on the disk, NOT `lights`: the fade below takes the class off again, and the reduced
-      // path returned before any of this, so it must not show the light at all.
+      F.route({ points: W_DEL_WIPE, after: 'policy', name: 'wipe', tag: { text: 'DeleteVolume', ...GAP_TAG } }),
+      // An F.set on the disk, NOT lights: the fade takes the class off again, and the reduced path must not show it.
       F.set({ on: 'delDisk', lit: ['delDisk'], at: 'wipe' }),
       F.set({ at: 'wipe', plus: 180, chipsCued: { delDiskChip: 'deleted' } }),
       removeAt('delDisk', 'wipe', 180),
@@ -273,16 +254,13 @@ export const STEPS_SPEC = [
     sublabels: SUBS('reclaim: Retain', 'Pending', 'deleted'),
     wires: { noCall: 'no call', ret: 'nothing touched, data kept' },
     opacity: stage(DEL_GONE),
-    // Static end state, which the reduced replay also snaps to. The disk is NOT lit: surviving
-    // intact reads off the full opacity it keeps beside a Delete column at the terminated shade.
+    // The disk is NOT lit: surviving reads off the full opacity it keeps beside the terminated column.
     lit: ['retPv'],
-    // The policy hop is made on this side too, and it is the SECOND hop that never happens: the
-    // lane down to the disk is drawn and stays empty. Retain shown as an absence, not as a gap.
-    // The verdict under the disk and its chip are what the read DECIDES, so both wait for it to land.
+    // The second hop never happens: the lane to the disk is drawn and stays empty, Retain as an absence.
+    // The verdict and its chip wait for the read to land.
     rewind: { chips: { retDiskChip: 'holds data' }, wires: { noCall: '', ret: '' } },
     flow: [
-      F.route({ points: W_RET_POLICY, delay: BEAT.lead, name: 'policy' }),
-      F.tag({ text: 'policy: Retain', points: W_RET_POLICY, delay: BEAT.lead, dx: POLICY_TAG_DX, ...GAP_TAG }),
+      F.route({ points: W_RET_POLICY, delay: BEAT.lead, name: 'policy', tag: { text: 'policy: Retain', dx: POLICY_TAG_DX, ...GAP_TAG } }),
       F.light({ targets: ['band'], at: 'policy' }),
       F.set({ at: 'policy', chipsCued: { retDiskChip: 'data intact' }, wires: { noCall: 'no call', ret: 'nothing touched, data kept' } }),
     ],
@@ -295,11 +273,9 @@ export const STEPS_SPEC = [
     sublabels: SUBS('reclaim: Retain', 'Bound', 'deleted'),
     wires: { noCall: 'no call', del: 'new disk, new PV', ret: 'skipped: still Released' },
     opacity: stage(LEFT_NEW),
-    // The class sends first, as on the stamp step. The disk and the volume are what the two calls
-    // CREATE, so each is revealed by its own ball, and the claim binds when the volume exists.
+    // The class sends first. The disk and the volume are each revealed by their own ball.
     lit: ['sc'],
-    // The left lanes lead to blocks that do not exist yet, so each fades in as its call departs
-    // rather than pointing into an empty column for the whole lead.
+    // The left lanes lead to blocks that do not exist yet, so each fades in as its call departs.
     rewind: {
       opacity: { newBound: 0, lDelWipe: 0, lDelStamp: 0, lDelPolicy: 0 },
       sublabels: { newPvc: 'Pending' },
@@ -317,8 +293,7 @@ export const STEPS_SPEC = [
       F.reveal({ target: 'newDisk', at: 'mk' }),
       F.reveal({ target: 'newSpec', at: 'mk' }),
       F.set({ at: 'mk', chipsCued: { newDiskChip: 'new, empty' } }),
-      F.route({ points: W_DEL_STAMP, after: 'mk', name: 'pv' }),
-      F.tag({ text: 'Delete', points: W_DEL_STAMP, after: 'mk', ...GAP_TAG }),
+      F.route({ points: W_DEL_STAMP, after: 'mk', name: 'pv', tag: { text: 'Delete', ...STAMP_TAG } }),
       F.reveal({ target: 'newPv', at: 'pv' }),
       F.light({ targets: ['newPv', 'newPvc'], at: 'pv' }),
       F.fade({ target: 'newBound', from: 0, to: 1, dur: REMOVE_MS, at: 'pv', fill: 'forwards', easing: 'ease-out' }),
@@ -334,7 +309,7 @@ export const STEPS_SPEC = [
     wires: { noCall: 'no call', del: 'new disk, new PV', ret: 'PV gone, disk still there' },
     opacity: stage({ ...LEFT_NEW, retPv: T, admin: 1 }),
     lit: ['admin'],
-    // The PV and its two lanes are what the delete takes away, so they stand until the ball lands.
+    // The PV and its two lanes stand until the delete lands.
     rewind: {
       opacity: { retPv: 1, lRetStamp: 1, lRetPolicy: 1 },
       chips: { retChip: 'Released', retDiskChip: 'orphaned' },

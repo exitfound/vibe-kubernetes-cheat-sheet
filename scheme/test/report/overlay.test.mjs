@@ -1,53 +1,6 @@
-// overlay.test.mjs: the narration panel's REAL extent in viewBox units, per card, per step, per
-// viewport. Successor to tools/overlay-measure.mjs.
-//
-// WHAT THE ANCESTOR WAS. `node overlay-measure.mjs <id>` opened ONE card at ONE viewport (VW/VH
-// from the env, defaulting to 1600x1000), walked its steps, and printed the single worst bottom it
-// saw. It was a reader, not a check: no threshold, no exit code, no catalog walk. The two numbers
-// the canon records under L-02 and L-04 were produced by running it by hand, so nothing has
-// re-measured them since, and nothing would notice them drifting. This file is the catalog-wide
-// version of the same measurement: every card, every step, all three viewports of L-06.
-//
-// WHY IT IS REPORT-LEVEL. The canon records L-02 and L-04 against this file, as `report:overlay/L-02`
-// and `report:overlay/L-04`, and neither they nor the ancestor were ever mandatory. The panel is HTML the browser lays out, so its extent moves with the
-// font, the viewport and the prose, and a card that grows its panel by a line has not broken
-// anything by itself: it has spent budget that L-08 says is spendable. The decision belongs to a
-// person reading the number. So this file NEVER fails. It prints, and it says loudly when what it
-// printed is not worth reading.
-//
-// FONTS ARE NOT A FORMALITY HERE, THEY ARE THE MEASUREMENT (L-21). Of everything the geometry
-// rules read, the panel is the ONLY font-sensitive quantity: block bboxes are frames and a frame is
-// wider than its label on every card, but the panel is wrapped text, and on the fallback face
-// its bottom lands one text line HIGH, 17.5 viewBox units, on 3 of 6 sampled cards. A run without
-// fonts therefore reports a SHALLOWER panel than the truth, which is the flattering direction: it
-// would quietly widen the L-04 range at the low end and hide occlusion. So waiting for the real
-// face is mandatory here: a run that skips it prints a lie in the flattering direction and nothing
-// in its output says so. And
-// document.fonts.ready alone is not enough because scheme/index.html:29 attaches the Google Fonts
-// stylesheet from a <link rel="preload"> onload handler, so `ready` can settle before the sheet is
-// even linked. Neither is fonts.check(): with no sheet attached there is no @font-face rule to be
-// missing and it reports every family available. The behavioural width probe that answers this
-// honestly is fixtures/render.mjs fallbackFaces(), with the measurement written on it. What it returns turns a fallback run into a printed REPORT INVALID
-// instead of a silent lie.
-//
-// THE RIGHT EDGE IS BOUNDED, THE BOTTOM SWINGS, AND NEITHER IS FLAT (L-05, L-05a). The panel is
-// HTML at a fixed fraction of the dialog width while the diagram scales with the dialog, so in
-// viewBox units its WIDTH is BOUNDED rather than constant: x<=397 holds on every card and every
-// viewport (which is why L-02 is one number for the whole catalog) while the right edge still
-// travels up to 105.78 units across the set, reaching the bound only at the narrowest viewport.
-// Measured below rather than assumed, because "bounded" and "flat" were read as one claim for
-// months. Its HEIGHT swings far harder: a WIDER dialog gives a WIDER panel, which wraps the same
-// narration into FEWER lines, and is therefore SHORTER in units, twice over, since it is also
-// divided by a larger scale.
-// Measuring on one viewport is meaningless, and this file measures the swing rather than asserting
-// the direction, because the direction is what L-05 claims and a report that assumed it could not
-// test it.
-//
-// THE PROBE CAN LOSE A STEP. Scene.build() empties the dialog host and
-// appends a NEW <svg.diagram>, so a probe can land in the instant with no diagram and read null.
-// One retry on the selector closes it. Without the retry a walk of this catalog came back one step
-// short of what the mandatory files sampled, and in a file that never fails one missing step is one
-// composition nobody looked at, reported as nothing.
+// The narration panel's extent in viewBox units per card, step and viewport, against the L-02 right
+// edge, the L-04 bottom range and the L-05 / L-05a swing. Never fails on a measurement. A fallback
+// face reports the panel shallow, so it prints REPORT INVALID (L-21).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -56,15 +9,9 @@ import { stepTotal } from '../fixtures/module.mjs';
 import { DIAGRAM_FACES, DEFAULT_BASE } from '../fixtures/render.mjs';
 import { readSnapshot } from '../fixtures/snapshot.mjs';
 
-// THE BROWSER IS NOT DRIVEN HERE ANY MORE. The three-viewport panel walk is taken once by
-// `tools/walk.mjs` and read by this file and by report/geometry-soft.test.mjs, which used to walk
-// the same two extra viewports with the same probe in a second Chromium. Every number, threshold
-// and printed line below is unchanged: the walk stores this file's four-edge reading as `panel`,
-// under the shared guards in fixtures/render.mjs overlayProbe, and the retry that file carried is
-// part of the walk now.
+// The three-viewport panel walk comes from tools/walk.mjs, stored as `panel`.
 
-// L-06. All three are measured in full here: unlike the geometry rules, which read the panel on the
-// extra viewports only to feed OCCLUDED, every number this file prints is a panel number.
+// L-06. Every number this file prints is a panel number, so all three are measured in full.
 const VIEWPORTS = [
   { width: 1600, height: 1000 },
   { width: 1280, height: 860 },
@@ -72,64 +19,32 @@ const VIEWPORTS = [
 ];
 const vpName = vp => `${vp.width}x${vp.height}`;
 
-// Both faces are guarded, not just the panel's. The panel itself is Space Grotesk; JetBrains Mono
-// is included because the same page paints both and a half-loaded stylesheet is not a state worth
-// measuring in. DIAGRAM_FACES is fixtures/render.mjs default, so this file simply takes it.
+// Both faces guarded: a half-loaded stylesheet is not a state worth measuring in.
 
-// ---------------------------------------------------------------------------------------------
-// What the canon has on record. Printed and compared, NEVER used to clamp a measurement: a
-// disagreement is the finding this file exists to produce.
-// ---------------------------------------------------------------------------------------------
+// What the canon records, compared but never used to clamp a measurement.
 
-// L-02: right edge x<=397 on every card and every viewport, worst measured 396.55.
 const RIGHT_CEILING = 397;
 const RECORDED_RIGHT = { value: 396.55, id: 'cluster-architecture', viewport: '1100x800' };
 
-// L-04: the bottom ranges 90 to 504 over the standard set. Only the DEEP end belongs to one card.
-// 107.67 is the four-line panel at 1600x1000 and 15 cards sit on it, so an "attribution DIFFERS" on
-// the shallow end says nothing. 90.23 is one line under that cluster and one card reaches it.
+// L-04. Only the deep end belongs to one card: many cards share the shallow four-line panel.
 const RECORDED_BOTTOM = {
   lo: 90, hi: 379,
   shallowest: { value: 90.23, id: 'cluster-leader-election', viewport: '1600x1000', step: 2 },
-  // 504 stood on workloads-pod-lifecycle-phases until that card was rebuilt as a state machine and
-  // its narration cut to three sentences a step. Nothing reaches that depth now.
   deepest: { value: 378.90, id: 'workloads-pod-qos-classes', viewport: '1100x800', step: 4 },
 };
 
-// L-05a: the panel shrinks in units by up to 131.68 across the viewport set. It was 186 while
-// workloads-pod-lifecycle-phases carried the catalog's deepest panel, and that card no longer does.
 const RECORDED_SWING = 131.68;
 
-// The step census of a green run of the whole catalog, per viewport.
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_STEPS = await stepTotal();
 
-// A number is only "the same as recorded" within the noise of a browser layout. 0.5 of a viewBox
-// unit is well under a text line (17.5) and well under the tolerance any of these rules cares
-// about, so anything outside it is a real move and not a rounding artefact.
+// Within browser layout noise, well under one text line (17.5).
 const SAME = 0.5;
-
-// The probe itself is fixtures/render.mjs overlayProbe, shared with report/geometry-soft.test.mjs:
-// one calculation of the panel rect through xMidYMid meet, four edges, of which this file reads all
-// four and that one reads two. It runs IN THE PAGE and carries the mapping argument in its own
-// comment.
 
 const f2 = n => Number.isFinite(n) ? n.toFixed(2) : 'n/a';
 const near = (a, b) => Number.isFinite(a) && Math.abs(a - b) <= SAME;
 
-// OVERLAY_IDS=a,b restricts the walk, the way `node overlay-measure.mjs <id> [<id>...]` did. That
-// was the ancestor's ONLY mode and it is the mode L-08 prescribes by name: after editing prose on a
-// card whose panel is already deep, re-measure THAT card. The default is the whole catalog, and a
-// subset is announced as a SUBSET rather than as REPORT INCOMPLETE, because a walk that was handed
-// an explicit list did not lose anything (the same distinction fixtures/catalog.mjs census() draws
-// with its `subset` flag). The catalog-wide extremes and the L-04 range are only meaningful on a
-// full run, so the report says so when it was not one.
-//
-// SCHEME_IDS does the same thing for the rest of the suite, and this file answers to BOTH: two
-// names for one job is how a reviewer who set SCHEME_IDS for the gate gets a full catalog panel
-// walk they did not ask for. OVERLAY_IDS wins where both are set, because it is the narrower
-// instrument and the one L-08 names.
+// OVERLAY_IDS (or SCHEME_IDS) narrows the walk, as L-08 prescribes after editing prose. A subset is
+// announced as a SUBSET, and catalog-wide extremes are only meaningful on a full run.
 const ONLY_VAR = process.env.OVERLAY_IDS ? 'OVERLAY_IDS' : 'SCHEME_IDS';
 const ONLY = (process.env.OVERLAY_IDS || process.env.SCHEME_IDS || '')
   .split(',').map(s => s.trim()).filter(Boolean);
@@ -139,12 +54,10 @@ const catalogued = await cards();
 test('narration panel extent, per card and per viewport (report only, never fails)', async () => {
   const fellBack = new Set();
   const notes = [];
-  // per card: { id, steps, byVp: Map(vpName -> { right, bottomLo, bottomHi, loStep, hiStep, perStep: [] }) }
   const rows = [];
   let sampledCards = 0;
   const stepsPerVp = new Map(VIEWPORTS.map(v => [vpName(v), 0]));
 
-  // Catalog-wide extremes, each carrying where it was seen.
   let worstRight = { value: -Infinity, id: null, viewport: null, step: -1 };
   let deepest = { value: -Infinity, id: null, viewport: null, step: -1 };
   let shallowest = { value: Infinity, id: null, viewport: null, step: -1 };
@@ -201,12 +114,7 @@ test('narration panel extent, per card and per viewport (report only, never fail
     notes.push(`harness: ${err.message.split('\n')[0]}`);
   }
 
-  // -------------------------------------------------------------------------------------------
-  // L-05, measured rather than assumed. For each step of each card the three viewports give three
-  // bottoms; "as L-05 describes" means the bottom falls as the viewport widens. A step where the
-  // order breaks is not a defect, it is the point: the quantity is not monotonic in the viewport,
-  // so no single viewport bounds it.
-  // -------------------------------------------------------------------------------------------
+  // L-05: a step where the bottom does not fall as the viewport widens is the point, not a defect.
   let comparableSteps = 0, descending = 0, brokenOrder = 0;
   let maxSwing = { value: -Infinity, id: null, step: -1 };
   const swingByCard = [];
@@ -232,7 +140,7 @@ test('narration panel extent, per card and per viewport (report only, never fail
   out.push('');
   out.push('===== NARRATION PANEL EXTENT, REPORT ONLY (L-02, L-04, L-05) =====');
 
-  // ---- honesty block, before any number, so it is never read past --------------------------
+  // Honesty block first, so it is never read past.
   if (fellBack.size) {
     out.push('  REPORT INVALID: measured on the FALLBACK face, not the real one.');
     for (const f of fellBack) out.push(`    ${f}`);
@@ -265,9 +173,7 @@ test('narration panel extent, per card and per viewport (report only, never fail
       }
     }
   }
-  // Nothing measured at all, which in practice means no server on BASE. Everything below this
-  // point would compare Infinity against the record and print DIFFERS three times, and a run that
-  // measured nothing must not produce findings about cards it never opened. Say so and stop.
+  // Nothing measured means no server: stop rather than print findings about unopened cards.
   if (!totalSteps) {
     out.push('  REPORT INVALID: not one sample was taken, so there is nothing below to read.');
     out.push(`  BASE is ${DEFAULT_BASE}. The render tests need the working tree served there:`);
@@ -284,7 +190,6 @@ test('narration panel extent, per card and per viewport (report only, never fail
   }
   out.push('');
 
-  // ---- L-02 --------------------------------------------------------------------------------
   out.push('  L-02  RIGHT EDGE');
   out.push(`    measured worst  ${f2(worstRight.value)} on ${worstRight.id} at ${worstRight.viewport}, step ${worstRight.step}`);
   out.push(`    canon records   ${RECORDED_RIGHT.value} on ${RECORDED_RIGHT.id} at ${RECORDED_RIGHT.viewport}`);
@@ -303,12 +208,7 @@ test('narration panel extent, per card and per viewport (report only, never fail
     return `${n} ${f2(w)}`;
   });
   out.push(`    worst per viewport: ${rightByVp.join(' | ')}`);
-  // L-05a calls the panel's WIDTH in viewBox units BOUNDED, with x<=397 as the bound, and carries
-  // the travel with it. BOUNDED and CONSTANT are two different claims and only the first one is
-  // what x<=397 is evidence for: never read the bound as flatness. The measurement stays here
-  // rather than becoming a repeated number: per card, how far the right edge travels across the
-  // set. The verdict below handles both outcomes, because a run that reads CONSTANT is a run in
-  // which the panel or the scale changed and someone must be told.
+  // L-05a: bounded is not constant. A run that reads constant means the panel or the scale changed.
   let rightSpread = { value: -Infinity, id: null, lo: 0, hi: 0 };
   for (const r of rows) {
     const rs = VIEWPORTS.map(v => r.byVp.get(vpName(v)).right).filter(Number.isFinite);
@@ -329,7 +229,6 @@ test('narration panel extent, per card and per viewport (report only, never fail
   }
   out.push('');
 
-  // ---- L-04 --------------------------------------------------------------------------------
   out.push('  L-04  BOTTOM');
   out.push(`    measured range  ${f2(shallowest.value)} .. ${f2(deepest.value)}`);
   out.push(`      shallowest    ${f2(shallowest.value)} on ${shallowest.id} at ${shallowest.viewport}, step ${shallowest.step}`);
@@ -352,7 +251,6 @@ test('narration panel extent, per card and per viewport (report only, never fail
     `deepest ${hiWhere ? 'MATCHES' : `DIFFERS (record: ${RECORDED_BOTTOM.deepest.id})`}`);
   out.push('');
 
-  // ---- L-05 --------------------------------------------------------------------------------
   out.push('  L-05  THE PANEL AGAINST THE VIEWPORT');
   out.push(`    comparable steps (all three viewports sampled): ${comparableSteps}`);
   out.push(`    bottom falls as the viewport widens, the direction L-05 names: ${descending}`);
@@ -375,7 +273,6 @@ test('narration panel extent, per card and per viewport (report only, never fail
   out.push('    specifically for an author who has just edited prose.');
   out.push('');
 
-  // ---- the full table ----------------------------------------------------------------------
   out.push(`  EVERY CARD, EVERY VIEWPORT (${rows.length} cards x ${VIEWPORTS.length} viewports)`);
   out.push(`    ${'card'.padEnd(38)} ${'st'.padStart(2)}  ` +
     VIEWPORTS.map(v => `${vpName(v)}: right / bottom lo..hi`).join('   '));
@@ -406,14 +303,7 @@ test('narration panel extent, per card and per viewport (report only, never fail
 
   console.log(out.join('\n'));
 
-  // NO ASSERTION ON A MEASUREMENT, and one on the WALK. Every verdict above is a quantity the
-  // canon records as report-level, and a person acts on it. Whether this file ran AT ALL is a
-  // different question: a browser that never launched or a card that threw on every open prints
-  // REPORT INCOMPLETE into a page nobody has to read and exits 0. That is the one thing a report
-  // may go red on (`S-46`).
-  //
-  // OVERLAY_IDS is the legitimate way to walk fewer, so the expected size is what the filter asked
-  // for and not the catalog, and a named id the grid does not render is already a note above.
+  // No assertion on a measurement, one on the walk (S-46). The expected size is what the filter asked for.
   const wanted = ONLY.length ? ONLY.length : catalogued.length;
   assert.equal(sampledCards, wanted,
     `sampled ${sampledCards} of ${wanted} card(s) asked for. A report that scans nothing reports ` +

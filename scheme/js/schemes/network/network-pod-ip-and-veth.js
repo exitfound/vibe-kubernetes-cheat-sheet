@@ -4,76 +4,58 @@ import { P, F, defineCard, ladder, midX, BEAT } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-pod-ip-and-veth.md
 
-
-// PANEL: 396.55 wide and 204.97 deep at 1100x800, the deepest of the three viewports. Every element
-// on this card either opens RIGHT of that wall or BELOW that floor, so nothing is measured against a
-// rectangle that moves: the Node frame starts at x=420 and the chip column at y=246.
-const NODE_X = 420, NODE_Y = 130, NODE_W = 720;                 // 420..1140, height DERIVED below
+// Every element opens right of the narration panel or below it: the Node frame at x=420, the chip
+// column at y=246.
+const NODE_X = 420, NODE_Y = 130, NODE_W = 720;                 // height derived below
 const IN_PAD = 30;
-const IN_L = NODE_X + IN_PAD, IN_R = NODE_X + NODE_W - IN_PAD;  // 450..1110
+const IN_L = NODE_X + IN_PAD, IN_R = NODE_X + NODE_W - IN_PAD;
 
 // The shell interior as a rhythm, so the shell HEIGHT is the sum of its parts: label band, two rows
 // at one pitch, a third dropped clear, and the foot the sublabel prints in.
 
-// TWO CONTAINERS AND ONE INTERFACE, NOT THREE PEERS. `pause` and `app` stand at ROW_GAP and eth0
-// drops clear by SPLIT_GAP, because step `unit` claims both containers stand on that ONE eth0 and
-// three boxes at one pitch say the opposite. The record carries the rest (LAYOUT).
+// Two containers and one interface, not three peers: eth0 drops clear by SPLIT_GAP because step
+// `unit` claims both containers stand on that one eth0.
 const ROW_H = 56, ROW_GAP = 20, SPLIT_GAP = 36, ROWS = 3, LABEL_BAND = 36, FOOT = 38;
-const POD_X = IN_L, POD_W = 310, POD_Y = 208;                   // 450..760
-const POD_H = LABEL_BAND + ROWS * ROW_H + ROW_GAP + SPLIT_GAP + FOOT;   // 298: 208..506
+const POD_X = IN_L, POD_W = 310, POD_Y = 208;
+const POD_H = LABEL_BAND + ROWS * ROW_H + ROW_GAP + SPLIT_GAP + FOOT;
 
-// THE POD SHELL RIGHT WALL IS THE NAMESPACE BOUNDARY. The dashed segments further down continue
-// this same x above and below the shell, so the line dividing the Node is the Pod own edge extended
-// rather than a second boundary drawn beside it. The two namespaces are PEERS on one machine and
-// neither is drawn inside the other, which is the claim the whole composition makes.
-const NS_X = POD_X + POD_W;                                     // 760
+// The Pod shell right wall is the namespace boundary: the dashed segments below continue this x, so
+// the line dividing the Node is the Pod edge extended. The two namespaces are peers.
+const NS_X = POD_X + POD_W;
 
-const rowY = ladder({ y: POD_Y + LABEL_BAND, rowH: ROW_H, gap: ROW_GAP });  // 244, 320
-const ETH_Y = rowY(1) + ROW_H + SPLIT_GAP;                      // 412: dropped clear of the pair above
-const LINK_Y = ETH_Y + ROW_H / 2;                               // 440: the row BOTH ends stand on
-// DERIVED OFF THE SHELL, so the margin under the Pod equals the margin over it and the boundary's
-// two segments come out the same length. A typed height leaves the two margins unequal, and the
-// longer segment then hangs in empty frame instead of reading as half of one line.
-const NODE_H = (POD_Y - NODE_Y) * 2 + POD_H;                    // 454: 130..584, 78 clear top and bottom
+const rowY = ladder({ y: POD_Y + LABEL_BAND, rowH: ROW_H, gap: ROW_GAP });
+const ETH_Y = rowY(1) + ROW_H + SPLIT_GAP;                      // dropped clear of the pair above
+const LINK_Y = ETH_Y + ROW_H / 2;                               // the row both ends stand on
+// Derived off the shell, so the margins over and under the Pod match and the two boundary
+// segments come out the same length.
+const NODE_H = (POD_Y - NODE_Y) * 2 + POD_H;
 
-// NET.L-01: every actor block on this card is the category width. The inset is what 232 leaves
-// inside the shell, DERIVED from it, so widening the shell keeps the boxes at 232 instead of
-// stretching them. Re-typing an x here is what puts the row off the shell centre.
+// NET.L-01 width. The inset is derived from the shell, so widening the shell keeps the boxes at 232.
 const BOX_W = 232;
-const BOX_X = POD_X + (POD_W - BOX_W) / 2;                      // 489
+const BOX_X = POD_X + (POD_W - BOX_W) / 2;
 
 // The root namespace side. The host end and the bridge share ONE column, the peer directly under
 // the bridge it is a port on, and the column closes on the frame interior edge.
-const PEER_X = IN_R - BOX_W;                                    // 878
-const PEER_CX = PEER_X + BOX_W / 2;                             // 994
-const CNI_Y = 220, CNI_H = 80;                                  // 220..300
-const TAG_Y = 186;                                              // the two territory captions, 22 over the taller of the two zone tops
+const PEER_X = IN_R - BOX_W;
+const PEER_CX = PEER_X + BOX_W / 2;
+const CNI_Y = 220, CNI_H = 80;
+const TAG_Y = 186;                                              // the two territory captions, over the taller of the two zone tops
 
-// Above the shell and below it, the boundary continued. Two subpaths, one element, because they are
-// one line: `P.relation` is the RECESSION treatment here and not a relationship claim (NET.A-04).
-// Each segment stops 8 clear of the shell, since an endpoint on the shell corner reads as a lane
-// 50 percent off that face midpoint (`L-11`), and runs to 14 inside the frame wall rather than to
-// the interior padding. With NODE_H derived the two measure 56 and 56. The record carries what the
-// shorter pair measured and why it failed.
+// The boundary continued above and below the shell: one element, two subpaths. `P.relation` is the
+// recession treatment here, not a relationship claim (NET.A-04). Each segment stops clear of the shell
+// (L-11).
 const RULE_GAP = 8, RULE_INSET = 14;
 const NS_RULE_D = `M ${NS_X} ${NODE_Y + RULE_INSET} L ${NS_X} ${POD_Y - RULE_GAP} `
   + `M ${NS_X} ${POD_Y + POD_H + RULE_GAP} L ${NS_X} ${NODE_Y + NODE_H - RULE_INSET}`;
 
-// The two lanes, each shared by its drawn wire and the packet that rides it. THE VETH LANE RUNS
-// FACE TO FACE BETWEEN THE TWO ENDS, from eth0 inside the namespace to its peer outside it, and the
-// boundary is what it crosses on the way. Starting it on the shell wall instead would make the Pod
-// edge the end of the pair, which is the claim this card exists to correct. Both lanes are ridden,
-// so neither carries a head nothing uses (`A-05`).
-const ETH_R = BOX_X + BOX_W;                                    // 721: the Pod end face
-const VETH = [[ETH_R, LINK_Y], [PEER_X, LINK_Y]];               // eth0 -> host end, 157 units
-const PORT = [[PEER_CX, ETH_Y], [PEER_CX, CNI_Y + CNI_H]];      // host end -> cni0, 112 units
+// The veth lane runs face to face from eth0 to its peer, crossing the boundary: starting it on the
+// shell wall would make the Pod edge the end of the pair, the claim this card corrects.
+const ETH_R = BOX_X + BOX_W;                                    // the Pod end face
+const VETH = [[ETH_R, LINK_Y], [PEER_X, LINK_Y]];               // eth0 -> host end
+const PORT = [[PEER_CX, ETH_Y], [PEER_CX, CNI_Y + CNI_H]];      // host end -> cni0
 
-// TWO END TICKS, so the pair reads as ONE object with two ends rather than as two interfaces with
-// traffic between them. The BODY is the ordinary dashed dim lane every other card draws: a solid
-// line was tried here and rejected on the rendered frame as the one mark breaking the lane idiom.
-// The ticks carry the lane's own stroke minus the dash, which is what keeps them visible at 18.
-// `CAP_IN` 20 inboard of each face: drawn ON the face a tick lands on the box own vertical edge
-// stroke and vanishes, and at 12 the right one crowded the arrowhead. The record has the rest.
+// Two end ticks, so the pair reads as one object with two ends. The body is the ordinary dashed dim
+// lane, and `CAP_IN` keeps each tick inboard of the face so it does not vanish into the box stroke.
 const CAP_H = 18, CAP_IN = 20;
 // Reads its two endpoints OUT OF `VETH`, the same array the lane and the packet take, so the ticks
 // cannot drift off the ends they mark.
@@ -89,18 +71,16 @@ const vethEnds = () => {
   return grp;
 };
 
-// The readout is a COLUMN, in the gutter the panel leaves below itself. A strip across the canvas
-// would run straight through the namespace boundary this whole card is built on, and would read as
-// four independent readouts where these four are facts about ONE object.
+// The readout is a column below the panel: a strip across the canvas would cut the namespace
+// boundary, and these four chips are facts about one object.
 const CHIP_X = 60, CHIP_W = 300, CHIP_H = 34, CHIP_GAP = 22;
-const chipY = ladder({ y: 246, rowH: CHIP_H, gap: CHIP_GAP });  // 246, 302, 358, 414
+const chipY = ladder({ y: 246, rowH: CHIP_H, gap: CHIP_GAP });
 
 const POD_IP = '10.244.1.5/24';
 const GW_IP = '10.244.1.1';   // the cni0 address: drawn on `port`, held on `unit`, narrated by `port`
 
-// The three boxes inside the shell go INSIDE its group, so the pulse reaches them: a Pod blinks as
-// one thing, which is the whole reason this card carries a real P.pod. buildPod gives exactly one
-// `inner`, so these three peers are appended here (the pod-localhost precedent).
+// The three boxes go inside the shell group so the pulse reaches them: buildPod gives one `inner`,
+// so the three peers are appended here.
 const stack = (el, refs) => {
   refs.pause = box({ x: BOX_X, y: rowY(0), w: BOX_W, h: ROW_H, label: 'pause', sublabel: 'netns owner', role: 'network' });
   refs.app   = box({ x: BOX_X, y: rowY(1), w: BOX_W, h: ROW_H, label: 'app', sublabel: 'shares the netns', role: 'network' });
@@ -108,10 +88,8 @@ const stack = (el, refs) => {
   for (const k of ['pause', 'app', 'eth0']) el.appendChild(refs[k]);
 };
 
-// The list order IS the append order, which is the z-order: the Node frame, the boundary, the Pod
-// with its three boxes and the bridge column, then the two lanes with the end ticks and the
-// captions ABOVE them, then the
-// chip column, then the packet layer last.
+// The list order IS the append order, which is the z-order: Node frame, boundary, Pod and bridge
+// column, the lanes with end ticks and captions above them, the chip column, then the packet layer.
 export const SCENE = {
   'aria-label': 'A veth pair drawn as one link with two ends: eth0 stands inside the Pod network namespace carrying 10.244.1.5, its peer stands in the Node root namespace carrying no address of its own and enslaved to the cni0 bridge which holds 10.244.1.1 instead, a packet entering one end leaves the other with no lookup in between, and every container in the Pod shares that one interface and that one address',
   parts: [
@@ -127,9 +105,8 @@ export const SCENE = {
     P.arrow({ from: VETH[0], to: VETH[1], dashed: true, dim: true }),
     P.raw({ make: vethEnds }),
     P.arrow({ from: PORT[0], to: PORT[1], dashed: true, dim: true }),
-    // Three standing captions, none of which any step rewrites. The two namespace names are the
-    // territories the boundary divides, and `veth pair` names the object crossing it, centred on the
-    // CABLE rather than on the half of it right of the boundary: it names one object, not one side.
+    // Three standing captions no step rewrites. `veth pair` centres on the cable, not on one side of
+    // the boundary: it names one object.
     P.tag({ x: midX(POD_X, NS_X), y: TAG_Y, text: 'pod netns' }),
     P.tag({ x: midX(PEER_X, IN_R), y: TAG_Y, text: 'root netns' }),
     P.tag({ x: midX(ETH_R, PEER_X), y: LINK_Y - 16, text: 'veth pair' }),

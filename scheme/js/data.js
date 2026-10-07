@@ -12,7 +12,7 @@ export const CATEGORIES = [
 ];
 
 // PROJECTIONS of CATEGORIES, not data of their own, so a new category is typed once, above.
-// `tagline` is deliberately not `sub`: one word for both left app.js a dead `sc.sub ||` branch.
+// `tagline` is deliberately not `sub`, so the two fields cannot be confused.
 const byKey = (field) => Object.fromEntries(CATEGORIES.filter(c => c[field]).map(c => [c.key, c[field]]));
 export const CATEGORY_ICONS = byKey('icon');
 export const CATEGORY_TAGLINE = byKey('tagline');

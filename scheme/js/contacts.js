@@ -23,10 +23,14 @@ export const GITHUB = {
 
 export const SPONSOR = {
   enabled: true,
+  // Drawn as a row like the wallets below, so it reads as a link rather than a menu heading.
   donate: {
-    label: 'Donate',
+    coin:  'DONATE',
+    net:   'Alerts',
+    addr:  'donationalerts.com/r/exitfound',
+    label: 'Donate via DonationAlerts',
     href:  'https://www.donationalerts.com/r/exitfound',
-    icon:  `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>`,
+    icon:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg>`,
   },
   wallets: [
     { coin: 'USDT', net: 'TRC20',   addr: 'TYHP4sqCggATZH3UNrHhS7R8Ur6w7Uve7E' },

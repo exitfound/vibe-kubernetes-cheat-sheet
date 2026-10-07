@@ -1,4 +1,4 @@
-import { P, F, defineCard, laneY, shade, makeRidingLabel, BEAT, OPACITY } from './network-kit.js';
+import { P, F, defineCard, laneY, shade, BEAT, OPACITY } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-externalname.md
 
@@ -6,34 +6,34 @@ import { P, F, defineCard, laneY, shade, makeRidingLabel, BEAT, OPACITY } from '
 // two Service objects and the two servers outside the cluster. Every actor is 232x80 (NET.L-01).
 const COL_W = 232, BOX_H = 80;
 const C1_X = 60, C2_X = 484, C3_X = 908;
-const CX = C2_X + COL_W / 2;                        // 600
-const C2_R = C2_X + COL_W;                          // 716
+const CX = C2_X + COL_W / 2;
+const C2_R = C2_X + COL_W;
 
 // The DNS row. CoreDNS reads Service api, so the two share one row joined by a relation.
-const DNS_Y = 20, DNS_BOTTOM = DNS_Y + BOX_H;       // 100
-const DNS_CY = DNS_Y + BOX_H / 2;                   // 60
+const DNS_Y = 20, DNS_BOTTOM = DNS_Y + BOX_H;
+const DNS_CY = DNS_Y + BOX_H / 2;
 
 // The one client, and the ExternalName host level with it on an out and back pair.
 const CLIENT_Y = 180, CLIENT_H = 110;
-const CLIENT_CY = CLIENT_Y + CLIENT_H / 2;          // 235
-const CLIENT_BOTTOM = CLIENT_Y + CLIENT_H;          // 290
-const { out: OUT_Y, back: BACK_Y } = laneY(CLIENT_CY, 12);   // 223 out, 247 back
-const HOST_Y = CLIENT_CY - BOX_H / 2;               // 195
-const Q_X = CX - 16, A_X = CX + 16;                 // query and answer, an L-12 pair about CX
+const CLIENT_CY = CLIENT_Y + CLIENT_H / 2;
+const CLIENT_BOTTOM = CLIENT_Y + CLIENT_H;
+const { out: OUT_Y, back: BACK_Y } = laneY(CLIENT_CY, 12);
+const HOST_Y = CLIENT_CY - BOX_H / 2;
+const Q_X = CX - 12, A_X = CX + 12;                 // query and answer, an L-12 pair about CX
 
 // The TLS pair stands under the host it describes.
 const CHIP_H = 34, CHIP_GAP = 10;
-const SNI_Y = HOST_Y + BOX_H + 20;                  // 295
-const CERT_Y = SNI_Y + CHIP_H + CHIP_GAP;           // 339
+const SNI_Y = HOST_Y + BOX_H + 20;
+const CERT_Y = SNI_Y + CHIP_H + CHIP_GAP;
 
 // The dataplane row: kube-proxy writes it, the client drops into it, the database leaves it.
-const DP_Y = 400, DP_CY = DP_Y + BOX_H / 2;         // 440
+const DP_Y = 400, DP_CY = DP_Y + BOX_H / 2;
 
-// The hand-written slice: three header lines over one endpoint row, centred on CX. 320 wide because
-// `kubernetes.io/service-name: pg` is a sublabel line a 232 frame leaves too little room around.
-const SLICE_W = 320, SLICE_X = CX - SLICE_W / 2;    // 440..760
-const SLICE_Y = 500, SLICE_H = 116;                 // bottom 616 in a 640 viewBox
-const SLICE_CY = SLICE_Y + SLICE_H / 2;             // 558
+// The hand-written slice: three header lines over one endpoint row, centred on CX, wide enough for
+// the `kubernetes.io/service-name: pg` sublabel.
+const SLICE_W = 320, SLICE_X = CX - SLICE_W / 2;
+const SLICE_Y = 500, SLICE_H = 116;
+const SLICE_CY = SLICE_Y + SLICE_H / 2;
 const EP_PAD = 14, EP_Y = SLICE_Y + 68;
 
 const HOP_Q = [[Q_X, CLIENT_Y], [Q_X, DNS_BOTTOM]];
@@ -42,18 +42,15 @@ const HOP_OUT = [[C2_R, OUT_Y], [C3_X, OUT_Y]];
 const HOP_BACK = [[C3_X, BACK_Y], [C2_R, BACK_Y]];
 const HOP_DROP = [[CX, CLIENT_BOTTOM], [CX, DP_Y]];
 const HOP_EXIT = [[C2_R, DP_CY], [C3_X, DP_CY]];
-const KP_CX = C1_X + COL_W / 2;                     // 176
+const KP_CX = C1_X + COL_W / 2;
 const HOP_WATCH = [[SLICE_X, SLICE_CY], [KP_CX, SLICE_CY], [KP_CX, DP_Y + BOX_H]];
 
-// Every tag is on from its ball leaving. A vertical tag leads its ball on the outer side of its lane
-// and dissolves with its ball on arrival, the segment ball's own 100ms fades (M-30a).
-const tag = makeRidingLabel({ role: 'network', inMs: 100, outMs: 100, hold: 0 });
-const routeTag = makeRidingLabel({ role: 'network', inMs: 200, outMs: 200, hold: 0 });   // the watch rides a route, fading 200
+// A vertical tag leads its ball on the outer side of its lane.
 const Q_TAG = { dx: -54, dy: -12 };
 const A_TAG = { dx: 86, dy: 16 };
 const DROP_TAG = { dx: -65, dy: 18 };
-// A tag travels the whole 192 gap with its ball, so a 115 to 151 unit tag in the face band inks over a
-// face: each rides out of it, leading over the host top, in the gap under the host, above the dataplane.
+// Each tag rides out of the face band so it never inks over a face: over the host top, in the gap
+// under the host, above the dataplane.
 const OUT_TAG = { dx: 64, dy: -36 };
 const BACK_TAG = { dx: 80, dy: 41 };
 const EXIT_TAG = { dy: -48 };
@@ -136,11 +133,8 @@ export const STEPS_SPEC = [
     reducedLit: ['clientBox'],
     flow: [
       F.pulse({ pod: 'client' }),
-      F.segment({ from: HOP_Q[0], to: HOP_Q[1], delay: BEAT.afterPulse, name: 'q', lights: ['dns'] }),
-      F.tag({ fn: tag, text: SNI, points: HOP_Q, delay: BEAT.afterPulse, easing: 'linear', ...Q_TAG }),
-      F.segment({ from: HOP_A[0], to: HOP_A[1], after: 'q', name: 'ans' }),
-      F.tag({ fn: tag, text: `CNAME ${CERT}`, points: HOP_A, after: 'q', easing: 'linear', ...A_TAG }),
-      F.pulse({ pod: 'client', at: 'ans' }),
+      F.segment({ from: HOP_Q[0], to: HOP_Q[1], delay: BEAT.afterPulse, name: 'q', lights: ['dns'], tag: { text: SNI, ...Q_TAG } }),
+      F.segment({ from: HOP_A[0], to: HOP_A[1], after: 'q', tag: { text: `CNAME ${CERT}`, ...A_TAG }, pulse: 'client' }),
     ],
   },
   {
@@ -154,8 +148,7 @@ export const STEPS_SPEC = [
     rewind: { chips: { sniChip: 'none' } },
     flow: [
       F.pulse({ pod: 'client' }),
-      F.segment({ from: HOP_OUT[0], to: HOP_OUT[1], delay: BEAT.afterPulse, name: 'hello', lights: ['host', 'sniChip'] }),
-      F.tag({ fn: tag, text: `SNI ${SNI}`, points: HOP_OUT, delay: BEAT.afterPulse, easing: 'linear', ...OUT_TAG }),
+      F.segment({ from: HOP_OUT[0], to: HOP_OUT[1], delay: BEAT.afterPulse, name: 'hello', lights: ['host', 'sniChip'], tag: { text: `SNI ${SNI}`, ...OUT_TAG } }),
       F.set({ at: 'hello', chips: { sniChip: SNI } }),
     ],
   },
@@ -170,8 +163,7 @@ export const STEPS_SPEC = [
     reducedLit: ['clientBox'],
     rewind: { chips: { certChip: 'none' } },
     flow: [
-      F.segment({ from: HOP_BACK[0], to: HOP_BACK[1], delay: BEAT.lead, name: 'cert', lights: ['sniChip', 'certChip'] }),
-      F.tag({ fn: tag, text: `cert ${CERT}`, points: HOP_BACK, delay: BEAT.lead, easing: 'linear', ...BACK_TAG }),
+      F.segment({ from: HOP_BACK[0], to: HOP_BACK[1], delay: BEAT.lead, name: 'cert', lights: ['sniChip', 'certChip'], tag: { text: `cert ${CERT}`, ...BACK_TAG } }),
       F.set({ at: 'cert', chips: { certChip: CERT } }),
       F.pulse({ pod: 'client', at: 'cert' }),
     ],
@@ -186,8 +178,7 @@ export const STEPS_SPEC = [
     lit: ['slice', 'svcPg', 'epChip'],
     rewind: { sublabels: { dp: 'Service rules' } },
     flow: [
-      F.route({ points: HOP_WATCH, delay: BEAT.lead, name: 'watch', lights: ['kproxy'] }),
-      F.tag({ fn: routeTag, text: 'pg-ext · 203.0.113.5', points: HOP_WATCH, delay: BEAT.lead, ...WATCH_TAG }),
+      F.route({ points: HOP_WATCH, delay: BEAT.lead, name: 'watch', lights: ['kproxy'], tag: { text: 'pg-ext · 203.0.113.5', ...WATCH_TAG } }),
       // The write has no ball: the dataplane lights one beat after kube-proxy receives the slice.
       F.set({ after: 'watch', sublabels: { dp: RULES } }),
       F.light({ targets: ['dp'], after: 'watch' }),
@@ -203,10 +194,8 @@ export const STEPS_SPEC = [
     reducedLit: ['clientBox'],
     flow: [
       F.pulse({ pod: 'client' }),
-      F.segment({ from: HOP_DROP[0], to: HOP_DROP[1], delay: BEAT.afterPulse, name: 'drop', lights: ['dp'] }),
-      F.tag({ fn: tag, text: 'dst 10.96.0.40:5432', points: HOP_DROP, delay: BEAT.afterPulse, easing: 'linear', ...DROP_TAG }),
-      F.segment({ from: HOP_EXIT[0], to: HOP_EXIT[1], after: 'drop', name: 'exit', lights: ['server'] }),
-      F.tag({ fn: tag, text: 'dst 203.0.113.5:5432', points: HOP_EXIT, after: 'drop', easing: 'linear', ...EXIT_TAG }),
+      F.segment({ from: HOP_DROP[0], to: HOP_DROP[1], delay: BEAT.afterPulse, name: 'drop', lights: ['dp'], tag: { text: 'dst 10.96.0.40:5432', ...DROP_TAG } }),
+      F.segment({ from: HOP_EXIT[0], to: HOP_EXIT[1], after: 'drop', name: 'exit', lights: ['server'], tag: { text: 'dst 203.0.113.5:5432', ...EXIT_TAG } }),
     ],
   },
 ];

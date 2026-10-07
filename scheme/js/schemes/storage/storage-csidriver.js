@@ -1,4 +1,4 @@
-import { P, F, defineCard, BEAT, FADE, OPACITY, makeRidingLabel } from './storage-kit.js';
+import { P, F, defineCard, BEAT, FADE, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-csidriver.md
 
 
@@ -6,37 +6,37 @@ import { P, F, defineCard, BEAT, FADE, OPACITY, makeRidingLabel } from './storag
 // consumers that read both CSIDriver objects standing ON the spine between them.
 const CX = 600;
 
-// The catalog actor block, 232 by 80 (NET.L-01). The side blocks sit SIDE_D off the spine, which
-// leaves a 128 gap for every hop and centres the drawn extent 124..1076 on CX.
+// The catalog actor block (NET.L-01). The side blocks sit SIDE_D off the spine, which leaves a
+// 128 gap for every hop and centres the drawn extent on CX.
 const BLOCK_W = 232, BLOCK_H = 80, SIDE_D = 360;
-const L_CX = CX - SIDE_D, R_CX = CX + SIDE_D;                               // 240 / 960
-const L_X = L_CX - BLOCK_W / 2, R_X = R_CX - BLOCK_W / 2;                   // 124 / 844
-const M_X = CX - BLOCK_W / 2;                                               // 484
-const L_FACE = L_X + BLOCK_W, R_FACE = R_X;                                 // 356 / 844
-const M_L = M_X, M_R = M_X + BLOCK_W;                                       // 484 / 716
+const L_CX = CX - SIDE_D, R_CX = CX + SIDE_D;
+const L_X = L_CX - BLOCK_W / 2, R_X = R_CX - BLOCK_W / 2;
+const M_X = CX - BLOCK_W / 2;
+const L_FACE = L_X + BLOCK_W, R_FACE = R_X;
+const M_L = M_X, M_R = M_X + BLOCK_W;
 
-// The head: the two objects side by side right of the panel wall (x 420), each a name box over a
-// column of its three fields. 172 is the widest the pair can be and still start at 420.
+// The head: the two objects side by side right of the panel wall, each a name box over a column
+// of its three fields. 172 is the widest the pair can be and still start at the wall.
 const OBJ_W = 172, OBJ_GAP = 16, OBJ_Y = 24, OBJ_H = 48;
-const OBJ_D_X = CX - OBJ_GAP / 2 - OBJ_W, OBJ_N_X = CX + OBJ_GAP / 2;       // 420 / 608
+const OBJ_D_X = CX - OBJ_GAP / 2 - OBJ_W, OBJ_N_X = CX + OBJ_GAP / 2;
 const CHIP_H = 34, CHIP_GAP = 8;
-const chipY = i => OBJ_Y + OBJ_H + CHIP_GAP + i * (CHIP_H + CHIP_GAP);      // 80 / 122 / 164, ends 198
+const chipY = i => OBJ_Y + OBJ_H + CHIP_GAP + i * (CHIP_H + CHIP_GAP);
 
-// Row 1, the control plane: it hangs below the panel, since its left block starts at x 124.
-const ROW1_Y = 252, ROW1_MID = ROW1_Y + BLOCK_H / 2;                        // 252..332, mid 292
+// Row 1, the control plane: it hangs below the panel.
+const ROW1_Y = 252, ROW1_MID = ROW1_Y + BLOCK_H / 2;
 
-// Node-1 holds Kubelet, the two node plugins and the one Pod. The frame label needs 32 above row 2.
-const NODE_X = L_X - 20, NODE_W = 2 * SIDE_D + BLOCK_W + 40;                // 104, 992 wide
-const NODE_Y = ROW1_Y + BLOCK_H + 24;                                       // 356
-const ROW2_Y = NODE_Y + 32, ROW2_MID = ROW2_Y + BLOCK_H / 2;                // 388..468, mid 428
-const ROW2_BOT = ROW2_Y + BLOCK_H;                                          // 468
+// Node-1 holds Kubelet, the two node plugins and the one Pod, with the catalog 34 label band over
+// row 2 and 12 of floor under the Pod.
+const NODE_X = L_X - 20, NODE_W = 2 * SIDE_D + BLOCK_W + 40;
+const ROW2_Y = ROW1_Y + BLOCK_H + 56, ROW2_MID = ROW2_Y + BLOCK_H / 2;
+const NODE_Y = ROW2_Y - 34;
+const ROW2_BOT = ROW2_Y + BLOCK_H;
 
-// ONE Pod spanning both halves, so each volume box sits under the node plugin that mounts it. The
-// inner boxes are the catalog 192 by 44, 26 under the Pod top.
-const POD_X = L_X, POD_W = 2 * SIDE_D + BLOCK_W, POD_H = 104;               // 124, 952 wide
-const POD_Y = ROW2_BOT + 36;                                                // 504..608
-const IN_W = 192, IN_H = 44, IN_Y = POD_Y + 26;                             // 530..574
-const NODE_H = POD_Y + POD_H + 12 - NODE_Y;                                 // 264, frame 356..620
+// One Pod spanning both halves, so each volume box sits under the node plugin that mounts it.
+const POD_X = L_X, POD_W = 2 * SIDE_D + BLOCK_W, POD_H = 104;
+const POD_Y = ROW2_BOT + 36;
+const IN_W = 192, IN_H = 44, IN_Y = POD_Y + 26;
+const NODE_H = POD_Y + POD_H + 12 - NODE_Y;
 
 const W_VA_D  = [[M_L, ROW1_MID], [L_FACE, ROW1_MID]];                      // controller -> va-1
 const W_VA_N  = [[M_R, ROW1_MID], [R_FACE, ROW1_MID]];                      // controller -> va-2
@@ -46,22 +46,19 @@ const W_PUB_N = [[M_R, ROW2_MID], [R_FACE, ROW2_MID]];                      // K
 const W_MNT_D = [[L_CX, ROW2_BOT], [L_CX, POD_Y]];                          // disk plugin -> data
 const W_MNT_N = [[R_CX, ROW2_BOT], [R_CX, POD_Y]];                          // NFS plugin -> shared
 
-// The 128 unit row hops and the 36 unit mount drops ride routeDur, which puts them all on the 700ms
-// floor, as on storage-emptydir. Each tag lives exactly as long as its ball (M-30a). A row hop
-// runs between two roofs 40 above it and its string is as wide as the gap, so it rides 50 up. A
+// A row hop runs between two roofs and its string is as wide as the gap, so it rides 50 up. A
 // mount drop rides outside its lane.
-const lockstep = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
-const ROW_TAG = { fn: lockstep, dy: -50 };
-const DROP_L_TAG = { fn: lockstep, dx: -30, dy: 4 };
-const DROP_R_TAG = { fn: lockstep, dx: 30, dy: 4 };
+const ROW_TAG = { dy: -50 };
+const DROP_L_TAG = { dx: -30, dy: 4 };
+const DROP_R_TAG = { dx: 30, dy: 4 };
 
 const obj = (key, x, driver) => P.box({ key, x, y: OBJ_Y, w: OBJ_W, h: OBJ_H, label: 'CSIDriver', sublabel: driver });
 const field = (key, x, i, name, value) => P.chip({ key, x, y: chipY(i), w: OBJ_W, h: CHIP_H, name, value });
 const block = (key, x, y, label, sublabel, opacity) => P.box({ key, x, y, w: BLOCK_W, h: BLOCK_H, label, sublabel, opacity });
 const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 
-// Z-order (bottom -> top): the Node frame, the blocks and the Pod, the head with its fields, the
-// lanes, the counterfactual caption, then the packet layer.
+// Z-order: the Node frame, the blocks and the Pod, the head with its fields, the lanes, the
+// counterfactual caption, then the packet layer.
 export const SCENE = {
   'aria-label': 'The CSIDriver object: one Pod app-0 with fsGroup 2000 mounts volume data from disk.csi.example.com and volume shared from nfs.csi.example.com. Each driver here has a cluster scoped CSIDriver object of the same name. The attach and detach controller reads attachRequired: true for the disk driver, so it writes VolumeAttachment va-1, and false for the NFS driver, so it writes none. Kubelet calls NodePublishVolume on both node plugins, passes Pod info such as the Pod name, namespace and UID only to the NFS driver because its podInfoOnMount is true, and changes the group of data to 2000 because the disk driver has fsGroupPolicy File, while None leaves shared as exported. If the NFS driver had no CSIDriver object, the controller and Kubelet would treat it as attachRequired true, a VolumeAttachment would be written that no attacher answers, and the Pod would wait in ContainerCreating.',
   parts: [
@@ -98,7 +95,7 @@ export const SCENE = {
     lane('lMntD', W_MNT_D),
     lane('lMntN', W_MNT_N),
     // T-35: the caption over the half a counterfactual changes, blank on every other step. It sits
-    // 30 above row 1 so the row tag riding 50 above its lane, at 242, passes under it.
+    // high enough that the row tag riding above its lane passes under it.
     P.wire({ key: 'branch', x: R_CX, y: ROW1_Y - 30 }),
     P.packets(),
   ],
@@ -152,8 +149,7 @@ export const STEPS_SPEC = [
     lit: ['ctrl', 'attD', 'attN'],
     rewind: { labels: { vaD: 'VolumeAttachment', vaN: 'VolumeAttachment' }, sublabels: IDLE_SUB, opacity: { vaD: PEND } },
     flow: [
-      F.route({ points: W_VA_D, delay: BEAT.lead, name: 'write', lights: ['vaD'] }),
-      F.tag({ text: 'create', points: W_VA_D, delay: BEAT.lead, ...ROW_TAG }),
+      F.route({ points: W_VA_D, delay: BEAT.lead, name: 'write', lights: ['vaD'], tag: { text: 'create', ...ROW_TAG } }),
       F.reveal({ target: 'vaD', from: PEND, at: 'write' }),
       F.set({ labels: ATTACHED_LBL, sublabels: ATTACHED_SUB, at: 'write' }),
     ],
@@ -172,14 +168,10 @@ export const STEPS_SPEC = [
     // of the last mount: it turns Running and blinks as a whole (M-03), so no inner box is lit.
     rewind: { sublabels: ATTACHED_SUB, podSublabels: WAIT, opacity: { pod: PEND } },
     flow: [
-      F.route({ points: W_PUB_D, delay: BEAT.lead, name: 'pubD', lights: ['npD'] }),
-      F.tag({ text: 'NodePublish', points: W_PUB_D, delay: BEAT.lead, ...ROW_TAG }),
-      F.route({ points: W_PUB_N, delay: BEAT.lead, name: 'pubN', lights: ['npN'] }),
-      F.tag({ text: 'NodePublish + Pod info', points: W_PUB_N, delay: BEAT.lead, ...ROW_TAG }),
-      F.route({ points: W_MNT_D, after: 'pubD' }),
-      F.tag({ text: 'mount', points: W_MNT_D, after: 'pubD', ...DROP_L_TAG }),
-      F.route({ points: W_MNT_N, after: 'pubN', name: 'mntN' }),
-      F.tag({ text: 'mount', points: W_MNT_N, after: 'pubN', ...DROP_R_TAG }),
+      F.route({ points: W_PUB_D, delay: BEAT.lead, name: 'pubD', lights: ['npD'], tag: { text: 'NodePublish', ...ROW_TAG } }),
+      F.route({ points: W_PUB_N, delay: BEAT.lead, name: 'pubN', lights: ['npN'], tag: { text: 'NodePublish + Pod info', ...ROW_TAG } }),
+      F.route({ points: W_MNT_D, after: 'pubD', tag: { text: 'mount', ...DROP_L_TAG } }),
+      F.route({ points: W_MNT_N, after: 'pubN', name: 'mntN', tag: { text: 'mount', ...DROP_R_TAG } }),
       F.set({ sublabels: MOUNTED_SUB, podSublabels: RUN, at: 'mntN' }),
       F.fade({ target: 'pod', from: PEND, to: 1, dur: FADE.in, fill: 'forwards', easing: 'ease-out', at: 'mntN' }),
       F.pulse({ pod: 'pod', at: 'mntN' }),
@@ -202,8 +194,7 @@ export const STEPS_SPEC = [
     flow: [
       F.fade({ target: 'objN', from: 1, to: GHOST, dur: FADE.out, fill: 'forwards' }),
       F.set({ labels: { objN: 'No CSIDriver' }, delay: FADE.out }),
-      F.route({ points: W_VA_N, delay: BEAT.lead, name: 'write', lights: ['vaN'] }),
-      F.tag({ text: 'create', points: W_VA_N, delay: BEAT.lead, ...ROW_TAG }),
+      F.route({ points: W_VA_N, delay: BEAT.lead, name: 'write', lights: ['vaN'], tag: { text: 'create', ...ROW_TAG } }),
       F.reveal({ target: 'vaN', from: GHOST, at: 'write' }),
       F.set({ labels: { vaN: 'VolumeAttachment va-2' }, sublabels: { vaN: 'attached: false' }, at: 'write' }),
     ],

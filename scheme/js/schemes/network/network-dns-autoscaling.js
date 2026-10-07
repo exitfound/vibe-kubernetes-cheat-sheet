@@ -1,43 +1,35 @@
-import { P, F, defineCard, shade, BEAT, OPACITY } from './network-kit.js';
+import { P, F, defineCard, shade, BEAT, OPACITY, BRISK_HOP_MS } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-dns-autoscaling.md
 
-
-// AN INSTRUMENT, not a path: the subject is a COUNT that follows another count, so the card is two
-// axis meters either side of one spine and a replica row under them. No Pod stands on this canvas
-// (see the record): the replicas are a reading, and six Pod shells would put six pulsing actors on
-// a card whose whole argument is arithmetic.
+// AN INSTRUMENT, not a path: a COUNT that follows another count, so two axis meters either side of
+// one spine and a replica row under them. No Pod stands on this canvas: the replicas are a reading.
 const CONTENT_L = 60, CONTENT_R = 1140;
 const CX = 600;                              // the spine the two actors and the write rail share
 
-// The three actors are NET.L-01 exactly: 232 by 80.
+// The two actors are NET.L-01 exactly: 232 by 80.
 const BOX_W = 232, BOX_H = 80;
-const BOX_X = CX - BOX_W / 2;                // 484..716
-const API_Y = 60,  API_B = API_Y + BOX_H;    // 60..140
-const AUTO_Y = 240, AUTO_B = AUTO_Y + BOX_H; // 240..320
+const BOX_X = CX - BOX_W / 2;
+const API_Y = 60,  API_B = API_Y + BOX_H;
+const AUTO_Y = 240, AUTO_B = AUTO_Y + BOX_H;
 
-// The poll is a round trip, so it takes a lane PAIR mirrored about the top face midpoint (L-12):
-// the request climbs at 588 and the counts come back down at 612.
+// The poll is a round trip, a lane PAIR mirrored about the top face midpoint (L-12).
 const LANE_DX = 12;
 const POLL_UP   = [[CX - LANE_DX, AUTO_Y], [CX - LANE_DX, API_B]];
 const POLL_DOWN = [[CX + LANE_DX, API_B], [CX + LANE_DX, AUTO_Y]];
 
-// THE METERS, and the reading is a LENGTH: a counted cell is DRAWN and an uncounted one is not, so
-// the two axes compare the way a reader compares two rows. A cell is 40 by 22 at a 48 pitch inside
-// a TROUGH, which is what says where the cells that are not there would go (C-14). Eight cells and
-// not six because the card never fills more than six, so the track cannot be read as a cap and this
-// card states no `max`. Separating the two states by OPACITY instead is measured and fails: see
-// WHY NOT in the record.
+// THE METERS: a counted cell is DRAWN and an uncounted one is not, inside a TROUGH that says where
+// the missing cells would go (C-14). More slots than the card ever fills, so the track never reads as a cap.
 const SLOTS = 8, CELL_W = 40, CELL_H = 22, CELL_GAP = 8;
-const PITCH = CELL_W + CELL_GAP;                            // 48
-const ROW_W = SLOTS * CELL_W + (SLOTS - 1) * CELL_GAP;      // 376
+const PITCH = CELL_W + CELL_GAP;
+const ROW_W = SLOTS * CELL_W + (SLOTS - 1) * CELL_GAP;
 const TROUGH_PAD = 6;
-const TRACK_W = ROW_W + 2 * TROUGH_PAD;                     // 388
-const TRACK_H = CELL_H + 2 * TROUGH_PAD;                    // 34
-const NODES_X = CONTENT_L;                    // trough 60..448
-const CORES_X = CONTENT_R - TRACK_W;          // trough 752..1140
-const MET_Y = 368;                            // 368..402, well under the deepest panel reading
-const CELL_Y = MET_Y + TROUGH_PAD;            // 374..396
+const TRACK_W = ROW_W + 2 * TROUGH_PAD;
+const TRACK_H = CELL_H + 2 * TROUGH_PAD;
+const NODES_X = CONTENT_L;
+const CORES_X = CONTENT_R - TRACK_W;
+const MET_Y = 368;                            // well under the deepest panel reading
+const CELL_Y = MET_Y + TROUGH_PAD;
 const MET_LBL_Y = 356;                        // the per-step arithmetic, centred over its own track
 const cellX = (base, i) => base + i * PITCH;
 
@@ -45,17 +37,15 @@ const cellX = (base, i) => base + i * PITCH;
 // label on the vertical centre, which is exactly where the row stands. The name is a P.tag above
 // its top-left corner instead, clear of the rail that lands on the top face midpoint.
 const DEP_W = 450, DEP_H = 60;
-const DEP_X = CX - DEP_W / 2, DEP_Y = 452;    // 375..825 x 452..512
-const REP_X = CX - ROW_W / 2;                 // 412..788, the same width and pitch as the meters
-const REP_Y = DEP_Y + (DEP_H - CELL_H) / 2;   // 471..493
+const DEP_X = CX - DEP_W / 2, DEP_Y = 452;
+const REP_X = CX - ROW_W / 2;                 // the same width and pitch as the meters
+const REP_Y = DEP_Y + (DEP_H - CELL_H) / 2;
 const DEP_TAG_X = 470, DEP_TAG_Y = 442;
 
 // The write runs straight down the spine, between the two meters and into the frame top face.
 const WRITE = [[CX, AUTO_B], [CX, DEP_Y]];
 
-// Nine chips in two rows over the full content span, each width sized to its own longest string:
-// `preventSinglePointFailure` and `includeUnschedulableNodes` ink past a 255 chip on their names
-// alone, so the two rows are laid by hand rather than by one `strip`.
+// Nine chips in two rows, each sized to its own longest string, so the rows are laid by hand.
 const CHIP_H = 34, ROW1_Y = 546, ROW2_Y = 586;
 const R1 = [150, 250, 250, 370];
 const R2 = [370, 200, 150, 150, 130];
@@ -71,7 +61,7 @@ const cellRow = (prefix, base, y) =>
     P.box({ key: prefix + i, x: cellX(base, i), y, w: CELL_W, h: CELL_H, rx: 3, opacity: 0 }));
 
 // The reading of one row as an opacity set: the first `n` cells are drawn and the rest are not.
-// Every step states all 24 cells this way, which is the shape P-01 asks of a chip.
+// Every step states every cell this way (P-01).
 const KEYS = (prefix) => Array.from({ length: SLOTS }, (_, i) => prefix + i);
 const N_KEYS = KEYS('n'), C_KEYS = KEYS('c'), R_KEYS = KEYS('r');
 const read = (keys, n) => ({ ...shade(keys.slice(0, n), 1), ...shade(keys.slice(n), 0) });
@@ -130,13 +120,8 @@ export const SCENE = {
   },
 };
 
-// MEASURED, not the quotient. The poll legs are 100 units and the write rail 132, which at the
-// canon 0.45 u/ms would finish in 222 and 293 and therefore clamp to the M-13 floor of 700, where
-// a ball this short reads as crawling. 595 is the same 15 percent off the floor that
-// `network-nodelocal-dnscache` measured for its 56 to 164 unit hops, so the two cards of this
-// section that hop short distances run at one pace. `render/motion.test.mjs` PACING records all
-// eight balls as explicit and under the floor.
-const HOP_MS = 595;
+// Every hop rides BRISK_HOP_MS: these legs are too short for the 700 floor (M-12, PACING in
+// render/motion.test.mjs).
 
 // The ConfigMap as the manifest writes it, and what each key is once it is read. `min` is NOT in
 // the manifest `--default-params`, so its chip says where the 1 comes from (see the record).
@@ -192,16 +177,13 @@ export const STEPS_SPEC = [
     // The two counts land on the arrival that produced them (P-03).
     rewind: { chips: { cNodeCount: '-', cCoreCount: '-' } },
     flow: [
-      F.segment({ from: POLL_UP[0], to: POLL_UP[1], delay: BEAT.lead, dur: HOP_MS, name: 'up', lights: ['api'] }),
-      F.segment({ from: POLL_DOWN[0], to: POLL_DOWN[1], after: 'up', dur: HOP_MS, name: 'down' }),
+      F.segment({ from: POLL_UP[0], to: POLL_UP[1], delay: BEAT.lead, dur: BRISK_HOP_MS, name: 'up', lights: ['api'] }),
+      F.segment({ from: POLL_DOWN[0], to: POLL_DOWN[1], after: 'up', dur: BRISK_HOP_MS, name: 'down' }),
       F.set({ chips: { ...SMALL }, at: 'down' }),
     ],
   },
   {
     id: 'params',
-    // 3900 and not 2600: this is the longest narration on the card, 388 characters, and at 2600 it
-    // reads at 6.70 ms/char, rank 5 of 712 in the catalog. The step is READING-bound, so the hold
-    // buys the prose rather than the motion (span 1955).
     duration: 3900,
     narration: 'On the same poll it fetches ConfigMap kube-dns-autoscaler, which holds its parameters. The manifest passes coresPerReplica 256, nodesPerReplica 16 and both flags as default-params, and the autoscaler writes those into the ConfigMap when none exists. Setting includeUnschedulableNodes true counts cordoned and draining Nodes in the total, and with no min passed the library holds min at 1.',
     chips: { ...LINEAR, ...SMALL, cReplicas: '-' },
@@ -211,7 +193,7 @@ export const STEPS_SPEC = [
     lit: ['api', 'cKey', 'cCores', 'cNodes', 'cSpof', 'cUnsched', 'cMin'],
     rewind: { chips: { ...UNREAD } },
     flow: [
-      F.segment({ from: POLL_DOWN[0], to: POLL_DOWN[1], delay: BEAT.lead, dur: HOP_MS, name: 'cm', lights: ['auto'] }),
+      F.segment({ from: POLL_DOWN[0], to: POLL_DOWN[1], delay: BEAT.lead, dur: BRISK_HOP_MS, name: 'cm', lights: ['auto'] }),
       F.set({ chips: { ...LINEAR }, at: 'cm' }),
     ],
   },
@@ -245,7 +227,7 @@ export const STEPS_SPEC = [
     lit: ['auto', 'cSpof', 'cMin', 'cReplicas'],
     rewind: { chips: { cReplicas: '-' }, opacity: meters(1, 1, 0) },
     flow: [
-      F.segment({ from: WRITE[0], to: WRITE[1], delay: BEAT.lead, dur: HOP_MS, name: 'w', lights: ['deploy'] }),
+      F.segment({ from: WRITE[0], to: WRITE[1], delay: BEAT.lead, dur: BRISK_HOP_MS, name: 'w', lights: ['deploy'] }),
       F.reveal({ target: 'r0', at: 'w' }),
       F.reveal({ target: 'r1', at: 'w', plus: 200 }),
       F.set({ chips: { cReplicas: '2' }, at: 'w' }),
@@ -261,8 +243,8 @@ export const STEPS_SPEC = [
     lit: ['auto', 'cNodeCount', 'cCoreCount'],
     rewind: { chips: { ...SMALL } },
     flow: [
-      F.segment({ from: POLL_UP[0], to: POLL_UP[1], delay: BEAT.lead, dur: HOP_MS, name: 'up', lights: ['api'] }),
-      F.segment({ from: POLL_DOWN[0], to: POLL_DOWN[1], after: 'up', dur: HOP_MS, name: 'down' }),
+      F.segment({ from: POLL_UP[0], to: POLL_UP[1], delay: BEAT.lead, dur: BRISK_HOP_MS, name: 'up', lights: ['api'] }),
+      F.segment({ from: POLL_DOWN[0], to: POLL_DOWN[1], after: 'up', dur: BRISK_HOP_MS, name: 'down' }),
       F.set({ chips: { ...BIG }, at: 'down' }),
     ],
   },
@@ -284,7 +266,7 @@ export const STEPS_SPEC = [
       F.reveal({ target: 'c3', delay: BEAT.lead + 160 }),
       F.reveal({ target: 'c4', delay: BEAT.lead + 240 }),
       F.reveal({ target: 'c5', delay: BEAT.lead + 320 }),
-      F.segment({ from: WRITE[0], to: WRITE[1], delay: 1750, dur: HOP_MS, name: 'w', lights: ['deploy'] }),
+      F.segment({ from: WRITE[0], to: WRITE[1], delay: 1750, dur: BRISK_HOP_MS, name: 'w', lights: ['deploy'] }),
       F.reveal({ target: 'r2', at: 'w' }),
       F.reveal({ target: 'r3', at: 'w', plus: 80 }),
       F.reveal({ target: 'r4', at: 'w', plus: 160 }),
@@ -305,7 +287,7 @@ export const STEPS_SPEC = [
       F.set({ chips: { ...LADDER }, wires: { ...READ_LADDER }, delay: BEAT.lead }),
       F.fade({ target: 'n2', to: 0, dur: 400, delay: BEAT.lead }),
       F.fade({ target: 'c5', to: 0, dur: 400, delay: BEAT.lead }),
-      F.segment({ from: WRITE[0], to: WRITE[1], delay: 1500, dur: HOP_MS, name: 'w', lights: ['deploy'] }),
+      F.segment({ from: WRITE[0], to: WRITE[1], delay: 1500, dur: BRISK_HOP_MS, name: 'w', lights: ['deploy'] }),
       F.fade({ target: 'r5', to: 0, dur: 400, at: 'w' }),
       F.set({ chips: { cReplicas: '5' }, at: 'w' }),
     ],

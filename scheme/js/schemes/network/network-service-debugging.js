@@ -2,21 +2,20 @@ import { P, F, defineCard, strip, makeRidingLabel, BEAT, OPACITY } from './netwo
 
 // Design notes for this card: ./CARDS/network-service-debugging.md
 
-
 // One flow row: client, Service, backend Pod, centred on FLOW_Y. The slice stands above the Service
 // on CX, and the three links the card is about are relations hung off those four blocks.
 const CX = 600;
 const FLOW_Y = 350;                 // measured against the panel: the client Pod top must clear it
-const BOX_W = 232, SVC_H = 80, SLICE_H = 80;   // both object boxes, the kubelet block of network-model
-const SVC_L = CX - BOX_W / 2, SVC_R = CX + BOX_W / 2;     // 484 / 716
-const SVC_TOP = FLOW_Y - SVC_H / 2, SVC_BOTTOM = FLOW_Y + SVC_H / 2;   // 310 / 390
-const SLICE_Y = 60, SLICE_BOTTOM = SLICE_Y + SLICE_H;    // 140
-const SLICE_MID = SLICE_Y + SLICE_H / 2;                 // 100: the readiness link leaves here
+const BOX_W = 232, SVC_H = 80, SLICE_H = 80;   // both object boxes, the kubelet block of network-flat-pod-network
+const SVC_L = CX - BOX_W / 2, SVC_R = CX + BOX_W / 2;
+const SVC_TOP = FLOW_Y - SVC_H / 2, SVC_BOTTOM = FLOW_Y + SVC_H / 2;
+const SLICE_Y = 60, SLICE_BOTTOM = SLICE_Y + SLICE_H;
+const SLICE_MID = SLICE_Y + SLICE_H / 2;                 // the readiness link leaves here
 
 const POD_W = 210, POD_H = 120;
-const CLIENT_X = 60, CLIENT_R = CLIENT_X + POD_W;        // 270
-const POD_L = 1140 - POD_W, POD_CX = POD_L + POD_W / 2;  // 930 / 1035
-const POD_TOP = FLOW_Y - POD_H / 2, POD_BOTTOM = FLOW_Y + POD_H / 2;  // 290 / 410
+const CLIENT_X = 60, CLIENT_R = CLIENT_X + POD_W;
+const POD_L = 1140 - POD_W, POD_CX = POD_L + POD_W / 2;
+const POD_TOP = FLOW_Y - POD_H / 2, POD_BOTTOM = FLOW_Y + POD_H / 2;
 const POD_INNER = { dx: 20, dy: 34, w: POD_W - 40, h: 52 };
 
 // The two lanes a ball rides, one hop each side of the Service, and the same arrays feed the wire
@@ -32,7 +31,7 @@ const READY_LINK = [[SVC_R, SLICE_MID], [POD_CX, SLICE_MID], [POD_CX, POD_TOP]];
 
 // Chip grid, two rows by three: the top row is the empty-slice causes, the bottom row the port.
 const CHIP_H = 34;
-const CHIP = strip({ from: 70, to: 1130, count: 3, gap: 20 });   // 340 wide, mirrored about CX
+const CHIP = strip({ from: 70, to: 1130, count: 3, gap: 20 });   // mirrored about CX
 const CHIP_W = CHIP.w, CHIP_X = [0, 1, 2].map(CHIP.x);
 const ROW_A = 520, ROW_B = 566;
 
@@ -42,7 +41,7 @@ export const SCENE = {
   'aria-label': 'A Service call that never reaches the app: the client resolves the Service name and sends to it, but the app in the Pod gets the call only while the selector matches the Pod labels, the Pod is Ready, unless the Service sets publishNotReadyAddresses, so the EndpointSlice serves it, and targetPort is the port the container listens on, and a named targetPort resolves to the port the Pod declares under that name',
   parts: [
     P.defs(),
-    P.box({ key: 'slice', x: SVC_L, y: SLICE_Y, w: BOX_W, h: SLICE_H, label: 'EndpointSlice web-x9f2', sublabel: '1 serving endpoint' }),
+    P.box({ key: 'slice', x: SVC_L, y: SLICE_Y, w: BOX_W, h: SLICE_H, label: 'EndpointSlice web-x9f2k', sublabel: '1 serving endpoint' }),
     P.box({ key: 'svc', x: SVC_L, y: SVC_TOP, w: BOX_W, h: SVC_H, label: 'Service web', sublabel: 'selector app=web' }),
     P.pod({
       key: 'client', innerKey: 'clientBox', x: CLIENT_X, y: POD_TOP, w: POD_W, h: POD_H,
@@ -95,19 +94,16 @@ const chips = (o = {}) => ({
   },
 });
 
-// Every tag fades in with its ball and fades at arrival, lifted over the flow row so it never prints
-// inside the block it leaves or lands on: its ink stands 4 above the Pod top, the taller block.
-const tag = makeRidingLabel({ role: 'network', easing: 'linear', outMs: 170, hold: 0, emergeMode: true });
-const TAG_DY = POD_TOP - FLOW_Y - 6;   // -66
+// Every tag is lifted over the flow row so it never prints inside the block it leaves or lands on.
+const tag = makeRidingLabel({ role: 'network', easing: 'linear' });
+const TAG_DY = POD_TOP - FLOW_Y - 6;
 // The dial every step opens with: the client pulses, then one hop into the Service, which lights.
 const dial = [
   F.pulse({ pod: 'client' }),
-  F.segment({ from: LANE_IN[0], to: LANE_IN[1], delay: BEAT.afterPulse, name: 'send', lights: ['svc'] }),
-  F.tag({ fn: tag, text: 'dst 10.96.0.20:80', points: LANE_IN, delay: BEAT.afterPulse, easing: 'linear', dy: TAG_DY }),
+  F.segment({ from: LANE_IN[0], to: LANE_IN[1], delay: BEAT.afterPulse, name: 'send', lights: ['svc'], tag: { fn: tag, text: 'dst 10.96.0.20:80', dy: TAG_DY } }),
 ];
 const deliver = (dst) => [
-  F.segment({ from: LANE_OUT[0], to: LANE_OUT[1], after: 'send', name: 'give' }),
-  F.tag({ fn: tag, text: dst, points: LANE_OUT, after: 'send', easing: 'linear', dy: TAG_DY }),
+  F.segment({ from: LANE_OUT[0], to: LANE_OUT[1], after: 'send', name: 'give', tag: { fn: tag, text: dst, dy: TAG_DY } }),
 ];
 
 export const STEPS_SPEC = [

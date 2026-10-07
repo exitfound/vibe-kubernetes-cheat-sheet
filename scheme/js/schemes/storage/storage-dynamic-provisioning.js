@@ -1,66 +1,58 @@
-import { P, F, defineCard, chipStrip } from './storage-kit.js';
+import { FADE, LANE_DY, P, F, defineCard, chipStrip, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-dynamic-provisioning.md
 
-
-// The panel wall, measured at 396.55 worst case at 1100x800 (L-02). The two columns therefore centre
-// on 640 and stay there: sliding the drawing left to reach 600 drags the claim under the panel, which
-// is what LEFT_X exists to prevent. CANVAS_CX is separate on purpose, because the chip strip alone
-// has the full width.
+// The panel wall (L-02) pins the top row at LEFT_X, so the columns centre on 652, not 600.
+// CANVAS_CX is separate on purpose: only the chip strip has the full width.
 const LEFT_X = 400;                                   // leftmost the TOP ROW may go, all viewports
 const CANVAS_CX = 600;                                // where the chip strip sits, always
 
-// Every block is 80 tall (NET.L-01), and 220 wide rather than 232: from a left edge of 400 two
-// columns and the 40 elbow channel may span 480 at most to keep the centre within 640 (L-13).
+// Every block is the catalog 232 by 80 (NET.L-01). The 40 channel holds the class reference and the elbow.
 const COL_GAP = 40;                                   // the elbow channel lives in here
-const MAX_CX = 600 + 40;                              // the furthest right the drawing may centre
-const BOX_W = MAX_CX - LEFT_X - COL_GAP / 2, BOX_H = 80;   // 220
+const BOX_W = 232, BOX_H = 80;
 const COL_L_W = BOX_W;                                // identity column: the claim and its volume
 const COL_R_W = BOX_W;                                // machinery column: class, provisioner, backend
-const COL_R_X = LEFT_X + COL_L_W + COL_GAP;           // 660
-// The claim tier sits inside the narration panel's y band, so the left edge is pinned at 400 and the
-// composition is centred by holding the columns in, not by sliding the whole card left.
+const COL_R_X = LEFT_X + COL_L_W + COL_GAP;
+// The claim tier sits in the narration panel band, so the left edge stays pinned at LEFT_X.
 
 const PVC_X = LEFT_X, PVC_Y = 70, PVC_W = COL_L_W, PVC_H = BOX_H;
-const PVC_RIGHT = PVC_X + PVC_W, PVC_BOTTOM = PVC_Y + PVC_H;   // 620 / 150
+const PVC_RIGHT = PVC_X + PVC_W, PVC_BOTTOM = PVC_Y + PVC_H;
 
 const SC_X = COL_R_X, SC_Y = 70, SC_W = COL_R_W, SC_H = BOX_H;
-const SC_LEFT = SC_X, SC_BOTTOM = SC_Y + SC_H;                 // 660 / 150
-const SC_CX = SC_X + SC_W / 2;                                 // 770
-const ROW_MY = SC_Y + SC_H / 2;                                // 110, shared by the claim and the class
+const SC_LEFT = SC_X, SC_BOTTOM = SC_Y + SC_H;
+const SC_CX = SC_X + SC_W / 2;
+const ROW_MY = SC_Y + SC_H / 2;                                // shared by the claim and the class
 
 const PROV_X = COL_R_X, PROV_Y = 250, PROV_W = COL_R_W, PROV_H = BOX_H;
-const PROV_LEFT = PROV_X, PROV_TOP = PROV_Y, PROV_BOTTOM = PROV_Y + PROV_H; // 660 / 250 / 330
-const PROV_MY = PROV_Y + PROV_H / 2;                                        // 290
+const PROV_LEFT = PROV_X, PROV_TOP = PROV_Y, PROV_BOTTOM = PROV_Y + PROV_H;
+const PROV_MY = PROV_Y + PROV_H / 2;
 
 const CLOUD_X = COL_R_X, CLOUD_Y = 440, CLOUD_W = COL_R_W, CLOUD_H = BOX_H;
-const CLOUD_TOP = CLOUD_Y;                                     // 440
+const CLOUD_TOP = CLOUD_Y;
 
-// The cylinder sits exactly under the claim, same width and same x, so the identity column reads as
-// one stack rather than two blocks that happen to be near each other.
+// The cylinder sits exactly under the claim, same width and x, so the identity column reads as one stack.
 const PV_X = LEFT_X, PV_Y = 430, PV_W = COL_L_W, PV_H = 110;
-const PV_TOP = PV_Y;                                           // 430
-const PV_CX = PV_X + PV_W / 2;                                 // 510
+const PV_TOP = PV_Y;
+const PV_CX = PV_X + PV_W / 2;
 
-const SPINE_X = PV_CX;  // 510
-const LANE_DY = 15;     // half-gap between the CreateVolume lane and the handle-return lane
-const DOWN_X = SC_CX + LANE_DY;  // 785: provisioner -> backend
-const UP_X = SC_CX - LANE_DY;    // 755: backend -> provisioner
+const SPINE_X = PV_CX;
+const DOWN_X = SC_CX + LANE_DY;  // provisioner -> backend
+const UP_X = SC_CX - LANE_DY;    // backend -> provisioner
 const CHIPS_Y = 585;
 
 const CHIP = chipStrip({ cx: CANVAS_CX });   // four equal chips, the category 232 width and 16 gap
 
-const ELBOW_X = PVC_RIGHT + COL_GAP / 2;   // 640
+const ELBOW_X = PVC_RIGHT + COL_GAP / 2;
 
-// Only the RETURN tag steps out now: the call tag is 18 units of ink once the wire beside it carries
-// the verb, so it rides its own lane and still clears the handle it parks beside by 16.
+// Only the return tag steps out: the call tag rides its own lane.
 const RETURN_TAG_DX = -30;
-// At the default -14 the class box bottom edge runs through the params tag: -6 keeps it inside.
+// Keeps the params tag inside the class box bottom edge.
 const PARAMS_TAG_DY = -6;
-// The write tag clears the provisioner left edge by 1.6 or more on its vertical run.
-const PV_TAG_DX = -17;
+// Rides left of its ball, clear of the provisioner face it leaves from t=0.
+const PV_TAG_DX = -41;
+// A ball that leaves at t=0 does not fade in, so its tag shows at once (inMs 0).
+const tagNow = makeRidingLabel({ role: 'storage', inMs: 0 });
 
-// Two lanes share each of these two faces, so they sit as a mirrored pair either side of the face
-// midpoint: alone and off-centre, a single endpoint reads as a slip rather than as a pair.
+// Two lanes share each of these faces, so they sit as a mirrored pair about the face midpoint.
 const ROW_LANE = 12, PROV_LANE = 16;
 
 // Each static wire and its ball share one array, so they cannot drift. Every endpoint is a block edge.
@@ -72,8 +64,7 @@ const W_CLOUD_TO_PROV = [[UP_X, CLOUD_TOP], [UP_X, PROV_BOTTOM]];
 const W_PROV_TO_PV  = [[PROV_LEFT, PROV_MY + PROV_LANE], [ELBOW_X, PROV_MY + PROV_LANE], [ELBOW_X, 396], [PV_CX, 396], [PV_CX, PV_TOP]];
 const W_BOUND       = [[SPINE_X, PVC_BOTTOM], [SPINE_X, PV_TOP]];
 
-// The list order IS the append order, which is the z-order: blocks, then wires and their labels above
-// them, then the chip strip, then the packet layer so every ball rides above everything.
+// List order is z-order: blocks, wires and labels, the chip strip, then the packet layer.
 export const SCENE = {
   'aria-label': 'Dynamic provisioning: a claim finds no existing volume to bind to, so the StorageClass it names points at a provisioner, the provisioner asks the storage backend to create a real disk, writes a PersistentVolume object to represent it, and that brand new volume is bound to the claim straight away',
   parts: [
@@ -92,8 +83,7 @@ export const SCENE = {
     P.lane({ points: W_PROV_TO_CLOUD, dashed: true, dim: true }),
     P.lane({ points: W_CLOUD_TO_PROV, dashed: true, dim: true }),
     P.lane({ key: 'wProvToPv', points: W_PROV_TO_PV, dashed: true, dim: true, opacity: 0 }),
-    // 16 right of the spine and BELOW the provisioner floor: it inks up to 137.8 at 1600x1000, past the
-    // provisioner face at 660 had it stood level with that box.
+    // Right of the spine and below the provisioner floor, clear of the provisioner face.
     P.wire({ key: 'bound', x: SPINE_X + 16, y: 380, anchor: 'start' }),
     P.wire({ key: 'call', x: DOWN_X + 22, y: 396, anchor: 'start' }),
     P.wire({ key: 'pv', x: PV_X + PV_W / 2, y: 566 }),
@@ -108,8 +98,8 @@ export const SCENE = {
 
 const chips = (pvc, sc, disk, pv) => ({ pvcChip: pvc, scChip: sc, diskChip: disk, pvChip: pv });
 
-// STO.S-01 as a field: the disk, the write arrow and the Bound link are all born mid-story, so all
-// three are pinned on EVERY step and nothing is inherited from the step before it.
+// STO.S-01 as a field: the disk, the write arrow and the Bound link are born mid-story, so all
+// three are pinned on every step.
 const STACK_OFF = { pv: 0, wProvToPv: 0, boundLink: 0 };
 
 const DISK_ID = 'vol-0abc123';
@@ -137,13 +127,9 @@ export const STEPS_SPEC = [
     chipsCued: chips('Pending', 'gp3', 'none', 'none'),
     opacity: STACK_OFF,
     lit: ['pvc', 'sc'],
-    // Both routes clear on the same beat: 192 and 100 units both land under routeDur's 700ms floor,
-    // so the later of the two arrivals is exactly the claim's own, which is what the light keys off.
     flow: [
-      F.route({ points: W_PVC_TO_PROV, name: 'claim' }),
-      F.tag({ text: '5Gi, class gp3', points: W_PVC_TO_PROV }),
-      F.route({ points: W_SC_TO_PROV, name: 'params' }),
-      F.tag({ text: 'type: gp3', points: W_SC_TO_PROV, dy: PARAMS_TAG_DY }),
+      F.route({ points: W_PVC_TO_PROV, name: 'claim', tag: { text: '5Gi, class gp3', fn: tagNow } }),
+      F.route({ points: W_SC_TO_PROV, name: 'params', tag: { text: 'type: gp3', dy: PARAMS_TAG_DY, fn: tagNow } }),
       F.light({ targets: ['prov'], at: 'claim' }),
     ],
   },
@@ -154,19 +140,15 @@ export const STEPS_SPEC = [
     chipsCued: chips('Pending', 'gp3', DISK_ID, 'none'),
     wires: { call: 'CreateVolume' },
     opacity: STACK_OFF,
-    // The provisioner calls, so it is lit from entry. The backend is NOT lit statically, which would
-    // hide its own arrival cue below: a call cannot land on a block that was already answering.
+    // The backend is not lit statically, or its own arrival cue below would be hidden.
     lit: ['prov'],
-    // The identifier is what the backend HANDS BACK, so the chip holds the 'none' the provision step
-    // left and turns over when the return ball whose tag carries the same string lands.
+    // The chip turns over when the return ball carrying the same string lands.
     rewind: { chips: { diskChip: 'none' } },
     // Descent then ascent, on separate lanes, so the round trip reads as a loop, not a retrace.
     flow: [
-      F.route({ points: W_PROV_TO_CLOUD, name: 'call' }),
-      F.tag({ text: '5Gi', points: W_PROV_TO_CLOUD }),
+      F.route({ points: W_PROV_TO_CLOUD, name: 'call', tag: { text: '5Gi', fn: tagNow } }),
       F.light({ targets: ['cloud'], at: 'call' }),
-      F.route({ points: W_CLOUD_TO_PROV, after: 'call', name: 'back' }),
-      F.tag({ text: DISK_ID, points: W_CLOUD_TO_PROV, after: 'call', dx: RETURN_TAG_DX }),
+      F.route({ points: W_CLOUD_TO_PROV, after: 'call', name: 'back', tag: { text: DISK_ID, dx: RETURN_TAG_DX } }),
       F.light({ targets: ['prov'], at: 'back' }),
       F.set({ at: 'back', chipsCued: { diskChip: DISK_ID } }),
     ],
@@ -177,16 +159,13 @@ export const STEPS_SPEC = [
     narration: 'A disk on its own is invisible to Kubernetes. The provisioner writes a PersistentVolume object carrying the identifier it just got back, and that object is the cluster representation of the disk. Only now does the volume exist as something a claim can be paired with.',
     chipsCued: chips('Pending', 'gp3', DISK_ID, 'pvc-a7f2 created'),
     wires: { pv: PV_BACKED },
-    // The volume exists by the end of this step, so its visibility is the static end-state. F.reveal
-    // writes its own `from`, so the animated path needs no rewind to start it hidden.
+    // F.reveal writes its own `from`, so the animated path needs no rewind to start it hidden.
     opacity: { pv: 1, wProvToPv: 1, boundLink: 0 },
     lit: ['prov'],
-    // The object and its caption are what the WRITE produces, so both hold what the createvolume
-    // step left and land with the ball, on the same beat as the volume itself.
+    // The object and its caption land with the write ball, on the same beat as the volume.
     rewind: { chips: { pvChip: 'none' }, wires: { pv: '' } },
     flow: [
-      F.route({ points: W_PROV_TO_PV, name: 'write' }),
-      F.tag({ text: 'PV pvc-a7f2', points: W_PROV_TO_PV, dx: PV_TAG_DX }),
+      F.route({ points: W_PROV_TO_PV, name: 'write', tag: { text: 'PV pvc-a7f2', dx: PV_TAG_DX, fn: tagNow } }),
       F.reveal({ target: 'pv', at: 'write' }),
       F.light({ targets: ['pv'], at: 'write' }),
       F.set({ at: 'write', chipsCued: { pvChip: 'pvc-a7f2 created' }, wires: { pv: PV_BACKED } }),
@@ -198,16 +177,14 @@ export const STEPS_SPEC = [
     narration: 'The new volume was built for this one claim, so the provisioner already stamped it with a claimRef pointing back at the claim. The binding controller has nothing to search for: it writes volumeName on the claim, and the pair goes straight to Bound. The volume was made to order.',
     chipsCued: chips('Bound', 'gp3', DISK_ID, 'Bound'),
     wires: { bound: 'claimRef: data-claim', pv: PV_BACKED },
-    // The write arrow is retired here: it shares the identity column center with the spine, so the
-    // two must never be on screen at once. It has also done its job, this step is about the pairing.
+    // The write arrow is retired: it shares the identity column centre with the spine.
     opacity: { pv: 1, wProvToPv: 0, boundLink: 1 },
     lit: ['pvc', 'pv'],
     // The link is the static end-state, so only the animated path winds it back to fade it in.
     rewind: { opacity: { boundLink: 0 } },
-    // delay 0, not 200: the claimRef wire label is static (written above) so it is on screen from
-    // the first frame. Any delay here leaves it captioning a link that does not exist yet.
+    // Delay 0 on purpose: the claimRef label is static, so the link must be on screen from frame one.
     flow: [
-      F.fade({ target: 'boundLink', from: 0, to: 1, dur: 600, fill: 'forwards', easing: 'ease-out' }),
+      F.fade({ target: 'boundLink', from: 0, to: 1, dur: FADE.in, fill: 'forwards', easing: 'ease-out' }),
     ],
   },
 ];

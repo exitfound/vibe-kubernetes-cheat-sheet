@@ -1,33 +1,34 @@
-import { P, F, defineCard, BEAT, OPACITY, makeRidingLabel } from './network-kit.js';
+import { P, F, defineCard, BEAT, OPACITY } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-service-types.md
 
 // Three columns. The proxy stack stands on CX and descends into the Node, its outside clients stand
 // right of it, and the in-cluster client with CoreDNS and the external host stands left of it.
 const CX = 600;
-const BOX_W = 232, BOX_H = 80;                     // every actor box, the kubelet block of network-model
-const STACK_X = CX - BOX_W / 2;                    // 484
+const BOX_W = 232, BOX_H = 80;                     // every actor box, the kubelet block of network-flat-pod-network
+const STACK_X = CX - BOX_W / 2;
 const RIGHT_X = 908;                               // outside clients and the chip column
 const LEFT_X = 60;                                 // CoreDNS, client Pod, external host
 const STEP_Y = 140;                                // one layer to the next, a 60 unit lane between
-const Y_LB = 40, Y_NP = Y_LB + STEP_Y, Y_CI = Y_NP + STEP_Y;   // 40, 180, 320
-const cy = (y) => y + BOX_H / 2;                   // 80, 220, 360
+const Y_LB = 40, Y_NP = Y_LB + STEP_Y, Y_CI = Y_NP + STEP_Y;
+const cy = (y) => y + BOX_H / 2;
 
-// The Node frame under the stack, holding the two backend Pods either side of the spine.
-const NODE_X = 350, NODE_W = 500, NODE_Y = 470, NODE_H = 624 - NODE_Y;
-const POD_W = 210, POD_H = 104, POD_Y = NODE_Y + 26;
+// The Node frame under the stack, holding the two backend Pods either side of the spine. It rests on
+// the floor and grows upward.
+const POD_W = 210, POD_H = 104;
+const NODE_X = 350, NODE_W = 500, NODE_H = 34 + POD_H + 12, NODE_Y = 624 - NODE_H;
+const POD_Y = NODE_Y + 34;
 const POD_A_X = NODE_X + 20, POD_B_X = NODE_X + NODE_W - 20 - POD_W;
 const POD_INNER = { dx: 20, dy: 34, w: POD_W - 40, h: 50, label: 'app', sublabel: 'eth0' };
 const POD_A_CY = POD_Y + POD_H / 2;
 
-// Left column: CoreDNS above the client Pod, the external host below it. Panel bottom measured
-// 125.11 / 150.17 / 180.12 at 1600x1000 / 1280x860 / 1100x800, so CoreDNS at 190 clears it.
+// Left column: CoreDNS above the client Pod, the external host below it. CoreDNS clears the panel bottom.
 const DNS_Y = 190, DNS_H = BOX_H;
-const CLIENT_Y = 320, CLIENT_H = 110, CLIENT_CY = CLIENT_Y + CLIENT_H / 2;   // 375
+const CLIENT_Y = 320, CLIENT_H = 110, CLIENT_CY = CLIENT_Y + CLIENT_H / 2;
 const HOST_Y = 540;
-const LEFT_R = LEFT_X + BOX_W;                     // 292
-const LEFT_CX = LEFT_X + BOX_W / 2;                // 176
-const Q_X = LEFT_CX - 16, A_X = LEFT_CX + 16;      // query and answer lanes, an L-12 pair
+const LEFT_R = LEFT_X + BOX_W;
+const LEFT_CX = LEFT_X + BOX_W / 2;
+const Q_X = LEFT_CX - 12, A_X = LEFT_CX + 12;      // query and answer lanes, an L-12 pair
 const PAIR_DY = 15;                                // ClusterIP and headless leave the client as a pair
 
 // Every hop is one points array, shared by its wire, its ball and its tag.
@@ -44,25 +45,20 @@ const HL_X = 320, HL_Y = CLIENT_CY + PAIR_DY;
 const HOP_HEADLESS = [[LEFT_R, HL_Y], [HL_X, HL_Y], [HL_X, POD_A_CY], [NODE_X, POD_A_CY]];
 
 // Every tag fades in the moment its ball leaves, so each one is placed where no block ever is.
-// Tag ink spans baseline-10..baseline+2 and a character advances about 6.2 units.
 const TAG_CHAR = 6.2;
 // A horizontal tag rides centred over its ball, lifted above both rows it runs between.
 const liftOver = (top, laneY) => top - laneY - 6;
 // A vertical tag rides with its left end 8 past the right edge of the column the lane runs through.
 const besideRight = (edgeX, laneX, txt) => edgeX + 8 + (txt.length * TAG_CHAR) / 2 - laneX;
 const SIDE_DY = -4;                                // clears the Node frame top at the end of the spine
-const STACK_R = STACK_X + BOX_W;                   // 716
-// The host hop has the headless lane at x 320 on its right and the frame past it, so its tag rides
-// beside the lane and LEADS the ball, and dissolves with it on arrival (M-30a).
+const STACK_R = STACK_X + BOX_W;
+// The host hop has the headless lane on its right, so its tag rides beside the lane and LEADS the ball.
 const HOST_TAG_DX = 90, LEAD_DOWN = 14;
 const HL_TAG_DX = -36;                             // left of the headless lane, clears the host box at the end
-const tag = makeRidingLabel({ role: 'network', inMs: 100, outMs: 100, hold: 0 });
-const leadTag = makeRidingLabel({ role: 'network', inMs: 100, outMs: 100, hold: 0 });
-const routeTag = makeRidingLabel({ role: 'network', inMs: 200, outMs: 200, hold: 0 });   // a route ball fades 200, a segment 100
 const spineTag = (text, points, when) =>
-  F.tag({ fn: tag, text, points, ...when, easing: 'linear', dx: besideRight(STACK_R, CX, text), dy: SIDE_DY });
+  F.tag({ text, points, ...when, easing: 'linear', dx: besideRight(STACK_R, CX, text), dy: SIDE_DY });
 const dnsTag = (text, points, when) =>
-  F.tag({ fn: tag, text, points, ...when, easing: 'linear', dx: besideRight(LEFT_R, points[0][0], text), dy: SIDE_DY });
+  F.tag({ text, points, ...when, easing: 'linear', dx: besideRight(LEFT_R, points[0][0], text), dy: SIDE_DY });
 
 const CHIP_H = 34, CHIP_GAP = 10;
 const chipY = (i) => Y_CI + i * (CHIP_H + CHIP_GAP);
@@ -160,8 +156,7 @@ export const STEPS_SPEC = [
     reducedLit: ['clientBox', 'podABox'],
     flow: [
       F.pulse({ pod: 'client' }),
-      F.segment({ from: HOP_CLIENT_CI[0], to: HOP_CLIENT_CI[1], delay: BEAT.afterPulse, name: 'vip', lights: ['ci'] }),
-      F.tag({ fn: tag, text: `${VIP}:80`, points: HOP_CLIENT_CI, delay: BEAT.afterPulse, easing: 'linear', dy: liftOver(CLIENT_Y, HOP_CLIENT_CI[0][1]) }),
+      F.segment({ from: HOP_CLIENT_CI[0], to: HOP_CLIENT_CI[1], delay: BEAT.afterPulse, name: 'vip', lights: ['ci'], tag: { text: `${VIP}:80`, dy: liftOver(CLIENT_Y, HOP_CLIENT_CI[0][1]) } }),
       F.segment({ from: HOP_CI_NODE[0], to: HOP_CI_NODE[1], after: 'vip', name: 'dnat' }),
       spineTag('DNAT 10.244.2.7', HOP_CI_NODE, { after: 'vip' }),
       F.pulse({ pod: 'podA', at: 'dnat' }),
@@ -176,8 +171,7 @@ export const STEPS_SPEC = [
     lit: ['outside', 'typeChip', 'npChip'],
     reducedLit: ['podBBox'],
     flow: [
-      F.segment({ from: HOP_OUT_NP[0], to: HOP_OUT_NP[1], delay: BEAT.lead, name: 'np', lights: ['np'] }),
-      F.tag({ fn: tag, text: `NodeIP:${NODE_PORT}`, points: HOP_OUT_NP, delay: BEAT.lead, easing: 'linear', dy: liftOver(Y_NP, cy(Y_NP)) }),
+      F.segment({ from: HOP_OUT_NP[0], to: HOP_OUT_NP[1], delay: BEAT.lead, name: 'np', lights: ['np'], tag: { text: `NodeIP:${NODE_PORT}`, dy: liftOver(Y_NP, cy(Y_NP)) } }),
       F.segment({ from: HOP_NP_CI[0], to: HOP_NP_CI[1], after: 'np', name: 'rules', lights: ['ci'] }),
       spineTag('same Service rules', HOP_NP_CI, { after: 'np' }),
       F.segment({ from: HOP_CI_NODE[0], to: HOP_CI_NODE[1], after: 'rules', name: 'dnat' }),
@@ -194,8 +188,7 @@ export const STEPS_SPEC = [
     lit: ['internet', 'typeChip', 'lbChip'],
     reducedLit: ['podABox'],
     flow: [
-      F.segment({ from: HOP_NET_LB[0], to: HOP_NET_LB[1], delay: BEAT.lead, name: 'lb', lights: ['lb'] }),
-      F.tag({ fn: tag, text: `${LB_IP}:80`, points: HOP_NET_LB, delay: BEAT.lead, easing: 'linear', dy: liftOver(Y_LB, cy(Y_LB)) }),
+      F.segment({ from: HOP_NET_LB[0], to: HOP_NET_LB[1], delay: BEAT.lead, name: 'lb', lights: ['lb'], tag: { text: `${LB_IP}:80`, dy: liftOver(Y_LB, cy(Y_LB)) } }),
       F.segment({ from: HOP_LB_NP[0], to: HOP_LB_NP[1], after: 'lb', name: 'np', lights: ['np'] }),
       spineTag(`NodeIP:${NODE_PORT}`, HOP_LB_NP, { after: 'lb' }),
       F.segment({ from: HOP_NP_CI[0], to: HOP_NP_CI[1], after: 'np', name: 'rules', lights: ['ci'] }),
@@ -220,8 +213,7 @@ export const STEPS_SPEC = [
       F.segment({ from: HOP_ANSWER[0], to: HOP_ANSWER[1], after: 'q', name: 'ans' }),
       dnsTag('CNAME api.example.com', HOP_ANSWER, { after: 'q' }),
       F.pulse({ pod: 'client', at: 'ans' }),
-      F.segment({ from: HOP_HOST[0], to: HOP_HOST[1], at: 'ans', plus: BEAT.afterPulse, name: 'conn', lights: ['host'] }),
-      F.tag({ fn: leadTag, text: 'api.example.com', points: HOP_HOST, at: 'ans', plus: BEAT.afterPulse, easing: 'linear', dx: HOST_TAG_DX, dy: LEAD_DOWN }),
+      F.segment({ from: HOP_HOST[0], to: HOP_HOST[1], at: 'ans', plus: BEAT.afterPulse, name: 'conn', lights: ['host'], tag: { text: 'api.example.com', dx: HOST_TAG_DX, dy: LEAD_DOWN } }),
     ],
   },
   {
@@ -239,9 +231,7 @@ export const STEPS_SPEC = [
       F.segment({ from: HOP_ANSWER[0], to: HOP_ANSWER[1], after: 'q', name: 'ans' }),
       dnsTag('A 10.244.2.7, 10.244.2.8', HOP_ANSWER, { after: 'q' }),
       F.pulse({ pod: 'client', at: 'ans' }),
-      F.route({ points: HOP_HEADLESS, at: 'ans', plus: BEAT.afterPulse, name: 'direct' }),
-      F.tag({ fn: routeTag, text: '10.244.2.7', points: HOP_HEADLESS, at: 'ans', plus: BEAT.afterPulse, dx: HL_TAG_DX }),
-      F.pulse({ pod: 'podA', at: 'direct' }),
+      F.route({ points: HOP_HEADLESS, at: 'ans', plus: BEAT.afterPulse, tag: { text: '10.244.2.7', dx: HL_TAG_DX }, pulse: 'podA' }),
     ],
   },
 ];

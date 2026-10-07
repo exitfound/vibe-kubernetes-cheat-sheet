@@ -1,36 +1,33 @@
-import { P, F, defineCard, laneY, midX, makeRidingLabel, BEAT, OPACITY } from './network-kit.js';
+import { FADE, P, F, defineCard, laneY, midX, makeRidingLabel, BEAT, OPACITY, BRISK_HOP_MS } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-headless-service.md
 
-
-// Three bands. The discovery column (Service, EndpointSlice, CoreDNS) stands right of the panel at
-// x 444, the answer column beside it holds one readout per A record, and the StatefulSet Pods run
-// along the bottom where the data bus reaches them from below. BLOCK_W and the heights are NET.L-01.
+// Three bands: the discovery column right of the panel, the answer column beside it with one readout
+// per A record, and the StatefulSet Pods along the bottom, reached by the data bus from below.
 const BLOCK_W = 232, BLOCK_H = 80, POD_H = 104;
 const COL_X = 444;
-const COL_CX = COL_X + BLOCK_W / 2;            // 560: the relation spine
+const COL_CX = COL_X + BLOCK_W / 2;            // the relation spine
 const SVC_Y = 40;
-const SLICE_Y = SVC_Y + BLOCK_H + 40;          // 160
-const DNS_Y = SLICE_Y + BLOCK_H + 40;          // 280
-const DNS_CY = DNS_Y + BLOCK_H / 2;            // 320
+const SLICE_Y = SVC_Y + BLOCK_H + 40;
+const DNS_Y = SLICE_Y + BLOCK_H + 40;
+const DNS_CY = DNS_Y + BLOCK_H / 2;
 
-// The client sits level with CoreDNS, left of the column and under the panel (L-03), so the lookup
-// pair is straight. CLIENT_Y is measured against the panel reading in the record.
+// The client sits level with CoreDNS, under the panel (L-03), so the lookup pair is straight.
 const CLIENT_X = 60;
-const CLIENT_R = CLIENT_X + BLOCK_W;           // 292
-const CLIENT_Y = DNS_CY - POD_H / 2;           // 268
-const CLIENT_CX = CLIENT_X + BLOCK_W / 2;      // 176
-const CLIENT_B = CLIENT_Y + POD_H;             // 372
-const { out: ASK_Y, back: ANS_Y } = laneY(DNS_CY, 12);   // 308 / 332
+const CLIENT_R = CLIENT_X + BLOCK_W;
+const CLIENT_Y = DNS_CY - POD_H / 2;
+const CLIENT_CX = CLIENT_X + BLOCK_W / 2;
+const CLIENT_B = CLIENT_Y + POD_H;
+const { out: ASK_Y, back: ANS_Y } = laneY(DNS_CY, 12);
 const ASK = [[CLIENT_R, ASK_Y], [COL_X, ASK_Y]];
 const ANSWER = [[COL_X, ANS_Y], [CLIENT_R, ANS_Y]];
 
-// The Pods row: three 232 Pods spread from x 300 to the canvas edge at 1160, gap 82.
+// The Pods row: three Pods spread to the canvas edge.
 const PODS_L = 300, PODS_R = 1160, POD_Y = 440;
-const POD_GAP = (PODS_R - PODS_L - 3 * BLOCK_W) / 2;   // 82
-const podX = (i) => PODS_L + i * (BLOCK_W + POD_GAP);  // 300 / 614 / 928
-const podCx = (i) => podX(i) + BLOCK_W / 2;            // 416 / 730 / 1044
-const POD_B = POD_Y + POD_H;                           // 544
+const POD_GAP = (PODS_R - PODS_L - 3 * BLOCK_W) / 2;
+const podX = (i) => PODS_L + i * (BLOCK_W + POD_GAP);
+const podCx = (i) => podX(i) + BLOCK_W / 2;
+const POD_B = POD_Y + POD_H;
 
 // One data lane per Pod (NET.A-03): down out of the client bottom, along the bus, up into the Pod
 // bottom face. The bus runs under the row so no lane crosses a Pod it does not end on.
@@ -40,16 +37,16 @@ const TO_POD = [0, 1, 2].map(toPod);
 
 // The answer column: the question, then one row per Pod. Each row is a record that is in the answer
 // or is not, and its state is the card subject.
-const CHIP_X = 760, CHIP_W = PODS_R - CHIP_X;  // 400
+const CHIP_X = 760, CHIP_W = PODS_R - CHIP_X;
 const CHIP_H = 34, CHIP_GAP = 14;
-const chipY = (i) => SLICE_Y + i * (CHIP_H + CHIP_GAP);  // 160 / 208 / 256 / 304
+const chipY = (i) => SLICE_Y + i * (CHIP_H + CHIP_GAP);
 
 const NAMES = ['web-0', 'web-1', 'web-2'];
 const IPS = ['10.244.2.7', '10.244.3.4', '10.244.1.9'];
 const NEW_IP = '10.244.3.8';
 
-// The connection carries its destination from the client face (NET.T-01). Under the ball and 40 to
-// its left, so it clears the bus AND the two vertical legs, which ran through the text at dx 0.
+// The connection carries its destination from the client face (NET.T-01), under the ball and left
+// of it, so it clears the bus and both vertical legs.
 const LEG_TAG = makeRidingLabel({ role: 'network', dy: 20, dx: -40, inMs: 200, outMs: 200, hold: 0 });
 
 const pod = (i) => P.pod({
@@ -98,17 +95,13 @@ const ALL_READY = { w0: 1, w1: 1, w2: 1 };
 const W2_DOWN = { w0: 1, w1: 1, w2: OPACITY.notready };
 const WIRE = { dnsWire: 'UDP 53' };
 
-// The 152 unit lookup legs take HOP_MS rather than routeDur, which floors them at 700 and ran them at
-// 0.217 units per ms against the 0.45 canon. The two data routes are long enough to ride the canon
-// speed already, so only these carry a dur (M-12, PACING carries the count).
-const HOP_MS = 595;
+// The short lookup legs take BRISK_HOP_MS rather than the routeDur floor (M-12, PACING).
 
 // A lookup round trip: the client asks, CoreDNS lights, the answer comes home and the client pulses.
 const lookup = (start = 0) => [
   F.pulse({ pod: 'client', delay: start }),
-  F.segment({ from: ASK[0], to: ASK[1], delay: start + BEAT.afterPulse, name: 'q', lights: ['dns', 'slice'], dur: HOP_MS }),
-  F.segment({ from: ANSWER[0], to: ANSWER[1], after: 'q', name: 'a', dur: HOP_MS }),
-  F.pulse({ pod: 'client', at: 'a' }),
+  F.segment({ from: ASK[0], to: ASK[1], delay: start + BEAT.afterPulse, name: 'q', lights: ['dns', 'slice'], dur: BRISK_HOP_MS }),
+  F.segment({ from: ANSWER[0], to: ANSWER[1], after: 'q', name: 'a', dur: BRISK_HOP_MS, pulse: 'client' }),
 ];
 
 const turn = (at, chips) => [F.set({ at, chips }), F.light({ targets: Object.keys(chips), at })];
@@ -133,7 +126,7 @@ export const STEPS_SPEC = [
     reducedLit: ['clientBox'],
     flow: [
       F.pulse({ pod: 'client' }),
-      F.segment({ from: ASK[0], to: ASK[1], delay: BEAT.afterPulse, name: 'q', lights: ['dns'], dur: HOP_MS }),
+      F.segment({ from: ASK[0], to: ASK[1], delay: BEAT.afterPulse, name: 'q', lights: ['dns'], dur: BRISK_HOP_MS }),
       ...turn('q', { qChip: SVC_Q, r0: 'pending', r1: 'pending', r2: 'pending' }),
     ],
   },
@@ -148,7 +141,7 @@ export const STEPS_SPEC = [
     rewind: { chips: { r0: 'pending', r1: 'pending', r2: 'pending' } },
     reducedLit: ['clientBox'],
     flow: [
-      F.segment({ from: ANSWER[0], to: ANSWER[1], delay: BEAT.lead, name: 'a', dur: HOP_MS }),
+      F.segment({ from: ANSWER[0], to: ANSWER[1], delay: BEAT.lead, name: 'a', dur: BRISK_HOP_MS }),
       ...turn('a', { r0: IPS[0], r1: IPS[1], r2: IPS[2] }),
       F.pulse({ pod: 'client', at: 'a' }),
     ],
@@ -163,9 +156,7 @@ export const STEPS_SPEC = [
     reducedLit: ['w1Box'],
     flow: [
       F.pulse({ pod: 'client' }),
-      F.route({ points: TO_POD[1], delay: BEAT.afterPulse, name: 'hop' }),
-      F.tag({ fn: LEG_TAG, text: IPS[1], points: TO_POD[1], delay: BEAT.afterPulse }),
-      F.pulse({ pod: 'w1', at: 'hop' }),
+      F.route({ points: TO_POD[1], delay: BEAT.afterPulse, name: 'hop', tag: { fn: LEG_TAG, text: IPS[1] }, pulse: 'w1' }),
       F.light({ targets: ['r1'], delay: BEAT.afterPulse }),
     ],
   },
@@ -184,7 +175,7 @@ export const STEPS_SPEC = [
     },
     reducedLit: ['clientBox'],
     flow: [
-      F.fade({ target: 'w2', from: 1, to: OPACITY.notready, dur: 700, name: 'down' }),
+      F.fade({ target: 'w2', from: 1, to: OPACITY.notready, dur: FADE.out, name: 'down' }),
       F.set({ at: 'down', sublabels: { slice: '2 of 3 ready', w2Box: 'not ready' } }),
       F.light({ targets: ['slice'], at: 'down' }),
       ...lookup(900),
@@ -206,9 +197,7 @@ export const STEPS_SPEC = [
       ...turn('q', { qChip: POD_Q }),
       ...turn('a', { r0: IPS[0], r1: NOT_ASKED, r2: NOT_ASKED }),
       // The pulse the lookup lands on 'a' is also the sender cue for this connection.
-      F.route({ points: TO_POD[0], at: 'a', plus: BEAT.afterPulse, name: 'hop' }),
-      F.tag({ fn: LEG_TAG, text: IPS[0], points: TO_POD[0], at: 'a', plus: BEAT.afterPulse }),
-      F.pulse({ pod: 'w0', at: 'hop' }),
+      F.route({ points: TO_POD[0], at: 'a', plus: BEAT.afterPulse, name: 'hop', tag: { fn: LEG_TAG, text: IPS[0] }, pulse: 'w0' }),
     ],
   },
   {
@@ -223,7 +212,7 @@ export const STEPS_SPEC = [
     rewind: { chips: { r0: IPS[0] }, podSublabels: { w0: IPS[0] } },
     reducedLit: ['clientBox'],
     flow: [
-      F.fade({ target: 'w0', from: 1, to: 0, dur: 700, name: 'gone' }),
+      F.fade({ target: 'w0', from: 1, to: 0, dur: FADE.out, name: 'gone' }),
       F.set({ at: 'gone', podSublabels: { w0: NEW_IP } }),
       F.reveal({ target: 'w0', at: 'gone' }),
       ...lookup(1500),

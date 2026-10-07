@@ -1,36 +1,33 @@
 import { P, F, defineCard, STO, BEAT, FADE, OPACITY, REVEAL_MS, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-pvc-clone.md
 
-
 // Two spec columns mirrored about CX, the source left and the clone right, with the fit test standing
 // between them on the axis. The provisioner sits on the axis above the test because it runs it.
 const CX = 600;
 const SPREAD = 280;
-const SRC_CX = CX - SPREAD, CLONE_CX = CX + SPREAD;                     // 320 / 880
+const SRC_CX = CX - SPREAD, CLONE_CX = CX + SPREAD;
 
 // The catalog actor block, 232 by 80 (NET.L-01).
-const PROV_W = 232, PROV_H = 80, PROV_X = CX - PROV_W / 2, PROV_Y = 36;  // 484..716
-const PROV_BOTTOM = PROV_Y + PROV_H, PROV_MY = PROV_Y + PROV_H / 2;     // 116 / 76
+const PROV_W = 232, PROV_H = 80, PROV_X = CX - PROV_W / 2, PROV_Y = 36;
+const PROV_BOTTOM = PROV_Y + PROV_H, PROV_MY = PROV_Y + PROV_H / 2;
 
-// Each column head is a claim, so it is the catalog actor block too. The row starts 15 under the
-// deepest panel reading, 205.0 at 1100x800.
+// Each column head is a claim, the catalog actor block too, its row clear of the deepest panel.
 const COL_W = 232, HEAD_H = 80, HEAD_Y = 220;
-const HEAD_BOTTOM = HEAD_Y + HEAD_H;                                    // 300
+const HEAD_BOTTOM = HEAD_Y + HEAD_H;
 
-// Five field rows, each one level with the gate that compares it. The gate column is as wide as the
-// provisioner above it, so the test reads as the provisioner's own column.
-// Chips and gates are the family chip height, STO.CHIP_H 34.
-const ROW_H = STO.CHIP_H, ROW_PITCH = 40, ROW_Y0 = HEAD_BOTTOM + 12;    // 312
-const ROW_Y = [0, 1, 2, 3, 4].map(i => ROW_Y0 + i * ROW_PITCH);         // 312 .. 472
-const ROWS_BOTTOM = ROW_Y[4] + ROW_H;                                   // 506
-const GATE_W = PROV_W, GATE_X = CX - GATE_W / 2;                        // 484..716
+// Five field rows, each level with the gate that compares it. The gate column is as wide as the
+// provisioner above it, so the test reads as its column. Chips and gates are STO.CHIP_H tall.
+const ROW_H = STO.CHIP_H, ROW_PITCH = 40, ROW_Y0 = HEAD_BOTTOM + 12;
+const ROW_Y = [0, 1, 2, 3, 4].map(i => ROW_Y0 + i * ROW_PITCH);
+const ROWS_BOTTOM = ROW_Y[4] + ROW_H;
+const GATE_W = PROV_W, GATE_X = CX - GATE_W / 2;
 
 // The backend frame spans the width so its label clears the source disk, and the disks hang under
-// their own columns. The frame is sized from the disk: one inset above and below.
+// their columns. Sized from the disk: the card's exception to the 34 and 12 frame padding.
 const FRAME_X = 60, FRAME_W = 1080, FRAME_Y = 544;
 const DISK_W = 200, DISK_H = 60, FRAME_INSET = 13;
-const FRAME_H = DISK_H + FRAME_INSET * 2;                               // 86, so 544..630
-const DISK_Y = FRAME_Y + FRAME_INSET, DISK_MY = DISK_Y + DISK_H / 2;    // 557 / 587
+const FRAME_H = DISK_H + FRAME_INSET * 2;
+const DISK_Y = FRAME_Y + FRAME_INSET, DISK_MY = DISK_Y + DISK_H / 2;
 
 // Each static wire and its ball share ONE points array. Every endpoint is a block face midpoint.
 const W_REQ = [[CLONE_CX, HEAD_Y], [CLONE_CX, PROV_MY], [PROV_X + PROV_W, PROV_MY]];
@@ -38,11 +35,9 @@ const W_CHECK = [[CX, PROV_BOTTOM], [CX, ROW_Y0]];
 const W_CALL = [[CX, ROWS_BOTTOM], [CX, FRAME_Y]];
 const W_COPY = [[SRC_CX + DISK_W / 2, DISK_MY], [CLONE_CX - DISK_W / 2, DISK_MY]];
 
-// The request tag rides right of its lane and above its ball, clear of the clone head at departure
-// and of the provisioner right face on arrival. The check tag leaves the provisioner floor, so it
-// fades in once clear of it, and stops above the first gate.
-const tagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
-const REQ_TAG = { fn: tagFn, dx: 90, dy: -12 };
+// The request tag rides right of and above its ball, clear of the clone head and the provisioner face.
+// The check tag emerges clear of the provisioner floor and stops above the first gate.
+const REQ_TAG = { dx: 90, dy: -12 };
 const CHECK_TAG = { fn: makeRidingLabel({ role: 'storage', emergeMode: true }), emerge: 200, dx: 64, dy: -14 };
 // When the gates light: one row at a time, down the column, from the arrival of the check.
 const SCAN_MS = 450;
@@ -67,8 +62,8 @@ const column = (side, cx, head, sub, values) => P.group({
   ],
 });
 
-// The list order IS the append order, which is the z-order: the frame, the blocks, the two columns
-// and the disks, then the relationships and lanes and their captions, then the packets.
+// List order is z-order: the frame, the blocks, the columns and disks, the relations, lanes and
+// captions, then the packets.
 export const SCENE = {
   'aria-label': 'Cloning a PVC: a new PersistentVolumeClaim clone-1 whose dataSource names the existing claim data-src is picked up by the external-provisioner, which holds it against its source row by row, the same namespace, the source Bound and not in use, the same volumeMode and at least the source size, while the StorageClass may differ if it names the same driver, then calls CreateVolume so the storage backend makes an exact duplicate server-side with no VolumeSnapshot object in between, after which clone-1 binds and keeps its copy when data-src is deleted',
   parts: [
@@ -81,16 +76,16 @@ export const SCENE = {
     // The primitive centres the label on the raw bbox, which reads high under the cap (STO.L-02).
     P.cylinder({ key: 'srcDisk', x: SRC_CX - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'Source volume', labelY: DISK_H / 2 + 10 }),
     P.cylinder({ key: 'cloneDisk', x: CLONE_CX - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'Cloned volume', labelY: DISK_H / 2 + 10 }),
-    // Each claim bound to its own volume: markerless and dashed, since nothing travels it. It stops on
-    // the backend frame top face, the contour of the system holding the disk, and never crosses it.
+    // Each claim bound to its own volume: markerless and dashed, since nothing travels it. It stops on the
+    // backend frame top face and never crosses it.
     P.relation({ key: 'srcRel', d: `M ${SRC_CX} ${ROWS_BOTTOM} L ${SRC_CX} ${FRAME_Y}`, dash: '5 5' }),
     P.relation({ key: 'cloneRel', d: `M ${CLONE_CX} ${ROWS_BOTTOM} L ${CLONE_CX} ${FRAME_Y}`, dash: '5 5', opacity: 0 }),
     P.lane({ key: 'wReq', points: W_REQ, dashed: true, dim: true, opacity: 0 }),
     P.lane({ key: 'wCheck', points: W_CHECK, dashed: true, dim: true }),
     P.lane({ key: 'wCall', points: W_CALL, dashed: true, dim: true }),
     P.lane({ key: 'wCopy', points: W_COPY, dashed: true, dim: true, opacity: 0 }),
-    // The call hop is 38 long, too short for a tag to ride, so its name stands beside the lane,
-    // centred in the gap between the last gate and the frame (+4 puts the ink centre on the midpoint).
+    // The call hop is too short for a tag to ride, so its name stands beside the lane, centred in the gap
+    // between the last gate and the frame.
     P.wire({ key: 'callCap', x: CX + 12, y: (ROWS_BOTTOM + FRAME_Y) / 2 + 4, anchor: 'start' }),
     P.wire({ key: 'copyCap', x: CX, y: DISK_MY - 10 }),
     P.packets(),
@@ -112,8 +107,8 @@ const chips = (clonePhase) => {
   return out;
 };
 
-// STO.S-01 as a field: both columns, both disks, both identity links and all four lanes are pinned on
-// every step. A lane is full once both its ends exist, and 0 while either is only pending or gone.
+// STO.S-01 as a field: both columns, disks, identity links and all four lanes are pinned on every step.
+// A lane is full once both its ends exist, and 0 while either is pending or gone.
 const stage = ({ clone = OPACITY.pending, cloneDisk = OPACITY.pending, cloneRel = 0, src = 1 } = {}) => {
   const both = (a, b) => (a === 1 && b === 1 ? 1 : 0);
   return {
@@ -143,8 +138,7 @@ export const STEPS_SPEC = [
     flow: [
       F.reveal({ target: 'cloneCol', from: OPACITY.pending }),
       F.fade({ target: 'wReq', from: 0, to: 1, dur: REVEAL_MS, fill: 'forwards', easing: 'ease-out' }),
-      F.route({ points: W_REQ, delay: BEAT.lead, name: 'req' }),
-      F.tag({ text: 'dataSource: data-src', points: W_REQ, delay: BEAT.lead, ...REQ_TAG }),
+      F.route({ points: W_REQ, delay: BEAT.lead, name: 'req', tag: { text: 'dataSource: data-src', ...REQ_TAG } }),
       F.light({ targets: ['prov'], at: 'req' }),
     ],
   },
@@ -158,8 +152,7 @@ export const STEPS_SPEC = [
     // The provisioner sends the check, so it is lit at entry. Each gate lights as the scan reaches it.
     lit: ['prov', 'srcHead', 'cloneHead'],
     flow: [
-      F.route({ points: W_CHECK, delay: BEAT.lead, name: 'chk' }),
-      F.tag({ text: 'fit test', points: W_CHECK, delay: BEAT.lead, ...CHECK_TAG }),
+      F.route({ points: W_CHECK, delay: BEAT.lead, name: 'chk', tag: { text: 'fit test', ...CHECK_TAG } }),
       ...GATES.map((k, i) => F.light({ targets: [k], at: 'chk', plus: i * SCAN_MS })),
     ],
   },
@@ -174,16 +167,16 @@ export const STEPS_SPEC = [
     // The provisioner makes the call and the passed test is the state it starts from, so both are lit
     // at entry, and the call leaves the last gate.
     lit: ['prov', ...GATES],
-    // The new volume is MADE on this step, so the animated path starts with it still pending, and
-    // each caption is wound back blank until its exchange starts.
+    // The new volume is made on this step, so the animated path starts with it pending, and each caption
+    // is wound back blank until its exchange starts.
     rewind: { opacity: stage({ clone: 1 }), wires: { callCap: '', copyCap: '' } },
     flow: [
       F.route({ points: W_CALL, delay: BEAT.lead, name: 'call' }),
       F.set({ delay: BEAT.lead, wires: { callCap: 'CreateVolume' } }),
       F.reveal({ target: 'cloneDisk', from: OPACITY.pending, at: 'call', name: 'made' }),
       F.fade({ target: 'wCopy', from: 0, to: 1, dur: REVEAL_MS, fill: 'forwards', easing: 'ease-out', at: 'call' }),
-      // The source is the SENDER of the copy, so it lights when the call lands, REVEAL_MS before its
-      // ball leaves (M-18a).
+      // The source is the sender of the copy, so it lights when the call lands, REVEAL_MS before its ball
+      // leaves (M-18a).
       F.light({ targets: ['srcDisk'], at: 'call' }),
       F.route({ points: W_COPY, at: 'made', name: 'dup' }),
       F.set({ at: 'made', wires: { copyCap: 'exact duplicate' } }),

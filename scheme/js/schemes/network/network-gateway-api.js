@@ -2,38 +2,34 @@ import { P, F, defineCard, makeRidingLabel, laneY, ladder, BEAT, OPACITY } from 
 
 // Design notes for this card: ./CARDS/network-gateway-api.md
 
-
-// A ladder of consent on the right edge: GatewayClass, Gateway, HTTPRoute and Service, joined by the
-// reference fields that name each other. Every condition chip stands on the row of the object that
-// reports it, so the column left of the ladder reads as one table of state. The data rail runs along
-// the floor, Client to the proxy and the proxy to Pod web, which hangs under the Service it backs.
+// A ladder of consent on the right edge, joined by the reference fields that name each other. Every
+// condition chip stands on the row of the object that reports it, so the column reads as one table of
+// state. The data rail runs along the floor: Client, the proxy, Pod web under the Service it backs.
 const BOX_W = 232, BOX_H = 80;                    // NET.L-01, every block on the card
-const LAD_X = 928;                                // 928..1160
-const LAD_CX = LAD_X + BOX_W / 2;                 // 1044, the spine every reference runs on
-const rungY = ladder({ y: 40, rowH: BOX_H, gap: 24 });           // 40 / 144 / 248 / 352
-const rungCY = (i) => rungY(i) + BOX_H / 2;       // 80 / 184 / 288 / 392
+const LAD_X = 928;
+const LAD_CX = LAD_X + BOX_W / 2;                 // the spine every reference runs on
+const rungY = ladder({ y: 40, rowH: BOX_H, gap: 24 });
+const rungCY = (i) => rungY(i) + BOX_H / 2;
 const rungB = (i) => rungY(i) + BOX_H;
-const seamCY = (i) => (rungB(i) + rungY(i + 1)) / 2;             // 132 / 236 / 340
+const seamCY = (i) => (rungB(i) + rungY(i + 1)) / 2;
 
-// The chip column stands 28 left of the ladder and starts at the L-03 line. The HTTPRoute reports two
-// conditions, stacked inside its 80 rung at an 8 gap.
+// The chip column starts at the L-03 line. The HTTPRoute reports two conditions, stacked in its rung.
 const CHIP_W = 476, CHIP_H = 34, CHIP_GAP = 8;
-const CHIP_R = LAD_X - 28;                        // 900
-const CHIP_X = CHIP_R - CHIP_W;                   // 424
+const CHIP_R = LAD_X - 28;
+const CHIP_X = CHIP_R - CHIP_W;
 const chipAt = (cy) => cy - CHIP_H / 2;
 const pairAt = (cy, k) => cy - CHIP_H - CHIP_GAP / 2 + k * (CHIP_H + CHIP_GAP);
 // The ReferenceGrant stands on the Service rung, centred under the chip column above it.
-const GRANT_X = CHIP_X + (CHIP_W - BOX_W) / 2;    // 546
+const GRANT_X = CHIP_X + (CHIP_W - BOX_W) / 2;
 
-// The data rail, 48 under the Service rung: Client, proxy and Pod web at two equal 212 gaps, the
-// proxy centred on 600 between the Client at 40 and Pod web under the ladder.
-const POD_H = 104, POD_Y = rungB(3) + 48;         // 480
-const DATA_Y = POD_Y + POD_H / 2;                 // 532
+// The data rail under the Service rung: Client, proxy and Pod web at two equal gaps.
+const POD_H = 104, POD_Y = rungB(3) + 48;
+const DATA_Y = POD_Y + POD_H / 2;
 const CLIENT_X = 40;
-const CLIENT_R = CLIENT_X + BOX_W;                // 272
-const PROXY_X = (CLIENT_R + LAD_X) / 2 - BOX_W / 2;              // 484
-const PROXY_R = PROXY_X + BOX_W;                  // 716
-const { out: REQ_Y, back: ANS_Y } = laneY(DATA_Y, 12);          // 520 request, 544 answer
+const CLIENT_R = CLIENT_X + BOX_W;
+const PROXY_X = (CLIENT_R + LAD_X) / 2 - BOX_W / 2;
+const PROXY_R = PROXY_X + BOX_W;
+const { out: REQ_Y, back: ANS_Y } = laneY(DATA_Y, 12);
 
 const REQ = [[CLIENT_R, REQ_Y], [PROXY_X, REQ_Y]];
 const ANSWER = [[PROXY_X, ANS_Y], [CLIENT_R, ANS_Y]];
@@ -114,12 +110,10 @@ const REJECTED = 'False · NotAllowedByListeners';
 const NOT_PERMITTED = 'False · RefNotPermitted';
 const HTTPS = 'HTTPS shop.io/';
 
-// Both tagged legs ride LEG_DUR 1500 rather than the 700 floor, where a tag is gone before it can be
-// read (M-12, PACING). Each tag shows from departure and dissolves with its ball on arrival (M-30a),
-// over the 212 units of the answer and of the leg to Pod web.
+// Both tagged legs ride LEG_DUR so a tag is readable (M-12, PACING).
 const LEG_DUR = 1500;
-const podLabel = makeRidingLabel({ role: 'network', easing: 'linear', inMs: 100, outMs: 100, hold: 0 });
-const answerLabel = makeRidingLabel({ role: 'network', easing: 'linear', inMs: 100, outMs: 100, hold: 0 });
+const podLabel = makeRidingLabel({ role: 'network', easing: 'linear', hold: 0 });
+const answerLabel = makeRidingLabel({ role: 'network', easing: 'linear', hold: 0 });
 // The Service lights while the proxy is still pulsing, as the lookup that picks the endpoint.
 const LOOKUP_MS = 400;
 // A status condition turns over this long after the change that causes it, so cause reads first.
@@ -137,7 +131,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'platform',
-    // Motion: the class turns over at 800, the Gateway reveals from 1200 to 1700, the proxy pulse 900.
     duration: 3600,
     narration: 'Gateway API is an add-on whose kinds are custom resources. The cluster-scoped GatewayClass example names the controller that implements it in controllerName, and reads Accepted True once that controller takes it. Gateway shared-gw in namespace infra uses that class and declares an HTTPS listener on 443 with its certificate in certificateRefs. Its allowedRoutes keeps the default, from Same, and here the implementation runs a proxy for the Gateway.',
     ...stage(1),
@@ -186,8 +179,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'refused',
-    // Motion: lead 800, the request 700, the proxy pulse, the answer leaves at 2300 and rides
-    // LEG_DUR to 3800.
     duration: 4800,
     narration: 'A client sends HTTPS for shop.io/ to the Gateway address. The proxy terminates TLS and matches the accepted rule, but the only backendRef of that rule is invalid and the rule has no filters, so the request must get HTTP 500 instead of being forwarded.',
     ...stage(4),
@@ -196,10 +187,8 @@ export const STEPS_SPEC = [
     lit: ['client'],
     reducedLit: ['proxyBox'],
     flow: [
-      F.segment({ from: REQ[0], to: REQ[1], delay: BEAT.lead, name: 'inb' }),
-      F.pulse({ pod: 'proxy', at: 'inb' }),
-      F.segment({ from: ANSWER[0], to: ANSWER[1], at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, lights: ['client'] }),
-      F.tag({ fn: answerLabel, text: 'HTTP 500', points: ANSWER, at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, dy: 18, easing: 'linear' }),
+      F.segment({ from: REQ[0], to: REQ[1], delay: BEAT.lead, name: 'inb', pulse: 'proxy' }),
+      F.segment({ from: ANSWER[0], to: ANSWER[1], at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, lights: ['client'], tag: { fn: answerLabel, text: 'HTTP 500', dx: 38, dy: 27 } }),
     ],
   },
   {
@@ -218,8 +207,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'request',
-    // Motion: lead 800, the request 700, the proxy pulse, the leg at LEG_DUR from 2300, the Pod
-    // pulse 900: 4700.
     duration: 5500,
     narration: 'The same request now matches Host and path against a configuration built from the Gateway and the HTTPRoute, and the rule has a backend. An implementation may send it to the Service IP or to the backing EndpointSlices, and here the proxy forwards straight to Pod web at 10.244.1.5.',
     ...stage(6),
@@ -228,12 +215,9 @@ export const STEPS_SPEC = [
     lit: ['client'],
     reducedLit: ['proxyBox', 'podWebBox'],
     flow: [
-      F.segment({ from: REQ[0], to: REQ[1], delay: BEAT.lead, name: 'inb' }),
-      F.pulse({ pod: 'proxy', at: 'inb' }),
+      F.segment({ from: REQ[0], to: REQ[1], delay: BEAT.lead, name: 'inb', pulse: 'proxy' }),
       F.light({ targets: ['svc'], at: 'inb', plus: LOOKUP_MS }),
-      F.segment({ from: TO_POD[0], to: TO_POD[1], at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, name: 'toPod' }),
-      F.tag({ fn: podLabel, text: `to ${WEB_IP}`, points: TO_POD, at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, easing: 'linear' }),
-      F.pulse({ pod: 'podWeb', at: 'toPod' }),
+      F.segment({ from: TO_POD[0], to: TO_POD[1], at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, tag: { fn: podLabel, text: `to ${WEB_IP}` }, pulse: 'podWeb' }),
     ],
   },
 ];

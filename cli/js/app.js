@@ -1,6 +1,7 @@
 import { COPY_ICON, CHECK_ICON, STAR_ICON, LINK_ICON, DOCS_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS } from './data.js';
 import { setupSidebar } from './lib/sidebar.js';
 import { setupKeysHelp, isSlash } from './lib/keys.js';
+import { hl, sortCmds } from './lib/commands.js';
 import { trackFresh, hashKey } from './lib/fresh.js';
 
 setupSidebar();
@@ -21,8 +22,7 @@ const ISSUES_URL       = 'https://github.com/exitfound/vibe-kubernetes-cheat-she
 const REPORT_ICON      = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4.5L17 13H4"/></svg>`;
 
 // ── Starred commands (persisted) ─────────────────────────────
-// Command strings rewritten in the Kubernetes 1.35 / Helm 4 refresh (2026-10). A star saved
-// under the old string follows its command instead of silently disappearing.
+// Old command string to its rewrite, so a star saved under the old string follows its command.
 const STAR_RENAMES = {
   "apt-get update && apt-get install -y apt-transport-https ca-certificates curl": "apt-get update && apt-get install -y apt-transport-https ca-certificates curl gpg",
   "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg": "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.35/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg",
@@ -97,64 +97,6 @@ function escapeHtml(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-}
-
-// ── Syntax Highlighter ────────────────────────────────────────
-function hl(raw, { slashBreaks = true } = {}) {
-  const e = s => s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  const tokens = raw.split(' ').filter(Boolean);
-
-  // Flags and short tokens go in an unbreakable .tok box (see styles.css), so a line never breaks
-  // inside "--token" or "$(id -u)". A long URL or path stays inline and wraps after a "/" while
-  // sharing its lines with its neighbours, instead of taking whole lines to itself. The browser
-  // offers no break after "/" on its own, so a <wbr> goes after each one, in text and never in a tag.
-  // The <wbr> splits the text node, and applyMark() matches inside one node, so a search for a
-  // string with a "/" in it renders without them.
-  return tokens.map((tok, i) => {
-    const html = hlTok(tok, i);
-    if (tok.startsWith('-') || tok.length <= 30) return `<span class="tok">${html}</span>`;
-    if (!slashBreaks) return html;
-    return html.split(/(<[^>]*>)/).map(part => part.startsWith('<') ? part : part.replace(/\//g, '/<wbr>')).join('');
-  }).join(' ');
-
-  function hlTok(tok, i) {
-    // Main binary
-    if (i === 0) return `<span class="hl-cmd">${e(tok)}</span>`;
-
-    // Sub-command (not a flag or placeholder)
-    if (i === 1 && !/^[-<\[]/.test(tok)) return `<span class="hl-sub">${e(tok)}</span>`;
-
-    // Separators: --, |, >, >>
-    if (tok === '--' || tok === '|' || tok === '>' || tok === '>>') {
-      return `<span class="hl-sep">${e(tok)}</span>`;
-    }
-
-    // Flags (with optional =value)
-    if (/^--?[a-zA-Z]/.test(tok)) {
-      const eq = tok.indexOf('=');
-      if (eq > 0) {
-        return `<span class="hl-flag">${e(tok.slice(0, eq))}</span>=<span class="hl-val">${e(tok.slice(eq + 1))}</span>`;
-      }
-      return `<span class="hl-flag">${e(tok)}</span>`;
-    }
-
-    // Placeholders <name> or [flags]
-    if (/^[<\[]/.test(tok)) return `<span class="hl-ph">${e(tok)}</span>`;
-
-    // Resource type (third token in kubectl get/describe/delete …)
-    if (i === 2 && /^[a-z]/.test(tok) && !tok.startsWith("'") && !tok.startsWith('"') && !tok.startsWith('{')) {
-      return `<span class="hl-res">${e(tok)}</span>`;
-    }
-
-    // Quoted strings / JSON / jsonpath
-    if (/^['"{]/.test(tok)) return `<span class="hl-str">${e(tok)}</span>`;
-
-    return `<span class="hl-val">${e(tok)}</span>`;
-  }
 }
 
 // ── Search helpers ────────────────────────────────────────────
@@ -292,16 +234,6 @@ function renderSection(section) {
     </section>`;
 }
 
-function sortCmds(cmds) {
-  const subCmd   = cmd => cmd.split(' ')[1] || '';
-  const flagCount = cmd => cmd.split(' ').filter(t => /^--?[a-zA-Z]/.test(t)).length;
-  return [...cmds].sort((a, b) => {
-    const subDiff  = subCmd(a.cmd).localeCompare(subCmd(b.cmd));
-    if (subDiff !== 0) return subDiff;
-    const flagDiff = flagCount(a.cmd) - flagCount(b.cmd);
-    return flagDiff !== 0 ? flagDiff : a.cmd.localeCompare(b.cmd);
-  });
-}
 
 function renderCard(group, gi) {
   const desc = group.desc ? `<div class="card-desc">${escapeHtml(group.desc)}</div>` : '';
@@ -762,13 +694,11 @@ function init() {
 init();
 
 // ── URL hash navigation ───────────────────────────────────────
-// The section root shows without its trailing slash (/cli), the same way /scheme does. Any state kept
-// in the hash goes back to /cli/#..., the form a shared link should carry. A bare /cli reaching the
-// server is redirected to /cli/. The path is always written in full: a bare '#...' would resolve
-// against /cli and drop the slash.
+// The path is written in full with its trailing slash: a bare '#...' would resolve against /cli and
+// drop it, and a slashless address costs a redirect and splits analytics in two.
 function writeUrl(hash) {
-  const base = location.pathname.replace(/\/$/, '');
-  const target = hash ? `${base}/${location.search}${hash}` : base + location.search;
+  const base = location.pathname.replace(/\/?$/, '/');
+  const target = base + location.search + (hash || '');
   if (location.pathname + location.search + location.hash !== target) history.replaceState(null, '', target);
 }
 
@@ -829,7 +759,7 @@ function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
       </a>`).join('');
     html += `
       <div class="action-wrap">
-        <button class="action-btn" aria-expanded="false" aria-haspopup="true">
+        <button class="action-btn" aria-label="Contacts" aria-expanded="false" aria-haspopup="true">
           ${CONTACT_ICON}<span class="action-btn-label">Contacts</span>
         </button>
         <div class="action-dropdown" role="menu">${links}</div>
@@ -838,8 +768,10 @@ function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
 
   if (SPONSOR.enabled) {
     const donate = `
-      <a class="dropdown-link" href="${escapeHtml(SPONSOR.donate.href)}" target="_blank" rel="noopener" role="menuitem">
-        ${SPONSOR.donate.icon} ${escapeHtml(SPONSOR.donate.label)}
+      <a class="dropdown-copy-row dropdown-donate" href="${escapeHtml(SPONSOR.donate.href)}" target="_blank" rel="noopener" role="menuitem" aria-label="${escapeHtml(SPONSOR.donate.label)}">
+        <span class="dropdown-coin">${escapeHtml(SPONSOR.donate.coin)}<span class="dropdown-net">${escapeHtml(SPONSOR.donate.net)}</span></span>
+        <span class="dropdown-addr">${escapeHtml(SPONSOR.donate.addr)}</span>
+        <span class="dropdown-go">${SPONSOR.donate.icon}</span>
       </a>`;
     const wallets = SPONSOR.wallets.map(w => `
       <div class="dropdown-copy-row">
@@ -849,7 +781,7 @@ function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
       </div>`).join('');
     html += `
       <div class="action-wrap">
-        <button class="action-btn" aria-expanded="false" aria-haspopup="true">
+        <button class="action-btn" aria-label="Sponsor" aria-expanded="false" aria-haspopup="true">
           ${SPONSOR_ICON}<span class="action-btn-label">Sponsor</span>
         </button>
         <div class="action-dropdown" role="menu">

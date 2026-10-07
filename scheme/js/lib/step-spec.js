@@ -1,7 +1,7 @@
 import { setChainActive } from './primitives.js';
 import {
   makeInit, at, lightBoxAt, revealAt, routePacket, segmentPacket, topPacket, arrivalRipple,
-  flashChips, setVal, setChip, setWire, setBoxLabel, setBoxSublabel, setPodSublabel, BEAT, REVEAL_MS,
+  flashChips, setVal, setChip, setWire, setBoxLabel, setBoxSublabel, setPodSublabel, BEAT, REVEAL_MS, HOP_MS,
 } from './scheme-kit.js';
 import { makeScene, makeResetStep } from './scene-spec.js';
 
@@ -34,8 +34,8 @@ export function makeFlowKinds({ role = '', pulsePod = null, pulsePodDim = null }
   };
 }
 
-// The whole delay vocabulary. `after` covers all 53 chained hops in cluster (arrivalMs + afterHop),
-// `at` covers the 47 callbacks fired on an arrival, `plus` covers the one that adds 800 on top.
+// The whole delay vocabulary: `after` chains a hop (arrivalMs + afterHop), `at` fires on an arrival,
+// `plus` adds a fixed offset on top of either.
 function arrivalOf(ref, named) {
   if (typeof ref === 'number') return ref;
   if (!named.has(ref)) throw new Error(`flow entry refers to '${ref}', which no earlier entry named`);
@@ -79,15 +79,9 @@ function setChain(s, want) {
   rows.forEach((row, i) => row.classList.toggle('highlight', on === null || on.has(i)));
 }
 
-// at() with the timer on a chosen element rather than on the svg, and the same delay <= 0
-// short-circuit, so a zero-delay write stays a plain call and registers nothing.
-//
-// A MISSING element falls back on at(), and never on returning: `on` picks WHERE the timer hangs,
-// which is observable but is not what the entry is for. Returning here drops the whole writeStatics
-// payload of that F.set (chips, wires, labels, sublabels, lit) in silence, and nothing in the suite
-// can see it: the reduced path never runs `flow`, so both paths agree and reduced.test.mjs stays
-// green over a step that writes nothing. The plain at() branch has no such failure mode, so the
-// only difference a typo in `on` may make is which element carries an empty 1ms timer.
+// at() with the timer on a chosen element. A MISSING element falls back on at(), never on returning:
+// returning would drop the whole F.set payload in silence, and no test sees it because the reduced
+// path never runs `flow`.
 function atOn(s, el, ctx, delay, fn) {
   if (!el) { at(s, ctx, delay, fn); return; }
   if (ctx.reduced || delay <= 0) { fn(); return; }
@@ -147,8 +141,8 @@ function runFlow(s, ctx, flow, bind) {
         break;
       }
       case 'set':
-        // `on` picks which element carries the empty 1ms timer. at() hangs it on the svg; three
-        // cards hang it on the block the write is ABOUT, and the timer's target is observable.
+        // `on` picks which element carries the empty 1ms timer: at() hangs it on the svg, a card may
+        // hang it on the block the write is ABOUT, and the timer's target is observable.
         if (p.on) atOn(s, s.refs[p.on], ctx, delay, () => writeStatics(s, p));
         else at(s, ctx, delay, () => writeStatics(s, p));
         break;
@@ -167,7 +161,7 @@ function runFlow(s, ctx, flow, bind) {
         at(s, ctx, delay, () => p.fn(s, ctx));
         break;
       // What a receiving BOX gets instead of a pulse, since only Pods pulse (NET.S-01). Its own
-      // entry because three of the four sites carry another animation after it, and order is observable.
+      // entry because another animation may follow it, and order is observable.
       case 'ripple':
         arrivalRipple(s.refs.packetLayer, ctx, p.point, delay, p.role);
         break;
@@ -198,7 +192,7 @@ function unlight(s, keys) {
 }
 
 // The reduced guard, DERIVED from every `lights` list. What it cannot derive is a highlight shown
-// INSTEAD of a pulse, since no lightBoxAt names it: that is `reducedLit`, two steps in cluster.
+// INSTEAD of a pulse, since no lightBoxAt names it: that is `reducedLit`.
 export function flowLights(flow) {
   const out = [];
   for (const e of flow || []) {
@@ -245,10 +239,46 @@ export function makeSteps(STEPS_SPEC, { resetStep, bind = {} } = {}) {
   });
 }
 
+// A ball may carry its `tag` and the `pulse` of the Pod it lands on. Both expand here into the
+// plain F.tag and F.pulse entries, so the tag shares the ball's path, start and travel time, and
+// the pulse fires on its arrival, by construction rather than by copying the numbers.
+const TIMING = ['delay', 'after', 'at', 'plus'];
+let autoName = 0;
+function ballPath(verb, p) {
+  if (verb === 'route') return { points: p.points, dur: p.dur, easing: p.easing };
+  if (verb === 'segment') return { points: [p.from, p.to], dur: p.dur, easing: 'linear' };
+  const y = p.y === undefined ? 65 : p.y;
+  return { points: [[p.from === undefined ? 540 : p.from, y], [p.to === undefined ? 580 : p.to, y]], dur: p.dur === undefined ? HOP_MS : p.dur };
+}
+function expandFlow(flow, bind) {
+  const out = [];
+  for (const e of flow) {
+    const p = e && e.p;
+    if (!p || !['route', 'segment', 'top'].includes(e.verb) || (!p.tag && !p.pulse)) { out.push(e); continue; }
+    const { tag, pulse, ...ball } = p;
+    if (pulse && !ball.name) ball.name = `__ball${++autoName}`;
+    out.push({ verb: e.verb, p: ball });
+    if (tag) {
+      const t = { ...tag, ...ballPath(e.verb, ball) };
+      for (const k of TIMING) if (ball[k] !== undefined) t[k] = ball[k];
+      for (const k of Object.keys(t)) if (t[k] === undefined) delete t[k];
+      out.push({ verb: 'tag', p: t });
+    }
+    if (pulse) {
+      const q = typeof pulse === 'string' ? { pod: pulse } : { ...pulse };
+      q.at = ball.name;
+      q.fn = q.fn || (q.dim ? bind.pulsePodDim : bind.pulsePod);
+      out.push({ verb: 'pulse', p: q });
+    }
+  }
+  return out;
+}
+
 // One call per card, in place of a Scene class, a resetStep, a STEPS array and a makeInit. It
 // returns one `init` and nothing else, so the module surface S-02 pins is unchanged.
 export function defineCardWith(bind = {}) {
   return function defineCard(SCENE, STEPS_SPEC, opts = {}) {
+    for (const spec of STEPS_SPEC) if (spec.flow) spec.flow = expandFlow(spec.flow, bind);
     const Scene = makeScene(SCENE);
     const STEPS = makeSteps(STEPS_SPEC, { resetStep: makeResetStep(SCENE), bind });
     return makeInit(Scene, STEPS, opts);

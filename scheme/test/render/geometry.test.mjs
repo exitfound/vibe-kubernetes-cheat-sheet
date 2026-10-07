@@ -1,64 +1,6 @@
-// geometry.test.mjs: the three geometry rules that guard the gate today, measured in viewBox units
-// over every step of every card. Successor of the ENFORCED half of tools/check-geometry.mjs
-// (`--rules=diagonal,through,offedge` in tools/package.json), same tolerances, same verdicts.
-//
-//   DIAGONAL (L-09)  every segment of a lane is horizontal or vertical.
-//   THROUGH  (L-10)  no segment crosses a block it does not terminate on.
-//   OFFEDGE  (L-11)  an endpoint sits on a block face MIDPOINT, not at a hand-typed coordinate
-//                    near one. L-12: two endpoints on ONE face at mirrored offsets (+d and -d,
-//                    any d) are a deliberate lane pair and not a finding, and the pair is judged
-//                    over the whole card because its halves may live in different steps.
-//
-// THE OTHER THREE RULES OF THE SAME CHECK ARE NOT HERE, AND THAT SPLIT IS THE POINT.
-// CENTRE (L-13), CENTRE-LOW (L-14) and OCCLUDED (L-15) live in report/geometry-soft.test.mjs and
-// never fail a run. L-16 says a finding that can only be closed by making the picture worse stays
-// OPEN, and the four card records carry such findings today. Promoting those three rules into this
-// file would turn a documented, deliberate set of exceptions into a red gate for nobody's work.
-// The line is the check's own and not this file's: of its six rules, three gate and three report.
-//
-// Why the browser and not the source. The numbers a card types are in its own coordinate system:
-// primitives are translated groups, so a bbox and a path only become comparable after both are
-// mapped through the element-to-root matrix. A source lint would also have to evaluate the layout
-// arithmetic (SLOT_X(i), CX - COL_W / 2) to know where anything actually lands. Wave 2 can read the
-// declared SCENE, but the mapping is still the browser's answer.
-//
-// Sampled on the STATIC path (gotoStep), which is what prev and reset replay: every enter() runs
-// with ctx.reduced, so a step settles at its final state with no animation in flight. Geometry is a
-// question about resting positions, and a frozen mid-flight packet is neither a lane nor a block.
-//
-// Scope, inherited from the original and deliberate:
-//   - the packet layer is excluded everywhere (#packetLayer): a ball is motion, not a lane.
-//   - blocks are .scheme-box, .scheme-pod, .scheme-cylinder and .scheme-node. Chips and captions
-//     are not blocks: lanes never route near them, and a lane ending on a chip is not a defect.
-//   - a .scheme-node frame is measured but never counted as CROSSED (L-10's own note): it is a
-//     container lanes are supposed to run inside to reach the blocks it holds. It still counts as
-//     an OFFEDGE face, because an endpoint landing on a frame edge is a real endpoint.
-//   - a curved path (QqCcSsTtAa) is skipped whole: it makes no straight-segment claim.
-//   - every M starts a NEW polyline. Reading `d` as one flat list of numbers fabricates a segment
-//     between subpaths, and those phantoms were the entire DIAGONAL report before the original
-//     check learned to split on M.
-//
-// One viewport, 1600x1000. The standard set (L-06) is three, but only the narration panel moves
-// with the viewport, and none of these three rules reads the panel. Blocks and lanes are viewBox
-// geometry: the SVG scales as a whole, so the same numbers come back at any size. The report file
-// is where the viewport set matters, because OCCLUDED is about the panel.
-//
-// FONTS FIRST (L-21). A block's bbox is the bbox of its GROUP, label and sublabel included, so a
-// block measured before the webfont arrives is measured on the fallback face, which is about 20
-// percent narrower and flatters every centring and clearance number taken off it. NEVER measure
-// geometry without waiting for the real face: a run that does not wait reports numbers taken on
-// whatever face happened to be resolved, and nothing in its output says which one that was. The
-// guard is fixtures/render.mjs fallbackFaces(), a behavioural width probe, and it is behavioural
-// because neither document.fonts.ready nor document.fonts.check() can answer this: with the font
-// hosts unreachable the stylesheet never attaches, so there is no @font-face rule to be missing and
-// check() returns true for every family including invented ones. The full measurement is in the
-// comment on that function. Here it is an ASSERTION: a missing face fails the run.
-//   Measured, and it is worth knowing which way: with fonts.gstatic.com blocked, the content span
-//   of every card is UNCHANGED, because no card has a label wider than the rect around it, so a
-//   block's bbox is its rect either way. The panel is the font-sensitive part (one text line, 17.5
-//   units, on 3 of 6 cards sampled), and the panel belongs to report/geometry-soft.test.mjs. The
-//   guard stays here regardless: "no card overflows its rect today" is a fact about the catalog,
-//   not a property of these rules, and the first card that does would silently move a face.
+// DIAGONAL (L-09), THROUGH (L-10) and OFFEDGE (L-11 with L-12 pairs pooled per card) over every step
+// at 1600x1000, on the static path, in root space. The packet layer and curves are excluded, a node
+// frame is a face but never an obstacle. A fallback face fails the run (L-21).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -67,27 +9,17 @@ import { stepTotal } from '../fixtures/module.mjs';
 import { readSnapshot } from '../fixtures/snapshot.mjs';
 import { vpName, VIEWPORTS } from '../tools/walk.mjs';
 
-// ---------------------------------------------------------------------------------------------
-// Control numbers, taken off a green run of the whole catalog, clean on [DIAGONAL, THROUGH, OFFEDGE].
-// They are FLOORS, not equalities. A run that walks fewer cards or fewer steps than this has
-// scanned a subset, and a subset that passes is worse than a red run; a card added later is a
-// legitimate widening and must not turn this file red by itself. The card count is additionally
-// pinned to data.js exactly, through census().
-// ---------------------------------------------------------------------------------------------
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+// Floors from a full walk: a subset that passes is worse than a red run.
 const EXPECTED_CARDS = floor((await cards()).length);
 const EXPECTED_STEPS = floor(await stepTotal());
 
-// Tolerances, all four carried over unchanged from check-geometry.mjs:6-13. Every one of them is a
-// decision about what counts as deliberate, so none of them is a free parameter to retune here.
+// Every tolerance is a decision about what counts as deliberate, not a free parameter.
 const TOL = 6;              // slack on a face midpoint, in viewBox units
 const EDGE_TOL = 2;         // how close a point must be to a face to count as sitting ON it
 const TWIN_TOL = 2;         // how exactly two mirrored offsets must cancel to read as a pair (L-12)
 const FACE_FRAC = 0.18;     // an offset up to 18% of the face it sits on is not a stray coordinate
 
-// L-11: on a Node FRAME face an endpoint may sit level with the centre of a block the frame holds,
-// the block the lane is addressed to, so the arrowhead stops on the frame instead of piercing it.
+// L-11: on a Node FRAME face an endpoint may sit level with the centre of a block the frame holds.
 function aimedAtHeld(p, f, axis, blocks) {
   return blocks.some(b => !b.isFrame &&
     b.x >= f.x - EDGE_TOL && b.x + b.w <= f.x + f.w + EDGE_TOL &&
@@ -97,28 +29,10 @@ function aimedAtHeld(p, f, axis, blocks) {
 const AXIS_EPS = 0.01;      // a segment is axis-aligned within this, in viewBox units
 const THROUGH_INSET = 3;    // the rect THROUGH tests is shrunk by this on each side
 
-// L-06's first row. See the header for why one viewport answers all three rules.
 const VIEWPORT = VIEWPORTS[0];
 const VP = vpName(VIEWPORT);
 
-// ---------------------------------------------------------------------------------------------
-// The probe. Runs IN THE PAGE, so it closes over nothing: it is serialised by page.evaluate.
-//
-// The PROBE stays local, and for the reason it always did: the three files that read this picture
-// read different halves of it (this one wants lanes and blocks, report/geometry-soft wants blocks,
-// chips and the narration panel, report/arrival wants blocks and route endpoints), so a probe wide
-// enough for all three would be a fourth definition none of them uses whole.
-//
-// What is NOT local any more is the root-space mapping the three of them each had a copy of. It
-// lives in fixtures/render.mjs as rootBBox and reaches the page as window.__toRoot, which
-// installGeometryHelpers() writes before the first navigation.
-// ---------------------------------------------------------------------------------------------
-
-// Does segment (a,b) pass through the INTERIOR of rect r? An endpoint resting on a face does not
-// count, and neither does an endpoint inside the block: a lane terminating on a container inside a
-// Pod shell is an arrival, which is how storage cards are drawn. Both segments are axis-aligned by
-// the time this matters (a diagonal is its own finding), so an overlap test against the shrunk
-// rect is the whole of it.
+// An endpoint on a face or inside the block (an arrival) does not count. Diagonals are their own finding.
 function crosses(a, b, r, tol) {
   const x0 = r.x + tol, x1 = r.x + r.w - tol, y0 = r.y + tol, y1 = r.y + r.h - tol;
   if (x1 <= x0 || y1 <= y0) return false;
@@ -139,10 +53,7 @@ function crosses(a, b, r, tol) {
 
 const catalogued = await cards();
 
-// THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` opens each card once for the whole
-// suite and takes this reading with the rest. The probe moved into fixtures/probes.mjs as
-// `geometryProbe`, verbatim, and with it went the ONE-RETRY guard and the block extraction that
-// report/geometry-soft.test.mjs held a byte-identical copy of. The walk runs it at VIEWPORT.
+// The probe is geometryProbe in fixtures/probes.mjs, run by tools/walk.mjs.
 const snap = readSnapshot();
 const ids = snap.ids;
 
@@ -156,12 +67,9 @@ const dirty = [];
 
 for (const id of ids) {
   test(id, async () => {
-    walked++;                    // counted before the assertions, so this stays a census of
-                                 // COVERAGE and a broken card is reported once, as itself.
+    walked++;                    // counted before the assertions, so a broken card is reported once, as itself
     const card = snap.cards[id];
-    // L-21, and it fails the run rather than warning: a missing face is not a card defect, it is a
-    // run whose every number is wrong in the same direction, and a quiet 20 percent is exactly the
-    // kind of error that gets believed.
+    // L-21 fails the run: every number on a fallback face is wrong in the same direction.
     const fellBack = card.fellBack;
     assert.deepEqual(fellBack, [],
       `THE FONTS ARE NOT THE REAL ONES, so this run measures the FALLBACK face:\n  ` +
@@ -175,9 +83,7 @@ for (const id of ids) {
 
     const seen = new Set();
     const issues = [];
-    // Pooled over the whole card, because L-12 is: a lane pair whose halves are drawn in different
-    // steps is still a pair. The key is the block's GEOMETRY and not its index, since the block
-    // array is rebuilt on every step and its order is not stable.
+    // Pooled over the card (L-12), keyed by block geometry since the block array order is unstable.
     const faceHits = new Map();
 
     for (let i = 0; i < total; i++) {
@@ -209,7 +115,6 @@ for (const id of ids) {
             }
           }
         }
-        // Endpoint-on-face accumulation only. The verdict waits until every step has been walked.
         for (const p of [pts[0], pts[pts.length - 1]]) {
           for (const r of data.blocks) {
             const my = r.y + r.h / 2, mx = r.x + r.w / 2;
@@ -230,9 +135,7 @@ for (const id of ids) {
       }
     }
 
-    // OFFEDGE verdicts. An endpoint is a defect only if it is ALONE on its face: a mirrored sibling
-    // (+d against -d) means the two are a deliberate lane pair (L-12), whatever d is. The numeric
-    // whitelist this replaced hid unpaired endpoints that happened to sit at a whitelisted value.
+    // An endpoint is a defect only alone on its face: a mirrored +d/-d sibling is an L-12 pair.
     for (const hits of faceHits.values()) {
       for (const h of hits) {
         const off = Math.abs(h.off);
@@ -271,9 +174,7 @@ test('every catalogued card was walked, every step was sampled, and all of them 
     `sampled ${sampled} step(s), expected at least ${EXPECTED_STEPS}. ` +
     'A step goes missing when a card fails to build or the debug handle is absent, and every ' +
     'missing step is geometry nobody looked at.');
-  // The control number itself, in the words the run prints. The per-card tests above have
-  // already failed by the time this line disagrees with them: it is here so a reader of the last
-  // line of the run sees the claim being made, not just the absence of a failure.
+  // The claim in the words the run prints, for a reader of the last line.
   assert.deepEqual(dirty, [],
     `${dirty.length} card(s) are not clean on [DIAGONAL, THROUGH, OFFEDGE]: ${dirty.join(', ')}`);
 });

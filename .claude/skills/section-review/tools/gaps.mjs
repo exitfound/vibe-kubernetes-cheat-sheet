@@ -1,60 +1,7 @@
 #!/usr/bin/env node
-// gaps.mjs: what a section does NOT teach. The other two tools of this skill answer "what is in
-// this section". This one answers the question the skill is actually reached for, by fetching the
-// kubernetes.io trees the section already reads and diffing their first-class topics against the
-// cards that are here.
-//
-//   node .claude/skills/section-review/tools/gaps.mjs <category>/<section>
-//   node .claude/skills/section-review/tools/gaps.mjs <category>          every section of it
-//     --absent          list only the topics nothing here teaches
-//     --top=N           how many of the undisposed absences get a detail block (default 15)
-//     --min-cite=N      read only trees this section cites at least N times (default 1)
-//     --stage=MODE      open topic pages for a feature stage: none, gaps (default), all
-//     --refresh         ignore the cache and fetch every page again
-//     --offline         never touch the network, answer from the cache alone
-//     --json            the whole result as one object, for diffing two runs
-//
-// Runs from anywhere: paths are resolved against this file, and the only import outside the skill
-// is scheme/test/fixtures/catalog.mjs, which reaches node builtins only. No npm dependency, no
-// browser, no server. Node's built-in fetch is the whole network layer.
-//
-// WHY THIS EXISTS. The gap half of this skill used to be a manual fetch of documentation trees,
-// which is the most expensive step in the procedure and the one most likely to be skipped or half
-// done. The map of which tree a section reads was already mined into reference/upstream.md and sat
-// there as prose. This turns it into data, and closes the loop at the other end by reading the
-// declined ledger, so a proposal the user has already turned down never comes back.
-//
-// THE ONE RULE UNDER EVERYTHING HERE. A citation is NOT coverage. Nineteen of volumes-claims's
-// citations land in /concepts/storage, which proves the section reads that tree and proves nothing
-// about what it covers. So a page a card merely cites can reach PARTIAL and can never reach
-// COVERED. COVERED is decided from card NAMES, the same definition overlap.mjs already uses for
-// "owns a term", because the card whose title carries the words is the card a reader lands on.
-// The `first source` marker on a PARTIAL row is the tool naming its own likeliest promotion, for a
-// human to rule on. It is never applied automatically.
-//
-// WHAT IT CANNOT SEE, and the list is not short.
-//   * Whether a topic DESERVES a card. Everything below is upstream's editorial shape, not this
-//     catalog's. A page can be absent because a sibling section owns it, because a SCOPE block
-//     cedes it on purpose, or because it is not worth a diagram, and only a human says which.
-//   * Whether a card is any good, whether its picture matches its words, whether the order teaches.
-//   * A topic taught under another name. COVERED is a token match over an id and a title, so a card
-//     that teaches projected volumes and calls itself something else reads ABSENT here.
-//   * A page split across several cards. One large upstream page covered by six cards reads
-//     PARTIAL, because no single card is named after the whole of it. That is the commonest false
-//     finding this tool produces and the evidence columns are there to settle it in one look.
-//   * The difference between a card NAMED after a page and one whose name merely CONTAINS its
-//     words. COVERED is a subset test, so `Deployments` reads COVERED off `Deployment Rolling
-//     Update`. That is the one way this tool over-reports COVERAGE and it is OPEN: the guard in
-//     classify() below closes the scenery-word half of it and nothing closes the rest.
-//   * Anything outside kubernetes.io. The map carries etcd.io, raft.github.io and github.com trees
-//     and this tool lists them and does not fetch them: they have no shared index shape to parse.
-//   * Freshness beyond the cache. A cached tree is what upstream looked like when it was written,
-//     and the header prints how old the oldest entry used is.
-//
-// THE CACHE holds the EXTRACTED result rather than the page, because an index page is half a
-// megabyte and the extract is a few hundred bytes. A change to the extraction below therefore
-// needs a re-fetch, which the PARSER stamp forces on its own: bump it and every stale entry is
-// refetched without anyone having to remember --refresh.
+// gaps.mjs: what a section does NOT teach, by diffing the kubernetes.io trees it already cites against its cards, minus the declined ledger.
+// usage: node .claude/skills/section-review/tools/gaps.mjs <category>[/<section>] [--absent] [--top=N] [--min-cite=N] [--stage=none|gaps|all] [--refresh] [--offline] [--json]
+// A citation is never coverage: COVERED comes from card names only. The cache keeps extracts, so bump PARSER after changing extraction.
 import { schemes, subcategories, ROOT } from '../../../../scheme/test/fixtures/catalog.mjs';
 import { walkStrings, sourcePath, NOT_A_TOPIC } from './bands.mjs';
 import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
@@ -104,8 +51,7 @@ if (sec && !SUBS[cat].some(s => s.key === sec)) {
 const wanted = sec ? SUBS[cat].filter(s => s.key === sec) : SUBS[cat];
 
 // ---------------------------------------------------------------------------------------------
-// words. A topic is matched by its TOKENS rather than its string, because upstream writes
-// "Persistent Volumes" and a card id writes `persistent-volume`.
+// words: a topic is matched by its TOKENS, because upstream writes "Persistent Volumes" and a card id `persistent-volume`.
 // ---------------------------------------------------------------------------------------------
 const STOP = new Set(['and', 'or', 'the', 'a', 'an', 'of', 'in', 'on', 'for', 'to', 'with', 'from',
   'using', 'use', 'your', 'you', 'its', 'it', 'this', 'that', 'other', 'more', 'about', 'entire',
@@ -123,22 +69,18 @@ const singular = (w) => {
 const raw = (text) => String(text).toLowerCase().split(/[^a-z0-9+]+/)
   .filter(w => w.length > 1).map(singular);
 
-// The scenery list bands.mjs already carries is exactly the set of words a topic cannot be ABOUT
-// in this catalog, so it is reused here rather than re-derived. It is applied to the TOPIC only:
-// a card's own name keeps every word, or the fallback below would have nothing to match against.
+// The bands.mjs scenery list is the set of words a topic cannot be about here, applied to the TOPIC only,
+// so a card's own name keeps every word for the fallback below.
 const SCENERY = new Set([...NOT_A_TOPIC].map(t => singular(t.toLowerCase())));
 
-// Filtered tokens, falling back to the unfiltered set when filtering empties it. `/concepts/
-// storage/volumes/` is the case that needs the fallback: every word it has is scenery, and a topic
-// with no tokens can be neither covered nor absent, only invisible.
+// Filtered tokens, falling back to the unfiltered set when filtering empties it (`/concepts/storage/volumes/`),
+// or a topic with no tokens would be invisible.
 const topicTokens = (text) => {
   const all = raw(text);
   const kept = all.filter(w => !STOP.has(w) && !SCENERY.has(w));
   return [...new Set(kept.length ? kept : all)];
 };
-// TRUE when the fallback above is the only reason this text has tokens at all: every word it holds
-// is scenery or a stop word, so the tokens name no subject. Such a set is still matched for PARTIAL
-// and still listed, and it is refused for COVERED in classify() below. See the note there.
+// TRUE when only the fallback gives this text tokens: still matched for PARTIAL and listed, refused for COVERED in classify().
 const sceneryOnly = (text) => {
   const all = raw(text);
   return all.length > 0 && all.every(w => STOP.has(w) || SCENERY.has(w));
@@ -151,10 +93,7 @@ const inText = (tok, text) => new RegExp(`(?<![\\w-])${esc(tok)}s?(?![\\w-])`, '
 const allInText = (toks, text) => toks.length > 0 && toks.every(t => inText(t, text));
 
 // ---------------------------------------------------------------------------------------------
-// reference/upstream.md: the tree map and the declined ledger, both parsed rather than recalled.
-// The map's shape is a `### <category>/<section>` heading followed by one fenced block whose lines
-// are `<count><spaces><comma separated paths>`, with indented continuation lines belonging to the
-// count above them. That is the shape the file was mined into and this reader does not change it.
+// reference/upstream.md: the tree map and the declined ledger, parsed. Map rows are `<count>  <paths>` in a fenced block under `### <cat>/<sec>`.
 // ---------------------------------------------------------------------------------------------
 function readUpstream() {
   const text = readFileSync(UPSTREAM_DOC, 'utf8');
@@ -180,8 +119,7 @@ function readUpstream() {
       }
       continue;
     }
-    // The ledger. Five columns, and a row is skipped unless its Section cell carries something:
-    // the header, the divider and the empty seed row all fail that test.
+    // The ledger: a row is skipped unless its Section cell carries something (header, divider, empty seed row).
     const cells = line.match(/^\|(.+)\|\s*$/);
     if (!cells) continue;
     const cols = cells[1].split('|').map(c => c.trim());
@@ -195,8 +133,7 @@ function readUpstream() {
 const { map: TREE_MAP, declined: DECLINED } = readUpstream();
 
 // ---------------------------------------------------------------------------------------------
-// the catalog. Every card, because "another section already owns this" is a disposition the GAPS
-// lane has to state and it cannot be seen from inside one section.
+// the catalog: every card, because "another section already owns this" cannot be seen from inside one section.
 // ---------------------------------------------------------------------------------------------
 const ALL = await schemes();
 const cards = [];
@@ -212,11 +149,8 @@ for (const e of ALL) {
   });
 }
 
-// Every SCOPE block in the four records, as one blob per block, CARRYING THE CARD IT BELONGS TO. A
-// SCOPE line sits at column 0 and its continuation lines are indented, which is the shape the
-// record vocabulary fixes. The owner matters: a block in another category ceding a topic says
-// nothing about this section, and matching against all of them was reporting cluster records as a
-// reason a storage topic is absent.
+// Every SCOPE block in the four records with the card it belongs to (column-0 line plus indented continuation),
+// because a block in another category ceding a topic says nothing about this section.
 function readScopes() {
   const out = [];
   const dirs = readdirSync(join(ROOT, 'js', 'schemes'), { withFileTypes: true })
@@ -247,12 +181,8 @@ function readScopes() {
 const SCOPES = readScopes();
 
 // ---------------------------------------------------------------------------------------------
-// the network, with the cache in front of it
+// the network, with the cache in front of it. `transport` counts only failures meaning nothing is reachable, never a 404.
 // ---------------------------------------------------------------------------------------------
-// A 404 on one tree index is NOT the network being down, and conflating the two was the first bug
-// this counter had: `/reference/generated` is in the map and is not a page, so one 404 was flipping
-// a run served entirely from cache into UNVERIFIED. `transport` counts only the failures that mean
-// nothing can be reached at all.
 const netlog = { attempted: 0, fetched: 0, cached: 0, missing: 0, transport: 0, ages: [], reason: null, http: [] };
 
 const cacheFile = (url) => join(CACHE_DIR, `${url.replace(HOST, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}.json`);
@@ -291,14 +221,9 @@ function extractChildren(html, prefix) {
   return [...seen].map(([url, title]) => ({ url, title }));
 }
 
-// A page states its stage in a `feature-state-stage` span, or states nothing at all, which is what
-// a long-stable core page does. Absence is reported as absence and never as stable.
-//
-// THE ENTITY DECODE IS NOT COSMETIC. On some pages the only copy of the banner in the markup sits
-// inside a tooltip attribute as escaped HTML, so a search of the raw bytes for `Feature state:`
-// finds `&lt;/span&gt;` behind the colon and a looser capture prints that as the stage. Decoding
-// first makes the two forms one form, which is why the class name is the anchor rather than the
-// words after the colon.
+// A page states its stage in a `feature-state-stage` span or not at all, and absence is reported as absence, never stable.
+// Entities are decoded first because on some pages the only banner copy is escaped HTML inside a tooltip attribute,
+// which is why the class name is the anchor rather than the words after the colon.
 function extractStage(html) {
   const text = html.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
   const m = text.match(/feature-state-stage"?>\s*(Alpha|Beta|Stable|Deprecated)\s*<\/span>([^<]{0,90})/i);
@@ -376,20 +301,9 @@ function classify(topic, mine, key) {
   const titleScenery = sceneryOnly(topic.title);
   const page = topic.url.replace(/\/$/, '');
 
-  // COVERED is a SUBSET test over the card's name tokens, and a subset test is only as strong as
-  // the smaller side. A topic whose whole token set is scenery (`controllers`, `volumes`) is one
-  // generic word wide, and one generic word is a subset of a great many card names: on 2026-09-04
-  // the `/concepts/workloads/controllers/` index, titled `Workload Management` and slugged
-  // `controllers`, was reported `COVERED  named by workloads-daemonset` because that card is titled
-  // `DaemonSet Controller`. A false COVERED is worse than a false ABSENT, because it deletes the
-  // row from the report instead of over-listing it, so a scenery-only side of the match is refused
-  // here. The topic keeps its tokens everywhere else: it can still reach PARTIAL, and an ABSENT one
-  // still carries its evidence.
-  //
-  // THIS IS A GUARD, NOT A REPAIR OF THE MATCHER. The test stays loose wherever the topic's words
-  // are real ones: a card whose name merely CONTAINS them still reads COVERED, so `Deployments` is
-  // COVERED by `Deployment Rolling Update`, which is named after one section of that page.
-  // Appendix B of SKILL.md carries that one as open.
+  // COVERED is a subset test over the card's name tokens, so a scenery-only topic (`controllers`) would be covered by any
+  // card naming that word, and a false COVERED deletes the row: refused here, PARTIAL and ABSENT still apply. A guard, not
+  // a repair: a card whose name merely contains real topic words still reads COVERED (SKILL.md Appendix B).
   const owns = (c) => (!slugScenery && subset(slugToks, c.names))
     || (!titleScenery && subset(titleToks, c.names));
   const here = mine.filter(owns).sort((a, b) => a.names.length - b.names.length);
@@ -403,9 +317,8 @@ function classify(topic, mine, key) {
 
   const verdict = here.length ? 'COVERED' : (citers.length || touchers.length) ? 'PARTIAL' : 'ABSENT';
 
-  // Where a new card would sit. The best-matching card is the one whose own text carries the most
-  // of the topic's tokens, and the pair reported is that card and its manifest successor. It is a
-  // starting point for the argument in G4, never the argument.
+  // Where a new card would sit: the card whose text carries most of the topic's tokens and its manifest successor,
+  // a starting point for G4, never the argument.
   let between = null;
   if (verdict !== 'COVERED' && mine.length > 1) {
     const scored = mine.map((c, i) => ({ i, n: toks.filter(t => inText(t, c.text)).length }));
@@ -479,14 +392,8 @@ for (const s of wanted) {
   const stages = await pool(stageWanted, t => load(t.url, 'page'));
   stageWanted.forEach((t, i) => { t.stage = stages[i] ? (stages[i].stage || 'not stated') : null; });
 
-  // The shortlist: ABSENT with NO disposition. A topic a sibling section already owns by name, or
-  // one a SCOPE block here already cedes, is an absence with its answer attached and belongs in
-  // the listing rather than in the proposals. What is left is what nobody has ruled on yet.
-  //
-  // The order is the section's OWN reading of upstream, not upstream's: a tree this section cites
-  // fifteen times is its home tree and a tree it cites once is a reference it reached for, so the
-  // citation count leads and the lexical anchor breaks the tie. It is a reading order for a human,
-  // never a ranking of what the section needs, which is G4 and is not a tool's judgement.
+  // The shortlist: ABSENT with no disposition (no sibling section owns it by name, no SCOPE block here cedes it).
+  // Ordered by how often this section cites the tree, then the lexical anchor: a reading order, never a ranking (G4).
   const citesOf = new Map(trees.map(t => [t.path, t.cites]));
   const shortlist = live
     .filter(t => t.verdict === 'ABSENT' && !t.elsewhere.length && !t.ceded.length)
@@ -499,9 +406,8 @@ for (const s of wanted) {
   });
 }
 
-// UNVERIFIED is the whole run resting on the cache. It is true when nothing was allowed to reach
-// the network, and when everything that tried to reach it failed to get there at all. A page that
-// answered with a 404 was reached, so it says nothing about the rest of the run.
+// UNVERIFIED: the whole run rests on the cache, because nothing was allowed to reach the network or every attempt
+// failed at transport. A 404 was reached, so it says nothing about the rest of the run.
 const UNVERIFIED = OFFLINE || (netlog.attempted > 0 && netlog.fetched === 0 && netlog.transport > 0);
 out.network = {
   attempted: netlog.attempted, fetched: netlog.fetched, fromCache: netlog.cached,
@@ -511,9 +417,7 @@ out.network = {
 };
 
 if (flags.json === 'true') {
-  // A tree row carries its topics only so the printer can group by tree. In the JSON they would be
-  // a second copy of `section.topics`, which every topic already tags with `tree`, and a diff of
-  // two runs would then report every change twice.
+  // Tree rows drop their topics in the JSON, since every topic already tags its `tree`, so a diff reports each change once.
   const lean = {
     ...out,
     unverified: UNVERIFIED,
@@ -536,9 +440,7 @@ if (flags.json === 'true') {
 const pad = (v, n) => String(v).padEnd(n);
 const num = (v, n) => String(v).padStart(n);
 const clip = (v, n) => (String(v).length > n ? `${String(v).slice(0, n - 1)}…` : String(v));
-// With no network every verdict below rests on a cache entry nobody confirmed this run, so every
-// verdict carries the mark rather than the header carrying it alone. A reader who scrolls past a
-// header has still been told.
+// With no network every verdict carries the cache mark, not just the header.
 const MARK = () => (UNVERIFIED ? '*' : '');
 // The listing groups by tree and prints the tree URL above it, so a row carries the child alone.
 const slug = (url) => url.replace(/\/$/, '').split('/').pop();
@@ -578,8 +480,7 @@ for (const s of out.sections) {
   }
   if (!s.trees.length) console.log('  none. This section has no tree map in reference/upstream.md.');
 
-  // ---- the listing. One line per topic, because the whole point is that a reviewer reads all of
-  // it rather than the six rows that fit on a screen. The evidence tail is what settles the row.
+  // ---- the listing. One line per topic, and the evidence tail is what settles the row.
   const rows = flags.absent === 'true' ? s.topics.filter(t => t.verdict === 'ABSENT') : s.topics;
   const counts = ['COVERED', 'PARTIAL', 'ABSENT'].map(v => `${v} ${s.topics.filter(t => t.verdict === v).length}`);
   console.log(`\nTOPICS  ${s.topics.length} first-class upstream pages   ${counts.join('   ')}`);

@@ -1,94 +1,80 @@
-import { P, F, defineCard, laneY, ladder, strip, midX, CLU, OPACITY, REVEAL_MS } from './cluster-kit.js';
+import { LANE_DY, P, F, defineCard, laneY, ladder, strip, midX, CLU, OPACITY, REVEAL_MS } from './cluster-kit.js';
 
 // Design notes for this card: ./CARDS/cluster-resource-quota.md
 
-// A budget that ACCUMULATES: one bar whose width IS spec.hard, slots filling left to right, and the
-// refused request drawn past the edge. Scale exact at 720 units per CPU. CEILING 460 characters.
+// One bar whose width IS spec.hard (720 units per CPU), slots filling left to right, the refused
+// request drawn past the edge.
 const M = CLU.M;
-const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
-// Reserved narration corner: 397 x 255, the worst of the three viewports. Nothing derives from it,
-// and the per-viewport measurement is in ./CARDS/cluster-resource-quota.md.
+const CONTENT_L = M, CONTENT_R = 1200 - M;
 
-// ONE grid for the whole card, three equal columns over the content band, shared top to bottom.
-// Column 0 is the panel's column above and the first slot of the budget below, so nothing floats.
+// One three-column grid shared top to bottom. One column is the 500m every Pod asks for.
 const COLS = 3;
 const COL = strip({ from: CONTENT_L, to: CONTENT_R, count: COLS, gap: 0 });
-const COL_W = COL.w;                                     // 360, at 60 / 420 / 780
-const COL_CX = i => COL.x(i) + COL_W / 2;                // 240 / 600 / 960
+const COL_W = COL.w;
+const COL_CX = i => COL.x(i) + COL_W / 2;
 
-// TWO actors at the family 232 with the family 56 between them, taken as a PAIR and pushed as far
-// toward the canvas centre as L-03 allows. The LimitRange is not an actor and sits under the pair.
-const BOX_W = CLU.BOX_W, BOX_H = CLU.BOX_H;              // 232 / 80
-const TOP_Y = CLU.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;     // 40 / 120
-const TOP_CY = midX(TOP_Y, TOP_BOTTOM);                  // 80
+// The actor pair straddles the canvas centre.
+const BOX_W = CLU.BOX_W, BOX_H = CLU.BOX_H;
+const TOP_Y = CLU.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;
+const TOP_CY = midX(TOP_Y, TOP_BOTTOM);
 const PAIR_GAP = 56;
-// The gap straddles the canvas centre, so each block stands PAIR_GAP / 2 + BOX_W from x 600.
-const RS_R = CLU.CX - PAIR_GAP / 2, RS_X = RS_R - BOX_W; // 340..572
-const API_X = CLU.CX + PAIR_GAP / 2, API_R = API_X + BOX_W;   // 628..860
-const LANE_DY = CLU.LANE_DY;
-const { out: OUT_Y, back: BACK_Y } = laneY(TOP_CY, LANE_DY);   // 68 / 92
+const RS_R = CLU.CX - PAIR_GAP / 2, RS_X = RS_R - BOX_W;
+const API_X = CLU.CX + PAIR_GAP / 2, API_R = API_X + BOX_W;
+const { out: OUT_Y, back: BACK_Y } = laneY(TOP_CY, LANE_DY);
 
-// No gap this row can take holds a wire label between the two blocks, so the request takes a
-// register above the row and the answer one below it, both centred on the gap they describe.
-const WIRE_REQ_Y = TOP_Y - 14;                           // 26
-const WIRE_ACK_Y = TOP_BOTTOM + 20;                      // 140, ink centred in the 120..152 corridor
-const WIRE_RA_X = midX(RS_R, API_X);                     // 600, the canvas centre the gap straddles
+// The gap is too narrow for a label: the request wire sits above the row, the answer below.
+const WIRE_REQ_Y = TOP_Y - 14;
+const WIRE_ACK_Y = TOP_BOTTOM + 20;
+const WIRE_RA_X = midX(RS_R, API_X);
 
 const RS_TO_API = [[RS_R, OUT_Y], [API_X, OUT_Y]];
 const API_TO_RS = [[API_X, BACK_Y], [RS_R, BACK_Y]];
 
-// The pair no longer stands over the pipeline, so the tie leaves the API's right FACE and turns 90
-// degrees onto the ladder's top centre. No ball rides it: the five stages ARE the API.
-const LADDER_X = COL.x(2), LADDER_W = COL_W;             // 780..1140
-const LADDER_CX = COL_CX(2);                             // 960
+// No ball rides the API-to-ladder tie: the five stages ARE the API.
+const LADDER_X = COL.x(2), LADDER_W = COL_W;
+const LADDER_CX = COL_CX(2);
 const ROWS = 5, ROW_H = CLU.ROW_H, ROW_GAP = CLU.ROW_GAP;
 const LADDER_Y = 152;
-const LADDER_BOTTOM = LADDER_Y + ROWS * ROW_H + (ROWS - 1) * ROW_GAP;   // 352
-const LADDER_CY = midX(LADDER_Y, LADDER_BOTTOM);         // 252
+const LADDER_BOTTOM = LADDER_Y + ROWS * ROW_H + (ROWS - 1) * ROW_GAP;
+const LADDER_CY = midX(LADDER_Y, LADDER_BOTTOM);
 const API_TO_CHAIN = [[API_R, TOP_CY], [LADDER_CX, TOP_CY], [LADDER_CX, LADDER_Y]];
 
-// A curly brace, not a lane: it GROUPS the rows the way a bracket does, so the LimitRange points at
-// a drawn thing. The nose sits at mid height and both ends turn in towards the rows.
+// A curly brace grouping the two LimitRanger rows, nose at mid height.
 const braceD = (x, y1, y2, q) =>
   `M ${x} ${y1} q ${-q} 0 ${-q} ${q} v ${(y2 - y1) / 2 - q * 2} q 0 ${q} ${-q} ${q}` +
   ` q ${q} 0 ${q} ${q} v ${(y2 - y1) / 2 - q * 2} q 0 ${q} ${q} ${q}`;
-const BRACE_Q = 30, BRACE_R = LADDER_X - 12;             // ends 768, 12 clear of the rows
-const BRACE_TIP = BRACE_R - BRACE_Q * 2;                 // 708, the nose at y 252
+const BRACE_Q = 30, BRACE_R = LADDER_X - 12;
+const BRACE_TIP = BRACE_R - BRACE_Q * 2;
 
-// The LimitRange is an OBJECT the pipeline reads. It takes the L-03 floor rather than the actor
-// rail, the family height, and the ladder's own mid line, so it stands against the brace nose.
-const LR_X = 420, LR_W = BOX_W;                          // 420..652
-const LR_H = BOX_H;                                      // 80, the family
-const LR_CY = LADDER_CY;                                 // 252
-const LR_Y = LR_CY - LR_H / 2;                           // 212..292
-// Nothing travels here, so the stub takes no arrowhead: a face midpoint to the brace nose, 56 apart.
+// An object the pipeline reads, not an actor: it stands on the ladder mid line against the brace nose.
+const LR_X = 420, LR_W = BOX_W;
+const LR_H = BOX_H;
+const LR_CY = LADDER_CY;
+const LR_Y = LR_CY - LR_H / 2;
 const LR_TO_BRACE = [[LR_X + LR_W, LR_CY], [BRACE_TIP, LR_CY]];
 
-// The budget. One column IS the 500m every Pod in this example asks for, so the bar is two columns
-// wide and the refused request is the third: the drawing and the arithmetic cannot disagree.
-const CPU_W = COL_W * 2, REQ_W = COL_W;                  // 720 / 360
-const BAR_X = COL.x(0), BAR_W = CPU_W;                   // 60..780, spec.hard requests.cpu 1
-const BAR_Y = 406, BAR_H = 64;                           // 406..470
-const BAR_R = BAR_X + BAR_W;                             // 780, the hard edge
-const SLOT_X = i => COL.x(i);                            // 60 / 420
-const OVER_X = COL.x(2), OVER_W = REQ_W;                 // 780..1140, past the ceiling
-const CAP_Y = BAR_Y - 10;                                // 396
+// The bar is two columns (spec.hard 1) and the refused request the third, so drawing and arithmetic agree.
+const CPU_W = COL_W * 2, REQ_W = COL_W;
+const BAR_X = COL.x(0), BAR_W = CPU_W;
+const BAR_Y = 406, BAR_H = 64;
+const BAR_R = BAR_X + BAR_W;                             // the hard edge
+const SLOT_X = i => COL.x(i);
+const OVER_X = COL.x(2), OVER_W = REQ_W;                 // past the ceiling
+const CAP_Y = BAR_Y - 10;
 
 const CHIP_H = CLU.CHIP_H, CHIP_GAP = 16, CHIP_VGAP = 8, CHIP_COLS = 2;
 const CHIPS_Y = 548;                                     // second row ends on 624
 
-// One cell under the request that produced it, so a column reads as one Pod, standing on the budget
-// row at the CHIP_VGAP the chip rows use, so the pair reads as one stack rather than as two rows.
+// One status cell under each request, so a column reads as one Pod.
 const CELL_GAP = 12;
-const CELL_W = COL_W - CELL_GAP, CELL_H = 34;            // 348 / 34
-const CELL_X = i => COL_CX(i) - CELL_W / 2;              // 66 / 426 / 786
-const CELL_Y = BAR_Y + BAR_H + CHIP_VGAP;                // 478..512
-// The refusal reason is a footnote to the column it explains, so it sits UNDER that column's cell
-// on the same +20 register the ack wire takes under the actor row.
-const OVER_Y = CELL_Y + CELL_H + 20;                     // 532
-const OVER_CX = COL_CX(2);                               // 960
+const CELL_W = COL_W - CELL_GAP, CELL_H = 34;
+const CELL_X = i => COL_CX(i) - CELL_W / 2;
+const CELL_Y = BAR_Y + BAR_H + CHIP_VGAP;
+// The refusal reason sits under the refused column's cell.
+const OVER_Y = CELL_Y + CELL_H + 20;
+const OVER_CX = COL_CX(2);
 const CHIP_COL = strip({ from: CONTENT_L, to: CONTENT_R, count: CHIP_COLS, gap: CHIP_GAP });
-const CHIP_W = CHIP_COL.w;                               // 532
+const CHIP_W = CHIP_COL.w;
 const CHIP_ROW = ladder({ y: CHIPS_Y, rowH: CHIP_H, gap: CHIP_VGAP });
 // The strip is read as a GRID: the index wraps across the two columns and steps down every second.
 const CHIP_X = i => CHIP_COL.x(i % CHIP_COLS);
@@ -100,45 +86,35 @@ const POST_WEB2 = 'POST pod web-2 · requests.cpu 500m';
 const OVER_WHY = 'used 1 plus 500m is over hard 1';
 const FORBIDDEN = 'HTTP 403 Forbidden · exceeded quota';
 
-// The three request blocks carry STROKES only, fill overridden so the soft box fill does not double
-// up over the bar, and the refused one is dashed because it never became an object.
+// Stroke only, so the box fill does not double over the bar. Dashed: a request that never became an object.
 const budgetFill = (dashed) => (el) => {
   const r = el.querySelector('.scheme-box-rect');
   if (!r) return;
   r.style.fill = 'transparent';
   if (dashed) r.style.strokeDasharray = '5 5';
 };
-// Every block takes the bar's own rx 6, so a slot has the same corner wherever it stands and none
-// borrows a rounded end off the bar behind it.
 const budgetBlock = ({ key, x, w, label, dashed = false }) => P.box({
   key, x, y: BAR_Y, w, h: BAR_H, rx: 6, label, sublabel: REQ_500, opacity: 0, tune: budgetFill(dashed),
 });
 
-// The list order IS the append order, so it is the z-order: the ladder and the LimitRange sit above
-// the packet layer, and the two actors go absolute last.
+// Parts order is z-order: ladder and LimitRange above the packet layer, the actors last.
 export const SCENE = {
   'aria-label': 'ResourceQuota and LimitRange: four admission rows and a write, where LimitRanger injects the cpu request the Pod template never named and ResourceQuota then checks the running sum against spec.hard, so the third Pod is refused past the ceiling of a budget bar and the 403 lands on the ReplicaSet that asked for it',
   parts: [
     P.defs(),
     P.relation({ points: API_TO_CHAIN }),
-    // A lane is only as present as the fainter of its ends, so both dim with the LimitRange.
     P.relation({ key: 'lrLine', points: LR_TO_BRACE }),
     P.relation({ key: 'lrBrace', d: braceD(BRACE_R, LADDER_Y, LADDER_BOTTOM, BRACE_Q) }),
-    // The whole ceiling, undivided. The slots below carve it and carry strokes only, so the fill
-    // never doubles up where a slot sits on the bar.
     P.box({ key: 'bar', x: BAR_X, y: BAR_Y, w: BAR_W, h: BAR_H, rx: 6 }),
     P.tag({ x: BAR_X, y: CAP_Y, anchor: 'start', text: 'ResourceQuota team-quota · namespace team-a' }),
     P.tag({ x: BAR_R, y: CAP_Y, text: 'spec.hard 1' }),
     budgetBlock({ key: 'slot0', x: SLOT_X(0), w: REQ_W, label: 'web-1' }),
     budgetBlock({ key: 'slot1', x: SLOT_X(1), w: REQ_W, label: 'web-2' }),
-    // Past the bar edge and dashed, because it is a request that never became an object.
     budgetBlock({ key: 'over', x: OVER_X, w: OVER_W, label: 'web-3', dashed: true }),
     P.wire({ key: 'over', x: OVER_CX, y: OVER_Y }),
-    // The Pod NAME is on the block above, never here: a cell carries the STATUS column alone, so no
-    // column ever prints one name twice and the refused block keeps its own identity.
+    // Status only: the Pod name is on the block above.
     ...[0, 1, 2].map(i =>
       P.box({ key: `list${i}`, x: CELL_X(i), y: CELL_Y, w: CELL_W, h: CELL_H, label: 'Not created yet' })),
-    // Wire and ball are built from the SAME points array, so the two cannot drift apart.
     ...[RS_TO_API, API_TO_RS].map(p => P.arrow({ from: p[0], to: p[1], dim: true, dashed: true })),
     P.wire({ key: 'req', x: WIRE_RA_X, y: WIRE_REQ_Y }),
     P.wire({ key: 'ack', x: WIRE_RA_X, y: WIRE_ACK_Y }),
@@ -147,7 +123,6 @@ export const SCENE = {
     P.chip({ key: 'admitChip', x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: CHIP_H, name: 'last admission', value: 'none' }),
     P.chip({ key: 'rsChip',    x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'ReplicaSet web', value: '3 desired · 0 created' }),
     P.packets(),
-    // Ladder above the packet layer, so no ball rides over its rows.
     P.chain({
       key: 'chain', x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
@@ -158,13 +133,10 @@ export const SCENE = {
         '5. persist     ·  the Pod object is written to ETCD',
       ],
     }),
-    // The object the first two rows read, on the ladder band and above the packet layer with them.
     P.box({ key: 'lr', x: LR_X, y: LR_Y, w: LR_W, h: LR_H, label: 'LimitRange', sublabel: 'defaultRequest.cpu 500m' }),
-    // Top-row blocks last, so a ball passes behind them rather than over their labels.
     P.box({ key: 'rs',  x: RS_X,  y: TOP_Y, w: BOX_W, h: BOX_H, label: 'ReplicaSet web', sublabel: 'spec.replicas 3' }),
     P.box({ key: 'api', x: API_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'API',            sublabel: 'admission pipeline' }),
   ],
-  // No pods on this card, so no pods list: nothing here is ever pulsed.
   reset: {
     keys: [
       'rs', 'api', 'lr', 'bar', 'slot0', 'slot1', 'over',
@@ -174,12 +146,10 @@ export const SCENE = {
   },
 };
 
-// Every step writes every chip. A chip left alone keeps the previous step's reading, and on this
-// card that would let status.used claim a total the admission it names has not reached yet.
+// Every step writes every chip (P-01).
 const chipsOf = (used, admission, rs) => ({ hardChip: HARD, usedChip: used, admitChip: admission, rsChip: rs });
 
-// ONE helper for the three budget blocks and the LimitRange, so a step cannot pin three of four and
-// drift on the fourth. A block and its lane leave here together: A-16 wants one place per shade.
+// One helper pins the budget blocks and the LimitRange with its lanes, one place per shade (A-16).
 const budget = ({ slot0 = null, slot1 = null, over = null }) => {
   const labels = {}, sublabels = {}, opacity = {};
   for (const [key, spec] of [['slot0', slot0], ['slot1', slot1], ['over', over]]) {
@@ -188,8 +158,6 @@ const budget = ({ slot0 = null, slot1 = null, over = null }) => {
     sublabels[key] = spec.sublabel;
     opacity[key] = spec.opacity === undefined ? 1 : spec.opacity;
   }
-  // The LimitRange stands on every step, and A-16 wants its shade and its two lanes stated in ONE
-  // place, so all three are pinned here rather than left to be inherited.
   opacity.lr = 1;
   opacity.lrLine = 1;
   opacity.lrBrace = 1;
@@ -203,8 +171,7 @@ const PENDING_CELL = { label: 'Not created yet', opacity: OPACITY.pending };
 const PENDING_POD_CELL = { label: 'Pending',      opacity: 1 };
 const ABSENT_CELL  = { label: 'No Pod object',   opacity: OPACITY.terminated };
 
-// The observable row, one cell per desired replica. A cell left alone would keep the previous
-// step's status, and the third cell is the payload of the whole card.
+// One cell per desired replica, every cell written on every step.
 const listing = (cells) => ({
   labels: Object.fromEntries(cells.map((c, i) => [`list${i}`, c.label])),
   opacity: Object.fromEntries(cells.map((c, i) => [`list${i}`, c.opacity])),
@@ -212,16 +179,13 @@ const listing = (cells) => ({
 const NONE_YET = listing([PENDING_CELL, PENDING_CELL, PENDING_CELL]);
 const THIRD_MISSING = listing([PENDING_POD_CELL, PENDING_POD_CELL, ABSENT_CELL]);
 
-// One state of the whole picture: the budget blocks, the LimitRange and the row write the same
-// three fields, so they are merged once here rather than spread at every step.
 const stateOf = (bar, list) => ({
   labels: { ...bar.labels, ...list.labels },
   sublabels: bar.sublabels,
   opacity: { ...bar.opacity, ...list.opacity },
 });
 const IDLE = stateOf(EMPTY_BAR, NONE_YET);
-// The budget is charged at ADMISSION and the row is what PERSIST leaves behind, so the two states
-// differ only in the cells: row 4 spends the quota, row 5 decides which objects exist.
+// The quota is charged at admission (row 4), the cells are what persist leaves (row 5).
 const CHARGED = stateOf(REFUSED, NONE_YET);
 const WRITTEN = stateOf(REFUSED, THIRD_MISSING);
 
@@ -233,8 +197,7 @@ const REFUSED_403 = '403 · exceeded quota';
 const NOT_CREATED = '3 desired · 0 created';
 const POST_WEB3 = 'POST pod web-3 · requests.cpu 500m';
 
-// Five steps over five ladder rows, in the pipeline's own order: step N lights row N. The card
-// follows ONE request down the chain and the bar fills as the quota stage spends it.
+// Step N lights ladder row N.
 export const STEPS_SPEC = [
   {
     id: 'idle',
@@ -252,7 +215,6 @@ export const STEPS_SPEC = [
     wires: { req: 'POST pod web-1 · no cpu named' },
     lit: ['rs', 'lr', 'admitChip'],
     chain: [0],
-    // The chip holds what admission DID, so it turns over when the request reaches admission.
     rewind: { chips: { admitChip: 'none' } },
     flow: [
       F.segment({ from: RS_TO_API[0], to: RS_TO_API[1], name: 'req', lights: ['api'] }),
@@ -265,7 +227,6 @@ export const STEPS_SPEC = [
     narration: 'LimitRanger is back in the validating phase, and this time it may only refuse. It checks the request it just injected against min, max and maxLimitRequestRatio, so one plugin sits at two positions in the chain and does a different job at each.',
     chips: chipsOf('requests.cpu 0', WITHIN, NOT_CREATED),
     ...IDLE,
-    // No packet and no Pod on this step, so the highlights carry the beat on their own.
     lit: ['lr', 'admitChip'],
     chain: [1],
   },
@@ -287,8 +248,6 @@ export const STEPS_SPEC = [
     wires: { req: POST_WEB3, over: OVER_WHY },
     lit: ['rs', 'bar', 'slot0', 'slot1', 'over', 'hardChip', 'usedChip', 'admitChip'],
     chain: [3],
-    // The sum IS the step, so nothing may stand before the admission that earns it: each slot and
-    // the two chips turn over on their own Pod's beat, and the refusal on the third arrival.
     rewind: {
       chips: { usedChip: 'requests.cpu 0', admitChip: NO_OBJECTION },
       wires: { req: ' ', over: ' ' },
@@ -305,8 +264,7 @@ export const STEPS_SPEC = [
       F.reveal({ target: 'slot1', at: 'two' }),
       F.set({ at: 'two', chips: { usedChip: HARD, admitChip: ADMIT_BOTH }, wires: { req: POST_WEB3 } }),
       F.segment({ from: RS_TO_API[0], to: RS_TO_API[1], after: 'two', name: 'three', lights: ['api'] }),
-      // A reveal always lands on 1, and this block must land on the shade of a thing that was never
-      // created, so it is a fade with its own ceiling rather than a wrong call to the shared verb.
+      // A fade, not F.reveal: reveal always lands on 1 and this block lands on the pending shade.
       F.fade({ target: 'over', from: 0, to: OPACITY.pending, dur: REVEAL_MS, at: 'three', fill: 'forwards', easing: 'ease-out' }),
       F.set({ at: 'three', chips: { admitChip: REFUSED_403 }, wires: { over: OVER_WHY } }),
     ],
@@ -320,8 +278,6 @@ export const STEPS_SPEC = [
     wires: { req: POST_WEB3, over: OVER_WHY, ack: FORBIDDEN },
     lit: ['api', 'bar', 'slot0', 'slot1', 'over', 'usedChip', 'rsChip'],
     chain: [4],
-    // The two writes land first and the row kubectl loses is the same beat as the refused block
-    // going dark. Only the 403 and the condition wait for the answer to reach the ReplicaSet.
     rewind: {
       chips: { rsChip: NOT_CREATED },
       wires: { ack: ' ' },

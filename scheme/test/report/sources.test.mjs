@@ -1,71 +1,28 @@
-// sources.test.mjs: liveness of every href in SCHEMES[].sources. Successor to
-// tools/check-sources.mjs.
-//
-// WHY THIS CAN NEVER BE MANDATORY. It needs the public internet. The ancestor was never in the gate
-// for exactly that reason, and the reason is not squeamishness: a run with no route out produces
-// one finding per url, so a laptop on a plane reports the entire bibliography of the catalog as
-// broken. That output is worse than no output, because it is one confident false statement per url
-// about somebody else's website. Everything below is arranged around making that impossible.
-//
-// THE ONE THING THIS FILE OWES ABOVE ALL ELSE. With no network it must say `REPORT INVALID: no
-// network` and PASS, not print findings. Two independent guards, because one is not enough:
-//
-//   1. A preflight to two hosts that have nothing to do with the catalog. Two, so a single site
-//      being down is not mistaken for the internet being down; unrelated to the catalog, so a
-//      genuinely dead kubernetes.io reads as 132 real findings and not as "we are offline". ANY
-//      answer counts as reachable, including a 500: the question is whether packets leave, not
-//      whether a page is healthy.
-//   2. A post-hoc guard on the walk itself. If every single url failed at the TRANSPORT layer (DNS,
-//      connect, TLS, timeout) then the network went away after the preflight, and the run is
-//      invalid however green the preflight was. A DEAD verdict needs an HTTP status behind it, and
-//      a run where nothing ever got a status has measured nothing.
-//
-// NO CACHE, DELIBERATELY. The ancestor wrote every fetched page under .cache/pages, and its own
-// header explains the trap in capitals: A WARM CACHE MAKES THIS CHECK STOP CHECKING. Once a url had
-// a good record it was never fetched again, so a run could report zero findings having proved
-// nothing about today, and only --refresh made green mean anything. The cache had one real
-// consumer, a planned text pass that would verify narration against the real docs without hundreds
-// of round trips, and that pass does not exist. A store whose only reader is hypothetical, and
-// whose presence silently disables the check, is not worth the page files or the .gitignore line.
-// The whole bibliography at concurrency 6 takes well under a minute. If the text pass is ever built, it should own
-// its own store and its own staleness policy rather than inherit this one by accident.
-//
-// WHAT A FINDING MEANS, per class (carried over from the ancestor, whose taxonomy is right):
-//   DEAD    transport failure, or HTTP >= 400. The link is broken outright.
-//   SOFT    landed on an ANCESTOR of the requested path. The page is gone and the site bounced the
-//           reader to a section index, which is a 404 wearing a 200. This is the class that a naive
-//           status check misses entirely, and on documentation sites it is the common one.
-//   MOVED   landed somewhere else. The link works, the card should name the new address.
-//   ANCHOR  the #fragment is not in the page, so the link opens at the top and the reader has to
-//           hunt for the paragraph the card cites. Better than a third of the hrefs carry a fragment,
-//           which the run counts and prints, so this is not an edge case.
+// Liveness of every href in SCHEMES[].sources: DEAD, SOFT (bounced to an ancestor path), MOVED, ANCHOR.
+// Needs the internet, so it never fails on a link: no network (preflight to unrelated hosts, or every
+// url failing at transport) prints REPORT INVALID and passes. No cache, which would stop it checking.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { schemes, CATALOG_BASELINE } from '../fixtures/catalog.mjs';
 
-// Unrelated to the catalog on purpose. See guard 1 in the header.
+// Unrelated to the catalog, so a dead kubernetes.io reads as real findings, not as offline.
 const PROBE_HOSTS = ['https://example.com/', 'https://cloudflare.com/'];
 const PREFLIGHT_TIMEOUT_MS = 8000;
 
-// One request budget for the walk. Long enough that a slow documentation site is not called dead,
-// short enough that the whole bibliography cannot wedge a report.
 const REQUEST_TIMEOUT_MS = 20000;
 
-// The whole bibliography at once is rude and gets throttled, one at a time is slow. The ancestor's number.
+// The whole bibliography at once gets throttled.
 const CONCURRENCY = 6;
 
 const UA = 'kube.how source check (scheme/test/report/sources.test.mjs)';
 
-// The recorded census, taken on a green tree at 131 cards. Printed for comparison so a
-// bibliography that shrinks by half is visible, never used to clamp anything. The 115-card reading
-// before it was 252 rows over 171 hrefs: the catalogue has grown by 16 cards since, and no card
-// dropped a source, which is the diff behind the move.
+// Printed for comparison, never used to clamp.
 const RECORDED = { rows: 332, unique: 219, cards: 131 };
 
 async function reachable(url, ms) {
   try {
-    // GET, not HEAD: some CDNs answer HEAD with a 405 and that is not the question being asked.
+    // GET, not HEAD: some CDNs answer HEAD with a 405.
     const res = await fetch(url, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(ms) });
     return { ok: true, status: res.status };
   } catch (e) {
@@ -86,12 +43,8 @@ async function mapLimit(items, limit, fn) {
   return out;
 }
 
-// A fragment is present if some element declares it as an id or a name. kubernetes.io ships
-// MINIFIED html, so ids come through unquoted (id=emptydir): demanding quotes reported 49 of 58
-// anchors dead, all of them false. The optional captured quote plus the trailing lookahead accepts
-// both spellings and still refuses a PREFIX match, so #emptydir does not silently satisfy itself on
-// id=emptydir-configuration-example. GitHub prefixes heading ids with user-content- and rewrites
-// them client side, so both spellings count.
+// Unquoted ids accepted (kubernetes.io ships minified html), prefix matches refused, and GitHub's
+// user-content- prefix counts.
 function hasAnchor(body, frag) {
   const esc = frag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const re = new RegExp(`(?:id|name)=(["']?)(?:user-content-)?${esc}\\1(?=[\\s/>])`, 'i');
@@ -100,7 +53,6 @@ function hasAnchor(body, frag) {
 
 const SCHEMES = await schemes();
 
-// href -> the cards citing it, so a finding says which cards to go and fix.
 const cites = new Map();
 let rows = 0;
 const cardsWithoutSources = [];
@@ -120,7 +72,6 @@ test('source links are alive (report only, never fails, needs the network)', asy
   out.push('');
   out.push('===== SOURCE LINKS, REPORT ONLY (D-01 sources) =====');
 
-  // ---- the half that needs no network ------------------------------------------------------
   out.push(`  source rows   ${rows} over ${SCHEMES.length} cards ` +
     `(recorded: ${RECORDED.rows} over ${RECORDED.cards})`);
   out.push(`  unique hrefs  ${urls.length} (recorded: ${RECORDED.unique})`);
@@ -142,7 +93,6 @@ test('source links are alive (report only, never fails, needs the network)', asy
   }
   out.push('');
 
-  // ---- guard 1: is there a network at all --------------------------------------------------
   const probes = await Promise.all(PROBE_HOSTS.map(u => reachable(u, PREFLIGHT_TIMEOUT_MS)));
   const online = probes.some(p => p.ok);
   if (!online) {
@@ -155,13 +105,12 @@ test('source links are alive (report only, never fails, needs the network)', asy
     out.push('  liveness.');
     out.push('===== end of report =====');
     console.log(out.join('\n'));
-    return;                       // PASS. An unmeasurable question is not a failing one.
+    return;                       // PASS: an unmeasurable question is not a failing one
   }
   out.push(`  preflight     online (${PROBE_HOSTS.filter((_, i) => probes[i].ok).length} of ` +
     `${PROBE_HOSTS.length} probe host(s) answered)`);
   out.push('');
 
-  // ---- the walk ----------------------------------------------------------------------------
   const findings = [];
   let live = 0, dead = 0, redirected = 0, transportErrors = 0, anchorsChecked = 0;
   const statusCount = new Map();
@@ -199,8 +148,7 @@ test('source links are alive (report only, never fails, needs the network)', asy
     const gp = got.pathname.replace(/\/$/, '');
     if (want.origin !== got.origin || wp !== gp) redirected++;
     if (wp !== gp) {
-      // An ancestor path means the specific page is gone and the site handed back a section index.
-      // Anything else is a genuine move and the card should just name the new address.
+      // An ancestor path means the page is gone and the site handed back a section index.
       const cls = wp.startsWith(gp + '/') ? 'SOFT' : 'MOVED';
       findings.push({ cls, url, detail: `landed on ${got.href}`, cards: cardIds });
     }
@@ -215,7 +163,6 @@ test('source links are alive (report only, never fails, needs the network)', asy
     return { url, transport: true, status: res.status };
   });
 
-  // ---- guard 2: did the network survive the walk -------------------------------------------
   const reached = results.filter(r => r && r.transport).length;
   if (urls.length && reached === 0) {
     out.push('  REPORT INVALID: no network');
@@ -224,7 +171,7 @@ test('source links are alive (report only, never fails, needs the network)', asy
     out.push('  this machine, not a fact about a website. Findings suppressed.');
     out.push('===== end of report =====');
     console.log(out.join('\n'));
-    return;                       // PASS, same reasoning as guard 1.
+    return;                       // PASS, as for guard 1
   }
   if (reached < urls.length) {
     out.push(`  REPORT INCOMPLETE: ${urls.length - reached} of ${urls.length} url(s) never returned a status.`);
@@ -264,14 +211,8 @@ test('source links are alive (report only, never fails, needs the network)', asy
 
   console.log(out.join('\n'));
 
-  // NO ASSERTION ON A LINK, and one on the WALK. Every liveness finding here is about somebody
-  // else's website, which no commit in this repository can fix atomically, and a red run for a
-  // documentation site's Tuesday outage trains people to ignore red runs.
-  //
-  // What is not about anybody else's website is whether this file READ the catalog. A rename that
-  // empties `sources` leaves nothing to check, prints a clean report and exits 0, and that is the
-  // one failure a report may still go red on (`S-46`). Deliberately a floor and not an equality:
-  // the url count moves with every card that cites a new page, while zero means the reader died.
+  // No assertion on a link (someone else's website), one on the walk: an emptied `sources` must not
+  // read as a clean report (S-46).
   assert.ok(SCHEMES.length === CATALOG_BASELINE.cards,
     `read ${SCHEMES.length} catalog entr(ies), the baseline is ${CATALOG_BASELINE.cards}`);
   assert.ok(rows > 0 && urls.length > 0,

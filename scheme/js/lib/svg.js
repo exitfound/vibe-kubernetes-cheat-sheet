@@ -1,5 +1,5 @@
-// One thin createElementNS helper per tag. Six of the sixteen exports have no importer today and
-// they STAY: this is a library surface, not accumulated code, so do not prune it to zero (S-29).
+// One thin createElementNS helper per tag. Exports with no importer STAY: this is a library surface,
+// not accumulated code (S-29).
 const NS = 'http://www.w3.org/2000/svg';
 
 export function el(tag, attrs = {}, children = []) {
@@ -29,7 +29,6 @@ export const line = (attrs, children) => el('line', attrs, children);
 export const circle = (attrs, children) => el('circle', attrs, children);
 export const ellipse = (attrs, children) => el('ellipse', attrs, children);
 export const text = (attrs, children) => el('text', attrs, children);
-export const tspan = (attrs, children) => el('tspan', attrs, children);
 export const defs = (children) => el('defs', {}, children);
 export const marker = (attrs, children) => el('marker', attrs, children);
 export const linearGradient = (attrs, children) => el('linearGradient', attrs, children);

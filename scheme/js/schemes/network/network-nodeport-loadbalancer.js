@@ -2,45 +2,42 @@ import { P, F, defineCard, makeRidingLabel, BEAT, OPACITY } from './network-kit.
 
 // Design notes for this card: ./CARDS/network-nodeport-loadbalancer.md
 
-
-// Two entries into ONE Node row. The client sits beside the balancer rather than above it, inside
-// the wedge between the balancer legs to Node-2 and Node-3, which is the only place a lane from the
-// client can reach Node-2 without crossing a balancer leg. The Service fields are a row of their own
-// under the Nodes, captioned and off the column grid, so they read as one object and not per Node.
-// Panel deepest 229.82 at 1100x800 on every step: the Node-1 bus at BUS_Y clears it by 46.18.
+// Two entries into ONE Node row. The client sits in the wedge between the balancer legs to Node-2
+// and Node-3, the only place its lane reaches Node-2 without crossing a leg. The Service fields are
+// a row of their own under the Nodes, so they read as one object and not per Node.
 const SCHEME_L = 80, SCHEME_R = 1120;  // content edges, mirrored about x 600
 
 // Node row: three equal frames spanning SCHEME_L..SCHEME_R, Pods on the OUTER two.
-const NODE_W = 300, NODE_H = 226, NODE_Y = 320;
-const NODE_GAP = (SCHEME_R - SCHEME_L - 3 * NODE_W) / 2;                  // 70
-const NODE_X = [0, 1, 2].map(i => SCHEME_L + i * (NODE_W + NODE_GAP));   // 80, 450, 820
-const NODE_CX = NODE_X.map(x => x + NODE_W / 2);                          // 230, 600, 970
-const NODE_CY = NODE_Y + NODE_H / 2;                                      // 433: the cross-Node lane
+const NODE_W = 300, NODE_H = 228, NODE_Y = 320;   // label band, chip, hop, Pod, floor
+const NODE_GAP = (SCHEME_R - SCHEME_L - 3 * NODE_W) / 2;
+const NODE_X = [0, 1, 2].map(i => SCHEME_L + i * (NODE_W + NODE_GAP));
+const NODE_CX = NODE_X.map(x => x + NODE_W / 2);
+const NODE_CY = NODE_Y + NODE_H / 2;                                      // the cross-Node lane
 
-const NP_W = 280, NP_H = 32, NP_Y = NODE_Y + 32;  // per-Node rule chip, 14 under the frame label
-const NP_BOTTOM = NP_Y + NP_H;                    // 384
-// 36 under the rule chip: the DNAT hop between them is the shortest lane on the card.
-const POD_W = 200, POD_H = 112, POD_Y = NP_BOTTOM + 36;   // 420
+const NP_W = 280, NP_H = 34, NP_Y = NODE_Y + 34;  // per-Node rule chip, under the 34 label band
+const NP_BOTTOM = NP_Y + NP_H;
+// Close under the rule chip: the DNAT hop is the shortest lane on the card.
+const POD_W = 200, POD_H = 112, POD_Y = NP_BOTTOM + 36;
 
 // Actor tier, every block NET.L-01 232 wide and 80 tall, right of the panel wall at x 420.
 const ACTOR_W = 232, ACTOR_H = 80;
 const CCM_Y = 16;                                 // straight above the balancer it provisions
-const CCM_BOTTOM = CCM_Y + ACTOR_H;               // 96
-const LB_X = 420, LB_Y = CCM_BOTTOM + 40;         // 136: the provisioning arrow is 40 long
-const LB_CX = LB_X + ACTOR_W / 2;                 // 536: the trunk drops on it into Node-2
-const LB_CY = LB_Y + ACTOR_H / 2;                 // 176
-const LB_RIGHT = LB_X + ACTOR_W;                  // 652
-const LB_BOTTOM = LB_Y + ACTOR_H;                 // 216
+const CCM_BOTTOM = CCM_Y + ACTOR_H;
+const LB_X = 420, LB_Y = CCM_BOTTOM + 40;
+const LB_CX = LB_X + ACTOR_W / 2;                 // the trunk drops on it into Node-2
+const LB_CY = LB_Y + ACTOR_H / 2;
+const LB_RIGHT = LB_X + ACTOR_W;
+const LB_BOTTOM = LB_Y + ACTOR_H;
 // The balancer right face carries two lanes (L-12): the Node-3 leg out above, the client lane in below.
 const FACE_PAIR = 30;
-// The client centres on its lane, so it stands FACE_PAIR under the balancer and the leg clears its top by 20.
+// The client centres on its lane, FACE_PAIR under the balancer.
 const CLIENT_X = 700;
-const CLIENT_CY = LB_CY + FACE_PAIR;              // 206
-const CLIENT_Y = CLIENT_CY - ACTOR_H / 2;         // 166
-const CLIENT_CX = CLIENT_X + ACTOR_W / 2;         // 816
-const CLIENT_BOTTOM = CLIENT_Y + ACTOR_H;         // 246
+const CLIENT_CY = LB_CY + FACE_PAIR;
+const CLIENT_Y = CLIENT_CY - ACTOR_H / 2;
+const CLIENT_CX = CLIENT_X + ACTOR_W / 2;
+const CLIENT_BOTTOM = CLIENT_Y + ACTOR_H;
 // Node-2 top face takes the trunk and the direct lane as a mirrored pair about its midpoint (L-12).
-const N2_DIRECT_X = 2 * NODE_CX[1] - LB_CX;       // 664
+const N2_DIRECT_X = 2 * NODE_CX[1] - LB_CX;
 const BUS_Y = 276;
 
 const PROVISION = [[LB_CX, CCM_BOTTOM], [LB_CX, LB_Y]];
@@ -55,17 +52,16 @@ const CROSS = [[NODE_X[1] + NODE_W, NODE_CY], [NODE_X[2], NODE_CY]];
 const NP_TO_POD = [[NODE_CX[0], NP_BOTTOM], [NODE_CX[0], POD_Y]];
 
 // Service row: five equal chips spanning the Node row, so the strip centres on x 600 (L-13).
-const SVC_Y = 590, SVC_H = 34, SVC_GAP = 10;     // bottom 624 mirrors the ccm top at 16
-const SVC_W = (SCHEME_R - SCHEME_L - 4 * SVC_GAP) / 5;   // 200: `loadBalancer 203.0.113.7` is the widest pair
+const SVC_Y = 590, SVC_H = 34, SVC_GAP = 10;     // bottom mirrors the ccm top
+const SVC_W = (SCHEME_R - SCHEME_L - 4 * SVC_GAP) / 5;   // `loadBalancer 203.0.113.7` is the widest pair
 const SVC_X = [0, 1, 2, 3, 4].map(i => SCHEME_L + i * (SVC_W + SVC_GAP));
 const svcChip = (i, key, name, value) => P.chip({ key, x: SVC_X[i], y: SVC_Y, w: SVC_W, h: SVC_H, name, value });
 
-// Tags ride 8 left of the lane (92 wide at 1100x800) so no vertical leg runs through the text, emerge
-// once clear of the block the ball leaves (420 under the lower client, 180 off the balancer), retire on arrival.
-const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
+// Tags ride left of the lane so no vertical leg runs through the text, emerging once clear of the
+// block the ball leaves.
+const ridingLabel = makeRidingLabel({ role: 'network', emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, dx: -54, emerge: 180, ...p });
-// The 410 unit Node-1 leg at routeDur 911 is near the fastest ball in the catalog and its tag retires
-// before it is read, so it rides the catalog median 0.273 u/ms instead (M-12, PACING in motion.test).
+// The short Node-1 leg rides the catalog median speed so its tag is readable (M-12, PACING in motion.test).
 const LEG_DUR = 1500;
 
 // The list order IS the append order, which is the z-order: Node frames, their rule chips and the
@@ -150,7 +146,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'direct',
-    // Motion: lead 800, the direct lane 700, a 100 beat, the cross-Node hop 700, then the Pod blink 900.
     duration: 3450,
     narration: 'No balancer is needed to use it. A client that can reach a Node dials Node-2 on port 31000 directly. Node-2 has no backend, so under the default externalTrafficPolicy Cluster its rule DNATs the connection to a ready Pod, here 10.244.3.9 on port 8080, and forwards it across the cluster network to Node-3. Node-2 SNATs it as well.',
     chips: service('NodePort', true, NONE),
@@ -161,8 +156,7 @@ export const STEPS_SPEC = [
     flow: [
       F.route({ points: DIRECT, delay: BEAT.lead, name: 'toN2', lights: ['np2'] }),
       tag({ text: 'to Node-2:31000', points: DIRECT, delay: BEAT.lead, emerge: 420 }),
-      F.segment({ from: CROSS[0], to: CROSS[1], after: 'toN2', name: 'fwd' }),
-      F.pulse({ pod: 'pod2', at: 'fwd' }),
+      F.segment({ from: CROSS[0], to: CROSS[1], after: 'toN2', pulse: 'pod2' }),
     ],
   },
   {
@@ -182,7 +176,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'client-hit',
-    // Motion: lead 800, the client lane 700, a 100 beat, the Node-1 leg at LEG_DUR and its tag, span 3660.
     duration: 3900,
     narration: 'An external client now dials 203.0.113.7 on port 80 and the balancer picks a Node. A balancer that targets Node ports sends the connection to Node-1 on 31000, as drawn. One that preserves the destination, which ipMode VIP declares, would deliver it still addressed to 203.0.113.7:80, and kube-proxy catches that with its load balancer IP rule.',
     chips: service('LoadBalancer', true, LB_IP),
@@ -204,8 +197,7 @@ export const STEPS_SPEC = [
     // The animated path says the Pod was served by PULSING it, which no lights list can name.
     reducedLit: ['pod1Box'],
     flow: [
-      F.segment({ from: NP_TO_POD[0], to: NP_TO_POD[1], delay: BEAT.lead, name: 'toPod' }),
-      F.pulse({ pod: 'pod1', at: 'toPod' }),
+      F.segment({ from: NP_TO_POD[0], to: NP_TO_POD[1], delay: BEAT.lead, pulse: 'pod1' }),
     ],
   },
 ];

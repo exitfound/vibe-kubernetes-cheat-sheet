@@ -1,23 +1,7 @@
 #!/usr/bin/env node
-// frames.mjs: one PNG per step per viewport, so a reviewer can LOOK at every frame of a card.
-//
-//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/frames.mjs <card-id> --out=DIR
-//     [--viewports=1600x1000,1280x860,1100x800]   the set the render tests measure on
-//     [--at=0,0.5,0.95]                           fractions of each step span to freeze at
-//     [--base=http://localhost:8888]
-//
-// WHY THE 0 IS IN THE DEFAULT SET, and do not drop it: a single frame cannot show that something
-// OSCILLATES. A 600ms brightness flash on a step whose whole span is 600ms is at peak at 0.5 and
-// still lit at 0.95, so both frames read as "this block is highlighted" and are indistinguishable
-// from a static `.highlight`. The 0 frame is the resting state, so a block that differs between
-// -0.png and -50.png is MOVING. Compare them per step, never read one alone.
-//
-// Needs a server at the base URL (python3 -m http.server 8888 from the repo root) and Playwright,
-// which lives in scheme/test/node_modules, so RUN IT FROM scheme/test.
-//
-// BLIND SPOT, and it matters (CANON M-35): a SEEK never fires onfinish, so every `at(...)`
-// turnover, every arrival class and every deferred setWire is missing from these frames. To read a
-// turnover, play the card for real with scheme/test/tools/settled-dump.mjs instead.
+// frames.mjs: one PNG per step per viewport at fractions of each span, so a reviewer can LOOK at every frame of a card.
+// usage: cd scheme/test && node ../../.claude/skills/card-review/tools/frames.mjs <card-id> --out=DIR [--viewports=WxH,...] [--at=0,0.5,0.95] [--base=URL]
+// Keep 0 in --at: a block differing between -0 and -50 is MOVING. A seek never fires onfinish (M-35), so turnovers need settled-dump.mjs.
 import { mkdir } from 'node:fs/promises';
 import {
   launch, initPage, openCard, enterStep, seekStep, stepCount, stepSpan, DEFAULT_BASE,

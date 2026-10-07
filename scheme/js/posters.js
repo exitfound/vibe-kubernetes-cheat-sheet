@@ -1,6 +1,6 @@
-// Design notes: js/schemes/<category>/CARDS.md, one "### poster" subsection per card id.
+// Poster design notes sit in the comment above each poster in js/schemes/<category>/posters.js (R-12).
 
-// One map per category folder, merged by card id: order does not matter, all 108 keys surviving
+// One map per category folder, merged by card id: order does not matter, every key surviving
 // does. posters.js stays SEPARATE from cards.js, keeping markup out of the metadata tools' path.
 import { POSTERS as CLUSTER_POSTERS } from './schemes/cluster/posters.js';
 import { POSTERS as WORKLOADS_POSTERS } from './schemes/workloads/posters.js';

@@ -2,68 +2,54 @@ import { P, F, defineCard, laneY, midX, BEAT } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-pod-to-pod-same-node.md
 
-
-// POD_MID is the one horizontal axis of the card: both Pods and the bridge are centred on it, and
-// the two veth lanes are POD_MID -/+ LANE, a symmetric forward / reply pair. The Node FRAME is NOT
-// centred on it any more: it grows downward to hold the forwarding table, so its top is a measured
-// literal and its height is derived off what stands lowest inside it.
-const POD_MID = 380;          // vertical centre of the frame content, the pods and cni0
+// Both Pods and the bridge are centred on POD_MID. The frame opens left of x=420, so NODE_Y must
+// clear the narration panel (`L-03`), and its height derives from what stands lowest inside it.
+const NODE_Y = 279;
+const POD_H = 130;
+// The Pods stand the 34 label band under the frame top.
+const POD_MID = NODE_Y + 34 + POD_H / 2;
 const LANE = 12;              // half-gap between the two veth lanes
-const { out: TOP_Y, back: BOT_Y } = laneY(POD_MID, LANE);   // 368 forward (A -> B), 392 return (B -> A)
+const { out: TOP_Y, back: BOT_Y } = laneY(POD_MID, LANE);   // forward A -> B, return B -> A
 
-// MIRROR is the axis every block on this card is placed against, and it is the frame centre, so
-// the two veth gaps are equal. They have to be: the card's whole claim is that its two halves are
-// one journey reversed, and an unequal pair draws two different journeys.
+// Every block mirrors about the frame centre so the two veth gaps are equal: the halves are one
+// journey reversed, and an unequal pair would draw two different journeys.
 const MIRROR = 600;
 
-// The two Pods take the category default width, 232 (`NET.L-01`): none of that rule's three
-// overrules reaches this card. The gap it leaves is 102 against a wire label measured at 75.8
-// units, so the label stands 13.1 clear of a block face either side.
-const POD_W = 232, POD_H = 130, INNER_H = 56;
-const PODA_X = 150, PODB_X = 2 * MIRROR - PODA_X - POD_W;   // 818
-const PODA_R = PODA_X + POD_W;                // 382: where the veth leaves Pod A
-const POD_Y = POD_MID - POD_H / 2;            // 315
-// dy centres the app box in the shell, 37 of shell above it and 37 below.
+// Category default width (`NET.L-01`). The gap it leaves holds the veth wire label.
+const POD_W = 232, INNER_H = 56;
+const PODA_X = 150, PODB_X = 2 * MIRROR - PODA_X - POD_W;
+const PODA_R = PODA_X + POD_W;                // where the veth leaves Pod A
+const POD_Y = POD_MID - POD_H / 2;
+// dy centres the app box in the shell.
 const POD_INNER = { dx: 20, dy: (POD_H - INNER_H) / 2, w: POD_W - 40, h: INNER_H, label: 'app', sublabel: 'eth0' };
 
-// The bridge and its forwarding table share ONE x extent, 484..716, and no line joins them: the
-// shared extent plus the adjacency is what says the table belongs to the bridge. A relation line
-// would say it too, and the record rules this card holds none.
-const BR_W = 232;                             // the category default (`NET.L-01`), unforced here
-const BR_X = MIRROR - BR_W / 2;               // 484
-const BR_R = BR_X + BR_W;                     // 716: where the bridge hands the frame to B
+// The bridge and its forwarding table share one x extent and no line joins them: extent plus
+// adjacency is what says the table belongs to the bridge.
+const BR_W = 232;                             // `NET.L-01`
+const BR_X = MIRROR - BR_W / 2;
+const BR_R = BR_X + BR_W;                     // where the bridge hands the frame to B
 const CNI_H = 70;
-const CNI_Y = POD_MID - CNI_H / 2;            // 345
-const FDB_H = 56, FDB_Y = 470;                // 25 below the Pod floor at 445, 34 above the frame floor
+const CNI_Y = POD_MID - CNI_H / 2;
+const FDB_H = 56, FDB_Y = POD_Y + POD_H + 25;
 
-// The Node frame. NODE_Y is a measured literal and not a derivation: the panel is deepest at
-// 1100x800 and the frame opens left of x=420, so `L-03` pins this edge and nothing may rise above
-// it. The height is then whatever holds the forwarding table with the same 34 it gives the chips.
+// The frame holds the forwarding table with the 12 of floor every frame keeps (`L-23`).
 const NODE_X = 80, NODE_W = 1040;
-const NODE_Y = 255;
-const NODE_BOT = FDB_Y + FDB_H + 34;          // 560
-const NODE_H = NODE_BOT - NODE_Y;             // 305
+const NODE_BOT = FDB_Y + FDB_H + 12;
+const NODE_H = NODE_BOT - NODE_Y;
 
-// Four chips under the frame, spanning it edge to edge: the three 250s and the 230 plus three 20
-// gaps total the 1040 frame width exactly. They are UNEQUAL by measurement, each sized to its own
-// longest value, so this is a width array and not a computed strip, whose four 245s would move
-// three chips of the four. `render/chipfit.test.mjs` is what re-measures them.
+// Four chips spanning the frame edge to edge. Each is sized to its own longest value, so this is a
+// width array, not a computed strip. The widths plus gaps must sum to NODE_W.
 const CHIP_Y = NODE_BOT + 18, CHIP_H = 34, CHIP_GAP = 20;
 const CHIP_W = [250, 250, 250, 230];
 const CHIP_X = CHIP_W.reduce((acc, w, i) => (i ? [...acc, acc[i - 1] + CHIP_W[i - 1] + CHIP_GAP] : [NODE_X]), []);
 
-// The veth pair as four directional legs, two per lane, every endpoint a block edge. The dim dashed
-// wire and the bright ball share these arrays exactly, so motion always has an arrow under it.
-// No hop carries an explicit `dur`: a leg is 102 units, which `routeDur` would run in 227ms and
-// floors at PKT_DUR_MIN 700 instead (`M-13`), so every ball takes the length its geometry gives it
-// and the card declares no pacing deviation (`M-12`).
+// The veth pair as four directional legs, every endpoint a block edge. Wire and ball share these
+// arrays, so motion always has an arrow under it.
 const A_OUT = [[PODA_R, TOP_Y], [BR_X, TOP_Y]];   // A    -> cni0
 const B_IN  = [[BR_R, TOP_Y], [PODB_X, TOP_Y]];   // cni0 -> B
 const B_OUT = [[PODB_X, BOT_Y], [BR_R, BOT_Y]];   // B    -> cni0 (reply)
 const A_IN  = [[BR_X, BOT_Y], [PODA_R, BOT_Y]];   // cni0 -> A    (reply)
 
-// The list order IS the append order, which is the z-order: chips first, then the Node frame and
-// its blocks, then the veth wires + labels ABOVE them, and the packet layer on the very top.
 export const SCENE = {
   'aria-label': 'Pod-to-Pod traffic on the same Node: both Pods draw from one podCIDR so the destination is on-link, ARP resolves its MAC through the cni0 bridge, which records the port the answer came in on, the data frame is then switched out that one port at layer 2, and no NAT and no encapsulation touch it',
   parts: [
@@ -77,51 +63,36 @@ export const SCENE = {
     P.box({ key: 'fdb', x: BR_X, y: FDB_Y, w: BR_W, h: FDB_H, label: 'Forwarding table', sublabel: 'empty' }),
     P.pod({ key: 'podA', innerKey: 'podABox', x: PODA_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod A', sublabel: '10.244.1.5', inner: POD_INNER }),
     P.pod({ key: 'podB', innerKey: 'podBBox', x: PODB_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod B', sublabel: '10.244.1.6', inner: POD_INNER }),
-    // All four veth legs get ONE treatment, the route: every one of them carries a ball on at least
-    // one step, so each keeps full stroke-opacity, the category cyan and the network arrowhead. The
-    // axis that quiets them is WEIGHT, `dim`, which is stroke-width 1.4 and keeps the hue (A-18).
-    // None is a relation: recession at 0.45 is for a line no ball ever rides, and none of these is
-    // that line. The role is left to the kit binding (S-42) rather than written at the call site.
+    // Every leg carries a ball on some step, so each is a route quieted by weight, never a
+    // relation (A-18, NET.A-04).
     P.arrow({ from: A_OUT[0], to: A_OUT[1], dashed: true, dim: true }),
     P.arrow({ from: B_IN[0], to: B_IN[1], dashed: true, dim: true }),
     P.arrow({ from: B_OUT[0], to: B_OUT[1], dashed: true, dim: true }),
     P.arrow({ from: A_IN[0], to: A_IN[1], dashed: true, dim: true }),
-    // Both wire labels sit at their gap centre, which the mirror makes 433 and 767. They ink 75.8
-    // units in a gap of 102, so each stands 13.1 clear of a block face on either side of it.
-    // They name what the LANE is rather than what any step sends over it, so every step
-    // including the poster writes both: a lane labelled on three steps of five read as a lane that
-    // stops being a veth on the other two.
+    // The labels name what the lane is, not what a step sends, so every step writes both.
     P.wire({ key: 'a', x: midX(PODA_R, BR_X), y: TOP_Y - 12 }),
     P.wire({ key: 'b', x: midX(BR_R, PODB_X), y: TOP_Y - 12 }),
     P.packets(),
   ],
-  // The inner app boxes are listed BY KEY (NET.S-02): a pod group only has its pulse strokes reset,
-  // so a .highlight left inside one by a reduced replay would ride into every later step.
+  // The inner app boxes are listed by key (NET.S-02).
   reset: {
     keys: ['cni0', 'fdb', 'podABox', 'podBBox', 'srcChip', 'dstChip', 'pathChip', 'natChip'],
     pods: ['podA', 'podB'],
   },
 };
 
-// The two packet-less steps have ONE beat each, the value they conclude with, and it lands SETTLE
-// before the step ends: the reader gets the premise, the conclusion, and a full second holding it.
-// `BEAT.afterPulse` is 800 and a Pod pulse rings for 900, so a conclusion cued there is swallowed by
-// the pulse and the whole statement is over at 900ms, which is the 68 percent of still time
-// `deadair.mjs` measured. Both steps now read 40 and 37 percent, under the catalog median of 42.
+// The two packet-less steps land their one conclusion SETTLE before the step ends. Cued at
+// `BEAT.afterPulse` it would be swallowed by the Pod pulse.
 const SETTLE = 1000;
 const ONLINK_MS = 2500, NONAT_MS = 2700;
 
 const VETH = 'veth · eth0';
 const SRC = '10.244.1.5';
 const DST = '10.244.1.6';
-// An FDB row is a MAC against the port it was learned on. Both halves are EXAMPLES and neither is
-// a claim: a valid locally administered unicast address, and a host end name in the shape
-// `network-pod-ip-and-veth` draws for Pod A, eight hex digits as upstream `RandomVethName` emits.
-// Why `0a:58` plus the IP octets is NOT used is in CONTENT.
+// An FDB row is a MAC against the port it was learned on, both example values.
 const FDB_EMPTY = 'empty';
-// A learns FIRST, on the request, which is why the table carries two rows and not one. Only the
-// newest row is spelled out, and the title carries the count, so the picture never says an entry
-// was dropped. A host end is `vethb3f8a2c7` on `network-pod-ip-and-veth`, the card that owns Pod A.
+// Only the newest row is spelled out and the title carries the count, so the picture never says
+// an entry was dropped. Pod A's host end matches `network-pod-ip-and-veth`.
 const FDB_A = '6a:c2:0f:91:3d:e4 · vethb3f8a2c7';
 const FDB_LEARNED = 'ae:19:c7:4b:22:d6 · veth7c41d9e8';
 const FDB_TITLE = 'Forwarding table';
@@ -145,13 +116,9 @@ export const STEPS_SPEC = [
     labels: { fdb: FDB_TITLE },
     sublabels: { fdb: FDB_EMPTY },
     wires: { a: VETH, b: VETH },
-    // The datapath chip is NOT lit from entry: it is the conclusion the step reaches, so it is
-    // rewound and written back once both peers have been named.
+    // The datapath chip is the conclusion, so it is rewound and written back at the end.
     lit: [],
-    // Nothing travels on this step: the decision happens inside A before any frame exists. The two
-    // Pods pulse TOGETHER because the step says they are peers in one subnet, which is the whole
-    // claim. The Node frame carrying the subnet CANNOT be cued: `.scheme-node` has no `.highlight`
-    // rule and naming it in `lit` renders nothing at all, silently (scheme/CLAUDE.md).
+    // The two Pods pulse together because the claim is that they are peers in one subnet.
     reducedLit: ['podABox', 'podBBox'],
     rewind: { chips: { pathChip: 'one subnet' } },
     flow: [
@@ -169,20 +136,12 @@ export const STEPS_SPEC = [
     labels: { fdb: FDB_TWO },
     sublabels: { fdb: FDB_LEARNED },
     wires: { a: VETH, b: VETH },
-    // NOTHING is lit from entry. Both cues belong to an arrival, and `flowLights` derives them for
-    // the reduced path off the two `F.light` entries below, so naming either here would only point
-    // at a value the step has rewound and has not written back yet.
+    // Both cues belong to an arrival, and `flowLights` derives them for the reduced path.
     lit: [],
-    // The animated path says both Pods handled the exchange by PULSING them, which no cue names.
+    // Both Pods pulse in the animated path, which no cue names.
     reducedLit: ['podABox', 'podBBox'],
-    // Everything above is the settled end state. The animated path rewinds what this step CHANGES
-    // and plays each back on the arrival that causes it: the chip and the first table row when the
-    // request is inside the bridge, the second row when the reply crosses it.
     rewind: { chips: { pathChip: 'dst on-link' }, labels: { fdb: FDB_TITLE }, sublabels: { fdb: FDB_EMPTY } },
-    // A broadcasts first (blink, then the request departs at BEAT.afterPulse). The request floods
-    // A -> bridge -> B on the top lane, the reply comes back B -> bridge -> A on the bottom. The
-    // table is written TWICE, once per arrival that teaches the bridge something: the request
-    // carries A source MAC and the reply carries B.
+    // The table is written twice, once per arrival that teaches the bridge a source MAC.
     flow: [
       F.pulse({ pod: 'podA' }),
       F.segment({ from: A_OUT[0], to: A_OUT[1], delay: BEAT.afterPulse, name: 'req1', lights: ['cni0'] }),
@@ -205,23 +164,19 @@ export const STEPS_SPEC = [
     labels: { fdb: FDB_TWO },
     sublabels: { fdb: FDB_LEARNED },
     wires: { a: VETH, b: VETH },
-    // The table entry was written LAST step and is the reason this one works, so it stands lit from
-    // entry. The datapath chip is not: this step rewinds it and lights it on the bridge arrival.
+    // The table entry written last step is why this one works, so it stands lit from entry.
     lit: ['fdb'],
-    // Both Pods are said to send and receive by PULSING them, and no cue names either inner box.
+    // Both Pods pulse in the animated path, which no cue names.
     reducedLit: ['podABox', 'podBBox'],
-    // The datapath chip settles only once the frame is inside the bridge, which is the moment the
-    // switching decision is taken.
+    // The datapath chip settles once the frame is inside the bridge, where the switching happens.
     rewind: { chips: { pathChip: 'ARP who-has .6' } },
-    // A pulses FIRST and fully, the data frame departs only after that blink lands, then rides the
-    // forward lane A -> bridge -> B in two hops. The bridge lights on arrival and never pulses.
+    // The bridge lights on arrival and never pulses (NET.S-01).
     flow: [
       F.pulse({ pod: 'podA' }),
       F.segment({ from: A_OUT[0], to: A_OUT[1], delay: BEAT.afterPulse, name: 'hop1', lights: ['cni0'] }),
       F.set({ chips: { pathChip: 'L2 bridge' }, at: 'hop1' }),
       F.light({ targets: ['pathChip'], at: 'hop1' }),
-      F.segment({ from: B_IN[0], to: B_IN[1], after: 'hop1', name: 'hop2' }),
-      F.pulse({ pod: 'podB', at: 'hop2' }),
+      F.segment({ from: B_IN[0], to: B_IN[1], after: 'hop1', pulse: 'podB' }),
     ],
   },
   {
@@ -232,13 +187,11 @@ export const STEPS_SPEC = [
     labels: { fdb: FDB_TWO },
     sublabels: { fdb: FDB_LEARNED },
     wires: { a: VETH, b: VETH },
-    // src and dst hold the value they have held all card, so they are lit from entry: the claim is
-    // that they never moved. The NAT chip is the one value this step WRITES, so it is rewound and
-    // lands on the pulse that delivers the packet, not before it.
+    // src and dst are lit from entry: the claim is that they never moved. The NAT chip is the one
+    // value this step writes.
     lit: ['srcChip', 'dstChip'],
     reducedLit: ['podBBox'],
     rewind: { chips: { natChip: 'none' } },
-    // Info chips get the strict static highlight only, no flash.
     flow: [
       F.pulse({ pod: 'podB' }),
       F.set({ chips: { natChip: 'none · src preserved' }, delay: NONAT_MS - SETTLE }),

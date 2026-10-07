@@ -1,45 +1,39 @@
-import { P, F, defineCard, laneY, midX, BEAT, OPACITY } from './network-kit.js';
+import { LANE_DY, P, F, defineCard, laneY, midX, BEAT, OPACITY } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-dns-coredns.md
-
 
 // The chain is the SPINE of this card: the client and the stage that answers it share FLOW_Y, so the
 // query runs dead straight in, and everything after that happens on the vertical the stages stand on.
 const CONTENT_L = 70, CONTENT_R = 1130;
 const FLOW_Y = 340;                 // the client centre AND the cache row centre
-const LANE_DY = 12;
-const { out: FWD_Y, back: RET_Y } = laneY(FLOW_Y, LANE_DY);   // 328 query, 352 answer
+const { out: FWD_Y, back: RET_Y } = laneY(FLOW_Y, LANE_DY);
 
 // Every actor is NET.L-01: 232 by 80, and the Pod form 232 by 104 with a 192 by 44 app box.
 const BOX_W = 232, BOX_H = 80, POD_H = 104;
 
-// The client column is left of x=420, so it hangs entirely below this card's panel (L-03).
-// 114 is RC_X + (RC_W - BOX_W) / 2: the Pod stands centred over the resolv.conf column under it,
-// which is 320 wide against its own 232.
-const CLIENT_X = 114, CLIENT_Y = 288;         // 114..346 x 288..392
-const CLIENT_EDGE = CLIENT_X + BOX_W;         // 302
+// The client column hangs below the panel (L-03), the Pod centred over the resolv.conf column.
+const CLIENT_X = 114, CLIENT_Y = 288;
+const CLIENT_EDGE = CLIENT_X + BOX_W;
 
 // CoreDNS is infrastructure and lights rather than pulses (NET.S-01), so the three stages stand as
 // boxes under one caption instead of inside a Pod shell, which is what both sibling DNS cards do.
-const ST_X = 620, ST_R = ST_X + BOX_W;        // 620..852
-const ST_CX = midX(ST_X, ST_R);               // 736: the seam the chain hops down
-const ST_Y = [300, 420, 540];                 // cache / kubernetes / forward, 40 apart
-const stCY = (i) => ST_Y[i] + BOX_H / 2;      // 340 / 460 / 580
+const ST_X = 620, ST_R = ST_X + BOX_W;
+const ST_CX = midX(ST_X, ST_R);               // the seam the chain hops down
+const ST_Y = [300, 420, 540];                 // cache / kubernetes / forward
+const stCY = (i) => ST_Y[i] + BOX_H / 2;
 const stB = (i) => ST_Y[i] + BOX_H;
 
-// The API the kubernetes plugin watches, which the narration names and no earlier version drew
-// (`T-21`). It stands in the top band, where the panel leaves the whole height free (`L-01`).
-const API_X = CONTENT_R - BOX_W, API_Y = 60;  // 898..1130 x 60..140
-const API_CY = API_Y + BOX_H / 2;             // 100
+// The API the kubernetes plugin watches (T-21), in the top band the panel leaves free (L-01).
+const API_X = CONTENT_R - BOX_W, API_Y = 60;
+const API_CY = API_Y + BOX_H / 2;
 const WATCH_X = 876;                          // between the stage column and the readouts
 
 // Down one side of the seam and up the other, mirrored about the face midpoint so the pair is one
 // deliberate lane pair (L-12). The answer climbing back through cache is the whole point.
 const SEAM_DX = 12;
-const SEAM_Y = midX(stB(0), ST_Y[1]) + 4;     // 404: the seam gap, the two half labels sit on it
-const FALL_LABEL_X = 660;                     // `outside the zone` inks 110, ending 21 clear of x=736
-// `watch` inks 34 and stands 15 off its own rail: on the rail the text lies across the line, and
-// far from it the caption reads as attached to nothing.
+const SEAM_Y = midX(stB(0), ST_Y[1]) + 4;     // the seam gap, the two half labels sit on it
+const FALL_LABEL_X = 660;
+// `watch` stands off its own rail: on the rail the text lies across the line.
 const WATCH_LABEL_X = 844;
 const DESCENT = [[ST_CX - SEAM_DX, stB(0)], [ST_CX - SEAM_DX, ST_Y[1]]];
 const ASCENT  = [[ST_CX + SEAM_DX, ST_Y[1]], [ST_CX + SEAM_DX, stB(0)]];
@@ -50,12 +44,12 @@ const WATCH = [[API_X, API_CY], [WATCH_X, API_CY], [WATCH_X, stCY(1)], [ST_R, st
 
 const QUERY  = [[CLIENT_EDGE, FWD_Y], [ST_X, FWD_Y]];
 const ANSWER = [[ST_X, RET_Y], [CLIENT_EDGE, RET_Y]];
-const WIRE_MID_X = midX(CLIENT_EDGE, ST_X);   // 461
+const WIRE_MID_X = midX(CLIENT_EDGE, ST_X);
 
 // resolv.conf hangs under the client as the file it is, and the three readouts stand in ONE column
 // right of the chain, each on the row of the stage it reports on.
-const RC_X = CONTENT_L, RC_W = 320, RC_H = 32; // 320 and not 232: `default.svc.cluster.local +2`
-const RC_Y = [422, 462, 502];
+const RC_X = CONTENT_L, RC_W = 320, RC_H = 34; // wide enough for `default.svc.cluster.local +2`
+const RC_Y = [422, 464, 506];
 const CH_X = API_X, CH_H = 34;                 // the readouts share the API block column
 const chipY = (i) => stCY(i) - CH_H / 2;
 
@@ -186,8 +180,7 @@ export const STEPS_SPEC = [
     lit: ['pCache', 'cacheChip', 'ansChip'],
     reducedLit: ['clientBox'],
     flow: [
-      F.segment({ from: ANSWER[0], to: ANSWER[1], name: 'a' }),
-      F.pulse({ pod: 'client', at: 'a' }),
+      F.segment({ from: ANSWER[0], to: ANSWER[1], name: 'a', pulse: 'client' }),
     ],
   },
 ];

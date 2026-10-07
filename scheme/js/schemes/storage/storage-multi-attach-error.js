@@ -2,83 +2,77 @@ import { P, F, defineCard, BEAT, FADE, OPACITY, chipStrip, packetArrival, makeRi
 // Design notes for this card: ./CARDS/storage-multi-attach-error.md
 
 
-// The panel wall, read as an L: above y=344 nothing may sit left of it, below that the full width is
-// free. The two upper tiers obey it, the VolumeAttachment row at y=356 does not have to.
+// The panel wall as an L: above y 344 nothing sits left of it, so the VolumeAttachment row may.
 const LEFT_X = 400;
 
-// The controller and both VolumeAttachments are the catalog actor block, 232 by 80 (NET.L-01).
+// NET.L-01 actor block.
 const BLOCK_W = 232, BLOCK_H = 80;
 const NODE_H = 150, BAND_H = BLOCK_H, VA_H = BLOCK_H, DK_H = 86, CHIP_H = 34;
-// Heights and gaps are declared once, summed, and the leftover split evenly, so the whole card
-// re-centres by changing one number. Typing each tier y instead leaves the node row 30 units of air
-// while the three lower tiers pack at 52.
+// Heights and gaps declared once, summed, and the leftover split evenly, so the card re-centres by
+// changing one number.
 const G_NODE_BAND = 56, G_BAND_VA = 56, G_VA_DK = 48, G_DK_CHIPS = 22;
 
 const STACK_H = NODE_H + G_NODE_BAND + BAND_H + G_BAND_VA + VA_H + G_VA_DK + DK_H + G_DK_CHIPS + CHIP_H;
-const STACK_TOP = (640 - STACK_H) / 2;                   // 14, and the bottom margin matches it
+const STACK_TOP = (640 - STACK_H) / 2;  // the bottom margin matches it
 
 const NODE_W = 180, NODE_GAP = 40, NODE_PAD = 16;
-const NODE_Y = STACK_TOP;                                // 14
-const NODE_BOTTOM = NODE_Y + NODE_H;                     // 164
-const NODE_A_X = LEFT_X;                                 // 400
-const NODE_B_X = LEFT_X + NODE_W + NODE_GAP;             // 620
-const CONTENT_W = NODE_W * 2 + NODE_GAP;                 // 400
-const CONTENT_CX = LEFT_X + CONTENT_W / 2;               // 600: canvas center, every tier uses it
-const CX_B = NODE_B_X + NODE_W / 2;                      // 710, and (490 + 710) / 2 == CONTENT_CX
+const NODE_Y = STACK_TOP;
+const NODE_BOTTOM = NODE_Y + NODE_H;
+const NODE_A_X = LEFT_X;
+const NODE_B_X = LEFT_X + NODE_W + NODE_GAP;
+const CONTENT_W = NODE_W * 2 + NODE_GAP;
+const CONTENT_CX = LEFT_X + CONTENT_W / 2;  // canvas center, every tier uses it
+const CX_B = NODE_B_X + NODE_W / 2;  // mirror of node A about CONTENT_CX
 
-// The Pods are the catalog 104 tall around a 44 tall app box 26 under the Pod label, but only as wide
-// as the node frame leaves: two 232 Pods in two frames from the panel wall would centre the card on
-// 676. The app box keeps the catalog 20 unit side pads.
-const POD_W = NODE_W - NODE_PAD * 2;                     // 148
-const POD_Y = NODE_Y + 28, POD_H = 104;                  // 42..146, 18 above the frame floor
-const POD_A_X = NODE_A_X + NODE_PAD;                     // 416
-const POD_B_X = NODE_B_X + NODE_PAD;                     // 636
+// The Pods are the catalog height but only as wide as the node frame leaves, so the card stays
+// centred on 600. The app box keeps the catalog 20 unit side pads.
+const POD_W = NODE_W - NODE_PAD * 2;
+const POD_Y = NODE_Y + 34, POD_H = 104;  // the catalog 34 band and 12 floor
+const POD_A_X = NODE_A_X + NODE_PAD;
+const POD_B_X = NODE_B_X + NODE_PAD;
 
-const APP_DY = 26, APP_H = 44, APP_W = POD_W - 40;       // 108 wide
+const APP_DY = 26, APP_H = 44, APP_W = POD_W - 40;
 
 const BAND_W = BLOCK_W;
-const BAND_X = CONTENT_CX - BAND_W / 2;                  // 484..716
-const BAND_Y = NODE_BOTTOM + G_NODE_BAND;                // 220
-const BAND_TOP = BAND_Y, BAND_BOTTOM = BAND_Y + BAND_H;  // 220 / 300
-const BAND_MID_Y = BAND_Y + BAND_H / 2;                  // 260: where both output lanes leave
-const BAND_LEFT = BAND_X, BAND_RIGHT = BAND_X + BAND_W;  // 484 / 716
+const BAND_X = CONTENT_CX - BAND_W / 2;
+const BAND_Y = NODE_BOTTOM + G_NODE_BAND;
+const BAND_TOP = BAND_Y, BAND_BOTTOM = BAND_Y + BAND_H;
+const BAND_MID_Y = BAND_Y + BAND_H / 2;  // where both output lanes leave
+const BAND_LEFT = BAND_X, BAND_RIGHT = BAND_X + BAND_W;
 
 const VA_W = BLOCK_W;
-const VA_Y = BAND_BOTTOM + G_BAND_VA;                    // 356
-const VA_TOP = VA_Y, VA_BOTTOM = VA_Y + VA_H;            // 356 / 436
+const VA_Y = BAND_BOTTOM + G_BAND_VA;
+const VA_TOP = VA_Y, VA_BOTTOM = VA_Y + VA_H;
 const VA_A_CX = 420;
-const VA_B_CX = 2 * CONTENT_CX - VA_A_CX;                // 780, so the pair centers on CONTENT_CX
-const VA_A_X = VA_A_CX - VA_W / 2;                       // 304..536
-const VA_B_X = VA_B_CX - VA_W / 2;                       // 664..896
+const VA_B_CX = 2 * CONTENT_CX - VA_A_CX;  // so the pair centers on CONTENT_CX
+const VA_A_X = VA_A_CX - VA_W / 2;
+const VA_B_X = VA_B_CX - VA_W / 2;
 
 const DK_W = 240;
-const DK_Y = VA_BOTTOM + G_VA_DK;                        // 484
-const DK_X = CONTENT_CX - DK_W / 2;                      // 480
-const DK_SIDE_Y = DK_Y + DK_H / 2;                       // 527
-const DK_LEFT = DK_X, DK_RIGHT = DK_X + DK_W;            // 480 / 720
+const DK_Y = VA_BOTTOM + G_VA_DK;
+const DK_X = CONTENT_CX - DK_W / 2;
+const DK_SIDE_Y = DK_Y + DK_H / 2;
+const DK_LEFT = DK_X, DK_RIGHT = DK_X + DK_W;
 
-const BAND_LBL_Y = BAND_BOTTOM + 34;                     // 334, 22 above the VolumeAttachment row
-const CHIPS_Y = DK_Y + DK_H + G_DK_CHIPS;                // 592
+const BAND_LBL_Y = BAND_BOTTOM + 34;  // 22 above the VolumeAttachment row
+const CHIPS_Y = DK_Y + DK_H + G_DK_CHIPS;
 
 const CHIP_W = 232;
 const CHIP_GAP = 16;
 const CHIP_COUNT = 4;                  // accessModes / attached to / new Pod / blocked by
-// Fix the width and the gap, derive the 976 unit span, centre it on CONTENT_CX: 112..1088.
 const CHIPS = chipStrip({ cx: CONTENT_CX, w: CHIP_W, gap: CHIP_GAP, count: CHIP_COUNT });
 
-const NODE_BAND_TURN_Y = (NODE_BOTTOM + BAND_TOP) / 2;             // 192
+const NODE_BAND_TURN_Y = (NODE_BOTTOM + BAND_TOP) / 2;
 const W_NODE_BAND = [[CX_B, NODE_BOTTOM], [CX_B, NODE_BAND_TURN_Y], [CONTENT_CX, NODE_BAND_TURN_Y], [CONTENT_CX, BAND_TOP]];
 const W_BAND_VA_A = [[BAND_LEFT, BAND_MID_Y], [VA_A_CX, BAND_MID_Y], [VA_A_CX, VA_TOP]];
 const W_BAND_VA_B = [[BAND_RIGHT, BAND_MID_Y], [VA_B_CX, BAND_MID_Y], [VA_B_CX, VA_TOP]];
 const W_VAA_DISK  = [[VA_A_CX, VA_BOTTOM], [VA_A_CX, DK_SIDE_Y], [DK_LEFT, DK_SIDE_Y]];
 const W_VAB_DISK  = [[VA_B_CX, VA_BOTTOM], [VA_B_CX, DK_SIDE_Y], [DK_RIGHT, DK_SIDE_Y]];
 
-// The write leaves the controller's right face, so centred on the lane the tag straddles that edge
-// for 500 ms. +32 is the least that clears all four viewports: 30 clears 1600x1000 alone.
+// The write leaves the controller right face, so the tag sits right of the lane to clear that edge.
 const WRITE_TAG_DX = 32;
 
-// `detach` and `attach` leave a VolumeAttachment floor, so riding above the ball they start inside that box
-// under its state line. They fade in once the ball is 32 units clear of the floor: 150 ms of a 700 ms leg.
+// `detach` and `attach` leave a VolumeAttachment floor, so their tags fade in once the ball is clear.
 const emergeTag = makeRidingLabel({ role: 'storage', emergeMode: true });
 const TAG_EMERGE = 150;
 
@@ -87,16 +81,14 @@ const TAG_EMERGE = 150;
 const DEL_LANDS = packetArrival(W_BAND_VA_A, { delay: BEAT.lead });
 const DET_LANDS = packetArrival(W_VAA_DISK, { delay: DEL_LANDS + BEAT.afterHop });
 
-// The mirror of lightBoxAt, and it takes its empty keyframe list for the same reason: a timer that
-// names a property costs its target a composited layer for the wait. Reasoning is in scheme-kit.js.
+// The mirror of lightBoxAt: an empty keyframe list, so the wait costs no composited layer.
 function unlightAt(el, ctx, delay) {
   const a = el.animate([], { duration: 1, delay });
   a.onfinish = () => el.classList.remove('highlight');
   ctx.register(a);
 }
 
-// node() has no labelY knob the way cylinder does, so the one attribute this card moves is a tune:
-// the caption's group-local y 18 drops to 14, titling the frame rather than floating inside it.
+// node() has no labelY knob, so the caption drops to y 14 to title the frame rather than float in it.
 const titleNode = (el) => { const l = el.querySelector('.scheme-node-label'); if (l) l.setAttribute('y', 14); };
 
 const pod = (key, innerKey, x, label, sublabel) => P.pod({
@@ -120,8 +112,7 @@ export const SCENE = {
     }),
     P.box({ key: 'vaA', x: VA_A_X, y: VA_Y, w: VA_W, h: VA_H, label: 'VolumeAttachment va-1', sublabel: 'Node-1, attached: true' }),
     P.box({ key: 'vaB', x: VA_B_X, y: VA_Y, w: VA_W, h: VA_H, label: 'VolumeAttachment va-2', sublabel: 'wanted, not written' }),
-    // The primitive centers the label on the raw bbox, which reads high because the top cap ellipse
-    // is not part of the visible front face. Re-center on the face, as the rest of storage does.
+    // Re-center the label on the visible front face, as the rest of storage does.
     P.cylinder({ key: 'disk', x: DK_X, y: DK_Y, w: DK_W, h: DK_H, label: 'PV web RWO', labelY: DK_H / 2 + 10 }),
     pod('podOld', 'oldApp', POD_A_X, 'Pod web-0 old', 'Running'),
     pod('podNew', 'newApp', POD_B_X, 'Pod web-0 new', 'ContainerCreating'),
@@ -211,8 +202,7 @@ export const STEPS_SPEC = [
       // Up-arrow ordering: the Pod blinks first because it is the actor, the request leaves once the
       // blink has landed, and the controller lights when the ball reaches it.
       F.pulse({ pod: 'podNew' }),
-      F.route({ points: W_NODE_BAND, delay: BEAT.afterPulse, name: 'req' }),
-      F.tag({ text: 'attach Node-2', points: W_NODE_BAND, delay: BEAT.afterPulse }),
+      F.route({ points: W_NODE_BAND, delay: BEAT.afterPulse, name: 'req', tag: { text: 'attach Node-2' } }),
       F.light({ targets: ['ctrl'], at: 'req' }),
       // The WANT appears at the placeholder shade as the refusal lands, and is never lit: nothing
       // was granted. NOT F.reveal, which lands on full.
@@ -272,8 +262,7 @@ export const STEPS_SPEC = [
       F.pulse({ pod: 'podOld' }),
       F.fade({ target: 'podOld', from: 1, to: OPACITY.terminated, dur: FADE.out, delay: BEAT.afterPulse, fill: 'forwards', easing: 'ease-in' }),
       F.set({ delay: BEAT.afterPulse, podSublabels: { podOld: 'deleted' } }),
-      F.route({ points: W_BAND_VA_A, delay: BEAT.lead, name: 'del' }),
-      F.tag({ text: 'delete va-1', points: W_BAND_VA_A, delay: BEAT.lead }),
+      F.route({ points: W_BAND_VA_A, delay: BEAT.lead, name: 'del', tag: { text: 'delete va-1' } }),
       // va-1's cue is an F.set, not `lights`, because the reduced path must not show it: the
       // unlight below takes it off again before the step settles. Its state line turns over with it.
       F.set({ on: 'vaA', lit: ['vaA'], at: 'del', sublabels: { vaA: 'marked for deletion' } }),
@@ -286,8 +275,8 @@ export const STEPS_SPEC = [
       // A deleted object must not keep the border that means "acting now", and no field REMOVES a
       // highlight: F.fade({ unlight }) would drop the empty 1ms timer that carries it on va-1.
       F.run({ fn: (s, ctx) => unlightAt(s.refs.vaA, ctx, DET_LANDS + FADE.out) }),
-      // Both chips turn on the detach landing (2300), not at entry: until that ball reaches the disk
-      // the volume is still attached to Node-1 and va-1 is still what blocks the new Pod.
+      // Both chips turn on the detach landing, not at entry: until then the volume is still attached to
+      // Node-1 and va-1 still blocks the new Pod.
       F.set({ at: 'det', chipsCued: { attChip: 'nothing', blockChip: 'nothing' }, sublabels: { vaA: 'deleted' } }),
     ],
   },
@@ -314,22 +303,20 @@ export const STEPS_SPEC = [
       podSublabels: { podNew: 'Multi-Attach error' },
     },
     flow: [
-      F.route({ points: W_BAND_VA_B, delay: BEAT.lead, name: 'wr' }),
-      F.tag({ text: 'write va-2', points: W_BAND_VA_B, delay: BEAT.lead, dx: WRITE_TAG_DX }),
+      F.route({ points: W_BAND_VA_B, delay: BEAT.lead, name: 'wr', tag: { text: 'write va-2', dx: WRITE_TAG_DX } }),
       // This is the step that actually creates va-2, so it rises from the want to the object as the
       // write lands rather than being at full strength before the ball has left.
       F.reveal({ target: 'vaB', from: OPACITY.pending, at: 'wr' }),
       F.light({ targets: ['vaB'], at: 'wr' }),
-      // The write names the Node before the driver has attached anything, which is the same two-beat
-      // shape storage-volumeattachment is built on: the object first, the field after the attach.
+      // The write names the Node before the driver has attached anything: the object first, the field after.
       F.set({ at: 'wr', sublabels: { vaB: 'Node-2, attached: false' } }),
       F.route({ points: W_VAB_DISK, after: 'wr', name: 'att' }),
       F.tag({ text: 'attach', points: W_VAB_DISK, after: 'wr', fn: emergeTag, emerge: TAG_EMERGE }),
       F.light({ targets: ['disk'], at: 'att' }),
       F.set({ at: 'att', chipsCued: { attChip: 'Node-2' }, sublabels: { vaB: 'Node-2, attached: true' } }),
       F.pulse({ pod: 'podNew', after: 'att' }),
-      // The Pod is Running when it blinks (2400), one beat after the attach, and its chip and its own
-      // state line turn over together on that beat rather than at entry (P-04).
+      // The Pod is Running when it blinks, one beat after the attach, and its chip and state line turn over
+      // on that beat (P-04).
       F.set({ after: 'att', chipsCued: { podChip: 'Running' }, podSublabels: { podNew: 'Running' } }),
     ],
   },

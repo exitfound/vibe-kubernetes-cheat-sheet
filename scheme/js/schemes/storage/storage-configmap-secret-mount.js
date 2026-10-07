@@ -2,40 +2,35 @@ import { P, F, defineCard, BEAT, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-configmap-secret-mount.md
 
 
-// The mounted directory drawn as its own listing: one row per entry, in name order, so every entry
-// owns a fixed slot and an entry that does not exist leaves its slot empty. The listing and the
-// right column sit right of x 420, the Pod left of the listing below the panel. Panel extent
-// measured per viewport in the record.
-const CX = 600;                                                   // canvas centre: the listing and the chips sit on it
+// The mounted directory drawn as a listing: one row per entry in name order, so every entry owns a
+// fixed slot and a missing entry leaves its slot empty.
+const CX = 600;
 const ROW_W = 232, ROW_H = 56, ROW_GAP = 12;
-const ROW_X = CX - ROW_W / 2;                                     // 484..716, the pointer gutter left of it
-// The listing starts at 94 rather than at the top edge: with the chips at 530 that leaves 74 above
-// the title and 76 under the chips, so the drawing sits centred in the canvas rather than high in it.
+const ROW_X = CX - ROW_W / 2;
 const ROW_Y0 = 94, TITLE_Y = ROW_Y0 - 20;                         // the listing title sits over row 0
-const rowY = (i) => ROW_Y0 + i * (ROW_H + ROW_GAP);               // 94 / 162 / 230 / 298 / 366
-const rowMY = (i) => rowY(i) + ROW_H / 2;                         // 122 / 190 / 258 / 326 / 394
-const ROW_CX = ROW_X + ROW_W / 2;                                 // 600, the canvas centre
+const rowY = (i) => ROW_Y0 + i * (ROW_H + ROW_GAP);
+const rowMY = (i) => rowY(i) + ROW_H / 2;
+const ROW_CX = ROW_X + ROW_W / 2;
 const ROW_R = ROW_X + ROW_W;
 // Name order, the way ls -a sorts it: the digits of a timestamp sort before the d of ..data.
 const V1 = 0, V2 = 1, DATA = 2, TMP = 3, CONF = 4;
-const GUTTER_X = ROW_X - 30;                                      // 454, the ..data pointer bracket
+const GUTTER_X = ROW_X - 30;
 
 // The writer and its source in one column right of the listing, 232 by 80 (NET.L-01).
 const BOX_W = 232, BOX_H = 80;
-// The column mirrors the Pod about CX: the Pod runs 100..332, so the column runs 868..1100.
+// The column mirrors the Pod about CX.
 const POD_X = 100, POD_W = 232, POD_H = 104;
-const COL_X = 1200 - POD_X - BOX_W, COL_CX = COL_X + BOX_W / 2;    // 868..1100, centre 984
-const KUBE_Y = 184, KUBE_MY = KUBE_Y + BOX_H / 2;                 // 184..264, mid 224, inside the bus span
-const BUS_X = (ROW_X + ROW_W + COL_X) / 2;                        // 792, midway between listing and column
+const COL_X = 1200 - POD_X - BOX_W, COL_CX = COL_X + BOX_W / 2;
+const KUBE_Y = 184, KUBE_MY = KUBE_Y + BOX_H / 2;
+const BUS_X = (ROW_X + ROW_W + COL_X) / 2;
 
-// One Pod under the panel, 232 by 104 with a 192 by 44 app box (NET.L-01), level with the app.conf
-// row so the read is one straight run out of the row's left face.
-const POD_Y = rowMY(CONF) - POD_H / 2;                            // 342..446
-const API_Y = POD_Y + POD_H - BOX_H;                              // 366..446, floor level with the Pod
-const CAPTION_Y = POD_Y + POD_H + 30;                             // 476, the backing caption under the listing
+// Level with the app.conf row, so the read is one straight run out of the row left face.
+const POD_Y = rowMY(CONF) - POD_H / 2;
+const API_Y = POD_Y + POD_H - BOX_H;
+const CAPTION_Y = POD_Y + POD_H + 30;
 
 const CHIP_W = 300, CHIP_GAP = 16, CHIP_H = 34, CHIPS_Y = 530;
-const chipX = (i) => CX - (3 * CHIP_W + 2 * CHIP_GAP) / 2 + i * (CHIP_W + CHIP_GAP);    // 134 / 450 / 766
+const chipX = (i) => CX - (3 * CHIP_W + 2 * CHIP_GAP) / 2 + i * (CHIP_W + CHIP_GAP);
 
 // Each static wire and its ball share one array.
 const W_WATCH = [[COL_CX, API_Y], [COL_CX, KUBE_Y + BOX_H]];
@@ -46,26 +41,22 @@ const W_READ = [[ROW_X, rowMY(CONF)], [POD_X + POD_W, rowMY(CONF)]];
 // the two is ever drawn at rest, which is the whole swap.
 const pointTo = (i) => [[ROW_X, rowMY(DATA)], [GUTTER_X, rowMY(DATA)], [GUTTER_X, rowMY(i)], [ROW_X, rowMY(i)]];
 
-// ONE speed for every ball on the card: routeDur clamps the 102 unit watch leg to the 700ms floor
-// and leaves the 266 unit writes at the same 700, so the short leg crawls beside the long one. At
-// 0.14 units per ms the shortest leg still rides 729ms, above that floor, and a tag stays readable.
+// ONE speed for every ball: routeDur would clamp the short watch leg to the 700ms floor beside the
+// long writes, so the short leg would crawl.
 const PKT_SPEED = 0.14;
 const legLen = (pts) => pts.slice(1).reduce((n, q, i) => n + Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1]), 0);
 const legDur = (pts) => Math.round(legLen(pts) / PKT_SPEED);
-const D_WATCH = legDur(W_WATCH), D_V1 = legDur(W_V1), D_V2 = legDur(W_V2);   // 729 / 1900 / 1414
-const D_TMP = legDur(W_TMP), D_READ = legDur(W_READ);                        // 1900 / 1229
-const riding = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });   // lives as long as its ball (M-30a)
-// The watch lane is a 102 unit gap between two 232 wide boxes, and the ..data_tmp write ends on a
-// row face: both tags TRAIL their ball, so they end in the gap short of the face, and emerge once
-// clear of the box they leave. Each lives exactly as long as its ball (M-30a).
+const D_WATCH = legDur(W_WATCH), D_V1 = legDur(W_V1), D_V2 = legDur(W_V2);
+const D_TMP = legDur(W_TMP), D_READ = legDur(W_READ);
+// Both tags TRAIL their ball, so they end short of the face they land on, and emerge once clear of
+// the box they leave.
 const emerging = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true });
 const WATCH_TAG = { fn: emerging, dx: 60, dy: 20, emerge: 550 };
-// The two version writes climb, so their tag trails right of the ball and 50 above it: clear of the
-// Kubelet top at departure and right of the row face at arrival.
-const WRITE_TAG = { fn: riding, dx: 40, dy: -50 };
+// The version writes climb, so the tag trails right of and above the ball, clear of Kubelet and the row.
+const WRITE_TAG = { dx: 40, dy: -50 };
 const TMP_TAG = { fn: emerging, dx: 40, dy: 20, emerge: 500 };
-// The read runs left, so its tag trails right of the ball and above the app.conf row top.
-const READ_TAG = { fn: riding, dx: 24, dy: -34 };
+// The read runs left, so its tag trails right of the ball, above the app.conf row.
+const READ_TAG = { dx: 24, dy: -34 };
 
 // Z-order (bottom -> top): the listing rows, the Pod, the column, the pointers and lanes,
 // the captions, the chips, then the packet layer.
@@ -148,14 +139,12 @@ export const STEPS_SPEC = [
     rewind: { chips: C_EMPTY, opacity: EMPTY },
     lit: ['api'],
     flow: [
-      F.route({ points: W_WATCH, delay: BEAT.lead, dur: D_WATCH, name: 'watch', lights: ['kubelet'] }),
-      F.tag({ text: 'ConfigMap app', points: W_WATCH, delay: BEAT.lead, dur: D_WATCH, ...WATCH_TAG }),
+      F.route({ points: W_WATCH, delay: BEAT.lead, dur: D_WATCH, name: 'watch', lights: ['kubelet'], tag: { text: 'ConfigMap app', ...WATCH_TAG } }),
       // The directory and its lane appear together before the write leaves (STO.S-02, A-15).
       F.fade({ ...SHOW('title'), at: 'watch' }),
       F.fade({ ...SHOW('dirV1'), at: 'watch' }),
       F.fade({ ...SHOW('wV1'), at: 'watch' }),
-      F.route({ points: W_V1, after: 'watch', plus: 250, dur: D_V1, name: 'write', lights: ['dirV1'] }),
-      F.tag({ text: 'app.conf v1', points: W_V1, after: 'watch', plus: 250, dur: D_V1, ...WRITE_TAG }),
+      F.route({ points: W_V1, after: 'watch', plus: 250, dur: D_V1, name: 'write', lights: ['dirV1'], tag: { text: 'app.conf v1', ...WRITE_TAG } }),
       // The pointer and the user-visible link exist once the files do.
       F.fade({ ...SHOW('dataRow'), at: 'write' }),
       F.fade({ ...SHOW('symV1'), at: 'write' }),
@@ -176,18 +165,14 @@ export const STEPS_SPEC = [
     rewind: { chips: C_PROJECTED, opacity: PROJECTED },
     lit: ['api'],
     flow: [
-      F.route({ points: W_WATCH, delay: BEAT.lead, dur: D_WATCH, name: 'watch', lights: ['kubelet'] }),
-      F.tag({ text: 'ConfigMap app v2', points: W_WATCH, delay: BEAT.lead, dur: D_WATCH, ...WATCH_TAG }),
+      F.route({ points: W_WATCH, delay: BEAT.lead, dur: D_WATCH, name: 'watch', lights: ['kubelet'], tag: { text: 'ConfigMap app v2', ...WATCH_TAG } }),
       F.fade({ ...SHOW('dirV2'), at: 'watch' }),
       F.fade({ ...SHOW('wV2'), at: 'watch' }),
-      F.route({ points: W_V2, after: 'watch', plus: 250, dur: D_V2, name: 'write', lights: ['dirV2'] }),
-      F.tag({ text: 'app.conf v2', points: W_V2, after: 'watch', plus: 250, dur: D_V2, ...WRITE_TAG }),
+      F.route({ points: W_V2, after: 'watch', plus: 250, dur: D_V2, name: 'write', lights: ['dirV2'], tag: { text: 'app.conf v2', ...WRITE_TAG } }),
       F.set({ at: 'write', chips: { ...C_PROJECTED, dirs: '2' } }),
       F.light({ targets: ['dirs', 'confRow'], at: 'write' }),
       // With v2 on disk, the app opens app.conf and still resolves through ..data to v1.
-      F.route({ points: W_READ, after: 'write', plus: 700, dur: D_READ, name: 'read' }),
-      F.tag({ text: 'v1', points: W_READ, after: 'write', plus: 700, dur: D_READ, ...READ_TAG }),
-      F.pulse({ pod: 'pod', at: 'read' }),
+      F.route({ points: W_READ, after: 'write', plus: 700, dur: D_READ, name: 'read', tag: { text: 'v1', ...READ_TAG }, pulse: 'pod' }),
       F.set({ at: 'read', chips: C_STAGED }),
       F.light({ targets: ['reads'], at: 'read' }),
     ],
@@ -209,8 +194,7 @@ export const STEPS_SPEC = [
       // The ..data_tmp cue rides an F.set rather than `lights`, so `flowLights` never derives it
       // onto the static path, where the row is already gone (S-18), and the fade below takes the
       // class off with the row.
-      F.route({ points: W_TMP, delay: BEAT.lead, dur: D_TMP, name: 'link' }),
-      F.tag({ text: '..data_tmp', points: W_TMP, delay: BEAT.lead, dur: D_TMP, ...TMP_TAG }),
+      F.route({ points: W_TMP, delay: BEAT.lead, dur: D_TMP, name: 'link', tag: { text: '..data_tmp', ...TMP_TAG } }),
       F.set({ at: 'link', lit: ['tmpRow'] }),
       // The rename: ..data_tmp is gone and ..data, so app.conf, resolves to v2, in one beat.
       F.fade({ ...HIDE('tmpRow'), at: 'link', plus: 500, unlight: ['tmpRow'] }),
@@ -225,9 +209,7 @@ export const STEPS_SPEC = [
       F.set({ at: 'link', plus: 2100, chips: C_SWAPPED }),
       F.light({ targets: ['dirs'], at: 'link', plus: 2100 }),
       // With v1 gone, the app opens app.conf again and resolves through ..data to v2.
-      F.route({ points: W_READ, at: 'link', plus: 2400, dur: D_READ, name: 'read' }),
-      F.tag({ text: 'v2', points: W_READ, at: 'link', plus: 2400, dur: D_READ, ...READ_TAG }),
-      F.pulse({ pod: 'pod', at: 'read' }),
+      F.route({ points: W_READ, at: 'link', plus: 2400, dur: D_READ, name: 'read', tag: { text: 'v2', ...READ_TAG }, pulse: 'pod' }),
       F.set({ at: 'read', chips: C_REREAD }),
       F.light({ targets: ['reads'], at: 'read' }),
     ],

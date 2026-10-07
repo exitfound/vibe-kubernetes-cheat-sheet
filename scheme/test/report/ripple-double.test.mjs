@@ -1,80 +1,6 @@
-// ripple-double.test.mjs: HOW MANY rings land on one arrival, which is the question M-14 leaves open.
-//
-// M-14 is "every packet ripples at its destination, the delivered cue is part of the arrival canon
-// with no per-call opt-in". render/motion.test.mjs enforces it with `if (!b.ripples)`, so it asks
-// whether a ring EXISTS and never how many there are. The rule is written as a floor and read as
-// one, and the ceiling is nobody's.
-//
-// The ceiling matters because there are two ways to get a ring and they do not know about each
-// other. `packetAlong` calls `arrivalRipple` UNCONDITIONALLY on every ball it launches
-// (js/lib/scheme-kit.js), and the `F.ripple` verb calls the SAME function directly, for the case the
-// verb was added for: a receiving BOX that gets a ring instead of a pulse, since only Pods pulse.
-// Point an F.ripple at the last point of a route in its own step, at that route's own arrival, and
-// two identical rings expand over each other from the same pixel at the same millisecond.
-//
-// THAT IS NOT INVISIBLE ON SCREEN, and it was measured in pixels before this file existed: the alpha
-// of the doubled ring reads 0.902 against 0.631 for a single one, and the prediction from the
-// measured single, 1 - (1 - 0.692)^2 = 0.905, matched to 0.003. Two rings compositing is what the
-// number says, not a brighter one.
-//
-// It needs no browser. A ring's position is the last point of its path and its start is the entry's
-// arrival, both arithmetic over the spec through ../fixtures/spec.mjs `timelineOf`.
-//
-// ===========================================================================================
-// TWO TIERS, AND ONLY THE FIRST IS A DEFECT
-// ===========================================================================================
-//   SIMULTANEOUS   two or more rings at the SAME point with dt = 0. One ring drawn twice. There is
-//                  no reading of the picture in which two rings on one point are correct, because the
-//                  second ring adds no information: it is the first one, again.
-//   STAGGERED      same point, dt above zero and under the 560ms a ring lives. They overlap in time
-//                  and are legible as a sequence rather than as one mark, which is what a card
-//                  showing three peers answering one address is FOR. Printed as context, not as a
-//                  queue. On this catalog the tier is `network-loadbalancer-bare-metal` (three client
-//                  flows into the router, 180ms apart), `storage-access-modes` (three writers onto
-//                  one volume, 200ms apart) and `network-traffic-distribution` (540ms apart).
-//
-// The whole F.ripple census is printed too, because the queue is currently ONE CARD WIDE: all four
-// uses of the verb in the catalog are on `network-service-cidr` and all four are findings. A check
-// whose population is four is a check that says almost nothing about a future card, and saying so is
-// more useful than the count.
-//
-// ===========================================================================================
-// WHY report/ AND NOT render/
-// ===========================================================================================
-// The cycle is written in ./arrival.test.mjs and this project has run it three times: report-only,
-// then a human triage of the queue, then promotion into the mandatory set. Four findings on one card
-// is small enough to promote, and that decision is still a person's: the repair is deleting four
-// F.ripple entries, which changes a picture, and no queue in this harness promotes itself. Nothing
-// here fails on a finding.
-//
-// WHAT DOES FAIL: the census, the shape of the carried table, and the one constant this file copies.
-// A report that walked less than the catalog prints few findings and looks exactly like a clean
-// catalog: a walk one step short drops that step silently and nothing in the output
-// looks wrong, which is why the floor below is asserted rather than printed.
-//
-// ===========================================================================================
-// WHAT THIS FILE IS BLIND TO
-// ===========================================================================================
-//   - THE REDUCED PATH, where there are no rings at all: `arrivalRipple` returns on `ctx.reduced`
-//     before it builds anything. Everything below is about the animated path only.
-//   - A RIPPLE FROM AN ESCAPE. `arrivalRipple` is exported for a card animating its packets by hand,
-//     and `step.enter`, `step.motion` and `F.run` are function bodies. A ring drawn from one is not
-//     in the population. Measured: no card imports `arrivalRipple` today, so the population is whole,
-//     and the day one does this file undercounts silently.
-//   - THE 560ms RING LIFE IS A COPY. `arrivalRipple` hard-codes it in its animate options and
-//     exports nothing, so RIPPLE_MS below is a second copy of one number. The run asserts the
-//     literal is still in the function rather than trusting the copy: two rings that no longer
-//     overlap in time are not a finding, and a stale window would keep reporting them.
-//   - GEOMETRY IS COMPUTED, NEVER MEASURED. Arrivals come from `timelineOf`, the same reader
-//     unit/spec-steps.test.mjs times a step with. A paused or seeked frame cannot see a deferred
-//     callback at all (M-35), so a frame would be a weaker witness here, not a stronger one.
-//   - A RING PAIR AT TWO DIFFERENT POINTS. Only an exact point match counts as one place. A ring
-//     grows from r 3.15 to r 27, so two rings a few units apart also overlap on screen: the NEAR
-//     tier below reports those, and it is empty today, which is the only reason the exact reading
-//     is enough.
-//   - WHICH RING IS THE WANTED ONE. When a ball and an F.ripple coincide the file says two rings are
-//     drawn, not which of the two entries should go. That is the reading of the card: the F.ripple
-//     is redundant when a ball already lands there, and the ball is the one that carries meaning.
+// How many rings land on one arrival, the ceiling M-14 leaves open: SIMULTANEOUS (same point, dt 0,
+// carried or a defect), STAGGERED and NEAR (context). Fails on the census and on a stale RIPPLE_MS copy.
+// Blind to the reduced path, to rings fired from escapes, and to which of two coinciding rings should go.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -86,19 +12,12 @@ import { importAll, stepTotal } from '../fixtures/module.mjs';
 import { timelineOf } from '../fixtures/spec.mjs';
 import { routeDur, REVEAL_MS, BEAT } from '../../js/lib/scheme-kit.js';
 
-// The recorded walk. Assertions, not notes: see the header.
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_CARDS = (await cards()).length;
 const EXPECTED_STEPS = await stepTotal();
 
-// The kit constants the fixture's arrival arithmetic runs on.
 const KIT = { routeDur, REVEAL_MS, BEAT };
 
-// How long a ring lives, copied from arrivalRipple's animate options because nothing exports it.
-// Two rings starting further apart than this never share the canvas. The copy is checked, see below.
-// The walk, the window and the carried table live in ../fixtures/ripple-double.mjs, shared with
-// the gate file that asserts the queue. See that file's header for why.
+// The walk, the ring window and the carried table live in ../fixtures/ripple-double.mjs.
 import { RIPPLE_MS, RIPPLE_CARRIED, ringOf, at } from '../fixtures/ripple-double.mjs';
 
 const catalogued = await cards();
@@ -131,8 +50,7 @@ test('how many rings land on one arrival (report only, census is the assertion)'
         if (ring.src === 'F.ripple') ripples.push({ card: c.id, step: s.id, ...ring });
       }
 
-      // Group by exact point, then walk each group in time order and pair neighbours: three rings
-      // 180ms apart are two overlapping pairs, which is what they look like.
+      // Grouped by exact point and paired with time neighbours: three rings 180ms apart are two overlapping pairs.
       const byPoint = new Map();
       for (const r of here) {
         if (!byPoint.has(at(r.pt))) byPoint.set(at(r.pt), []);
@@ -153,8 +71,7 @@ test('how many rings land on one arrival (report only, census is the assertion)'
         }
       }
 
-      // Two rings at points close enough that they still overlap on screen. Exact matches are
-      // already counted above, so this tier is what the exact reading would MISS.
+      // Close enough to overlap on screen: what the exact reading would miss.
       for (let i = 0; i < here.length; i++) {
         for (let j = i + 1; j < here.length; j++) {
           const a = here[i], b = here[j];
@@ -194,7 +111,6 @@ test('how many rings land on one arrival (report only, census is the assertion)'
   for (const r of open) {
     out.push(`   ${r.card} '${r.step}' at [${r.pt}]  ${r.first.src}@${r.first.t}ms + ${r.second.src}@${r.second.t}ms  dt=${r.dt}ms`);
   }
-  // One shape for a carried row across every report file: ../fixtures/carried.mjs owns it.
   const stale = staleKeys('SIMULTANEOUS', simultaneous.map(r => r.carryKey));
   for (const l of carriedBlock('SIMULTANEOUS', held.map(r => ({ key: r.carryKey, why: r.why })), stale)) out.push(l);
   for (const b of shapeProblems('SIMULTANEOUS', new Set(catalogued.map(c => c.id)))) out.push(`   BROKEN RULING  ${b}`);
@@ -233,12 +149,7 @@ test('how many rings land on one arrival (report only, census is the assertion)'
   out.push('===== end of report =====');
   console.log(out.join('\n'));
 
-  // -------------------------------------------------------------------------------------------
-  // The assertions, and none of them is about a card. A finding here is a statement about a card
-  // and its acceptance belongs to a person; a walk that covered less than the catalog is not a
-  // measurement at all, and a window copied out of the kit that no longer matches the kit makes
-  // every overlap number wrong in a way nothing else would notice.
-  // -------------------------------------------------------------------------------------------
+  // The census and the RIPPLE_MS copy, checked against the literal in scheme-kit.js.
   const kitSrc = await readFile(join(ROOT, 'js', 'lib', 'scheme-kit.js'), 'utf8');
   const body = kitSrc.slice(kitSrc.indexOf('export function arrivalRipple'));
   assert.ok(body && new RegExp(`duration:\\s*${RIPPLE_MS}\\b`).test(body.slice(0, 900)),

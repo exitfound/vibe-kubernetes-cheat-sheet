@@ -1,112 +1,6 @@
-// motion.test.mjs: the M block of ../../CANON.md, as far as a machine can carry it.
-//
-// M is the block a machine covers WORST. Of its 35 rows, 30 say `Check: review`, and that is not an
-// oversight: most of M is about whether a beat READS right, which no probe can answer. This file
-// deliberately does not attempt all 35. It takes the rows whose subject is a NUMBER or a PAIRING
-// (which of two things moves, how long it moves for, whether two tracks agree) and leaves the rest
-// named, in the table at the bottom of this header, so the reader knows what is still a person's job.
-//
-// Nine rules, all mandatory unless the row says otherwise:
-//
-//   PULSE-SHAPE (M-06)         every pulse is PULSE_POD.ms long, peaks at PULSE_POD.bright, and
-//                              starts and ends at brightness 1. One length, catalog-wide.
-//   PULSE-KIT   (M-02)         every pulse carries the kit's stroke ramp at the same delay. A pulse
-//                              written by hand has a filter track and nothing else.
-//   PULSE-POD   (M-01)         the pulsed element is a Pod or lives inside a Pod-bearing group.
-//                              Infrastructure lights through .highlight, it never pulses.
-//   FLASH-SHAPE (M-27)         a block flash is PULSE_BLOCK-shaped, start and end at 1. It shares the
-//                              brightness track with the pod pulse and is told apart by MAGNITUDE.
-//   FLASH-BLOCK (M-01, M-27)   the mirror of PULSE-POD: a flash lands on infrastructure, never inside
-//                              a Pod-bearing group. A Pod blinks, it does not flash.
-//   PULSE-WHOLE (M-03)         a stroke ramp without a brightness track on the block that owns it is
-//                              the half-strength pulse: pulsePod was handed a bare element, not the
-//                              group. This is exactly the symptom M-03 names.
-//   PULSE-TOGETHER (M-03)      REPORTED, not asserted. The Pod of a pulsed group must blink on the
-//                              same beat as the containers inside it. 0 findings today, and the
-//                              empty ceiling below makes the first one red.
-//   RIDE        (M-30, M-31)   a riding tag rides a real ball, with that ball's easing, that ball's
-//                              duration, and pinned at the route start when it is built.
-//   SPEED       (M-12)         a ball's flight time is routeDur() of its own route: one speed
-//                              everywhere. Cards that took the explicit-dur exemption are registered
-//                              below, with the count they are allowed.
-//   CLAMP       (M-13)         no ball flies outside routeDur's own [floor, ceiling]. Same registry.
-//   ARRIVE      (M-14)         every ball ripples at its destination, on the millisecond it lands.
-//   TRANSFORM   (M-09)         packets move by transform. Nothing in the catalog animates cx or cy.
-//   TIMER       (M-28, M-29)   the 1ms deferred timers behind lightBoxAt() and at() carry an EMPTY
-//                              keyframe list, and no animation anywhere is a no-op opacity track.
-//
-// M-08 IS NOT HERE ON PURPOSE. "A Pod that fades out must pulse first" is already the ORDER rule of
-// render/opacity.test.mjs, which reads the same animation list from the same frozen step. A second
-// copy would be a second answer to maintain, and the two would drift.
-//
-// WHERE THE NUMBERS COME FROM. Nothing in this file restates a magnitude. PULSE_POD, BEAT and FADE
-// are imported from js/lib/tokens.js, and routeDur / routeLength / REVEAL_MS are imported from
-// js/lib/scheme-kit.js, so SPEED compares a ball against the very function that timed it rather than
-// against a copy of its arithmetic. routeDur's clamp is not written down here either: CLAMP derives
-// the floor and the ceiling by calling routeDur with a degenerate route and an absurd one, which is
-// the only reading that cannot go stale when PKT_SPEED is retuned (both bounds are module-private
-// to scheme-kit.js and are deliberately not exported).
-//
-// TWO HARNESS LIMITS THIS FILE IS BUILT AROUND.
-//
-// 1. A PAUSED ANIMATION NEVER FIRES onfinish. enterStep freezes the step, so any class
-//    a card adds or removes in a completion handler is invisible to a frozen probe. The live example
-//    is storage-reclaim-policy.js:43-49, where removeAt() drops .highlight in onfinish and a frozen
-//    read accuses the card of holding it. EVERY rule above therefore reads WAAPI timings and
-//    keyframes, which are the step's PLAN and are complete at t=0, and none of them reads a class or
-//    a computed style. The one DOM value read at all is the riding tag's build-time transform pin
-//    (M-31), which is written by makeRidingLabel before any animation starts and is not deferred.
-//
-// 2. THE PROBE CAN CATCH A STEP WITH NO DIAGRAM. Scene.build() empties the host and
-//    appends a fresh <svg.diagram>, so a probe that lands in that window sees nothing. openCard waits
-//    for the selector once, which is not enough: the rebuild happens again on every reset(). Every
-//    sample below therefore re-waits on the selector and probes a second time before giving up, and
-//    a step that still has no diagram is a FINDING rather than a silent `continue`. Without that the
-//    walk undercounts by one step and nothing looks wrong.
-//
-// WHAT STAYS WITH A PERSON, and why (the other 24 rows of M):
-//   M-04  pulse is brightness and never scale: a scale would be visible in the keyframes, but the
-//         rule is about a composition clash a probe cannot judge.
-//   M-05  the pulse returns to the rect's own stroke: a colour question, palette.test.mjs's job.
-//   M-07  a DIM Pod needs pulsePodDim: whether a blink is VISIBLE against 0.55 is a perception call.
-//   M-10  a packet must represent traffic the step narrates: needs the narration read against the
-//         picture. This is the single most valuable row in the block and the least mechanisable.
-//   M-11  three packet flavours and no fourth: a rendered ball carries no record of which wrapper
-//         made it. Wave 2 reads it off STEPS_SPEC[].flow.
-//   M-12  the second half of the row, "an explicit dur needs a one-line justification at the call
-//         site", is source prose. SPEED below can only count the exemptions, not read their reasons.
-//   M-15  M-16  M-17  M-18: which beat a delay came from. The BEAT census printed on a green run
-//         measures how much of the catalog the vocabulary explains (671 of 714 balls today) but
-//         cannot say that a given 800 was afterPulse rather than lead: the two tokens are the same
-//         number, so the distinction is not in the data at all.
-//   M-20  "geometry changes are timing changes" is a working instruction, not a property.
-//   M-21  FADE.in / FADE.out with a justified exception: measured and printed below. Of 367 opacity
-//         tracks outside the packet layer, 172 sit on the two tokens, 71 on REVEAL_MS, 12 are the
-//         opacity lift of a pulsePodDim blink, and 112 are per-card pacing that the row explicitly
-//         allows. Asserting the token would report those 112 as findings against cards that are right.
-//   M-22  M-23  M-24: revealAt's shape and the shade it rests at. REVEAL_MS is measured (71 tracks),
-//         but whether `from` is the right shade for a lane already pointing at the object is a
-//         picture question.
-//   M-25  animateAlong honours options.delay: a regression that would show up as every ball starting
-//         at 0. The BEAT census would collapse to "zero 714" and is the standing witness, which is
-//         weaker than an assertion and is named as such.
-//   M-26  value chips never flash. Asserted where the target is DECLARED, not here: this walk sees
-//         a rendered element and not the part kind behind it, so unit/spec-steps.test.mjs owns it.
-//   M-27  the sanctioned block flash. FLASH-SHAPE and FLASH-BLOCK below, and the population is no
-//         longer empty: the two magnitudes are what separates a flash from a pod pulse, which is
-//         what the setup assertion on PULSE_POD.bright against PULSE_BLOCK.bright is FOR.
-//   M-32  ridingLabel is bound once at module scope: a question about the SOURCE shape, which the
-//         rendered tree cannot answer at all.
-//   M-33  every animation goes through ctx.register: an unregistered animation looks identical here,
-//         it just outlives its step. Visible only by stepping away and watching what keeps moving.
-//   M-34  "an added hop costs about 800ms": advice about editing, and duration.test.mjs says by how much.
-//   M-35  a SEEK cannot see a deferred effect: seekStep sets currentTime and never fires onfinish,
-//         so an at() turnover, a lightBoxAt arrival class and a deferred setWire are all missing
-//         from any frame it hands back. This is a LIVE blind spot of THIS harness, and it reaches
-//         every file that seeks: seekStep lives in fixtures/render.mjs, and both
-//         render/opacity.test.mjs and render/reduced.test.mjs read their frames through it. What
-//         sees a turnover is a real-time playthrough (tools/settled-dump.mjs), which is a probe and
-//         not an assertion, so the rule stays with a person until someone writes the check.
+// The machine-checkable rows of the M block of CANON.md: pulse shape and kit, flash shape and target,
+// riding tags, ball speed and clamp, arrival ripple, transform-only motion, empty deferred timers.
+// Reads WAAPI plans at t=0 only, so nothing done in onfinish or by a seek-invisible effect (M-35) is seen.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -116,221 +10,95 @@ import { readSnapshot } from '../fixtures/snapshot.mjs';
 import { PULSE_POD, PULSE_BLOCK, BEAT, FADE } from '../../js/lib/tokens.js';
 import { routeDur, routeLength, REVEAL_MS } from '../../js/lib/scheme-kit.js';
 
-// ---------------------------------------------------------------------------------------------
-// Control numbers, measured on a green walk of the whole catalog.
-//
-// The card and step floors are the same two every render test carries. The four population floors
-// under them are NOT decoration: every rule in this file selects its input with a class name, so
-// renaming .scheme-packet or .scheme-pod-rect empties the input and turns the file green with no
-// error and no finding. That failure has been paid for twice, and a population floor is the only
-// thing that sees it: never drop one to make a rename green. It is a FLOOR: a card added later
-// legitimately raises these numbers, and a card edit that lowers one is a deliberate change that
-// has to move the floor too.
-//
-// A FLOOR OVER A REGEX IS A DIFFERENT THING. COVERAGE FLOOR and UNREAD CEILING insure a source
-// shape, which an import can replace; these insure a SELECTOR, and the rendered tree stays the
-// only place a WAAPI timing exists, so the selector stays.
-// ---------------------------------------------------------------------------------------------
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+// Population floors: every rule selects by class name, so a renamed selector empties the input
+// and goes green. Never lower a floor to make a rename pass.
 const EXPECTED_CARDS = floor((await cards()).length);
 const EXPECTED_STEPS = floor(await stepTotal());
-// Cards that DECLARE an F.pulse, counted off the specs: 94 today, and the floor keeps headroom under
-// that. This is the guard the track
-// floor below was being asked to be and could not, and it is the same repair the chip-pair floor in
-// render/chipfit.test.mjs took the same day: a card losing ONE of its several pulses does not move
-// this number, while a selector that stops matching brightness collapses it.
+// Cards declaring F.pulse: losing one pulse of several does not move it, a dead selector collapses it.
 const EXPECTED_PULSE_CARDS = floor(92);
-// Brightness tracks (pod shells and the boxes inside them). CONTENT-DEPENDENT, and now carrying
-// headroom on purpose: a repair that legitimately drops one Pod pulse costs about four tracks, and
-// with the floor sitting on the measurement that reddens the gate for every agent in the tree. It
-// happened twice in one session, and both times the honest fix was redesigned around the number
-// rather than the number being examined. A narrowed selector does not cost four tracks, it collapses.
-const EXPECTED_PULSES = floor(740);     // measured 784 on 2026-08-17
+// Brightness tracks, with headroom: one dropped Pod pulse costs about four tracks.
+const EXPECTED_PULSES = floor(740);
 const EXPECTED_RAMPS = floor(1568);     // stroke ramps, two per rect per pulse (up, then down)
 const EXPECTED_BALLS = floor(714);      // .scheme-packet transform tracks
 const EXPECTED_LABELS = floor(241);     // riding tags
 const EXPECTED_TIMERS = floor(555);     // the 1ms deferred timers of lightBoxAt() and at()
 
-// ---------------------------------------------------------------------------------------------
-// The explicit-dur registry (M-12). A route takes its time from its LENGTH; an explicit `dur` is
-// reserved for narrative pacing. check-canon.mjs:19 kept the same kind of list under
-// ALLOW_EXPLICIT_DUR, per file, and this is that list measured from the other side: not "the source
-// spells dur" but "a ball flew at a speed its route does not explain".
-//
-// The number is a CEILING, not an equality, and the asymmetry is deliberate: a new deviation on a
-// registered card is a finding (the count rises), while removing one is a fix and must not turn this
-// file red. A card that is not on the list gets no latitude at all, which is what makes the rule
-// bite on the other 100.
-//
-// `clamp` is the subset of those balls that also escape routeDur's floor: a ball moving faster than
-// the canon minimum. Every one of them is a short hop shortened on purpose, and the count is the sum
-// of the `clamp` column below rather than a number restated here to go stale.
-// ---------------------------------------------------------------------------------------------
+// Explicit-dur registry (M-12): a ceiling per card on balls whose speed their route does not explain,
+// and `clamp` counts those also under routeDur's floor. Unlisted cards get no latitude.
 const PACING = new Map([
   ['network-service-clusterip',    { speed: 8, clamp: 0 }],
-  ['network-ipam-pod-cidr',        { speed: 6, clamp: 3 }],
-  // storage-csi-capacity-tracking was on this list at speed 6 and is off it: its redesign rides
-  // routeDur on every ball.
+  // Three allocation balls share the longest path's duration so they land together.
+  ['network-ipam-pod-cidr',        { speed: 1, clamp: 0 }],
   ['storage-fsgroup-ownership',    { speed: 3, clamp: 1 }],
-  // Seven balls over three steps, each tagged with the object, the file or the version it carries.
-  // Every one rides its own length at ONE speed, 0.14 units per ms, rather than routeDur, which
-  // clamps the 102 unit watch leg and the 266 unit write to the same 700ms floor. Justified at the
-  // call site.
+  // Tagged legs ride one fixed speed so the tag can be read, instead of routeDur's 700ms floor.
   ['storage-configmap-secret-mount', { speed: 7, clamp: 0 }],
-  // storage-projected-volume was on this list at speed 9 and is off it: every one of its thirteen
-  // balls now rides routeDur, which puts all three lane lengths on the 700ms floor.
-  // Nine balls over six steps, each tagged with the call or the file it carries: the 48 to 212
-  // unit legs ride LEG_DUR 1500 rather than routeDur, where most sit on the 700ms floor and the
-  // tag retires unread. Justified at the call site.
+  // Tagged legs ride LEG_DUR so the tag can be read instead of retiring on the 700ms floor.
   ['storage-csi-ephemeral-volume', { speed: 9, clamp: 0 }],
-  // storage-csidriver was on this list at speed 6 and is off it: every one of its six balls now
-  // rides routeDur, which puts both lane lengths on the 700ms floor, as on storage-emptydir.
-  // Six balls over five steps, each tagged with the version it carries: the 84 to 458 unit legs
-  // ride LEG_DUR 1500 rather than routeDur, where the two writer legs sit on the 700ms floor and
-  // the tag retires unread. Justified at the call site.
+  // Tagged legs ride LEG_DUR so the tag can be read instead of retiring on the 700ms floor.
   ['storage-subpath',              { speed: 6, clamp: 0 }],
-  // storage-image-volume was on this list at speed 5 and is off it: every one of its five balls now
-  // rides routeDur, which puts all five leg lengths on the 700ms floor.
-  // Five tagged balls over four steps: the 100 unit mount lanes sit on the 700ms floor, and every
-  // ball rides LEG_DUR 580, 20 percent faster than that floor and under it, on request (M-13).
+  // Tagged balls ride LEG_DUR under the 700ms floor, on request (M-13).
   ['storage-volume-model',         { speed: 5, clamp: 5 }],
-  // Four tagged writes over four steps, each tagged with the file it writes: the 224 unit legs
-  // ride LEG_DUR 1500 rather than routeDur, where every one sits on the 700ms floor and the tag
-  // retires unread. The untagged drop to the Node keeps routeDur. Justified at the call site.
+  // Tagged writes ride LEG_DUR so the tag can be read. The untagged drop keeps routeDur.
   ['storage-recursive-readonly',   { speed: 4, clamp: 0 }],
-  // storage-ephemeral-storage-eviction was on this list at speed 6 and is off it: every one of its
-  // six balls now rides routeDur, which puts all three lane lengths on the 700ms floor.
-  // Five tagged balls over five steps, each tagged with the file it carries: the 52 to 316 unit grid
-  // legs ride LEG_DUR 1304 rather than routeDur, where four of them sit on the 700ms floor and the
-  // tag retires unread. The 923 unit volume shaft rides its routeDur sped up 15 percent, 1784.
-  // Justified at the call site.
+  // Tagged grid legs ride LEG_DUR and the long volume shaft rides routeDur sped up, for readable tags.
   ['storage-container-filesystem', { speed: 6, clamp: 0 }],
-  // Two tagged writes over two steps ride LEG_DUR 1200 rather than routeDur: the 132 unit leg down
-  // the mount sits on the 700ms floor otherwise and the tag retires unread. Every other ball keeps routeDur.
+  // Tagged writes ride LEG_DUR so the tag can be read instead of retiring on the 700ms floor.
   ['storage-hostpath',             { speed: 2, clamp: 0 }],
-  // Two tagged ascents over two steps, the mount and the write, each tagged with what it carries:
-  // the 70 unit leg from the claim to the Pod floor rides MOUNT_DUR 1500 rather than routeDur, where
-  // it sits on the 700ms floor and the tag retires unread. Justified at the call site.
+  // Tagged ascents ride LEG_DUR so the tag can be read instead of retiring on the 700ms floor.
   ['storage-pvc-protection',       { speed: 2, clamp: 0 }],
-  // Two tagged balls over two steps, the mount into the Pod and the deny into the second claim: the
-  // 70 and 66 unit legs ride LEG_DUR 1500 rather than routeDur, where both sit on the 700ms floor and
-  // the tag, which must fade before the box it lands on, retires unread. Justified at the call site.
+  // Tagged mount and deny ride LEG_DUR so the tag can be read instead of retiring on the 700ms floor.
   ['storage-pvc-binding',          { speed: 2, clamp: 0 }],
-  // One tagged ball, the retroactive write: the 80 unit hop from the controller into data-c rides
-  // LEG_DUR 1500 rather than routeDur, where it sits on the 700ms floor and the tag retires unread.
-  // Justified at the call site.
+  // The tagged retroactive write rides LEG_DUR so the tag can be read.
   ['storage-default-storageclass', { speed: 1, clamp: 0 }],
-  // Three tagged balls over three steps, the patch and the two verdicts on the rival: the admin
-  // lane and the rival lane, 128 units each, ride SHORT_DUR 1200 rather than routeDur, where both
-  // sit on the 700ms floor and the tag retires unread. Justified at the call site.
+  // Tagged patch and verdicts ride LEG_DUR so the tag can be read instead of retiring on the 700ms floor.
   ['storage-pv-reservation',       { speed: 3, clamp: 0 }],
-  // storage-volume-mode was on this list at speed 2 and is off it: its redesign carries no riding tag,
-  // and all four balls ride routeDur.
   ['network-ebpf-dataplane',       { speed: 1, clamp: 0 }],
-  // The three creation balls share the longest tap's duration so one parallel wave lands on one
-  // beat: the two outer taps ARE their own routeDur, so only the middle one deviates, once per
-  // create step. Justified at the call site on `CREATE_DUR`.
+  // The three creation balls share the longest tap's duration so one parallel wave lands on one beat.
   ['workloads-job-parallelism',    { speed: 2, clamp: 0 }],
-  // maxUnavailable 2 is drawn as two Pods landing on ONE beat, so the pair shares the longer lane's
-  // duration: the tap into slot 0 IS its own routeDur and only the shorter one into slot 1 deviates,
-  // once, on the one step that fires both. At the canon speed the two lengths put the arrivals 356ms
-  // apart, which draws the one-at-a-time default the field just replaced. Justified at the call site
-  // on `PAIR_DUR`.
+  // maxUnavailable 2: both Pods land on one beat, so the shorter lane takes the longer one's duration.
   ['workloads-statefulset-update-strategy', { speed: 1, clamp: 0 }],
-  // One DELETE reaching five owners at once, so the five watch hops share the longest path's
-  // duration and land on ONE beat: the two outer hops ARE their own routeDur and only the middle
-  // three deviate, once, on the one step that fires the fan. At the canon speed the 180-to-618 unit
-  // spread puts the arrivals 673ms apart, which draws the owners learning it in an order. Justified
-  // at the call site on `WATCH_DUR`.
+  // One DELETE reaches five owners at once, so the watch hops share the longest path's duration.
   ['workloads-pod-replacement-guarantees', { speed: 3, clamp: 0 }],
-  // The chain row is three boxes across 492 units, so its two gaps are 24 apiece: shorter than any
-  // other ball in the catalog. routeDur floors them at 700ms, which is 0.034 u/ms against the 0.45
-  // canon and made them the two SLOWEST balls of the 876, oozing across 24 units while the reader
-  // waits. Geometry cannot fix it: reaching the floor honestly wants a 315 unit gap inside a 492
-  // unit row. Both gaps take GAP_MS 200 so the packet HOPS between adjacent boxes, and PAUSE is
-  // what goes on saying `stopping at each`, which is the step's actual subject. Justified at the
-  // call site on `GAP_MS`.
+  // The 24 unit chain gaps take GAP_MS 200 so the packet hops box to box instead of oozing on the floor.
   ['network-kube-proxy-modes',     { speed: 2, clamp: 2 }],
-  // One ball: the 410 unit Node-1 leg on `client-hit` rides LEG_DUR 1500, the catalog median speed,
-  // because at routeDur 911 its riding tag retires before it can be read. Justified at the call site.
+  // The tagged Node-1 leg rides LEG_DUR so its tag does not retire before it can be read.
   ['network-nodeport-loadbalancer', { speed: 1, clamp: 0 }],
-  // One ball: the 330 unit ARP reply on `l2` rides ARP_DUR 1400, near the catalog median speed, because
-  // at routeDur 733 its riding tag retires before it can be read. Justified at the call site.
-  ['network-loadbalancer-bare-metal', { speed: 1, clamp: 0 }],
-  // Four balls over three steps: a TAGGED 440 unit outer leg rides LEG_DUR 1500, near the catalog
-  // median speed, because at routeDur 978 its riding tag retires before it can be read. The untagged
-  // balls on the same legs keep routeDur. Justified at the call site.
+  // The tagged ARP reply rides LEG_DUR so its tag does not retire before it can be read.
+  ['network-loadbalancer-without-cloud', { speed: 1, clamp: 0 }],
+  // The tagged outer leg rides LEG_DUR so its tag can be read, untagged balls keep routeDur.
   ['network-external-traffic-policy', { speed: 4, clamp: 0 }],
-  // Three balls over three steps: each TAGGED 442 unit balancer leg rides LEG_DUR 1800, near the
-  // catalog median speed, because at routeDur its tag, which can only show on the run over the
-  // frame, retires before it can be read. Justified at the call site.
-  ['network-loadbalancer-direct-to-pods', { speed: 3, clamp: 0 }],
-  // Two balls over two steps: each TAGGED 310 unit branch rides BRANCH_DUR 1500, near the catalog
-  // median speed, because at the 700ms floor it runs 0.44 u/ms and its tag cannot be read. Justified
-  // at the call site.
+  // Each tagged balancer leg rides LEG_DUR so its tag can be read.
+  ['network-loadbalancer-straight-to-pods', { speed: 3, clamp: 0 }],
+  // Each tagged branch rides LEG_DUR so its tag can be read.
   ['network-ingress-routing', { speed: 2, clamp: 0 }],
-  // Two balls over two steps: the TAGGED 212 unit HTTP 500 answer on `refused` and the TAGGED 212
-  // unit proxy to Pod leg on `request` each ride LEG_DUR 1500, because at the 700ms floor the tag
-  // has to clear the face it leaves and retire before the face it heads for, and is gone before it
-  // can be read. Justified at the call site.
+  // Tagged legs ride LEG_DUR so the tag clears both faces and can be read.
   ['network-gateway-api', { speed: 2, clamp: 0 }],
-  // Two balls over two steps: the TAGGED 176 unit request on `header-canary` and the TAGGED 176 unit
-  // HTTP 500 answer on `invalid` each ride LEG_DUR 1125, because at the 700ms floor the tag has to
-  // clear the face it leaves and is gone before it can be read. The untagged balls on the same lanes
-  // keep routeDur. Justified at the call site.
+  // Tagged legs ride LEG_DUR so the tag clears the face it leaves, untagged balls keep routeDur.
   ['network-gateway-traffic-splitting', { speed: 2, clamp: 0 }],
-  // Six balls over five steps, every one of them tagged: each 307 unit leg rides TAG_DUR 1200
-  // rather than the 700ms floor its length clamps to, because inside 700 the tag cannot fade in
-  // clear of the block it leaves, stand long enough to be read, and retire before the arrival
-  // ripple. Justified at the call site.
+  // Every tagged leg rides LEG_DUR so the tag fades in clear, is read, and retires before the ripple.
   ['network-client-ip-preservation', { speed: 6, clamp: 0 }],
-  // Every ball on this card carries an explicit dur, 20 over five steps. The four TAGGED legs ride
-  // LEG_DUR 1275 so the address can be read for the whole flight, and the 16 untagged hops ride
-  // HOP_MS 595, which is under the 700ms floor their 56 to 164 unit lengths clamp to: at the floor
-  // they ran 0.08 to 0.23 u/ms against the 0.45 canon and read as crawling. Justified at the call site.
+  // Tagged legs ride LEG_DUR for a readable address, untagged short hops ride BRISK_HOP_MS under the floor.
   ['network-nodelocal-dnscache', { speed: 20, clamp: 16 }],
-  // Eight balls over five steps: every 152 unit lookup leg rides HOP_MS 595 rather than the 700ms
-  // floor its length clamps to, where it ran 0.217 u/ms against the 0.45 canon and read as crawling.
-  // The two data routes are long enough to take the canon speed and carry no dur. Justified at the
-  // call site.
+  // Short lookup legs ride BRISK_HOP_MS under the 700ms floor, where they read as crawling.
   ['network-headless-service', { speed: 8, clamp: 8 }],
-  // Four balls over four steps: the TAGGED 130 unit query leg rides LEG_DUR 1200 rather than the
-  // 700ms floor its length clamps to, because the tag has to lead its ball over both block tops and
-  // is gone before it can be read at the floor. Justified at the call site.
+  // The tagged query leg rides LEG_DUR so its tag can lead the ball over both block tops.
   ['network-dns-records', { speed: 4, clamp: 0 }],
-  // Every ball on this card carries an explicit dur, eight over six steps: the five 100 unit poll
-  // legs and the three 132 unit write hops all ride HOP_MS 595 rather than the 700ms floor their
-  // lengths clamp to, where they ran 0.143 and 0.189 u/ms against the 0.45 canon and read as
-  // crawling. 595 is the same 15 percent off the floor `network-nodelocal-dnscache` measured for
-  // its own short hops, so the two cards of this section that hop short distances run at one pace.
-  // The card has no lane long enough to take the canon speed. Justified at the call site.
+  // Short poll and write hops ride BRISK_HOP_MS, the same pace network-nodelocal-dnscache uses.
   ['network-dns-autoscaling', { speed: 8, clamp: 8 }],
 ]);
 
-// PULSE-TOGETHER's ceiling (M-03), per card. Empty: an inner box never blinks inside a Pod without
-// the Pod itself, so a card that needs an entry here is a defect to fix, not a count to record.
+// PULSE-TOGETHER ceiling per card (M-03). Empty on purpose: an entry here is a defect to fix.
 const WHOLE_POD = new Map([]);
 
-// routeDur's own bounds, read out of the function instead of copied from beside it. Both constants
-// are module-private to scheme-kit.js, so this is the only reading that cannot go stale.
+// routeDur's bounds are module-private to scheme-kit.js, so they are read by calling it.
 const PKT_DUR_MIN = routeDur([[0, 0], [0, 0.001]]);
 const PKT_DUR_MAX = routeDur([[0, 0], [0, 1e7]]);
 
-// ---------------------------------------------------------------------------------------------
-// The probe. Everything that needs ELEMENT IDENTITY (does this stroke ramp sit on a rect inside the
-// pulsed group, does this tag's route belong to a real ball, is there a Pod in the group that was
-// pulsed) is answered here, where the elements exist. Everything that needs a CANON NUMBER is
-// answered on the Node side, where the tokens are imported. Nothing is answered in both places.
-// ---------------------------------------------------------------------------------------------
+// Element identity is answered in the probe, canon numbers on the Node side, never both.
 
 const catalogued = await cards();
 
-// THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` takes the played pass at 1600x1000,
-// the viewport this file set, and reads the plan at t=0 exactly where this file read it: t=0 rather
-// than the end of the step because every rule here reads the PLAN (delays, durations, keyframes),
-// which is complete the moment the step is entered. The probe moved into fixtures/probes.mjs as
-// `motionProbe`, verbatim, and the one-retry `sample()` this file carried is part of the walk.
+// The probe is motionProbe in fixtures/probes.mjs, read at t=0 of the played pass at 1600x1000.
 const snap = readSnapshot();
 const ids = snap.ids;
 
@@ -340,9 +108,7 @@ test(`the grid renders the whole catalog (${catalogued.length} cards)`, () => {
 });
 
 test('the motion vocabulary is the one tokens.js and scheme-kit.js declare', () => {
-  // Names and shapes, not a second copy of the numbers. What this catches is a token quietly losing
-  // a field or a magnitude collapsing onto its neighbour, either of which would make several rules
-  // below assert nothing while still passing.
+  // Token names and shapes: a lost field or collapsed magnitude would make several rules vacuous.
   assert.deepEqual(Object.keys(PULSE_POD), ['ms', 'bright', 'dimPeak']);
   assert.deepEqual(Object.keys(BEAT), ['afterPulse', 'afterHop', 'lead']);
   assert.deepEqual(Object.keys(FADE), ['in', 'out']);
@@ -357,8 +123,7 @@ test('the motion vocabulary is the one tokens.js and scheme-kit.js declare', () 
 
 let walked = 0, sampled = 0;
 const n = { pulses: 0, flashes: 0, ramps: 0, balls: 0, labels: 0, timers: 0 };
-// Card ids that handed this walk at least one POD pulse: the selector guard, immune to a card
-// dropping one of several. See EXPECTED_PULSE_CARDS.
+// Cards with at least one POD pulse, the selector guard behind EXPECTED_PULSE_CARDS.
 const pulseCards = new Set();
 const beats = new Map();
 const fadeHist = new Map();
@@ -370,8 +135,7 @@ const bump = (m, k) => m.set(k, (m.get(k) || 0) + 1);
 
 for (const id of ids) {
   test(id, async () => {
-    walked++;                    // counted before the assertions, so this stays a census of
-                                 // COVERAGE and a broken card is reported once, as itself.
+    walked++;                    // counted before the assertions, so a broken card is reported once, as itself
     const card = snap.cards[id];
     const total = card.steps;
     assert.ok(total > 0, `stepCount is ${total}: no steps to walk`);
@@ -381,10 +145,7 @@ for (const id of ids) {
     let speedSeen = 0, clampSeen = 0;
 
     for (let i = 0; i < total; i++) {
-      // The played path with animations attached but no auto-advance, frozen at t=0. t=0 rather than
-      // the end of the step because every rule here reads the PLAN (delays, durations, keyframes),
-      // and the plan is complete the moment the step is entered. Seeking would buy nothing and would
-      // put fill-forwards values in front of the pins.
+      // Frozen at t=0: the plan is complete on entry, and a seek would put fill-forward values in front of the pins.
       const { live, motion: r } = card.played[i];
       if (!live && i > 0) {
         findings.push(`UNMEASURED step ${i}: no _timeline handle, the step fell back to a static ` +
@@ -399,10 +160,7 @@ for (const id of ids) {
       sampled++;
 
       for (const p of r.pulses) {
-        // TWO POPULATIONS SHARE THE BRIGHTNESS TRACK, and telling them apart is what the magnitude
-        // assertion in the setup exists for. A block flash (`F.flash`, M-27) is PULSE_BLOCK-shaped
-        // and lands on infrastructure; a Pod pulse is PULSE_POD-shaped. Judging a flash by the pod
-        // rules reports three findings per flashed block and every one of them is noise.
+        // Flash and pod pulse share the brightness track and are told apart by magnitude (M-27).
         if (p.peak === PULSE_BLOCK.bright && p.dur === PULSE_BLOCK.ms) {
           n.flashes++;
           if (p.easing !== PULSE_BLOCK.easing || p.first !== 1 || p.last !== 1) {
@@ -411,8 +169,7 @@ for (const id of ids) {
               `1 to ${PULSE_BLOCK.bright} to 1 over ${PULSE_BLOCK.ms}ms ${PULSE_BLOCK.easing}, and it ` +
               'comes from flashChips through F.flash, never from keyframes typed into a card');
           }
-          // The mirror of PULSE-POD, and it is the half M-01 does not say out loud: only Pods pulse,
-          // and the flash is what a BLOCK gets instead. A flash inside a Pod is a pulse written wrong.
+          // Only Pods pulse (M-01): a flash inside a Pod is a pulse written wrong.
           if (p.inPod || p.ownsPod) {
             findings.push(`FLASH-BLOCK step ${i} "${p.label}" [${p.cls}] flashes at ${p.delay}ms ` +
               'on a Pod or the group holding one. A Pod blinks through pulsePod at the pod ' +
@@ -537,10 +294,7 @@ for (const id of ids) {
 }
 
 test('the explicit-dur registry has no dead and no under-sized entries', FULL_ONLY, () => {
-  // A registry that outlives its reason is a hole with a comment on it. Two failure modes, and both
-  // are silent without this: an entry for a card that no longer deviates (latitude nobody uses, and
-  // the next author reads it as permission), and an allowance larger than the deviation it covers
-  // (room for a defect to arrive unnoticed).
+  // A registry entry that no longer deviates, or allows more than it covers, is a hole.
   const dead = [], loose = [];
   for (const [id, allow] of PACING) {
     const hit = pacingHits.get(id) || { speed: 0, clamp: 0 };
@@ -554,8 +308,7 @@ test('the explicit-dur registry has no dead and no under-sized entries', FULL_ON
 });
 
 test('PULSE-TOGETHER: a Pod blinks with everything inside it (M-03, reported)', (t) => {
-  // Reported with a ceiling rather than asserted to zero. The ceiling is per card (see WHOLE_POD
-  // above) and empty, so any finding anywhere is red.
+  // Ceiling per card (WHOLE_POD), empty, so any finding is red.
   const byCard = new Map();
   for (const line of together) {
     const id = line.split(' ')[0];
@@ -573,9 +326,7 @@ test('every catalogued card was walked, every population was seen', (t) => {
   t.diagnostic(`motion: ${walked} cards, ${sampled} steps`);
   t.diagnostic(`  pulses ${n.pulses}  block flashes ${n.flashes}  stroke ramps ${n.ramps}  balls ${n.balls}  riding tags ${n.labels}  deferred timers ${n.timers}`);
 
-  // Printed on a GREEN run, because it is a measurement and not a finding. It is also the only
-  // standing witness for M-25 (animateAlong honours options.delay): if that regressed, every ball
-  // would report delay 0 and this table would collapse to one row.
+  // Printed on green: the only standing witness for M-25, every delay would collapse to 0.
   t.diagnostic('where a ball\'s delay comes from (M-15 to M-18, measured not asserted):');
   for (const [k, v] of [...beats.entries()].sort((a, b) => b[1] - a[1])) t.diagnostic(`  ${String(v).padStart(4)}  ${k}`);
   t.diagnostic('fade durations against FADE and REVEAL_MS (M-21, M-22, measured not asserted):');
@@ -592,7 +343,6 @@ test('every catalogued card was walked, every population was seen', (t) => {
   assert.ok(sampled >= EXPECTED_STEPS,
     `sampled ${sampled} step(s), expected at least ${EXPECTED_STEPS}. A step nobody sampled is a ` +
     'step whose motion can be wrong while this file stays green.');
-  // The population floors. Each of these is a selector that could go quiet.
   assert.ok(pulseCards.size >= EXPECTED_PULSE_CARDS,
     `measured a Pod pulse on ${pulseCards.size} card(s), expected at least ${EXPECTED_PULSE_CARDS}. ` +
     'The specs declare an F.pulse on that many, so a card missing here is one whose brightness this ' +

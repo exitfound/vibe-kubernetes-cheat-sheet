@@ -1,70 +1,9 @@
-// carried.mjs: the one home for a REPORT FINDING SOMEBODY HAS READ, RULED ON AND KEPT.
-//
-// The files under ../report/ print findings for a human to rule on and fail on nothing. Until this
-// file existed they had no way to record that a row had been LOOKED AT, so the ruling was written
-// into the card record instead, as a `NOT A DEFECT` block saying "report/arrival.test.mjs prints
-// this card on R2-ENTRY and here is why that print is fine". A record is the wrong reader: the file
-// that prints the row cannot open it, so the row came back unmarked on every review and was argued
-// again from nothing. Five report files had already grown a private table of their own against
-// exactly that (R2_STEP_CARRIED, E_CARRIED, A05_CARRIED, RIPPLE_CARRIED, CHIP_CARRIED). This file is
-// those five tables plus the axes that had none, in one place and one shape.
-//
-// ===========================================================================================
-// WHAT AN ENTRY IS, AND WHAT IT IS NOT
-// ===========================================================================================
-// An entry is a DECISION with a measurement behind it: a person opened the card, read the row the
-// report printed, and decided the picture is right and the row stands. It is never a way to make a
-// queue shorter. Three properties follow, and all three are enforced rather than asked for:
-//
-//   A REASON IS MANDATORY. `why` is prose, present tense, saying what IS true of the card (`S-48`).
-//     An entry with no reason is refused by the shape check every consuming file runs.
-//   A CARRIED ROW STAYS VISIBLE. The consuming file prints it, marked CARRIED and with the reason
-//     attached, and counts it apart from the rows still to work. Nothing here hides anything: the
-//     whole point is to say "this was ruled on", which is a louder statement than silence.
-//   A SUPPRESSION THAT MATCHES NOTHING IS ITSELF A FINDING. A rule that stopped firing means the
-//     card moved under the ruling, so the reason may now be false. Every consuming file computes
-//     its own stale set and prints it, and the four axes that also have a gate assert on it.
-//
-// ===========================================================================================
-// THE SHAPE
-// ===========================================================================================
-// One entry per FINDING, never per card:
-//
-//   { axis: 'R2-ENTRY', card: 'cluster-node-failure', where: ['5', 'Taint'], why: '...' }
-//
-// `axis` is the rule the finding belongs to, one of AXES below. `card` is a catalogued card id.
-// `where` is whatever that axis needs to pin the exact row, and its shape is written down once per
-// axis in AXES. The match key is `[card, ...where].join(' ')`, which is byte for byte the key the
-// five private tables already used, so a consuming file compares a key it builds itself against a
-// key this file builds and neither has to know the other exists.
-//
-// ===========================================================================================
-// WHAT THIS FILE IS BLIND TO
-// ===========================================================================================
-//   - WHETHER A REASON IS TRUE. It is prose. Only its presence is machine-checkable, and a wrong
-//     reason reads exactly like a right one. That is the same limit ../unit/chip-beat-e.test.mjs
-//     records for the table it inherited.
-//   - WHETHER A FINDING DESERVES CARRYING. Nothing here ranks. An axis with half its queue carried
-//     looks the same as one with two entries, which is why every consuming file prints both counts.
-//   - AN AXIS NO REPORT FILE CONSUMES. Adding a row to AXES does not make anything read it. The
-//     `file` column names the reader, and an axis whose reader was deleted goes quiet, not red.
-//
-// ===========================================================================================
-// PRINTING THE LIST ON DEMAND
-// ===========================================================================================
-// `node fixtures/carried.mjs` prints every entry grouped by axis, and `node fixtures/carried.mjs
-// R2-ENTRY` prints one axis. Inside a report run, `CARRIED=1 npm run report` makes every consuming
-// file print its WHOLE axis roster rather than only the entries that matched this walk, so an entry
-// that has gone stale shows up beside the reason it still claims.
-//
-// IT IMPORTS NOTHING AT MODULE LEVEL, on purpose. Ten files read this store, four of them fixtures
-// the mandatory gate pulls in, so a static import here lands in every one of their graphs. The one
-// thing it needs, the catalog, is loaded inside the command-line block below and nowhere else.
+// The one store of report findings a person has read, ruled on and kept. Every entry needs a `why`
+// (present tense, S-48), stays printed as CARRIED, and goes stale when it matches nothing.
+// `node fixtures/carried.mjs [axis]` prints it. No module-level imports: gate fixtures pull it in.
 
-// The axes an entry may belong to, and for each one the file that reads it and what `where` holds.
-// `gate` names the mandatory test that ALSO reads this axis, where there is one: those four keys
-// are load bearing beyond the report, because a key that cannot match is a finding the gate lets
-// through. An axis with no `gate` is report-only and a bad key there only fails to suppress.
+// Each axis, the file that reads it and what `where` holds. `gate` names the mandatory test that
+// also reads it, where a key that cannot match lets a finding through.
 export const AXES = {
   'FRAME-FACE': {
     file: 'report/frame-face.test.mjs',
@@ -137,24 +76,14 @@ export const AXES = {
   },
 };
 
-// -------------------------------------------------------------------------------------------
-// THE ENTRIES. Grouped by axis for reading, in one flat list so nothing can be filed twice.
-// -------------------------------------------------------------------------------------------
 const ENTRIES = [
 
-  // ---------------------------------------------------------------------------------------
-  // R2-ENTRY. Almost every entry below is ONE class, and the axis announces it in its own
-  // header: it compares two frames frozen at t=0, so a value a card turns over MID-step is
-  // first seen at the step AFTER it, where the cue has legitimately already been shown and
-  // cleared. R2-STEP is the axis that answers the canon question, and none of these cards is
-  // on its queue. Each entry still carries the card-specific half, which is where the cue
-  // actually lands and what closing the row would cost.
-  // ---------------------------------------------------------------------------------------
+  // R2-ENTRY: mostly the frozen-sample class, where a value turned over mid-step first shows one step late.
   { axis: 'R2-ENTRY', card: 'network-nodeport-loadbalancer', where: ['4', 'loadBalancer'],
     why: 'not a change on client-hit: the address is written by the F.set on the provisioning arrival '
       + 'of lb-provision, which lights the chip there, and a frame frozen at t=0 of lb-provision reads '
       + 'the rewind value none. R2-STEP, off the settled step, reports nothing' },
-  { axis: 'R2-ENTRY', card: 'network-loadbalancer-bare-metal', where: ['2', 'loadBalancer'],
+  { axis: 'R2-ENTRY', card: 'network-loadbalancer-without-cloud', where: ['2', 'loadBalancer'],
     why: 'not a change on l2: the address is written by the F.set on the controller write arrival of '
       + 'pool, which lights the chip there, and a frame frozen at t=0 of pool reads the rewind value '
       + 'pending. R2-STEP, off the settled step, reports nothing' },
@@ -512,9 +441,7 @@ const ENTRIES = [
     why: 'the other half of the pair `5 Taint` on this card carries, wound back and turned over on '
       + 'the same arrival.' },
 
-  // cluster-etcd-raft, two entries covering FOUR rows. Both Follower log chips are drawn `log/commit`,
-  // and this axis keys on the chip NAME, so one key per step catches l2 and l3 together. Each reason
-  // rules on both, and neither entry can be split further without changing the key shape.
+  // Both Follower log chips are drawn `log/commit`, so one key per step covers l2 and l3.
   { axis: 'R2-ENTRY', card: 'cluster-etcd-raft', where: ['4', 'log/commit'],
     why: 'l2 and l3 both draw `log/commit`, so this one key holds the pair. The turnover is on '
       + '`replicate`, step 3, where each chip is written to `9 / 8` by an F.set bound to its own '
@@ -575,10 +502,7 @@ const ENTRIES = [
       + '`edit-file` is first seen frozen on `drain`. DO NOT light the chip on `drain`, where '
       + 'nothing happens to the container.' },
 
-  // Cluster, the frozen-sample class in its plainest form: each value is written through `chips`,
-  // wound back in `rewind` and turned over by an F.set on the arrival of the PREVIOUS step, where
-  // the chip is in `lit`. Frozen at t=0 the change first shows here. R2-STEP holds none of these
-  // rows. DO NOT light the chip on the step named in the key, where nothing happens to it.
+  // Cluster, the frozen-sample class. Do not light the chip on the keyed step, nothing happens to it there.
   ...[
     ['cluster-node-registration', '3', 'metadata.name', 'step 2 `register` writes Node-1 on the `post` arrival'],
     ['cluster-node-registration', '4', 'status.addresses', 'step 3 `status` writes the InternalIP on the `put` arrival'],
@@ -607,24 +531,12 @@ const ENTRIES = [
     ['cluster-list-watch-informers', '3', 'resourceVersion', 'step 2 `list` writes 842 on the `toCache` arrival, where the set lands in the Indexer'],
     ['cluster-list-watch-informers', '3', 'cache size', 'step 2 `list` writes 3 on the `toCache` arrival, with resourceVersion'],
   ].map(([card, step, chip, where]) => ({ axis: 'R2-ENTRY', card, where: [step, chip],
-    why: `${where} and lights it there. Frozen at t=0 the change first shows one step later.` })),
-  // One more cluster card, where the row restates a ruling R2-STEP already carries.
+    why: `${where}, the chip lit from that step's entry (P-06). Frozen at t=0 the change first shows one step later.` })),
   { axis: 'R2-ENTRY', card: 'cluster-oom-kill', where: ['3', 'container state'],
     why: 'the mirror of `R2-STEP cluster-oom-kill 3 container state`: containerStatuses[].state is '
       + 'STILL Running, and the suffix `not yet observed` explains an unchanged fact. The turnover '
       + 'the reader must catch is on the observe step, where the chip IS lit.' },
 
-  { axis: 'R2-ENTRY', card: 'workloads-ephemeral-containers', where: ['3', 'spec.ephemeralContainers'],
-    why: 'the value is a static write (`S-13`) and the cue rides the ball, which is what `lights:` '
-      + 'on the route entry does. This axis reads both frames frozen at t=0, before that ball has '
-      + 'landed, so it sees a moved value and no highlight. R2-STEP, settled against settled, is '
-      + 'the reading the canon asks for and this card is not on its queue. DO NOT close it by '
-      + 'lighting the chip at entry: that would say the API had appended the entry before the '
-      + 'PATCH carrying it arrived.' },
-  { axis: 'R2-ENTRY', card: 'workloads-ephemeral-containers', where: ['3', 'targetContainerName'],
-    why: 'the same PATCH that appends the entry carries targetContainerName, so the chip moves on '
-      + 'the same ball as `3 spec.ephemeralContainers` and is cued by the same `lights:` list at '
-      + 'the door. DO NOT light it at entry: the field is set by the write that has not landed yet.' },
   { axis: 'R2-ENTRY', card: 'workloads-ephemeral-containers', where: ['6', 'status.ephemeralContainerStatuses'],
     why: 'not a change on `inside`: step 5 `starts` winds the status back to none in `rewind` and '
       + 'writes Running with an F.set on the spine arrival (`write`), cued there by `lights:`, so a '
@@ -731,7 +643,6 @@ const ENTRIES = [
       + 'is the opposite of the mechanism the step narrates, and P-09 binds workloads to `chips` '
       + 'rather than `chipsCued`.' },
 
-
   { axis: 'R2-STEP', card: 'workloads-pod-pending-init-states', where: ['2', 'AGE'],
     why: 'AGE is a CLOCK, not an event. It moves on every step because time passes, which is the '
       + 'one thing this card needs it for: the jump from 50s to 4m10s is what separates a normal '
@@ -759,7 +670,7 @@ const ENTRIES = [
   { axis: 'R2-ENTRY', card: 'workloads-pod-lifecycle-phases', where: ['3', 'status.phase'],
     why: 'the price of the P-03 FORM-B repair, and the trade is the right way round. status.phase '
       + 'turns over on `running`, step 2, where a `rewind` holds it at Pending and an `F.set` bound '
-      + 'to the ball reaching the Running box writes it at 700ms, with the chip in that step lit '
+      + 'to the ball reaching the Running box writes it at 1500ms, with the chip in that step lit '
       + 'list so the cue is on screen from 0ms and the reader sees the value land under it. This '
       + 'axis reads both frames frozen at t=0, so it never sees that turnover and attributes the '
       + 'change to `crashloop`, step 3, where the chip is correctly not lit because the whole point '
@@ -770,11 +681,10 @@ const ENTRIES = [
       + 'chip that step exists to leave alone.' },
   { axis: 'R2-ENTRY', card: 'workloads-pod-lifecycle-phases', where: ['5', 'restartCount'],
     why: 'the same repair one register down. restartCount turns over on `recover`, step 4, where a '
-      + '`rewind` holds it at 4 and an `F.set` bound to the Kubelet ball writes 5 at 700ms, with '
+      + '`rewind` holds it at 4 and an `F.set` bound to the Kubelet ball writes 5 at 1500ms, with '
       + 'the chip in that step lit list. Frozen at t=0 the change is first seen on `terminal`, step '
       + '5, where it is not lit because that step is about the phase reaching Succeeded and the '
       + 'restart count is settled. DO NOT close it by lighting restartCount on `terminal`.' },
-  // workloads-pod-scheduling-gates, the same frozen-sample price: the count turns over on the write.
   ...[['4', '`remove-one`, step 3, where a `rewind` holds it at 2 entries and the `F.set` that cues '
       + 'gateB on the write arrival writes 1 entry at 1500ms', '`one-way`, step 4'],
     ['6', '`remove-last`, step 5, where a `rewind` holds it at 1 entry and the `F.set` that cues '
@@ -901,10 +811,7 @@ const ENTRIES = [
   { axis: 'R2-ENTRY', card: 'network-headless-service', where: ['6', 'A web-2'],
     why: 'step 5 `pod-name` writes `not asked` on its answer arrival and lights it there, as `query` above' },
 
-  // network-dns-autoscaling turns every one of these over MID-step, on the arrival of the ball that
-  // produced it, and lights it there through `lit`. A frozen entry sample therefore first sees the
-  // new value on the step AFTER the one that wrote it, where the cue has legitimately already been
-  // shown and cleared. R2-STEP, the axis that answers the canon question, reports none of them.
+  // Turned over mid-step on the arrival that produced it, so a frozen sample sees it one step late.
   { axis: 'R2-ENTRY', card: 'network-dns-autoscaling', where: ['2', 'nodes'],
     why: 'step 1 `poll` writes 16 on the counts arrival and lights `nodes` there' },
   { axis: 'R2-ENTRY', card: 'network-dns-autoscaling', where: ['2', 'cores'],
@@ -924,10 +831,7 @@ const ENTRIES = [
   { axis: 'R2-ENTRY', card: 'network-dns-autoscaling', where: ['6', 'cores'],
     why: 'step 5 `grow` writes 1536 on the counts arrival and lights `cores` there' },
 
-  // network-nodelocal-dnscache winds all four chips back in `rewind` and turns each over MID-step,
-  // cued, on the arrival where its fact happens (P-03): the rewrite and conntrack readings when the
-  // query reaches the dataplane, the cache and upstream readings when it reaches the agent. A frozen
-  // entry sample first sees each value on the step after the one that wrote it. R2-STEP reports none.
+  // Rewound and turned over mid-step, cued on the arrival where the fact happens (P-03).
   ...[
     ['3', 'rewrite', 'step 2 `agent` writes `none, NOTRACK` on the dataplane arrival `in` and lights it there'],
     ['3', 'conntrack', 'step 2 `agent` writes `no entry` on the dataplane arrival `in` and lights it there'],
@@ -943,9 +847,7 @@ const ENTRIES = [
     ['5', 'upstream', 'step 4 `hit` writes `not asked` on the agent arrival `local` and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'network-nodelocal-dnscache', where: [step, chip], why })),
 
-  // network-dns-pod-policy winds the five spec chips back to the previous Pod in `rewind` and turns
-  // the changed ones over on the watch arrival, lit there (DO NOT in its record). A frozen entry
-  // sample first sees each value on the step after the one that wrote it. R2-STEP reports none.
+  // Rewound to the previous Pod and turned over on the watch arrival.
   ...[
     ['2', 'dnsPolicy', 'step 1 `clusterfirst` writes ClusterFirst on the watch arrival and lights it there'],
     ['3', 'dnsPolicy', 'step 2 `default` writes Default on the watch arrival and lights it there'],
@@ -959,24 +861,20 @@ const ENTRIES = [
     ['6', 'dnsConfig.options', 'step 5 `none` writes `ndots:2 edns0` on the watch arrival and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'network-dns-pod-policy', where: [step, chip], why })),
 
-  // Ten more network cards in the same class: each value is wound back in `rewind` and turned over
-  // MID-step on the arrival or beat that makes it true, cued there by `lights`, an F.light or a cued
-  // F.set, so a frozen entry sample first sees it one step late or pairs two rewind values. A key
-  // names the chip as drawn, so one entry covers every same-named chip on that step. R2-STEP holds
-  // none of these rows. DO NOT light the chip on the step named in the key, where nothing happens to it.
+  // More network cards in the rewind class. A key names the chip as drawn, covering same-named chips on that step.
   ...[
-    ['network-model', '3', 'NAT', 'step 2 `no-nat` writes `none, src 10.244.1.5` with a cued F.set on its `hop` arrival. `same-node` carries the value in unchanged, so it earns no cue here (P-05)'],
-    ['network-model', '3', 'reachability', 'step 2 `no-nat` writes `cross-Node direct` cued on `hop`, and that is the value `same-node` winds back to before turning it over, cued, on its own `hop`'],
-    ['network-model', '4', 'reachability', '`same-node` writes `same-Node direct` cued on its `hop` arrival, and `node-agent` winds back to that value before turning it over, cued, on its own `hop`'],
-    ['network-model', '5', 'NAT', 'step 4 `node-agent` clears the value to `none` with a cued F.set on its `hop` arrival, after winding it back to `none, src 10.244.1.5`. `cni` only holds it'],
+    ['network-flat-pod-network', '3', 'NAT', 'step 2 `no-nat` writes `none, src 10.244.1.5` with a cued F.set on its `hop` arrival. `same-node` carries the value in unchanged, so it earns no cue here (P-05)'],
+    ['network-flat-pod-network', '3', 'reachability', 'step 2 `no-nat` writes `cross-Node direct` cued on `hop`, and that is the value `same-node` winds back to before turning it over, cued, on its own `hop`'],
+    ['network-flat-pod-network', '4', 'reachability', '`same-node` writes `same-Node direct` cued on its `hop` arrival, and `node-agent` winds back to that value before turning it over, cued, on its own `hop`'],
+    ['network-flat-pod-network', '5', 'NAT', 'step 4 `node-agent` clears the value to `none` with a cued F.set on its `hop` arrival, after winding it back to `none, src 10.244.1.5`. `cni` only holds it'],
     ['network-pod-ip-and-veth', '3', 'Pod IP', 'step 2 `address` winds the chip back to `allocated` and writes 10.244.1.5/24 at 800ms with the eth0 sublabel, the chip lit in `lit`: one result of one beat (P-03, P-04). `through` only holds it'],
     ['network-service-clusterip', '3', 'DNAT', 'step 2 `program` winds the chip back to none and writes the rules after the watch arrival, with an F.light on dnatChip there. `send` only holds them'],
     ['network-service-clusterip', '6', 'conntrack', 'both frames are rewind values: `reply` holds `flow pinned` until its h1 arrival, and `balance` holds `reverse NAT` until its send arrival, where an F.light cues `two flows`'],
     ['network-service-clusterip', '7', 'DNAT', 'step 6 `balance` winds the chip back to .2.7 and writes .3.9 on its send arrival, cued by an F.light there. `balance-reply` only holds it'],
     ['network-service-clusterip', '7', 'conntrack', 'both frames are rewind values: `balance` holds `reverse NAT` until send, and `balance-reply` holds `two flows` until its h1 arrival, where an F.light cues `reverse NAT`'],
     ['network-service-clusterip', '7', 'backend', 'step 6 `balance` winds the chip back to 10.244.2.7 and writes 10.244.3.9 on its send arrival, cued by an F.light there. `balance-reply` only holds it'],
-    ['network-endpointslice-reconcile', '3', 'endpoint', 'all three rows: step 2 `reconcile` winds them back to (empty) and writes them on the `write` arrival, with an F.light on all three there. `readiness` winds ep2 back to ready=true for its own turnover on `upd`'],
-    ['network-endpointslice-reconcile', '4', 'endpoint', 'step 3 `readiness` winds ep2 back to ready=true and writes ready=false on the `upd` arrival, with an F.light on ep2 there. `consume` only holds it'],
+    ['network-service-and-endpointslice', '3', 'endpoint', 'all three rows: step 2 `reconcile` winds them back to (empty) and writes them on the `write` arrival, with an F.light on all three there. `readiness` winds ep2 back to ready=true for its own turnover on `upd`'],
+    ['network-service-and-endpointslice', '4', 'endpoint', 'step 3 `readiness` winds ep2 back to ready=true and writes ready=false on the `upd` arrival, with an F.light on ep2 there. `consume` only holds it'],
     ['network-service-terminating-endpoints', '4', 'condition', 'both rows: step 3 `delete` winds the conditions back to the steady values and turns ready and terminating over at 450ms with an F.light on both. `reprogram` only holds them'],
     ['network-internal-traffic-policy', '3', 'Node-1 rules', 'step 2 `local` winds both rule chips back to both agents and turns them over at RULES_MS 300 with an F.light, the kube-proxy beat that writes them. `no-local-backend` only holds this one'],
     ['network-internal-traffic-policy', '3', 'Node-2 rules', 'both frames are rewind values: `local` holds both agents until its 300ms turnover, and `no-local-backend` holds agent-2 until its own 300ms turnover to drop, cued there'],
@@ -988,8 +886,8 @@ const ENTRIES = [
     ['network-external-traffic-policy', '3', 'extra hop', 'step 2 `cluster-snat` winds the chip back to yes and writes no on the `toN1` arrival, whose `lights` cue it. `local` only holds it'],
     ['network-external-traffic-policy', '4', 'share', 'both 17% shares: step 3 `local` winds them back to 33% and writes 17% on the `drop` arrival, whose `lights` cue them. `healthcheck` only holds them'],
     ['network-external-traffic-policy', '4', 'client src IP', 'step 3 `local` winds the chip back to `lost (SNAT)` and writes preserved on the `toN1` arrival, whose `lights` cue it. `healthcheck` only holds it'],
-    ['network-loadbalancer-direct-to-pods', '2', 'path through Nodes', 'step 1 `nodeports` winds the chip back to none and writes 2 on the `hop` arrival, whose `lights` cue it. `register` only holds it'],
-    ['network-loadbalancer-direct-to-pods', '4', 'path through Nodes', 'step 3 `direct` winds the chip back to 2 and writes 1 on the `toN1` arrival, whose `lights` cue it. `replace` only holds it'],
+    ['network-loadbalancer-straight-to-pods', '2', 'path through Nodes', 'step 1 `nodeports` winds the chip back to none and writes 2 on the `hop` arrival, whose `lights` cue it. `register` only holds it'],
+    ['network-loadbalancer-straight-to-pods', '4', 'path through Nodes', 'step 3 `direct` winds the chip back to 2 and writes 1 on the `toN1` arrival, whose `lights` cue it. `replace` only holds it'],
     ['network-client-ip-preservation', '3', 'src', 'step 2 `terminate` winds rSrc back to none and writes 10.244.0.9 on the `out` arrival, the chip lit in `lit`. `xff` only holds it'],
     ['network-client-ip-preservation', '4', 'app reads', 'step 3 `xff` winds the chip back to socket and writes header on the `out` arrival, the chip lit in `lit`. `forge` only holds it'],
     ['network-client-ip-preservation', '5', 'X-Forwarded-For', 'the step 4 frame is the rewind of `forge`, which turns rXff over on `out`. Settled against settled this is the R2-STEP row already carried: a raw stream has no header, and nothing cleared one'],
@@ -1001,9 +899,7 @@ const ENTRIES = [
       + '`lights` cue it. A frame frozen at t=0 reads the rewind value, and settled against settled '
       + 'R2-STEP reports nothing. DO NOT light the chip at entry: the cue would be spent before the '
       + 'turnover it announces' },
-  // storage-container-filesystem writes every chip a ball earns through `chips`, winds it back in
-  // `rewind`, and turns it over and lights it with an F.set on that ball's arrival. A frozen entry
-  // sample first sees each value on the step after the one that wrote it. R2-STEP reports none.
+  // The rewind class from here down: written through `chips`, wound back in `rewind`, turned over by a cued F.set.
   ...[
     ['2', 'app.conf from', 'step 1 `read` writes base layer on the read arrival and lights it there'],
     ['3', 'upperdir', 'step 2 `create` writes cache on the create arrival and lights it there'],
@@ -1012,8 +908,6 @@ const ENTRIES = [
     ['5', 'upperdir', 'step 4 `whiteout` writes `cache, app.conf, whiteout` on the whiteout arrival and lights it there'],
     ['6', '/data', 'step 5 `volume` writes db on the volume arrival and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-container-filesystem', where: [step, chip], why })),
-  // storage-emptydir, the same class: every value an event earns is written through `chips`, wound
-  // back in `rewind`, and turned over and lit by an F.set on that event. R2-STEP reports none.
   ...[
     ['2', 'emptyDir', 'step 1 `create` writes on Node-1 when the directory fade lands and lights it there'],
     ['2', '/cache', 'step 1 `create` writes empty when the directory fade lands and lights it there'],
@@ -1025,8 +919,6 @@ const ENTRIES = [
     ['6', '/cache', 'step 5 `replace` writes empty when the new directory fade lands and lights it there'],
     ['6', 'app restarts', 'step 5 `replace` writes 0 when the web-b fade lands and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-emptydir', where: [step, chip], why })),
-  // storage-ephemeral-storage-eviction, the same class: each value is written through `chips`, wound
-  // back in `rewind`, and turned over and lit by an F.set on the beat that earns it. R2-STEP reports none.
   ...[
     ['2', 'request', 'step 1 `request` writes `512Mi reserved` after the Pod blink and lights it there'],
     ['3', 'usage', 'step 2 `write` writes `1100Mi on disk` on the third write arrival, after 300Mi and 700Mi'],
@@ -1034,9 +926,6 @@ const ENTRIES = [
     ['5', 'usage', 'step 4 `compare` writes `1100Mi, over 1Gi` as the Pod row verdict lands and lights it there'],
     ['6', 'Pod web-a', 'step 5 `evict` writes `Failed, Evicted` on the evict arrival and lights it there. `replace` holds the value and cues nothing, since nothing changed (P-09a)'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-ephemeral-storage-eviction', where: [step, chip], why })),
-  // storage-hostpath, the same class: `Node-1`, `counted` and `Node-2` are earned by a landing ball
-  // or a fade, written through `chips`, wound back in `rewind`, and turned over and lit by an F.set
-  // there. R2-STEP reports none.
   ...[
     ['2', 'Node-1', 'step 1 `check` writes `dir exists` on the check arrival and lights it there'],
     ['3', 'Node-1', 'step 2 `bind` writes `at /cache` on the bind arrival and lights it there'],
@@ -1046,16 +935,12 @@ const ENTRIES = [
     ['6', 'counted', 'step 5 `delete` writes `Pod gone` on the StopContainer arrival and lights it there'],
     ['7', 'Node-2', 'step 6 `elsewhere` writes `FailedMount` on the Node-2 check arrival and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-hostpath', where: [step, chip], why })),
-  // storage-configmap-secret-mount, the same class: every chip a ball earns is written through `chips`,
-  // wound back in `rewind`, and turned over and lit by an F.set on that arrival. R2-STEP reports none.
   ...[
     ['2', '..data target', 'step 1 `project` writes `v1 dir` on the write arrival and lights it there'],
     ['2', 'version dirs', 'step 1 `project` writes `1` on the write arrival and lights it there'],
     ['3', 'version dirs', 'step 2 `stage` writes `2` on the write arrival and lights it there'],
     ['3', 'app reads', 'step 2 `stage` writes `app.conf v1` on the read arrival and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-configmap-secret-mount', where: [step, chip], why })),
-  // storage-projected-volume, the same class: every chip a ball earns is written through `chips`,
-  // wound back in `rewind`, and turned over and lit by an F.set on that arrival. R2-STEP reports none.
   ...[
     ['2', 'dir holds', 'step 1 `inject` writes `ca.crt, namespace` on the two write arrivals and lights it there'],
     ['3', 'dir holds', 'step 2 `request` writes `ca.crt, namespace, token` on the token write arrival and lights it there'],
@@ -1105,29 +990,21 @@ const ENTRIES = [
       + 'reads the rewind value and the turnover is first seen one step later. R2-STEP reports '
       + 'nothing. DO NOT close it by dropping the rewind: the value would stand on the strip before '
       + 'the call that produces it has landed' })),
-  // storage-pvc-binding, the same class: step 4 `bind` winds all three chips back in `rewind` and
-  // turns each over with a cued F.set on the write that earns it. R2-STEP reports none.
   ...[
     ['5', 'PVC', 'step 4 `bind` writes Bound when the volumeName write reaches the claim (`toClaim`) and lights it there'],
     ['5', 'PV x73a', 'step 4 `bind` writes Bound when the claimRef write reaches the volume (`toVolume`) and lights it there'],
     ['5', 'binding', 'step 4 `bind` writes the pair on the volumeName arrival (`toClaim`), the second write, when it exists on both objects, and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-pvc-binding', where: [step, chip], why })),
-  // storage-access-modes, the same class: a grant step winds `used on` and `sharing` back in `rewind`
-  // and turns each over with a cued F.set on the attach arrival of the ball that earns it.
   ...[
     ['2', 'used on', 'step 1 `rwo-first` writes Node-1 when the app-1 attach lands on the block disk (`a1Att`) and lights it there'],
     ['3', 'sharing', 'step 2 `rwo-samenode` writes app-1, app-2 when the app-2 attach lands (`a2Att`) and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-access-modes', where: [step, chip], why })),
-  // storage-generic-ephemeral-volume, the same class: each step winds the chips its balls earn back in
-  // `rewind` and turns each over with a cued F.set on the arrival that earns it. R2-STEP reports none.
   ...[
     ['2', 'PVC', 'step 1 `mint` writes Pending when the ownerReference ball reaches the claim (`own`) and lights it there'],
     ['3', 'backing', 'step 2 `provision` writes real disk, fast-ssd when CreateVolume reaches the disk (`create`) and lights it there'],
     ['4', 'PVC', 'step 3 `mount` writes Bound when the volume reaches the claim (`low`) and lights it there'],
     ['4', 'Pod', 'step 3 `mount` writes Running when the mount reaches the Pod (`high`) and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-generic-ephemeral-volume', where: [step, chip], why })),
-  // storage-volume-snapshot, the same class: each step winds the chips its ball earns back in
-  // `rewind` and turns them over with a cued F.set on that ball's arrival (P-03). R2-STEP reports none.
   ...[
     ['3', 'readyToUse', 'step 2 `request` writes false when the bind ball reaches the content (`bind`) and lights it there'],
     ['4', 'readyToUse', 'step 3 `cut` writes true when CreateSnapshot reaches the pool (`call`) and lights it there'],
@@ -1135,14 +1012,12 @@ const ENTRIES = [
     ['4', 'stored', 'step 3 `cut` writes same pool when CreateSnapshot reaches the pool (`call`) and lights it there'],
     ['5', 'shared blocks', 'step 4 `diverge` writes 5 of 6 when the old C v2 reaches the snapshot row (`keep`) and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-volume-snapshot', where: [step, chip], why })),
-  // storage-volume-mode, the same class: each step winds the chip its ball earns back in `rewind`
-  // and turns it over with a cued F.set on that ball's arrival (P-03). R2-STEP reports none.
   ...[
     ['3', 'mkfs ran on', 'step 2 `format` writes web-0 disk when the ball reaches Format (`fmt`) and lights it there'],
     ['5', 'web-0 sees', 'step 4 `publish-dir` writes directory /data when the ball reaches Pod web-0 (`pub`) and lights it there'],
     ['5', 'fsGroup, subPath', 'step 4 `publish-dir` writes on web-0 on the same arrival at Pod web-0 (`pub`) and lights it there'],
     ['6', 'db-0 sees', 'step 5 `publish-device` writes device /dev/xvda when the ball reaches Pod db-0 (`dev`) and lights it there'],
-  ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-volume-mode', where: [step, chip], why })),
+  ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-filesystem-vs-block', where: [step, chip], why })),
   { axis: 'R2-ENTRY', card: 'storage-csi-capacity-tracking', where: ['4', 'capacity objects'],
     why: 'the same class: step 3 `publish` winds the chip back to none in `rewind` and turns it to '
       + '2 published with a cued F.set when the write lands in the API server (`pub`), so a frame '
@@ -1155,7 +1030,7 @@ const ENTRIES = [
       + 'Node-1 on the same arrival, so a frame frozen at t=0 reads the rewind value and the turnover '
       + 'is first seen at step 3. R2-STEP reports nothing. DO NOT close it by dropping the rewind: '
       + 'the chip would drop the Node before the provision that fails on it' },
-  { axis: 'R2-ENTRY', card: 'storage-topology-aware-provisioning', where: ['2', 'PVC'],
+  { axis: 'R2-ENTRY', card: 'storage-volume-binding-mode', where: ['2', 'PVC'],
     why: 'the same class: step 1 `imm-provision` winds the claim chip back to Pending in `rewind` and '
       + 'turns it to Bound with a cued F.set when CreateVolume reaches the zone-a disk (`prov`), so a '
       + 'frame frozen at t=0 reads the rewind value and the turnover is first seen at step 2. R2-STEP '
@@ -1176,10 +1051,7 @@ const ENTRIES = [
       + 'is first seen one step later, where nothing moves the counter. R2-STEP reports nothing, and '
       + 'a real-time settled-dump shows the chip lit on the step that turns it. DO NOT close it by '
       + 'dropping the rewind: the counter would count claims and mounts before their balls land' })),
-  // The rewind class seen from the other side. `unlightRewound` in lib/step-spec.js takes the static
-  // cue off a chip `rewind` winds back, so each of these reads its OLD value dark at entry and lights
-  // on the cued F.set that turns it over. Frozen at t=0 the turnover is read one step late with no
-  // highlight there, which is this axis reporting the cue landing later, as it should. R2-STEP holds none.
+  // The rewind class seen from the other side: `unlightRewound` reads the old value dark at entry.
   ...[
     ['storage-pvc-binding', '4', 'binding', 'step 3 `match` writes `candidate PV x73a` on the match arrival, cued there and dark until then'],
     ['storage-access-modes', '2', 'sharing', 'step 1 `rwo-first` writes `app-1` on the attach arrival, cued there and dark until then'],
@@ -1190,30 +1062,22 @@ const ENTRIES = [
     ['workloads-poststart-prestop-hooks', '3', 'postStart hook', 'step 2 `start` writes `running (exec)` on the hook arrival, cued there and dark until then'],
     ['workloads-poststart-prestop-hooks', '5', 'preStop hook', 'step 4 `delete` writes `running (sync)` on the hook arrival, cued there and dark until then'],
   ].map(([card, step, chip, why]) => ({ axis: 'R2-ENTRY', card, where: [step, chip], why })),
-  // storage-fsgroup-ownership, the same class on the listing: `chown` winds the three rows and the
-  // owner chip back to root:root and turns each over, cued, as the walk crosses it. R2-STEP reports none.
   ...[
     ['4', '/data', 'step 3 `chown` writes `root:2000 g+s` as the walk crosses the row and lights it there'],
     ['4', 'app.log', 'step 3 `chown` writes `root:2000` as the walk crosses the row and lights it there'],
     ['4', '... 4.2M more', 'step 3 `chown` writes `root:2000` as the walk crosses the row and lights it there'],
     ['4', 'owner', 'step 3 `chown` writes `root:2000 g+s` with the cued F.set on the `walk` arrival, after the last row'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-fsgroup-ownership', where: [step, chip], why })),
-  // storage-image-volume, the same class: each value is written through `chips`, wound back in `rewind`
-  // and turned over by the cued F.set on the arrival that earns it. R2-STEP reports none.
   ...[
     ['3', 'llm:v1 on Node', 'step 2 `pull` writes pulled on the pull arrival (`pull`) and lights it there'],
     ['4', '/models', 'step 3 `mount` writes read-only on the mount arrival (`mount`) and lights it there'],
     ['5', 'app container', 'step 4 `start` writes running on the start arrival (`start`), with the Pod blink, and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-image-volume', where: [step, chip], why })),
-  // storage-downward-api-volume, the same class: each value is written through `chips`, wound back in
-  // `rewind` and turned over by the cued F.set on the arrival that earns it. R2-STEP reports none.
   ...[
     ['3', 'file zone', 'step 2 `write` writes east on the write arrival (`write`) and lights it there'],
     ['4', 'env ZONE', 'step 3 `start` writes east on the env arrival (`env`), with the Pod blink, and lights it there'],
     ['6', 'file zone', 'step 5 `rewrite` writes west on the write arrival (`write`) and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-downward-api-volume', where: [step, chip], why })),
-  // storage-volumeattachment, the same class: each value is written through `chips`, wound back in
-  // `rewind` and turned over by the cued F.set on the arrival that earns it. R2-STEP reports none.
   ...[
     ['3', 'VolumeAttachment', 'step 2 `write` writes va-7f on the controller write arrival (`write`) and lights it there'],
     ['3', 'status.attached', 'step 2 `write` writes false on the controller write arrival (`write`) and lights it there'],
@@ -1221,56 +1085,48 @@ const ENTRIES = [
     ['5', 'status.attached', 'step 4 `status` writes true on the attacher status write arrival (`status`) and lights it there'],
     ['6', 'Kubelet', 'step 5 `mount` writes mounted when the mount lands in the Pod (`mount`) and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-volumeattachment', where: [step, chip], why })),
-  // storage-multi-attach-error, the same class: each value is written through `chips`, wound back in
-  // `rewind` and turned over by the cued F.set on the arrival that earns it. R2-STEP reports none.
   ...[
     ['6', 'blocked by', 'step 5 `detach` writes nothing when the detach reaches the disk (`det`) and lights it there'],
     ['7', 'attached to', 'step 6 `attach` writes Node-2 when the attach reaches the disk (`att`) and lights it there'],
     ['7', 'new Pod', 'step 6 `attach` writes Running one hop after the attach, with the new Pod blink, and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-multi-attach-error', where: [step, chip], why })),
-  // storage-recursive-readonly: both chips are written by `chips`, wound back in `rewind` and turned
-  // over one beat after the recreated Pod blinks (`start`), cued by the F.light there. The frozen entry
-  // of `ifpossible` reads its own rewind, Enabled, and the cue it finds later in that step is
-  // ifpossible's own turnover. R2-STEP reports none.
+  // The frozen entry of `ifpossible` reads its own rewind, Enabled.
   ...[
     ['5', 'recursiveReadOnly', 'step 4 `enabled` writes Enabled once the recreated Pod starts (`start`) and lights it there with an F.light'],
     ['5', 'status', 'step 4 `enabled` writes Enabled once the recreated Pod starts (`start`) and lights it there with an F.light'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-recursive-readonly', where: [step, chip], why })),
-  // storage-volume-attach-limits, the same class: each value is wound back in `rewind` and turned over
-  // by a cued F.set on the beat that earns it. R2-STEP reports none.
   ...[
     ['3', 'attached', 'step 2 `fill` writes `24 of 24` at FILL_END, the instant the last slot lands, and lights it there'],
     ['7', 'Pod web-0', 'step 6 `detachlag` writes `Running on node-3` at PLACE_MS, the placement beat the new Pod blinks on, and lights it there'],
   ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-volume-attach-limits', where: [step, chip], why })),
-  // storage-mount-path-chain, the same class: the host count is wound back in `rewind` and turned
-  // over by the cued F.set on the arrival that repeats an entry in the host table. R2-STEP reports none.
   ...[
     ['3', 'nvme1n1 on host', 'step 2 `shared` writes `1 entry` when the staging entry lands in the host table (`rep`) and lights it there'],
     ['4', 'nvme1n1 on host', 'step 3 `bind` writes `2 entries` when the bind entry lands in the host table (`rep`) and lights it there'],
-  ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-mount-path-chain', where: [step, chip], why })),
+  ].map(([step, chip, why]) => ({ axis: 'R2-ENTRY', card: 'storage-mount-propagation', where: [step, chip], why })),
 
-  // Workloads, the rewind class: each value is wound back in `rewind`, turned over by an F.set on
-  // the arrival that earns it and cued on the step that turns it. R2-STEP reports none.
+  // Workloads, the rewind class.
   ...[
     ['workloads-pod-pending-init-states', '5', 'RESTARTS', 'step 4 `initializing` winds RESTARTS back to `3 (20s ago)` and writes 0 on the create arrival (`create`), lit from entry'],
     ['workloads-pod-startup-conditions', '3', 'Service endpoints', 'step 2 `sandbox` winds the endpoint back to empty and writes it on the sandbox arrival (`create`), lit from entry'],
     ['workloads-image-pull-registry-auth', '5', 'layers cached', 'step 4 `pull` winds the count back to `2 of 4` and writes `4 of 4` when the 200 with the layers is back (`layers`), lit from entry'],
     ['workloads-crashloopbackoff', '3', 'container state', 'step 2 `backoff-named` winds the state back to `Running (restarted)` and writes Waiting on the exit report arrival (`exit`), lit from entry'],
+    ['workloads-crashloopbackoff', '3', 'reason', 'step 2 `backoff-named` winds the reason back to none and writes CrashLoopBackOff on the exit report arrival (`exit`), lit from entry'],
     ['workloads-probes', '3', 'startupProbe', 'step 2 `gate-opens` winds startupProbe back to `probing 4/30` and writes `passed (retired)` on the pass arrival (`pass`), lit from entry'],
     ['workloads-probes', '5', 'readinessProbe', 'step 4 `readiness-fails` winds readinessProbe back to `passing 1/1` and writes `failed 3/3` on the report arrival (`report`), lit from entry'],
     ['workloads-probes', '6', 'livenessProbe', 'step 5 `liveness-fails` winds livenessProbe back to passing and writes `failed 3/3` on the kill beat, lit from entry'],
-    ['workloads-container-states', '4', 'restartCount', 'step 3 `restart` winds restartCount back to 1 and writes 2 on the status write arrival (`write`), lit from entry'],
+    ['workloads-container-restarts-laststate', '4', 'restartCount', 'step 3 `restart` winds restartCount back to 1 and writes 2 on the status write arrival (`write`), lit from entry'],
     ['workloads-pod-resize', '3', 'spec.containers[].resources', 'step 2 `patch` winds the spec back to 700m and writes 800m on the PATCH arrival, lit from entry'],
     ['workloads-pod-resize', '6', 'status.containerStatuses[].resources', 'step 5 `apply` winds the status back to 700m and writes 800m on the actuation arrival (`apply`), lit from entry'],
     ['workloads-pod-resize', '6', 'Pod resize condition', 'step 5 `apply` winds the condition back to PodResizeInProgress and writes the settled reading on the actuation arrival (`apply`), lit from entry'],
     ['workloads-poststart-prestop-hooks', '4', 'postStart hook', 'step 3 `settled` winds the hook back to `running (exec)` and turns it to `exit 0` with chipsCued in an F.set on the ack arrival, cued there'],
     ['workloads-poststart-prestop-hooks', '4', 'container state', 'step 3 `settled` winds the state back to Waiting and turns it to Running with chipsCued in an F.set on the ack arrival, cued there'],
+    ['workloads-ephemeral-containers', '4', 'spec.ephemeralContainers', 'step 3 `third-door` winds the list back to empty and writes `1 · debugger-8xzrl` on the PATCH arrival (`patch`), cued there by the `lights:` list of that route'],
+    ['workloads-ephemeral-containers', '4', 'targetContainerName', 'step 3 `third-door` winds the target back to unset and writes app on the same PATCH arrival (`patch`), cued there by the same `lights:` list'],
   ].map(([card, step, chip, how]) => ({ axis: 'R2-ENTRY', card, where: [step, chip],
     why: how + ', so a frame frozen at t=0 reads the rewind value and the turnover is first seen one '
       + 'step later. DO NOT close it by dropping the rewind: the chip would state its value before '
       + 'the ball that earns it lands' })),
-  // workloads-probes, the two rows its record rules: a background probe state the step is not about
-  // changes uncued, because in a `chips` category `lit` names the subject of the step (P-09).
+  // In a `chips` category `lit` names the step subject, so a background probe state changes uncued (P-09).
   { axis: 'R2-ENTRY', card: 'workloads-probes', where: ['3', 'livenessProbe'],
     why: 'two changes read as one by the frozen sample. `held` to `running` is step 2 `gate-opens`, '
       + 'wound back and written lit on the pass arrival. `running` to `passing` is step 3 `ready`, '
@@ -1282,19 +1138,13 @@ const ENTRIES = [
       + 'card record rules that a probe reset beside it is background state. Lighting it would put '
       + 'four lit chips of four on a step that is about one probe' },
 
-  // ---------------------------------------------------------------------------------------
-  // R3. One entry. A block that receives a ball must be dark when the step opens, and the
-  // exemption the rule already grants (a block that ACTS FIRST) does not reach a block lit
-  // for three steps running.
-  // ---------------------------------------------------------------------------------------
+  // R3: a block lit for three steps running is outside the acts-first exemption.
   { axis: 'R3', card: 'cluster-scheduler-decision', where: ['5', 'Node-4'],
     why: 'Node-4 is lit on `score`, on `bind` and on `placed`, and dropping it for the 1500ms of '
       + 'the two hops reads as the winner being un-chosen. The arrival still has a receiver: the '
       + 'Kubelet lights on its own hop.' },
 
-  // Two more, one shape. A bar on this card is a boundary a policy raised, and it is the SUBJECT of
-  // every step it is drawn on rather than a block that receives anything: it is lit identically on
-  // all four of those steps. R3 sees only the two where a route happens to END at it.
+  // A bar here is the subject of every step it is drawn on, not a receiving block.
   ...['2', '5'].map(step => ({ axis: 'R3', card: 'network-policy', where: [step, '.scheme-box'],
     why: 'the bar is drawn on exactly the four steps the Pod it belongs to is isolated on, and lit '
       + 'on all four of them, including `allow` and `both-ends` where a packet passes through it '
@@ -1302,8 +1152,7 @@ const ENTRIES = [
       + 'subject at the one moment it acts. The bar carries no label, which is why this row names '
       + 'it by selector: a string inside it would sit where the road runs.' })),
 
-  // Three more of that shape, one card down. A door on the egress boundary is the thing the step is
-  // ABOUT on every step it is drawn on, and the ball that reaches it is refused rather than served.
+  // A door on the egress boundary is what each step is about, and the ball reaching it is refused.
   ...['2', '3', '4'].map(step => ({ axis: 'R3', card: 'network-dns-egress-policy', where: [step, '.scheme-box'],
     why: 'the shut door is lit from entry on the three steps it refuses a query on, because it '
       + 'exists from the moment a policy selects the Pod and the ball demonstrates what it does '
@@ -1311,11 +1160,7 @@ const ENTRIES = [
       + 'raising the boundary that stops it. The door carries no label, which is why this row names '
       + 'it by selector: a string inside it would sit where the road runs.' })),
 
-  // ---------------------------------------------------------------------------------------
-  // R4. The catalog queue is 40 rows deep and unworked, so an entry here is not a card opting
-  // out of it: it says the two shapes R4 names were both tried on this step and both are ruled
-  // out by a check that is ASSERTED, which the report row cannot see.
-  // ---------------------------------------------------------------------------------------
+  // R4: both shapes R4 names were tried on this step and an asserted check rules them out.
   { axis: 'R4', card: 'workloads-finished-job-cleanup', where: ['5', 'Job pi'],
     why: 'the sender DIES in the step it sends from, which is the one shape R4 has no cue for. '
       + 'Neither of its two fixes survives an asserted check. Putting jobEl in `lit` and taking the '
@@ -1329,7 +1174,7 @@ const ENTRIES = [
       + 'instead is the two values the cascade produces.' },
 
   { axis: 'R4', card: 'network-hostnetwork-hostport', where: ['1', 'Node eth0'],
-    why: 'the ball this step opens with is delivered TO the Node (NET.A-02): it stops on the frame top face midpoint at NODE_Y and never crosses the border, so the NIC 25 units inside receives no arrival R4 can see. The mid-chain shape is what the step runs, `F.light` on the `inb` arrival at 700ms with the onward hop leaving at 800ms, one BEAT.afterHop later, which is the separation every chained hop in the catalogue uses. R4 reads a frame frozen at t=0 and its own header names this class. The other shape was measured: `eth` in `lit` closes both rows, 42 back to 40 catalog-wide, with no R3 row and a green render, and it costs the only arrival beat the step has, because a box already lit at entry does not light again when the ball lands on the Node. The exemplar draws the same shape, `network-nodeport-loadbalancer client-hit` lights np1 on the frame arrival, and escapes R4 only because a chip is not a block it judges.' },
+    why: 'the ball this step opens with is delivered TO the Node (NET.A-02): it stops on the frame top face midpoint at NODE_Y and never crosses the border, so the NIC 34 units inside receives no arrival R4 can see. The mid-chain shape is what the step runs, `F.light` on the `inb` arrival at 700ms with the onward hop leaving at 800ms, one BEAT.afterHop later, which is the separation every chained hop in the catalogue uses. R4 reads a frame frozen at t=0 and its own header names this class. The other shape was measured: `eth` in `lit` closes both rows, 42 back to 40 catalog-wide, with no R3 row and a green render, and it costs the only arrival beat the step has, because a box already lit at entry does not light again when the ball lands on the Node. The exemplar draws the same shape, `network-nodeport-loadbalancer client-hit` lights np1 on the frame arrival, and escapes R4 only because a chip is not a block it judges.' },
   { axis: 'R4', card: 'storage-volume-snapshot', where: ['4', 'C'],
     why: 'the mid-chain shape, read by position: the write ball of `diverge` stops ON the pool frame '
       + 'top face level with live block C, never on C itself, because the write is addressed to the '
@@ -1347,10 +1192,9 @@ const ENTRIES = [
       + 'phase back to Pending below the guard and turns it to Bound on the relation fade through an '
       + '`F.set`, so a frame frozen at t=0 first sees Bound on `independent`. It IS cued, on `bound`. '
       + 'DO NOT light it on `independent`, where the only thing that happens is the source going' },
-  // storage-mount-path-chain: the sending row does not exist when the step opens. It is the entry the
-  // plugin makes on this step, pending with `no entry yet`, and it is cued as it is made.
+  // The sending row does not exist at step entry: it is the entry the plugin makes on this step.
   ...[['2', '.../globalmount'], ['3', '.../uid-a/.../mount'], ['5', '.../globalmount']].map(([step, row]) => ({
-    axis: 'R4', card: 'storage-mount-path-chain', where: [step, row],
+    axis: 'R4', card: 'storage-mount-propagation', where: [step, row],
     why: 'the row is the mount entry Pod csi-node makes on this step: the Pod blinks, the row fades '
       + 'from pending to full with `lights` on that fade at 1300ms, and the repeat leaves one '
       + 'BEAT.afterHop later. R4 credits only a ball arriving, and no ball makes a mount entry. The '
@@ -1368,12 +1212,12 @@ const ENTRIES = [
       + 'BEAT.afterHop later. No ball lands on the controller itself, so R4 finds no earlier arrival. '
       + '`ctrl` in `lit` would light the controller from 0ms, while the administrator is still the one '
       + 'acting and nothing has changed for it to react to' },
-  { axis: 'R4', card: 'network-loadbalancer-direct-to-pods', where: ['4', 'Cloud LoadBalancer'],
+  { axis: 'R4', card: 'network-loadbalancer-straight-to-pods', where: ['4', 'Cloud LoadBalancer'],
     why: 'the balancer is MID-CHAIN on `replace` and is cued as one: the register ball from the controller lands on the bottom face of the target ladder that hangs flush under the balancer, `lights: [\'lb\']` lights the balancer on that arrival, and the health check leaves it one BEAT.afterHop later. R4 matches an earlier arrival by where the ball stops, and the ladder is a chain, not the box, so it sees no arrival on the balancer. The other shape, `lb` in `lit`, would say the balancer acts first on a step the EndpointSlice opens. `register` draws the same arrival and escapes R4 only because no ball leaves the balancer there.' },
   { axis: 'R4', card: 'network-hostnetwork-hostport', where: ['3', 'Node eth0'],
-    why: 'the ball this step opens with is delivered TO the Node (NET.A-02): it stops on the frame top face midpoint at NODE_Y and never crosses the border, so the NIC 25 units inside receives no arrival R4 can see. The mid-chain shape is what the step runs, `F.light` on the `inb` arrival at 700ms with the onward hop leaving at 800ms, one BEAT.afterHop later, which is the separation every chained hop in the catalogue uses. R4 reads a frame frozen at t=0 and its own header names this class. The other shape was measured: `eth` in `lit` closes both rows, 42 back to 40 catalog-wide, with no R3 row and a green render, and it costs the only arrival beat the step has, because a box already lit at entry does not light again when the ball lands on the Node. The exemplar draws the same shape, `network-nodeport-loadbalancer client-hit` lights np1 on the frame arrival, and escapes R4 only because a chip is not a block it judges.' },
+    why: 'the ball this step opens with is delivered TO the Node (NET.A-02): it stops on the frame top face midpoint at NODE_Y and never crosses the border, so the NIC 34 units inside receives no arrival R4 can see. The mid-chain shape is what the step runs, `F.light` on the `inb` arrival at 700ms with the onward hop leaving at 800ms, one BEAT.afterHop later, which is the separation every chained hop in the catalogue uses. R4 reads a frame frozen at t=0 and its own header names this class. The other shape was measured: `eth` in `lit` closes both rows, 42 back to 40 catalog-wide, with no R3 row and a green render, and it costs the only arrival beat the step has, because a box already lit at entry does not light again when the ball lands on the Node. The exemplar draws the same shape, `network-nodeport-loadbalancer client-hit` lights np1 on the frame arrival, and escapes R4 only because a chip is not a block it judges.' },
 
-  { axis: 'R4', card: 'network-pod-localhost', where: ['4', 'eth0'],
+  { axis: 'R4', card: 'network-containers-share-localhost', where: ['4', 'eth0'],
     why: 'the same class as the `network-hostnetwork-hostport` rows above, one layer in. The inbound '
       + 'ball stops on the Pod SHELL face, which is where every endpoint on this catalog sits '
       + '(`NET.A-01`), and `lights: [\'eth0\']` cues the interface inside the shell on that '
@@ -1385,9 +1229,7 @@ const ENTRIES = [
       + 'the step the one arrival beat it has: a box lit at entry does not light again when the ball '
       + 'lands.' },
 
-  // The same class as the two `network-hostnetwork-hostport` rows above, on all six steps of one
-  // card: a watch ball delivered to a Node frame under NET.A-02 lights the sender inside it, and
-  // R4 cannot see a cue carried by a ball that lands on the frame instead of on the block.
+  // A watch ball delivered to a Node frame lights the sender inside it (NET.A-02), which R4 cannot see.
   ...['1', '2', '3', '4', '6'].map(step => ({
     axis: 'R4', card: 'network-dns-pod-policy', where: [step, 'resolvConf file'],
     why: 'the watch ball is delivered TO the Node (NET.A-02): it stops on the frame top face midpoint at NODE_Y=260 on x=600 and never crosses the border, so the file box standing 40 units inside receives no arrival R4 can see. The mid-chain shape is what the step runs, `lights` on the watch arrival at 1500ms with the file hop leaving at 1600ms, one BEAT.afterHop later. The other shape is measured and rejected: `hostFile` in `lit` closes the row, and it lights a block inside the frame 1500ms before the ball that addresses it gets there, which reads as the file answering a request nobody has sent yet. The picture wins over the row, and R4 reads a frame frozen at t=0 where no arrival cue exists yet.' })),
@@ -1395,14 +1237,13 @@ const ENTRIES = [
     why: 'dnsPolicy None reads no file, so the Kubelet is the sender of the only hop after the watch ball, and it is cued exactly as the file box is on the other five steps: `lights` on the watch arrival at 1500ms, with the CRI hop leaving at 1600ms. The watch ball stops on the Node frame face (NET.A-02) and lands on no block, so R4 sees no arrival to credit. `kubelet` in `lit` closes the row and lights the Kubelet from 0ms, while the ball carrying the Pod spec to it is still falling.' },
   { axis: 'R4', card: 'storage-csi-ephemeral-volume', where: ['6', 'Kubelet'],
     why: 'the Pod deleted ball is delivered TO the Node: it stops on the frame left face midpoint at 420,336 and never crosses the border, so the Kubelet standing inside receives no arrival R4 can see. The mid-chain shape is what the step runs, `lights` on that arrival at 2300ms with the unpublish leaving at 3900ms, once the Pod has faded. `kubelet` in `lit` closes the row and lights the Kubelet from 0ms, while the ball carrying the deletion to it is still in the funnel, the same shape network-dns-pod-policy carries on its step 5.' },
-  // storage-configmap-secret-mount: app.conf receives no ball, it answers an open by the app, so its
-  // cue is an `F.light` on an earlier beat of the step, which a frame frozen at t=0 cannot see.
+  // app.conf answers an open, so its cue is an F.light on an earlier beat, invisible at t=0.
   { axis: 'R4', card: 'storage-configmap-secret-mount', where: ['2', 'app.conf'],
     why: 'the app.conf row is lit by the `F.light` on the v2 write arrival at 4150ms and its read leaves at 4950ms, the BEAT.lead 800 separation M-18 asks for. No ball ever lands on the row, so R4 finds no earlier arrival. `confRow` in `lit` would light the entry from 0ms, before the watch and the v2 write the read waits on.' },
   { axis: 'R4', card: 'storage-configmap-secret-mount', where: ['3', 'app.conf'],
     why: 'the app.conf row is lit by the `F.light` on the rename beat at 2800ms, the moment ..data and so app.conf start resolving to v2, and its read leaves at 4700ms. No ball ever lands on the row, so R4 finds no earlier arrival. `confRow` in `lit` would light the entry beside a still lit Kubelet from 0ms, before the ..data_tmp link it depends on exists.' },
 
-  { axis: 'R4', card: 'workloads-container-states', where: ['6', 'Kubelet'],
+  { axis: 'R4', card: 'workloads-container-restarts-laststate', where: ['6', 'Kubelet'],
     why: 'the Kubelet is MID-CHAIN on `logs` and is cued as one: `F.light` on the `ask` arrival lights '
       + 'it at 1500ms and the readlog hop leaves one BEAT.afterHop later. R4 reads a frame frozen at '
       + 't=0 and credits only a ball landing on the box, so it cannot see the F.light. `kubelet` in '
@@ -1412,10 +1253,7 @@ const ENTRIES = [
       + 'which pulses first, and the gate it passes is the removed ghost at OPACITY.terminated. '
       + 'Lighting the gate would say the entry the previous step removed is back in the list' },
 
-  // ---------------------------------------------------------------------------------------
-  // FORM-B. The queue is hundreds of rows deep and ranked by lead, so an entry here says the
-  // ranking put a row high and a person read it and kept it.
-  // ---------------------------------------------------------------------------------------
+  // FORM-B: rows the lead ranking put high that a person read and kept.
   { axis: 'FORM-B', card: 'storage-downward-api-volume', where: ['relabel', 'objChip'],
     why: 'the chip is the value on the Pod OBJECT, and the relabel IS the step entry: the zone row '
       + 'turns to west and lights at entry beside it. The ball that follows carries that new value '
@@ -1503,9 +1341,7 @@ const ENTRIES = [
       + 'ball produces: the timer reaching 0 is what makes the Kubelet send SIGKILL, so the kill '
       + 'ball leaving at BEAT.lead and landing at 1500ms is the consequence of the value already '
       + 'on screen. Binding the chip to that arrival would draw the kill causing the expiry.' },
-  // workloads-controller-kinds, ten rows and one ruling. The card states all three chips at
-  // step ENTRY and lights whichever ones changed, so every changed value stands for the
-  // BEAT.lead 1500ms before the first ball lands. Its record carries the same reading.
+  // All three chips are stated at entry and the changed ones lit, standing for BEAT.lead before the first ball.
   { axis: 'FORM-B', card: 'workloads-controller-kinds', where: ['replicas', 'identityChip'],
     why: 'the three chips are a READOUT of whichever kind is in focus and not a value any ball on '
       + 'this card produces: no packet here carries a number, every hop is one controller '
@@ -1570,8 +1406,7 @@ const ENTRIES = [
       + 'is what decides whether the work ends. A CronJob ending once per tick is a property of '
       + 'the schedule, and it holds whether or not this particular tick has fired yet.' },
 
-  // Workloads captions and premises. Each chip names the rule or the premise its step states, or
-  // describes a moment no ball carries, so there is no arrival for it to wait for (P-06).
+  // Captions and premises: no ball carries them, so there is no arrival to wait for (P-06).
   { axis: 'FORM-B', card: 'workloads-probes', where: ['startup-gating', 'startupChip'],
     why: '`probing 4/30` is the state the whole step names, true for its whole length: the probe ball '
       + 'is one period of it, and no arrival earns `probing`. The verdicts the card does earn, on '
@@ -1620,11 +1455,7 @@ const ENTRIES = [
     why: 'the ReplicaSet acts first: it is lit at entry and its DELETE leaves at 0ms, so `delete -1` '
       + 'names the decision being sent rather than the result of an arrival (P-06, M-18a)' },
 
-  // ---------------------------------------------------------------------------------------
-  // FORM-E. One entry per finding and nothing unread: that is the state that let FORM-E out of
-  // the report and into `npm test`, and each one is the measurement that put a finding here. ../unit/chip-beat-e.test.mjs asserts on this set, so an entry that stops
-  // matching turns the GATE red rather than printing a note.
-  // ---------------------------------------------------------------------------------------
+  // FORM-E: ../unit/chip-beat-e.test.mjs asserts on this set, so a stale entry turns the gate red.
   { axis: 'FORM-E', card: 'cluster-pod-priority-preemption', where: ['delete', 'focusChip'],
     why: '`standard DELETE · PDB best effort` names what this step DOES, and it is true the moment '
       + 'the Scheduler forms the request: no arrival on this step produces it. Its two neighbours '
@@ -1698,8 +1529,7 @@ const ENTRIES = [
       + 'screen before the ball leaves, not after it lands. Step 1 is the same shape and reads '
       + 'correctly: the chip takes the new filename at entry and the segment leaves REVEAL_MS '
       + 'later.' },
-  // One shape over all five steps: `last op` names the CRI call the step SENDS, and the result
-  // chips beside it wait for the arrival that produces them.
+  // `last op` names the CRI call the step sends. The result chips wait for the arrival.
   ...[
     ['sandbox', 'RunPodSandbox', 'sandbox id and status wait for the `run` arrival, where the sandbox appears on the Node'],
     ['cni', 'CNI ADD', 'Pod IP, status and the shell sublabel wait for `conf`, where the netns config lands on the sandbox'],
@@ -1767,7 +1597,7 @@ const ENTRIES = [
       + 'step is DOING, not as object state. Here it reads `list Nodes, match the selector`, which '
       + 'is the action the step opens with rather than anything the answer produces. What the Node '
       + 'list actually earns is desiredNumberScheduled, and that is the one chip this step holds '
-      + 'back and turns over on the arrival at 1500ms.' },
+      + 'back and turns over on the arrival at 2300ms.' },
   { axis: 'FORM-E', card: 'workloads-daemonset', where: ['place', 'focusChip'],
     why: 'The same argument as `match focusChip` above, on the same card. Here the caption states '
       + 'the controller RULE the narration states in words, one Pod per matching Node, which is '
@@ -1787,8 +1617,8 @@ const ENTRIES = [
   { axis: 'FORM-E', card: 'workloads-daemonset', where: ['node-removed', 'focusChip'],
     why: 'The same argument again, on the last step of the same card. Node-2 being gone is the '
       + 'PREMISE the API reports and the reason the delete goes out at all, so it stands before '
-      + 'anything departs. What the two arrivals earn are the three counters, which this step steps '
-      + 'up on the watch and on the delete.' },
+      + 'anything departs. What the watch arrival earns are the three counters, which this step '
+      + 'drops together on it.' },
   { axis: 'FORM-E', card: 'workloads-finished-job-cleanup', where: ['finished', 'clockChip'],
     why: 'clockChip is the controller reading `now`, and 12:00:31 is the instant the containers '
       + 'exit, which this step draws as the two Pod pulses at 0ms. The ball is the exit REPORT '
@@ -1802,7 +1632,6 @@ const ENTRIES = [
       + 'the delete. Winding it back would draw a controller that deletes first and reaches the '
       + 'deadline afterwards, which inverts the one comparison the card is about. What the arrival '
       + 'earns is statusChip, and that is the chip this step holds back.' },
-  // workloads-pod-pending-init-states `init-running`: NODE is the BIND, which no ball draws.
   { axis: 'FORM-E', card: 'workloads-pod-pending-init-states', where: ['init-running', 'nodeChip'],
     why: 'the Scheduler BINDS the Pod before the Kubelet ball leaves, and no bind ball is drawn: '
       + 'the step opens on `A Node is chosen, the Node column fills in, and the Kubelet takes over`, '
@@ -1811,8 +1640,7 @@ const ENTRIES = [
       + 'winding NODE back would draw a full Node-1 frame under a <none> cell. What the Kubelet ball '
       + 'earns is containerStatuses, the STATUS counter, `running init 1`, the box readings and the '
       + 'Pod line, and those wait for it.' },
-  // workloads-crashloopbackoff `reset`, three rows and one ruling. The fixed container already runs
-  // when the step opens: the Pod pulses and lifts to full at 0ms and the narration opens on it.
+  // The fixed container already runs at step entry.
   ...['stateChip', 'reasonChip', 'restartChip'].map(chip => ({ axis: 'FORM-E', card: 'workloads-crashloopbackoff', where: ['reset', chip],
     why: 'the new container running stably is the PREMISE of the step: the Pod blinks and lifts to '
       + 'full strength at 0ms, and the state, the cleared reason and the counter that moved with the '
@@ -1820,8 +1648,7 @@ const ENTRIES = [
       + 'going to Kubelet, and what it earns is the backoff reset, which is the chip this step holds '
       + 'back to its arrival, where the ghost bar rises. Winding these back would draw a Pod at full '
       + 'strength still reading Waiting in CrashLoopBackOff.' })),
-  // workloads-init-containers-and-sidecars, three rows and one ruling. On each of steps 2 to 4 the
-  // runtime is lit at entry and ACTS FIRST, reporting a change that has already happened.
+  // The runtime is lit at entry and acts first, reporting a change that already happened.
   ...[
     ['migrate-schema', 'waitDbChip', 'wait-for-db has exited 0'],
     ['sidecar-start', 'migrateChip', 'migrate-schema has exited 0'],
@@ -1831,9 +1658,8 @@ const ENTRIES = [
       + 'entry because it is the one acting, and the ball it sends up the answer lane REPORTS that '
       + 'change to Kubelet rather than producing it. What the chain earns is the next container, '
       + 'and that chip waits for the create landing on its box. Winding this one back would draw '
-      + 'a runtime reporting an exit the chip says has not happened.' })),
-  // workloads-pod-startup-conditions `ready`: the time chip is the lastTransitionTime of the rung
-  // the step flips, and the Kubelet reaches that verdict on its own, at entry.
+      + 'a runtime reporting a change the chip says has not happened.' })),
+  // The Kubelet reaches the lastTransitionTime verdict on its own, at entry.
   { axis: 'FORM-E', card: 'workloads-pod-startup-conditions', where: ['ready', 'timeChip'],
     why: 'the chip is the lastTransitionTime of the ONE tread this step flips, Ready, and the '
       + 'Kubelet computes that verdict on its own: it is lit at entry and its PATCH waits BEAT.lead. '
@@ -1877,8 +1703,7 @@ const ENTRIES = [
       + 'previous step narrates, and the rewrite beside it is that rule acting. No arrival on this '
       + 'step produces the match. ctChip is the one value an arrival earns here, and it waits for '
       + 'the store ball.' },
-  // network-policy: the policy object is applied before the call leaves, so the rule chip is the
-  // premise of the step. The verdict reads `in flight` until the arrival or the drop decides it.
+  // The policy is applied before the call leaves, so the rule chip is the step premise.
   ...[
     ['isolate', 'inChip', 'The NetworkPolicy that selects db-1 and allows nothing is the premise of the step: '
       + 'selecting the Pod raises the boundary before the call leaves web-1, and the bar is drawn from '
@@ -1912,10 +1737,8 @@ const ENTRIES = [
       + 'what it earns is ctrlEl lighting on arrival. Binding the clock to that arrival would say '
       + 'time advances because a watch event landed, and it would also make the one chip that must '
       + 'move independently of the traffic look like traffic.' },
-  // network-cni-invocation, three rows and one ruling. CNI op is a STEP-SCOPED label naming the
-  // operation in flight, not the result of a hop, so it is stated at entry on every step that
-  // changes which operation the picture is about.
-  { axis: 'FORM-B', card: 'network-cni-invocation', where: ['sandbox', 'opChip'],
+  // CNI op is a step-scoped label for the operation in flight, stated at entry.
+  { axis: 'FORM-B', card: 'network-wiring-pod-via-cni', where: ['sandbox', 'opChip'],
     why: 'CNI op names the operation in flight, and on this step the answer is that there is none: '
       + 'not called yet is TRUE from the moment the step opens, because the whole point of the '
       + 'sandbox step is that the plugin list has not run. Neither ball carries it. RunPodSandbox '
@@ -1923,13 +1746,13 @@ const ENTRIES = [
       + 'earn is the runtime lighting and the Pod pulsing. The two chips that ARE results on this '
       + 'card, the address on delegate and ADD ok on result, both wait for their arrivals through '
       + 'a rewind and an F.set, and neither is on this queue.' },
-  { axis: 'FORM-B', card: 'network-cni-invocation', where: ['exec', 'opChip'],
+  { axis: 'FORM-B', card: 'network-wiring-pod-via-cni', where: ['exec', 'opChip'],
     why: 'ADD is the operation this step NAMES rather than one its ball produces: the runtime sets '
       + 'CNI_COMMAND=ADD before it execs anything, which is what the narration says in words, so '
       + 'the value is true at the departure and not at the arrival. What the exec ball earns is the '
       + 'bridge row it lands on. Binding the chip to that arrival would say the plugin decided '
       + 'which operation it was being run for.' },
-  { axis: 'FORM-B', card: 'network-cni-invocation', where: ['join', 'opChip'],
+  { axis: 'FORM-B', card: 'network-wiring-pod-via-cni', where: ['join', 'opChip'],
     why: 'DEL on delete is a P-02 conditional rather than an operation in flight, and the qualifier '
       + 'is what keeps the frame legal under T-35: a reader seeing only this frame cannot conclude '
       + 'DEL has run. The one ball here is the Kubelet starting the app containers into the '
@@ -2006,7 +1829,7 @@ const ENTRIES = [
       + 'ball ending at the Service edge shows the consequence and cannot be what empties the slice.' },
   { axis: 'FORM-B', card: 'network-service-debugging', where: ['not-ready', 'readyChip'],
     why: 'the failing readiness is the premise of the step, standing before the call. Readiness '
-      + 'gating itself is animated by network-endpointslice-reconcile, which this card cedes it to.' },
+      + 'gating itself is animated by network-service-and-endpointslice, which this card cedes it to.' },
   { axis: 'FORM-B', card: 'network-service-debugging', where: ['wrong-port', 'listenChip'],
     why: 'the container listens on 8080 before the client dials: a state, not an arrival. The ball '
       + 'reaching the Pod edge unanswered is the consequence the chip explains.' },
@@ -2016,9 +1839,7 @@ const ENTRIES = [
   { axis: 'FORM-B', card: 'network-service-debugging', where: ['named-port', 'targetChip'],
     why: 'targetPort http is the Service spec the step opens on. No arrival writes a spec field.' },
 
-  // network-service-types, twelve rows and one cause, ruled under NOT A DEFECT in its record. Every
-  // chip on this card is a Service FIELD, true before any packet: the balls read the rules those
-  // fields produced and write none of them.
+  // Every chip is a Service field, true before any packet.
   ...[
     ['clusterip', 'typeChip', 'type ClusterIP is the spec field written when the Service is created, before the client dials the VIP'],
     ['clusterip', 'ciChip', 'the clusterIP is allocated when the Service is created, so 10.96.0.20 exists before the client dials it. The vip arrival earns the Service rules lighting'],
@@ -2033,15 +1854,13 @@ const ENTRIES = [
     ['headless', 'typeChip', 'a headless Service is type ClusterIP in its spec, the field the step opens on. No arrival writes it'],
     ['headless', 'ciChip', 'clusterIP: None is the spec the step opens on and names, which no arrival writes'],
   ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-service-types', where: [step, chip], why })),
-  // network-policy, the three ABSENCE rows on `implementer`. The rule chips on steps 2 to 4 stand
-  // beside a verdict that waits for its arrival, so they are FORM-E and carried there.
+  // The rule chips stand beside a verdict that waits for its arrival, so they are FORM-E.
   ...[
     ['implementer', 'inChip', 'with no plugin implementing NetworkPolicy no boundary is ever raised, an absence true from the first millisecond. The two calls only demonstrate it'],
     ['implementer', 'egChip', 'the same absence on the way out of web-1: nothing programs a boundary, so none exists at any moment of the step'],
     ['implementer', 'vChip', '`nothing enforced` is the absence the step opens on, not the outcome of either call: both calls are served exactly because nothing was ever enforced'],
   ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-policy', where: [step, chip], why })),
-  // network-loadbalancer-bare-metal: the mode is operator config, and a speaker role is what SENDS a
-  // ball. What the arrivals earn is the router entry, and that waits for them (rewind + F.set).
+  // The mode is operator config. The arrivals earn the router entry.
   ...[
     ['l2', 'modeChip', 'L2 (ARP) is the L2Advertisement the operator configured, the premise the step opens with. No arrival picks a mode'],
     ['l2', 'spk1', 'the hash election runs before the ARP reply, and spk1 SENDS that reply, lit before it leaves (M-18a). The router sublabel is what the arrival earns, and it waits'],
@@ -2051,15 +1870,13 @@ const ENTRIES = [
     ['bgp', 'spk1', 'an UPDATE travels only over a session that is already up, so the session is true before the ball leaves. The arrivals earn the router ECMP entry, which waits for u3'],
     ['bgp', 'spk2', 'the same as spk1: the session stands before its UPDATE leaves'],
     ['bgp', 'spk3', 'the same as spk1: the session stands before its UPDATE leaves'],
-  ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-loadbalancer-bare-metal', where: [step, chip], why })),
-  // network-hostnetwork-hostport: all eight come from the Pod spec and its setup, made before the
-  // client dials. The arrivals earn the eth, portmap and bridge lights and the Pod pulse.
+  ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-loadbalancer-without-cloud', where: [step, chip], why })),
+  // All eight come from the Pod spec and setup, made before the client dials.
   ...['nsChip', 'ipChip', 'vethChip', 'portChip'].map(chip => ({ axis: 'FORM-B', card: 'network-hostnetwork-hostport', where: ['hostnetwork', chip],
     why: 'follows from `hostNetwork: true` in the Pod spec, set before the Pod started. The request travels under it and does not produce it' })),
   ...['nsChip', 'ipChip', 'vethChip', 'portChip'].map(chip => ({ axis: 'FORM-B', card: 'network-hostnetwork-hostport', where: ['hostport', chip],
     why: 'the Pod keeps its own namespace, and portmap installed the :8080 mapping at Pod setup, before anyone dials. The request travels under it and does not produce it' })),
-  // network-traffic-distribution: values the rules are programmed with, which stand before the client
-  // sends. The record NOTE argues modeChip. Contrast session-affinity, where the pin waits for `arr`.
+  // Values the rules are programmed with, standing before the client sends.
   { axis: 'FORM-B', card: 'network-traffic-distribution', where: ['topology', 'modeChip'],
     why: 'the zone filter is set when kube-proxy programs the rules: the zone-b dim and the lit '
       + 'kube-proxy stand from entry, before the client pulses. Binding the chip to the arrival would '
@@ -2071,36 +1888,32 @@ const ENTRIES = [
     why: 'the zone-a endpoints are not ready before the step opens, so kube-proxy has already written '
       + 'every ready endpoint into its rules (zone-a dim from entry). The fallback is decided when the '
       + 'rules are programmed, not when the connection lands' },
-  // network-netfilter-path, ruled under NOT A DEFECT in its record: on these two steps the ball
-  // LEAVES the place that already made the value, so the value stands at entry (P-06).
+  // The ball leaves the place that already made the value (P-06).
   ...[
     ['dnat', 'hookChip', 'the packet stands in PREROUTING when the step opens, delivered there on `enter`, and the nat table runs inside it. The ball leaves the hook'],
     ['dnat', 'dstChip', 'the rewrite is made inside PREROUTING, where the packet stands at entry, and the ball leaves carrying the new dst on its tag. Binding the chip to the arrival would put the strip behind the tag on its own ball'],
     ['dnat', 'ctChip', 'conntrack stores the translation where the rewrite is made, inside PREROUTING at entry, beside the dst it records'],
     ['fork', 'hookChip', 'the hook a step opens at is the box the previous arrival delivered the packet to: `rt` lit on the dnat `hop`. The ball here leaves the decision'],
   ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-netfilter-path', where: [step, chip], why })),
-  // network-pod-localhost, ruled under NOT A DEFECT in its record (P-06).
+  // P-06.
   ...[
     ['localhost', 'pathChip', 'the path is fixed by the address the app dials, 127.0.0.1, before the ball leaves. A caption for the road this step rides, and the arrivals earn the lo and sidecar lights'],
     ['external', 'pathChip', '10.244.1.5 lives only on eth0, so the interface is fixed by the destination before the client sends. The arrival lights eth0 itself'],
     ['external', 'bindChip', 'the app made that bind on `bind`, step 1. The call arriving shows what the bind means and cannot be what makes it'],
-  ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-pod-localhost', where: [step, chip], why })),
-  // network-pod-ip-and-veth, ruled under NOT A DEFECT in its record: step-scoped labels, the
-  // network-cni-invocation `CNI op` reading.
+  ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-containers-share-localhost', where: [step, chip], why })),
+  // Step-scoped labels, the same reading as network-wiring-pod-via-cni `CNI op`.
   ...[
     ['through', 'pathChip', '`veth, no lookup` states what a veth pair IS, a point to point link, which holds for every packet from the first millisecond. The arrival earns the peer lighting'],
     ['port', 'hostChip', 'enslaving the host end to cni0 is CNI ADD configuration made before the card opens, so the port takes no address before any frame. The 700ms hop earns cni0 lighting'],
     ['port', 'pathChip', 'the road this step frame rides, a caption for the step rather than the result of its one 700ms hop'],
   ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-pod-ip-and-veth', where: [step, chip], why })),
-  // network-packet-classification: decisions made inside the box the packet already stands in, and
-  // the ball emerges with them (NET.A-01).
+  // Decisions made inside the box the packet already stands in (NET.A-01).
   ...[
     ['service', 'dstChip', 'the packet reached nat on `stations`, and the rewrite is made inside the box it stands in. The ball emerges already rewritten, and its arrival earns `route`'],
     ['service', 'verdictChip', 'the Service-range verdict is the same nat decision as the rewrite beside it, made where the packet already stands at entry'],
     ['podcidr', 'verdictChip', 'the route lookup ran when the packet reached `route` at the end of `service`, and the ball here leaves it. `default` binds its own verdict to the arrival on route, so the card is consistent'],
   ].map(([step, chip, why]) => ({ axis: 'FORM-B', card: 'network-packet-classification', where: [step, chip], why })),
-  // network-service-clusterip, ruled in its record: one dataplane decision, made where the packet
-  // already stands. `balance` binds the same decision to its own send arrival.
+  // One dataplane decision made where the packet already stands.
   ...[
     ['dnat', 'dnatChip', 'the packet reached the dataplane on `send`, which picks the backend and rewrites the destination before the rewritten packet leaves. The ball carries the address the chip names'],
     ['dnat', 'ctChip', 'the conntrack entry is recorded in the same dataplane decision, before the rewritten packet leaves for Pod X'],
@@ -2110,10 +1923,7 @@ const ENTRIES = [
     why: 'the walk verdict is decided when `send` lands on the rule box in step 1. The one ball of this '
       + 'step is the exempt road NOT taken (T-35), which cannot earn the verdict' },
 
-  // ---------------------------------------------------------------------------------------
-  // R2-STEP. All seven are ONE class: the chip TEXT changed while the FACT it reports did not,
-  // so a cue would announce a change that did not happen. Anything outside this set is work.
-  // ---------------------------------------------------------------------------------------
+  // R2-STEP: the chip text changed while the fact did not, so a cue would announce a non-change.
   { axis: 'R2-STEP', card: 'cluster-list-watch-informers', where: ['6', 'resourceVersion'],
     why: 'the 410 aside is over and the three chips go BACK to the steady state step 4 left (843, '
       + 'open streaming, 4). A cue would say they moved on' },
@@ -2149,8 +1959,7 @@ const ENTRIES = [
   { axis: 'R2-STEP', card: 'network-service-debugging', where: ['4', 'serving'],
     why: 'same restoration, the endpoint the healthy step served' },
 
-  // workloads-probes, a second class, ruled in its record: in a `chips` category `lit` names the
-  // step subject, and these five are background probe states beside it (P-09).
+  // In a `chips` category `lit` names the step subject (P-09).
   ...[
     ['3', 'livenessProbe', 'livenessProbe reaching `passing` on the step whose subject is readiness'],
     ['5', 'startupProbe', 'startupProbe going to `reset` on the step whose subject is the kill'],
@@ -2165,12 +1974,7 @@ const ENTRIES = [
     why: 'the owner was set on `adopt`, and the string returns from the action to the standing '
       + 'field. Same fact, so a cue would announce a write that did not happen' },
 
-  // ---------------------------------------------------------------------------------------
-  // CENTRE, CENTRE-LOW and OCCLUDED. These are the `L-16` population: the rule can only be
-  // satisfied by making the picture worse, and each entry carries the measurement that says
-  // so. They stay printed, because a soft geometry finding that goes quiet is exactly how a
-  // real regression on the same card would look.
-  // ---------------------------------------------------------------------------------------
+  // CENTRE, CENTRE-LOW and OCCLUDED: L-16 cases where satisfying the rule makes the picture worse.
   { axis: 'CENTRE', card: 'cluster-cascading-deletion', where: [],
     why: 'the identical two numbers `cluster-object-create-path` reports for the identical reason, '
       + 'because the two cards share one grid: the client hangs off the right of a composition '
@@ -2180,13 +1984,28 @@ const ENTRIES = [
       + 'leaning 70 units off centre costs a reader less than an actor block the panel deletes on '
       + 'six steps of eight.' },
   { axis: 'CENTRE-LOW', card: 'storage-reclaim-policy', where: [],
-    why: 'the stack centres on 600 (both columns and the provisioner span 400..800, pinned there by the '
-      + 'claim row inside the panel band), and the one block beside it below the panel is the '
-      + 'StorageClass, 120..352, left of the provisioner it feeds. A single side block cannot centre '
-      + 'this band from either side: on the right it reads 400..1082 on 741 and reopens CENTRE as '
-      + 'well, while on the left it balances the Administrator above it and the pooled bbox reads '
-      + '120..1080 on 600, so CENTRE closes and this row is the one left. The record carries the '
-      + 'same argument under OPEN' },
+    why: 'the stack starts at the panel wall (both columns and the provisioner span 400..880, pinned '
+      + 'there by the claim row inside the panel band), and the one block beside it below the panel '
+      + 'is the StorageClass, 120..352, left of the provisioner it feeds. A single side block cannot '
+      + 'centre this band from either side: on the right it reads 400..1160 on 780 and reopens the '
+      + 'content half of CENTRE, while on the left it balances the Administrator above it and the '
+      + 'pooled bbox reads 120..1160 on 640, so that half closes and this row is the one left. The '
+      + 'record carries the same argument under OPEN' },
+  { axis: 'CENTRE', card: 'storage-reclaim-policy', where: [],
+    why: 'the chip strip half only. The 2x2 chip grid stands under its two columns, 400..880 on 640: '
+      + 'each chip reports the stack directly above it, and centring the strip on 600 stands every '
+      + 'chip 40 off its column so the grid stops reading down a stack. The columns are the catalog '
+      + '232 from the panel wall at 400 with the family 16 between them, which is the narrowest '
+      + 'the stack can be. The record carries the same argument under OPEN' },
+  { axis: 'CENTRE', card: 'storage-dynamic-provisioning', where: [],
+    why: 'the blocks read 400..904 on 652, 12 past L-13. Every block is the catalog 232, and the claim '
+      + 'row sits inside the panel band so LEFT_X 400 cannot move. The only width left to give is the '
+      + '40 elbow channel: at 16 the centre reaches 640, but the elbow stubs shrink to 8 with the '
+      + 'arrowheads on the turns and the class reference between claim and StorageClass is one dash '
+      + 'long. The record carries the same argument under OPEN' },
+  { axis: 'CENTRE-LOW', card: 'storage-dynamic-provisioning', where: [],
+    why: 'the same lean as the CENTRE row on this card: the three blocks below the panel are the '
+      + 'machinery column and the cylinder, 400..904 on 652, and the reason is the same 40 channel' },
   { axis: 'CENTRE-LOW', card: 'network-dns-coredns', where: [],
     why: 'the block that balances this card is the one the rule cannot count. CENTRE-LOW reads only '
       + 'what sits BELOW the panel bottom of one viewport, 143 at 1600x1000, and the API server '
@@ -2203,7 +2022,7 @@ const ENTRIES = [
   { axis: 'CENTRE', card: 'cluster-object-create-path', where: [],
     why: 'the client hanging off the right of a composition centred on the frames. DO NOT close it '
       + 'by re-centring: that drags the frames off 600, which is what keeps the Node lane one '
-      + 'straight segment. Widening the client to the 220 the API carries is the other route and it '
+      + 'straight segment. Widening the client to the 232 the API carries is the other route and it '
       + 'is refused on measurement: the band outside the wall is 150 units, the viewBox width '
       + 'available is 1200 at 1280x860 and below, and +90 shrinks the whole card by 7% there.' },
   { axis: 'CENTRE-LOW', card: 'cluster-object-create-path', where: [],
@@ -2234,7 +2053,7 @@ const ENTRIES = [
       + 'spans 80..1179 on 630. The row cannot centre on 600 instead: the controller band spans exactly '
       + 'the row, and a band at 231..969 would stand under the panel at 1100x800 (x<=397 above y 205). '
       + 'The record carries the same argument under OPEN' },
-  { axis: 'CENTRE', card: 'storage-volume-data-homes', where: [],
+  { axis: 'CENTRE', card: 'storage-where-volume-data-lives', where: [],
     why: 'two rows, one ruling. The rule counts neither the Node frame nor the chips as ink, so it '
       + 'reads 410..1170 on centre 790. The ledger column 60..380 is the second axis of the card and '
       + 'owns the left under the panel on purpose: the whole ink, ledger included, spans 60..1170 on '
@@ -2246,10 +2065,10 @@ const ENTRIES = [
       + 'them uncounted: the rule reads chips as a strip, not as ink. With the column, the band below '
       + 'the panel spans 80..1179 on 630. The CENTRE ruling above carries why the row itself cannot '
       + 'move onto 600' },
-  { axis: 'CENTRE-LOW', card: 'storage-volume-data-homes', where: [],
+  { axis: 'CENTRE-LOW', card: 'storage-where-volume-data-lives', where: [],
     why: 'the same six blocks as the CENTRE content row, 450..1085, with the ledger column that '
       + 'balances them uncounted because it is chips' },
-  { axis: 'CENTRE', card: 'storage-volume-mode', where: [],
+  { axis: 'CENTRE', card: 'storage-filesystem-vs-block', where: [],
     why: 'the chip row runs along the top of the Node frame, exactly as wide as it, 300..1160 on '
       + 'centre 730, because the chips report on what happens inside that frame. The drawn extent, '
       + 'disks included, spans 40..1160 on centre 600. Centring the row on 600 puts its left end over '
@@ -2269,7 +2088,7 @@ const ENTRIES = [
       + 'The blocks span 124..1092 on centre 608. Centring the grid on 600 lifts every chip off its '
       + 'object, and moving the pair left onto 600 leaves no room for the administrator lane into '
       + 'the PV. The record carries the same argument under OPEN' },
-  { axis: 'CENTRE', card: 'network-loadbalancer-direct-to-pods', where: [],
+  { axis: 'CENTRE', card: 'network-loadbalancer-straight-to-pods', where: [],
     why: 'the chip strip reads off centre because `L-17` pools the two nodePort chips under the Pods, '
       + '134..366 and 834..1066, with the two readouts in the top right corner, 780..1120, so the pool '
       + 'spans 134..1120 on centre 627. The drawn extent measures 80..1120 on centre 600: the two Node '
@@ -2347,11 +2166,23 @@ const ENTRIES = [
       + 'centring the pair exactly is the requirement and the panel is the thing in the way: `RS_X` '
       + 'is `600 - 28 - 232` and there is no term in it to move, so closing it means giving up '
       + 'either the exact centre or the family 232.' },
-  // storage-mount-path-chain: the author ruled the whole card onto the canvas centre, 600, over the
-  // panel column, so the top of the csi-node table sits behind the panel on the two smaller viewports.
-  ...[['.../kubelet/plugins', '73'], ['.../kubelet/pods', '73'], ['.../globalmount', '19'], ['Pod csi-node', '41']]
+  { axis: 'OCCLUDED', card: 'cluster-server-side-apply', where: ['kubectl'],
+    why: 'the author ruled the three top-row actors onto the family 232 with the 60 unit gaps the '
+      + 'arrow pairs need, so the row is 816 wide, right-aligned on 1140 and starting at 324. The '
+      + 'panel reaches 396.55 at 1100x800 and 377.76 at 1280x860, so the left 73 and 54 units of '
+      + 'kubectl stand behind it there and nothing at 1600x1000. The label `kubectl` stays clear, '
+      + 'the sublabel `apply --server-side` inks from 381.7 at 1100x800 and loses its first 15 '
+      + 'units. Closing it means narrower boxes or 20 unit gaps, which is what the row had before.' },
+  { axis: 'OCCLUDED', card: 'cluster-pod-sandbox-cri', where: ['Kubelet'],
+    why: 'the same ruling as `cluster-server-side-apply`: three family 232 actors with 60 unit gaps, '
+      + 'right-aligned on 1140, so the Kubelet starts at 324 against a panel reaching 396.55 at '
+      + '1100x800 and 377.76 at 1280x860. No text is lost, `Kubelet` inks from 417.3 and `CRI '
+      + 'client` from 409.3 at 1100x800. Closing it means the 180 / 210 / 180 boxes the row had '
+      + 'before, built leftwards off the 404 wall.' },
+  // The card sits on the canvas centre by design, so the csi-node table top is behind the panel on smaller viewports.
+  ...[['.../kubelet/plugins', '73'], ['.../kubelet/pods', '73'], ['Pod csi-node', '40']]
     .map(([block, pct]) => ({
-      axis: 'OCCLUDED', card: 'storage-mount-path-chain', where: [block],
+      axis: 'OCCLUDED', card: 'storage-mount-propagation', where: [block],
       why: `${pct} percent behind the panel at its worst, on the author ruling that the frame and the `
         + 'chip grid centre on 600 even where the panel covers them. The 740 frame then starts at 230, '
         + 'and a frame kept clear of the panel (x 420..1160) is the rejected alternative. Every string '
@@ -2434,8 +2265,7 @@ const ENTRIES = [
       + 'CENTRE reads 0 findings on this card today because the actor row carries the bbox out to '
       + 'WL.R. Trading a clean CENTRE for a clean CENTRE-LOW is the L-16 case exactly. The record '
       + 'carries the same argument under OPEN.' },
-  // CENTRE fires TWICE on this card, on the pooled strip and on the content bbox, and `where: []`
-  // gives both rows one key, so carriedMap keeps one reason and it has to answer both.
+  // CENTRE fires twice here with one key, so one reason answers both.
   { axis: 'CENTRE', card: 'network-pod-ip-and-veth', where: [],
     why: 'both rows are the same column read from two sides. The chip strip the metric pools IS a '
       + 'column, at 60..360 on centre 210, and the column is the composition rather than a '
@@ -2456,7 +2286,7 @@ const ENTRIES = [
 
   { axis: 'CENTRE', card: 'workloads-probes', where: [],
     why: 'the card record OPEN: the chip strip spans 140..450 and centring it on 600 puts it at '
-      + '445..755, across the three probe lanes at 528 / 600 / 672 that run from 120 to 476, which '
+      + '445..755, across the three probe lanes at 528 / 600 / 672 that run from 120 to 464, which '
       + 'L-10 forbids. A full-width strip is four across at 270 a cell, which WL.L-05 refuses. The '
       + 'content bbox is 140..1060 and centres on 600 exactly' },
   { axis: 'OCCLUDED', card: 'workloads-env-before-pid-1', where: ['ConfigMap app-config'],
@@ -2465,11 +2295,7 @@ const ENTRIES = [
       + 'WL.CX. The label is cut 61% at 1280x860 and 75% at 1100x800, and the lever that would close '
       + 'it is clamping the panel height in CSS, which is catalog-wide (L-05a)' },
 
-  // ---------------------------------------------------------------------------------------
-  // A-05. NET.A-03 says a fan leg nothing rides is correct, so most of this set is that.
-  // ../unit/lane-shared.test.mjs asserts on it: a lane here that stops being reported turns
-  // the gate red.
-  // ---------------------------------------------------------------------------------------
+  // A-05: a fan leg nothing rides is correct (NET.A-03). ../unit/lane-shared.test.mjs asserts on this set.
   { axis: 'A-05', card: 'network-ebpf-dataplane', where: ['[[672,312],[796,312],[796,442],[920,442]]'],
     why: 'TO_PODY, the ALTERNATIVE backend of the map lookup. network/CARDS/network-ebpf-dataplane.md: '
       + '"TO_PODY carries no ball. It is the ALTERNATIVE backend, drawn so the reader can see the '
@@ -2490,33 +2316,27 @@ const ENTRIES = [
     why: 'TO_N3, the other half of the same pair and the same record entry. Which of the three legs '
       + 'a step takes is the arbitrary part, and drawing only the taken one would make the '
       + 'arbitrary look like the only. NET.A-03.' },
-  { axis: 'A-05', card: 'network-traffic-distribution', where: ['[[588,320],[700,320],[700,236],[740,236]]'],
+  { axis: 'A-05', card: 'network-traffic-distribution', where: ['[[588,320],[700,320],[700,229],[740,229]]'],
     why: 'FAN_A2. network/CARDS/network-traffic-distribution.md: "FAN_A2 carries no ball on its step. It '
       + 'is the endpoint the traffic distribution did NOT pick, and the point of the card is that '
       + 'the choice was made '
       + 'among the drawn candidates rather than forced." NET.A-03.' },
-  { axis: 'A-05', card: 'storage-reclaim-policy', where: ['[[712,350],[712,390]]'],
+  { axis: 'A-05', card: 'storage-reclaim-policy', where: ['[[764,350],[764,390]]'],
     why: 'W_RET_WIPE, and the card says so at the declaration: "drawn, never travelled: that is '
       + 'Retain". The whole subject of the card is that the Retain column HAS the lane the Delete '
       + 'column uses and never sends anything down it, so removing the arrowhead would remove the '
       + 'comparison.' },
-  { axis: 'A-05', card: 'storage-volume-detach-on-node-loss', where: ['[[578,282],[578,260],[496,260],[496,208]]'],
+  { axis: 'A-05', card: 'storage-detach-on-node-failure', where: ['[[578,282],[578,260],[496,260],[496,192]]'],
     why: 'W_ATTACH_A, and the record answers this exact question with a NO: "W_ATTACH_A is reported '
       + 'as a lane nobody rides, and converting it to a relationPath is DECLINED: sinking one half '
       + 'of a deliberately symmetric pair makes the left lane the lesser arrow, which is the thing '
       + 'this card goes out of its way not to do." The card says which half is live through '
       + 'OPACITY instead.' },
 
-  // ---------------------------------------------------------------------------------------
-  // SIMULTANEOUS and LIT-NOT-WRITTEN are EMPTY, and both read correctly that way: their queues
-  // reached zero, which is what promoted each rule into `npm test`. Nothing is reported, so
-  // nothing is carried.
-  // ---------------------------------------------------------------------------------------
+  // SIMULTANEOUS and LIT-NOT-WRITTEN are empty: both queues reached zero.
 ];
 
-// The match key. `[card, ...where].join(' ')` is byte for byte what the five private tables used,
-// so a consuming file builds its key from the finding and compares strings with no knowledge of
-// this file beyond the axis name.
+// Byte for byte the key consuming files build from a finding.
 export const carryKey = (card, where = []) => [card, ...where].join(' ');
 
 const known = (axis) => {
@@ -2527,32 +2347,20 @@ const known = (axis) => {
   return axis;
 };
 
-// Every entry filed under one axis, in declaration order.
 export const carriedFor = (axis) => ENTRIES.filter(e => e.axis === known(axis));
 
-// The drop-in for a private table: `Map<key, why>`. Built fresh per call, so a caller that mutates
-// what it gets back cannot reach the store.
+// Built fresh per call, so a caller mutating the map cannot reach the store.
 export const carriedMap = (axis) =>
   new Map(carriedFor(axis).map(e => [carryKey(e.card, e.where), e.why]));
 
-// THE STALE GUARD. `seen` is every key the walk actually produced for this axis, and what comes
-// back is every carried key it did not. A ruling that matches no finding is a lie the store tells:
-// the card moved and the reason still claims it. Report-only axes print this, and the four axes
-// with a `gate` column assert on it.
+// Carried keys the walk did not produce: the card moved under the ruling.
 export const staleKeys = (axis, seen) => {
   const live = seen instanceof Set ? seen : new Set(seen);
   return carriedFor(axis).map(e => carryKey(e.card, e.where)).filter(k => !live.has(k));
 };
 
-// The shape check every consuming file runs, returned as lines rather than thrown: a report file
-// prints them and a gate file asserts the array is empty. `ids` is the catalogued card ids, so a
-// ruling naming a card that no longer exists is caught here rather than by going quietly stale.
-//
-// THE FLOOR IS PRESENCE, NOT LENGTH, and that is deliberate. ../unit/chip-beat-e.test.mjs asks for
-// more than 20 characters on the FORM-E table it gates, which every FORM-E entry clears. The store
-// as a whole cannot: a back-reference to the entry above it is a legitimate reason, and the
-// shortest in the store is `same restoration` at 16 characters, three R2-STEP siblings sharing one
-// argument. Counting characters would only push a writer into padding.
+// Shape problems as lines (reports print, gates assert empty). The floor is presence, not length:
+// a back-reference to the entry above is a legitimate reason.
 export function shapeProblems(axis, ids = null) {
   const bad = [];
   for (const e of carriedFor(axis)) {
@@ -2568,15 +2376,10 @@ export function shapeProblems(axis, ids = null) {
   return bad;
 }
 
-// `CARRIED=1` makes a consuming file print its WHOLE axis roster instead of only the entries this
-// walk matched, so a stale entry shows up beside the reason it still claims.
+// Print the whole axis roster, not only matched entries, so stale ones show beside their reason.
 export const SHOW_ALL = process.env.CARRIED === '1';
 
-// The block every consuming file prints for its axis, so one shape reaches every report. `held` is
-// the matched entries as `{ key, why }`, optionally with the `line` that file writes for a live
-// finding: where there is one it stands in for the key, because the sentence says more than the
-// key does. `stale` is what staleKeys returned, and `pad` is the leading whitespace that file
-// indents its findings by.
+// `held` is `{ key, why, line? }` (line replaces the key when present), `stale` from staleKeys.
 export function carriedBlock(axis, held, stale, pad = '   ') {
   const out = [];
   const rows = SHOW_ALL
@@ -2597,8 +2400,6 @@ export function carriedBlock(axis, held, stale, pad = '   ') {
   return out;
 }
 
-// `node fixtures/carried.mjs [axis]`: the store as text, on demand and with no walk behind it.
-// Named entry point rather than a test, because there is no finding here to print, only rulings.
 if (process.argv[1] && process.argv[1].endsWith('carried.mjs')) {
   const want = process.argv[2];
   const { cards } = await import('./catalog.mjs');

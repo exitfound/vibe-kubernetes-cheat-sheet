@@ -1,10 +1,5 @@
-// snapshot.mjs: read the panel/geometry walk that `tools/walk.mjs` takes, and refuse to be read
-// when it is not there.
-//
-// A missing snapshot is a HARD ERROR and never an empty walk. A report file that found no rows
-// would print "0 findings" and exit 0, which is the same output as a clean catalog: the failure
-// mode this harness is most careful about everywhere else (fixtures/catalog.mjs says it about
-// readdir, every walker says it with census()). So the throw here is the check.
+// Reads the walk tools/walk.mjs wrote. A missing snapshot throws instead of reading as an empty
+// walk, because "0 findings" from no rows looks exactly like a clean catalog.
 import { readFileSync } from 'node:fs';
 import { SNAPSHOT, decode } from '../tools/walk.mjs';
 

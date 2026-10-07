@@ -1,35 +1,33 @@
-import { P, F, defineCard, OPACITY, BEAT, STO, makeRidingLabel } from './storage-kit.js';
+import { FADE, P, F, defineCard, OPACITY, BEAT, STO, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-default-storageclass.md
 
 
-const CX = STO.CX;                                    // 600, the four claims sit symmetric about it
+const CX = STO.CX;  // the four claims sit symmetric about it
 
 // Actor blocks take the catalog size (NET.L-01): 232 by 80.
 const BOX_W = 232, BOX_H = 80;
 
-// The claims row, in creation order left to right. A 32 gap puts the outer two at 204 and 996,
-// mirrored about CX, so the admission pair reaches them over two buses of equal length.
+// Creation order left to right, mirrored about CX, so the admission pair reaches the outer two over
+// two buses of equal length.
 const CLAIM_GAP = 32;
-const CLAIM_Y = 380, CLAIM_BOTTOM = CLAIM_Y + BOX_H;          // 380 / 460
-const claimCx = (i) => CX + (i - 1.5) * (BOX_W + CLAIM_GAP);  // 204 / 468 / 732 / 996
+const CLAIM_Y = 380, CLAIM_BOTTOM = CLAIM_Y + BOX_H;
+const claimCx = (i) => CX + (i - 1.5) * (BOX_W + CLAIM_GAP);
 const A_CX = claimCx(0), B_CX = claimCx(1), C_CX = claimCx(2), D_CX = claimCx(3);
 
-// The admission plugin stands on CX right of the panel wall (x 484 clears 397), in the top band.
+// The admission plugin stands on CX, right of the panel wall, in the top band.
 const ADM_X = CX - BOX_W / 2, ADM_Y = 96;
-const ADM_RIGHT = ADM_X + BOX_W, ADM_BOTTOM = ADM_Y + BOX_H;   // 716 / 176
-const ADM_MID = ADM_Y + BOX_H / 2;                            // 136
+const ADM_RIGHT = ADM_X + BOX_W, ADM_BOTTOM = ADM_Y + BOX_H;
+const ADM_MID = ADM_Y + BOX_H / 2;
 const LANE = 12;                                              // the mirrored pair off the admission floor
-// The left bus stays below y 300, so no lane or tag enters the x<=380, y<=300 corner of the panel.
-const BUS_Y = 318;                                            // 62 above the claim tops
+// The left bus stays below y 300, out of the narration panel corner.
+const BUS_Y = 318;
 
 // The class catalog: three rows in creation order, centred on the admission mid height so the
 // relation between them is one straight hop into the middle row.
-const CHAIN_X = 772, CHAIN_W = 296, ROW_GAP = 8;         // the widest row inks 261.9 at 1600x1000
-const CHAIN_Y = ADM_MID - (3 * STO.CHIP_H + 2 * ROW_GAP) / 2; // 77
-const CAPTION_Y = CHAIN_Y - 12;                               // 65
+const CHAIN_X = 772, CHAIN_W = 296, ROW_GAP = 8;
+const CHAIN_Y = ADM_MID - (3 * STO.CHIP_H + 2 * ROW_GAP) / 2;
+const CAPTION_Y = CHAIN_Y - 12;
 
-// The bottom band: the classless volume under the claim bound to it, the controller under data-c.
-// Both stand on one band top, 80 under the claims, so the card keeps three bands.
 const CTRL_Y = 540;
 const PV_W = 180, PV_H = 86, PV_Y = CTRL_Y;
 const SPEC_Y = PV_Y + 62;                                     // a line under the cylinder name
@@ -40,17 +38,16 @@ const W_CTRL_TO_C = [[C_CX, CTRL_Y], [C_CX, CLAIM_BOTTOM]];
 // The plugin reads the flags of EVERY class, so its line meets a bracket spanning all three rows
 // rather than the face of the middle one, which would read as the plugin reading fast alone.
 const BRACKET_X = CHAIN_X - 12;
-const rowMid = (i) => CHAIN_Y + i * (STO.CHIP_H + ROW_GAP) + STO.CHIP_H / 2;   // 94 / 136 / 178
+const rowMid = (i) => CHAIN_Y + i * (STO.CHIP_H + ROW_GAP) + STO.CHIP_H / 2;
 const W_READ = [[ADM_RIGHT, ADM_MID], [BRACKET_X, ADM_MID]];
 const W_BRACKET = [[CHAIN_X, rowMid(0)], [BRACKET_X, rowMid(0)], [BRACKET_X, rowMid(2)], [CHAIN_X, rowMid(2)]];
 const W_BOUND = [[B_CX, CLAIM_BOTTOM], [B_CX, PV_Y]];
 
-// Each tag lives exactly as long as its ball (M-30a) and emerges once clear of the box it leaves.
+// Each tag emerges once clear of the box it leaves.
 const TAG = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true });
-// On the admission trunk the tag stands off the lane on the side away from its twin, 34 out.
+// On the admission trunk the tag stands off the lane, on the side away from its twin.
 const STAMP_DX = 34, STAMP_EMERGE = 300;
-// The controller hop is 80 units: a tagged ball rides the catalog 1500, the tag trails under it so
-// it lands in the gap below data-c, and it emerges once the ball has lifted it off the controller.
+// The controller hop is short: the tag trails under the ball into the gap below data-c.
 const LEG_DUR = 1500;
 const RETRO_TAG = { dy: 16, dx: 26, dur: LEG_DUR, emerge: 700, fn: TAG };
 
@@ -151,7 +148,7 @@ export const STEPS_SPEC = [
     rewind: { wires: { bound: '' }, opacity: { pvcB: OPACITY.pending, boundRel: 0 } },
     flow: [
       bornAt('pvcB'),
-      F.fade({ target: 'boundRel', from: 0, to: 1, dur: 600, fill: 'forwards', easing: 'ease-out', delay: BOUND_AT }),
+      F.fade({ target: 'boundRel', from: 0, to: 1, dur: FADE.in, fill: 'forwards', easing: 'ease-out', delay: BOUND_AT }),
       // The binding controller makes the pairing, so it lights with the link it writes.
       F.light({ targets: ['ctrl', 'pvCyl'], delay: BOUND_AT }),
       F.set({ delay: BOUND_AT, wires: { bound: 'Bound' } }),

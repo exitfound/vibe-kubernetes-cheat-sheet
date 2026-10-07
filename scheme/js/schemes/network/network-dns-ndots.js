@@ -1,39 +1,35 @@
-import { P, F, defineCard, laneY, midX, BEAT } from './network-kit.js';
+import { LANE_DY, P, F, defineCard, laneY, midX, BEAT } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-dns-ndots.md
 
-
-// Panel right <= 397, bottom <= 255, so CoreDNS hangs below it on the left and the client Pod takes
-// the right column, directly under the resolv.conf it owns. Both blocks hold CONTENT_L and CONTENT_R.
+// CoreDNS hangs below the narration panel on the left, the client Pod sits under its resolv.conf.
 const CONTENT_L = 70, CONTENT_R = 1130;
 const FLOW_Y = 420;
-const LANE_DY = 12;
-const { out: FWD_Y, back: RET_Y } = laneY(FLOW_Y, LANE_DY);   // 408 query lane, 432 answer lane
+const { out: FWD_Y, back: RET_Y } = laneY(FLOW_Y, LANE_DY);
 
 const DNS_X = CONTENT_L, DNS_W = 232, DNS_H = 80;                  // NET.L-01
-const DNS_EDGE = DNS_X + DNS_W;          // 302: CoreDNS right edge
-// 340 and not 232: the Pod takes the width of the column over it (NET.L-01, sized BY a column).
+const DNS_EDGE = DNS_X + DNS_W;
+// The Pod takes the width of the column over it (NET.L-01, sized by a column).
 const POD_W = 340, POD_H = 104;
-const POD_X = CONTENT_R - POD_W;         // 790: client Pod left edge
+const POD_X = CONTENT_R - POD_W;
 
-// The resolver side of the card, one column over the Pod: the file first, then the order the
-// resolver tries candidates in. Everything a lookup walks is drawn next to the Pod that walks it.
-const COL_X = POD_X, COL_W = POD_W, CHIP_H = 32, CHIP_GAP = 8;
+// The resolver column over the Pod: the file, then the order candidates are tried in.
+const COL_X = POD_X, COL_W = POD_W, CHIP_H = 34, CHIP_GAP = 8;
 const FILE_Y = 60;
-const NS_W = 180, OPT_W = COL_W - NS_W - 10;                   // nameserver 180, options 150
+const NS_W = 180, OPT_W = COL_W - NS_W - 10;
 const TRY_Y0 = 148;
-const TRY_Y = [0, 1, 2, 3].map((i) => TRY_Y0 + i * (CHIP_H + CHIP_GAP));   // 148 188 228 268
+const TRY_Y = [0, 1, 2, 3].map((i) => TRY_Y0 + i * (CHIP_H + CHIP_GAP));
 
 // The two counters stacked under CoreDNS, which is where every one of those queries lands.
-const CNT_W = DNS_W, CNT_Y = [480, 520];
+const CNT_W = DNS_W, CNT_Y = [480, 480 + CHIP_H + CHIP_GAP];
 
-// Query and answer lanes. Wire and ball come from the same array.
+// Wire and ball come from the same array.
 const QUERY = [[POD_X, FWD_Y], [DNS_EDGE, FWD_Y]];
 const ANSWER = [[DNS_EDGE, RET_Y], [POD_X, RET_Y]];
-const LANE_CX = midX(DNS_EDGE, POD_X);   // 546, where both lane labels sit
+const LANE_CX = midX(DNS_EDGE, POD_X);   // where both lane labels sit
 
-// The search list of a Pod in namespace default, then the name as written: the order a relative
-// name is tried in. The rows are FIXED, only their results change, so the four keys are stable.
+// The search list of a Pod in namespace default, then the name as written. The rows are fixed,
+// only their results change, so the four keys are stable.
 const SUFFIXES = ['default.svc.cluster.local', 'svc.cluster.local', 'cluster.local'];
 const TRY_NAMES = [...SUFFIXES, 'as written'];
 const TRY_KEYS = ['try0', 'try1', 'try2', 'try3'];
@@ -59,8 +55,7 @@ export const SCENE = {
     P.arrow({ from: ANSWER[0], to: ANSWER[1], dashed: true, dim: true }),
     P.wire({ key: 'q', x: LANE_CX, y: FWD_Y - 12 }),
     P.wire({ key: 'a', x: LANE_CX, y: RET_Y + 22 }),
-    // resolv.conf, drawn as the file it is. Its search line is not a chip of its own: it is the
-    // first three rows of the try order below, which is where the card reads it.
+    // The search line is not a chip of its own: it is the first three rows of the try order.
     P.tag({ x: COL_X + COL_W / 2, y: FILE_Y - 12, text: '/etc/resolv.conf' }),
     P.chip({ key: 'rcNS', x: COL_X, y: FILE_Y, w: NS_W, h: CHIP_H, name: 'nameserver', value: RESOLV.rcNS }),
     P.chip({ key: 'rcNdots', x: COL_X + NS_W + 10, y: FILE_Y, w: OPT_W, h: CHIP_H, name: 'options', value: RESOLV.rcNdots }),
@@ -76,17 +71,14 @@ export const SCENE = {
   },
 };
 
-// One candidate asked and answered. `depart` is when the question leaves, and every later entry of
-// the round trip chains off the two arrivals it names. The row lights as the question DEPARTS, so it
-// is always readable which candidate is in flight, and its result is written when the answer lands.
+// One candidate asked and answered. The row lights as the question departs, so the candidate in
+// flight is always readable, and its result is written when the answer lands.
 const askOnce = ({ i, row, name, result, depart, tried, pulseOnSend = true }) => [
   ...(pulseOnSend ? [F.pulse({ pod: 'podGroup' })] : []),
   F.set({ wires: { q: name }, lit: [row], ...depart }),
   F.segment({ from: QUERY[0], to: QUERY[1], ...depart, name: `q${i}`, lights: ['dns'] }),
-  F.segment({ from: ANSWER[0], to: ANSWER[1], after: `q${i}`, name: `a${i}` }),
-  F.pulse({ pod: 'podGroup', at: `a${i}` }),
-  // Both counters wait for the answer (P-03): a name counts as tried once its reply is back, and
-  // each name is two queries on the wire, A and AAAA sent together.
+  F.segment({ from: ANSWER[0], to: ANSWER[1], after: `q${i}`, name: `a${i}`, pulse: 'podGroup' }),
+  // Both counters wait for the answer (P-03). Each name is two queries, A and AAAA together.
   F.set({
     wires: { a: result },
     chips: { [row]: result, namesChip: String(tried), queriesChip: String(tried * 2) },
@@ -94,9 +86,8 @@ const askOnce = ({ i, row, name, result, depart, tried, pulseOnSend = true }) =>
   }),
 ];
 
-// A lookup is a run of round trips, fired back to back. A retry leaves 460 after the last NXDOMAIN
-// landed: 160 of gap, then the 300 lead the resolver waits before firing the next name. `tries`
-// lists the rows asked, in order, each with the answer it gets.
+// A run of round trips fired back to back. A retry leaves 460 after the last NXDOMAIN lands: a
+// 160 gap plus the 300 lead the resolver waits. `tries` lists the rows asked, each with its answer.
 const lookup = (name, tries) => tries.flatMap(({ row, result }, i) => askOnce({
   i,
   row: TRY_KEYS[row],
@@ -107,8 +98,8 @@ const lookup = (name, tries) => tries.flatMap(({ row, result }, i) => askOnce({
   pulseOnSend: i === 0,
 }));
 
-// The static end state of a lookup, from the same `tries` list: every row asked carries its answer
-// and is lit, every other row keeps `rest`, and both counters hold the total.
+// The static end state from the same `tries` list: every row asked is lit with its answer, every
+// other row keeps `rest`.
 const endState = (name, tries, rest = NOT_TRIED) => {
   const rows = { try0: rest, try1: rest, try2: rest, try3: rest };
   for (const { row, result } of tries) rows[TRY_KEYS[row]] = result;
@@ -148,14 +139,12 @@ export const STEPS_SPEC = [
     narration: 'With the default ClusterFirst policy the Kubelet configures this resolv.conf: the kube-dns Service as nameserver, search domains built from the namespace and the cluster domain, and ndots:5. A name with fewer than 5 dots counts as relative, so the resolver tries it with every search domain first and as written last. Any search domains of the Node are appended after them.',
     chips: { ...IDLE_ROWS, namesChip: '0', queriesChip: '0', ...RESOLV },
     lit: ['rcNS', 'rcNdots', ...TRY_KEYS],
-    // The Pod is reading its own resolv.conf and no cue names the resolver box, so the static path
-    // says it here instead of the pulse it cannot show.
+    // No cue names the resolver box, so the static path shows here the pulse it cannot play.
     reducedLit: ['podBox'],
     flow: [F.pulse({ pod: 'podGroup' })],
   },
   {
     id: 'local',
-    // Motion: pulse beat (800) + one round trip on the 488 unit lane + the arrival pulse ends at 3968.
     duration: 4100,
     narration: 'The name api has zero dots, so it is relative. The first candidate, api.default.svc.cluster.local, is a Service in the same namespace, so CoreDNS answers with its ClusterIP and the walk stops there. One name tried, and still two queries, because getaddrinfo asks for A and AAAA together.',
     ...endState(LOCAL, LOCAL_TRIES),
@@ -165,7 +154,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'crossns',
-    // Two round trips, the second chained 460 after the first NXDOMAIN lands: the motion runs to 6696.
     duration: 6850,
     narration: 'The name api.shop has one dot, still under 5. The first candidate, api.shop.default.svc.cluster.local, does not exist and comes back NXDOMAIN. The second, api.shop.svc.cluster.local, is that Service in the shop namespace and answers. This is what the search list is for: a name relative to the cluster resolves without its full suffix.',
     ...endState(CROSS, CROSS_TRIES),
@@ -175,8 +163,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'external',
-    // Four round trips back to back, 2728 each after the first, and the last one still has to finish
-    // its arrival pulse: the motion runs to 12152. Never below it, or auto-advance clips the walk.
+    // Never below the motion end, or auto-advance clips the walk.
     duration: 12300,
     narration: 'The name api.example.com has two dots, so it is relative too, and no cluster suffix matches it. Three round trips end in NXDOMAIN before the name as written is asked and answered. Four names and eight queries for a single external lookup, paid again on every call, since the resolver inside the Pod keeps no cache. This is the real cost of ndots:5.',
     ...endState(EXTERNAL, EXTERNAL_TRIES),
@@ -186,7 +173,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'fqdn',
-    // One round trip, same budget as the local step.
     duration: 4100,
     narration: 'A trailing dot makes a name absolute whatever ndots says, as in api.example.com., so the resolver skips every search domain and asks it once as written: one name, two queries. Fully qualifying hot external names, or lowering ndots through the Pod dnsConfig, is the usual fix for noisy cluster DNS.',
     // The trailing dot has to survive on the query label: it is the whole subject of the step.
@@ -197,8 +183,7 @@ export const STEPS_SPEC = [
     rewind: REWIND,
     flow: [
       ...lookup(`${EXTERNAL}.`, FQDN_TRIES),
-      // The skip is decided when the resolver reads the trailing dot, which is the beat the name
-      // leaves on, so the three search rows turn over with the as-written row lighting (P-04).
+      // The skip is decided as the name leaves, so the search rows turn over with it (P-04).
       F.set({ chips: { try0: SKIPPED, try1: SKIPPED, try2: SKIPPED }, lit: TRY_KEYS.slice(0, 3), delay: BEAT.afterPulse }),
     ],
   },

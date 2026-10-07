@@ -2,85 +2,59 @@ import { P, F, defineCard, ladder, WL, FADE, BEAT, OPACITY } from './workloads-k
 
 // Design notes for this card: ./CARDS/workloads-probes.md
 
-// THREE PARALLEL PROBE LANES, not the A / B / C column preset: the subject is three questions on
-// three independent periodSeconds, and one corridor says the opposite. Panel measured at x<=396.55
-// and y<=254.66, the worst of the three viewports report/overlay.test.mjs walks, so PANEL_B 255 is
-// that reading rounded up and BAND_Y stands 21.34 clear of it. There is no head room to spend.
+// Three parallel probe lanes, not the column preset: three questions on three independent periodSeconds.
+// PANEL_B is the narration panel bottom, and there is no head room to spend.
 const PANEL_B = 255, PANEL_GAP = 21;
-const BAND_Y = PANEL_B + PANEL_GAP;                      // 276
+const BAND_Y = PANEL_B + PANEL_GAP;
 
-// Actor row. Kubelet centred on CX because the middle probe lane leaves its bottom face on the
-// spine (WL.L-07), EndpointSlice right-aligned on WL.R, the pair arrangement
-// workloads-pod-startup-conditions draws. The two never talk to each other, so no top-row lane
-// joins them (A-05): what connects them is the Node between them.
-const TOP1_W = 232, TOP1_X = WL.CX - TOP1_W / 2;         // 484..716, the family actor width
-// EndpointSlice is right-aligned on the NODE FRAME and not on WL.R, so the actor row and the frame
-// share both edges and the content box centres on 600 exactly. Aligned on WL.R instead it reached
-// 1140 against a frame starting at 190 and CENTRE read 665 against a 600 +-40 window.
-const TOP2_W = 210, TOP2_X = 1060 - TOP2_W;              // 850..1060, on the frame right edge
+// Kubelet centred on CX: the middle probe lane leaves its bottom face on the spine (WL.L-07).
+const TOP1_W = 232, TOP1_X = WL.CX - TOP1_W / 2;         // the family actor width
+// Right-aligned on the NODE FRAME, not WL.R, so the actor row and the frame share both edges.
+const TOP2_W = 232, TOP2_X = 1060 - TOP2_W;              // on the frame right edge
 
-// The Node frame is 920 and not the WL.L-02 full width, and it is centred on WL.CX so its top face
-// midpoint is still the spine (WL.A-03). 820 was measured first and read too narrow beside a Pod of
-// 460: at 920 the band left of the Pod is 230 against the 180 that read as a squeeze.
-const NODE_Y = 476, NODE_H = 140;                        // 476..616, the workloads frame family
-const NODE_W = 920, NODE_X = WL.CX - NODE_W / 2;         // 140..1060
+// 920, not the WL.L-02 full width, centred on WL.CX so its top face midpoint is the spine (WL.A-03).
+const NODE_Y = 464, NODE_H = 142;                        // the WL padding: 34 + POD_H + 12
+const NODE_W = 920, NODE_X = WL.CX - NODE_W / 2;
 
-// Chips share the frame's LEFT EDGE rather than the canvas margin: the two bands line up on 190
-// instead of one starting 130 units outside the other. 310 wide, four rows of CHIP_H + 8.
-const CHIP_X = NODE_X, CHIP_W = 310;                     // 140..450
+// Chips share the frame's LEFT EDGE rather than the canvas margin.
+const CHIP_X = NODE_X, CHIP_W = 310;
 const CHIP_GAP = 8;
 const CHIP_Y = ladder({ y: BAND_Y, rowH: WL.CHIP_H, gap: CHIP_GAP });
 const POD_W = 460, POD_H = 96, POD_X = WL.CX - POD_W / 2;
-const POD_Y = NODE_Y + 22;                               // 498..594
+const POD_Y = NODE_Y + 34;
 const CONT_W = 300, CONT_H = 52, CONT_X = WL.CX - CONT_W / 2;
-const CONT_Y = POD_Y + 30;                               // 528..580
+const CONT_Y = POD_Y + 30;
 
-// The three lanes, 72 apart and SYMMETRIC about WL.SPINE_X, so the set centres on the spine the
-// frame top midpoint sits on even though no single lane is alone on that face (L-12). Every one of
-// them ends on the FRAME face at NODE_Y and never on the Pod inside it (WL.A-03).
+// Three lanes symmetric about WL.SPINE_X (L-12), each ending on the FRAME face, never the Pod (WL.A-03).
 const LANE_DX = 72;
-const STARTUP_X = WL.SPINE_X - LANE_DX;                  // 528
-const LIVENESS_X = WL.SPINE_X;                           // 600
-const READINESS_X = WL.SPINE_X + LANE_DX;                // 672
+const STARTUP_X = WL.SPINE_X - LANE_DX;
+const LIVENESS_X = WL.SPINE_X;
+const READINESS_X = WL.SPINE_X + LANE_DX;
 const down = (x) => [[x, WL.TOP_BOTTOM], [x, NODE_Y]];
 const up = (x) => [[x, NODE_Y], [x, WL.TOP_BOTTOM]];
 const S_DOWN = down(STARTUP_X), S_UP = up(STARTUP_X);
 const L_DOWN = down(LIVENESS_X), R_DOWN = down(READINESS_X);
-// ONE lane carries every answer, and it runs up the SPINE. Which probe reported is said by the lit
-// chip and by the wire label, not by a third x: an answer riding its own probe x needed a second
-// path beside it on every step to keep the other probes on the canvas, and a relation standing next
-// to an arrowhead reads as two things happening where one is.
+// ONE lane carries every answer outside gate-opens, up the spine: the lit chip and the wire label
+// say which probe reported.
 const SPINE_UP = up(WL.SPINE_X), SPINE_DOWN = down(WL.SPINE_X);
-// THE TOP ROW IS WHERE THE TWO ANSWERS PART. Both climb to Kubelet, and only the readiness one
-// travels on: this lane carries it right, from the Kubelet right face midpoint to the EndpointSlice
-// left face midpoint. A first version ran it from the frame straight up to the EndpointSlice
-// bottom face and was REJECTED at the frame: it shares x with the readiness lane, so on every step
-// that showed both, a down arrow and an up arrow were drawn on one segment and the pair read as a T.
-const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;                  // 80
+// The top row is where the two answers part: only the readiness one travels on to the EndpointSlice.
+// Do not run it up from the frame: it would share x with the readiness lane and read as a T.
+const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
 const EP_LANE = [[TOP1_X + TOP1_W, TOP_CY], [TOP2_X, TOP_CY]];
 
-// The EndpointSlice carries the Pod endpoint from the moment the Pod has an IP, flagged ready=false
-// until the readinessProbe passes: a not-ready endpoint is FLAGGED and never absent, which is the
-// same fact step readiness-fails states and network-endpointslice-reconcile draws from the slice side.
+// A not-ready endpoint is FLAGGED ready=false, never absent.
 const EP_READY = '10.244.1.5 ready=true', EP_NOTREADY = '10.244.1.5 ready=false';
 
-// The list order IS the append order, so it is the z-order: the held relations under the lanes,
-// then the wire label, the chips, the packet layer, and the bodies above the ball.
+// List order is z-order: held relations under the lanes, then wire, chips, packets, bodies above the ball.
 export const SCENE = {
-  'aria-label': 'Container probes: startupProbe holds livenessProbe and readinessProbe shut until it passes, a liveness failure restarts the container, a readiness failure only flips the endpoint to ready=false',
+  'aria-label': 'Container probes: startupProbe holds livenessProbe and readinessProbe shut until it passes, a liveness failure restarts the container per restartPolicy, a readiness failure only flips the endpoint to ready=false',
   parts: [
     P.defs(),
-    // THE THREE PROBES ARE STRUCTURE AND STAND ON EVERY STEP, as relations under the lanes: a card
-    // that shows only the probe currently talking is one corridor again with a moving x. Each is a
-    // relation and not a lane because nothing rides it on the step it is showing, and an arrowhead
-    // on a path nothing travels is A-05.
-    // Held is DASHED, released is SOLID, and that difference IS the gate. Startup is never held and
-    // never released, so it carries one relation and it disappears outright once retired.
+    // The three probes stand as relations on the poster frame only: an arrowhead nothing rides is A-05.
     P.relation({ key: 'startupRel', points: S_DOWN, dim: true, role: 'cluster', opacity: 0 }),
     P.relation({ key: 'livenessHeld', points: L_DOWN, dim: true, dashed: true, role: 'cluster' }),
     P.relation({ key: 'readinessHeld', points: R_DOWN, dim: true, dashed: true, role: 'cluster' }),
-    // Each probe is a PAIR, down for the probe and up for the answer, and exactly one of a pair is
-    // visible per step. Same idiom the corridor of this card used to carry, three times over.
+    // The six lanes, each drawn only on a step whose ball rides it (`lanes()` below).
     P.lane({ key: 'spineDown', points: SPINE_DOWN, dim: true, dashed: true, role: 'cluster', opacity: 0 }),
     P.lane({ key: 'startupUp', points: S_UP, dim: true, dashed: true, role: 'cluster', opacity: 0 }),
     P.lane({ key: 'livenessDown', points: L_DOWN, dim: true, dashed: true, role: 'cluster', opacity: 0 }),
@@ -102,9 +76,7 @@ export const SCENE = {
       inner: { dx: CONT_X - POD_X, dy: CONT_Y - POD_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'container' },
     }),
     P.box({ key: 'kubelet', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'prober + probeManager', role: 'cluster' }),
-    // The second destination. It is a BLOCK and not a chip row on purpose: a readiness failure
-    // moves a different OBJECT, and a chip beside the other three would have said it was a
-    // fourth probe state.
+    // A BLOCK, not a chip: a readiness failure moves a different OBJECT, not a fourth probe state.
     P.box({ key: 'epSlice', x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'EndpointSlice', sublabel: EP_NOTREADY, role: 'cluster' }),
   ],
   reset: {
@@ -115,9 +87,7 @@ export const SCENE = {
 
 const RETIRED = 'passed (retired)', HELD = 'held (startupProbe)';
 
-// Every probe is drawn as a PAIR, down for the question and up for the answer, and this states in
-// one place which of the seven paths a step shows. Written as a set rather than as one direction,
-// because gate-opens is the step that shows two of them at once.
+// Which of the ten paths a step shows, as a set: gate-opens shows three at once.
 const PATH_KEYS = [
   'startupRel', 'livenessHeld', 'readinessHeld', 'epRel',
   'spineDown', 'startupUp', 'livenessDown', 'readinessDown', 'reportUp', 'epLane',
@@ -135,17 +105,15 @@ export const STEPS_SPEC = [
   {
     id: 'startup-gating',
     duration: 3400,
-    narration: 'Kubelet runs startupProbe against the container every periodSeconds, with an httpGet, tcpSocket, grpc or exec handler. While it runs, livenessProbe and readinessProbe are held shut and never execute, so a slow boot never reads as a liveness failure. A startupProbe that exhausts failureThreshold kills the container per restartPolicy.',
+    narration: 'Kubelet runs startupProbe against the container every periodSeconds, with an httpGet, tcpSocket, grpc or exec handler. While it runs, livenessProbe and readinessProbe are held shut and never execute, so a slow boot never reads as a liveness failure. If it exhausts failureThreshold, Kubelet kills the container and restartPolicy decides what follows.',
     chips: { startupChip: 'probing 4/30', livenessChip: HELD, readinessChip: HELD, restartChip: '0' },
     sublabels: { epSlice: EP_NOTREADY },
     wires: { req: 'httpGet /healthz/start' },
     opacity: { podGroup: OPACITY.pending, ...lanes('spineDown') },
-    // Kubelet self-initiates, so it is lit STATICALLY and its probe waits BEAT.lead (M-18a), the
-    // shape fresh-container takes for the same probe.
+    // Kubelet self-initiates, so it is lit statically and its probe waits BEAT.lead (M-18a).
     lit: ['kubelet', 'startupChip'],
     flow: [
-      F.route({ points: SPINE_DOWN, delay: BEAT.lead, name: 'probe' }),
-      F.pulse({ pod: 'podGroup', dim: true, at: 'probe' }),
+      F.route({ points: SPINE_DOWN, delay: BEAT.lead, name: 'probe', pulse: { pod: 'podGroup', dim: true } }),
     ],
   },
   {
@@ -157,43 +125,36 @@ export const STEPS_SPEC = [
     wires: { req: '200 OK · startup retired' },
     opacity: { podGroup: OPACITY.pending, ...lanes('startupUp', 'livenessDown', 'readinessDown') },
     lit: ['startupChip', 'livenessChip', 'readinessChip'],
-    // The pass reaching Kubelet is what retires startup and releases the two, so all three chips
-    // turn over together on that arrival (P-03, P-04) and read what step 1 left until then.
+    // All three chips turn over together when the pass reaches Kubelet (P-03, P-04).
     rewind: { chips: { startupChip: 'probing 4/30', livenessChip: HELD, readinessChip: HELD } },
     flow: [
       F.pulse({ pod: 'podGroup', dim: true }),
       F.route({ points: S_UP, delay: BEAT.afterPulse, name: 'pass', lights: ['kubelet'] }),
       F.set({ at: 'pass', chips: { startupChip: RETIRED, livenessChip: 'running', readinessChip: 'running' } }),
-      // THE GATE OPENING, as motion rather than as a line that vanishes. The two probes that were
-      // held descend TOGETHER on the answer, which is the one beat this whole composition is for:
-      // a reader sees two lanes start carrying traffic at the same instant and on their own paths.
+      // The gate opening: the two held probes descend TOGETHER on the answer, the beat this composition is for.
       F.route({ points: L_DOWN, after: 'pass', name: 'released' }),
       F.route({ points: R_DOWN, after: 'pass' }),
-      // The two released probes REACH the container, so it blinks for them: without this the step
-      // ends with two balls landing on a Pod that does not react.
+      // The released probes reach the container, so it blinks for them.
       F.pulse({ pod: 'podGroup', dim: true, at: 'released' }),
     ],
   },
   {
     id: 'ready',
     duration: 3100,
-    narration: 'The readinessProbe passes successThreshold consecutive times on its own period. Kubelet flips the Pod Ready condition to True and the Pod endpoint in the EndpointSlice flips to ready=true, so the Service starts sending it traffic. Every condition named in spec.readinessGates must be True first.',
+    narration: 'The readinessProbe passes successThreshold consecutive times on its own period. Kubelet flips the Pod Ready condition to True and the Pod endpoint in the EndpointSlice flips to ready=true, so new connections start reaching it. Every condition named in spec.readinessGates must be True first.',
     chips: { startupChip: RETIRED, livenessChip: 'passing', readinessChip: 'passing 1/1', restartChip: '0' },
     sublabels: { epSlice: EP_READY },
     wires: { req: '200 OK · Ready=True' },
     opacity: { podGroup: 1, ...lanes('reportUp', 'epLane') },
     lit: ['readinessChip'],
-    // The verdict lands with the report on Kubelet and the endpoint flips when it reaches the slice,
-    // so neither stands before its ball (P-03).
+    // Neither value stands before its ball (P-03).
     rewind: { chips: { readinessChip: 'running' }, sublabels: { epSlice: EP_NOTREADY } },
     flow: [
       F.pulse({ pod: 'podGroup', dim: true }),
       F.route({ points: SPINE_UP, delay: BEAT.afterPulse, name: 'report', lights: ['kubelet'] }),
-      // The Pod comes to full where Kubelet flips Ready, with the verdict, not before it.
       F.fade({ target: 'podGroup', from: OPACITY.pending, to: 1, dur: FADE.in, at: 'report', fill: 'both', easing: 'ease-out' }),
       F.set({ at: 'report', chips: { readinessChip: 'passing 1/1' } }),
-      // And only THIS answer travels on past Kubelet, which is the sentence the composition exists
-      // to say: the same verdict that flips Ready is what moves a different object.
+      // Only THIS answer travels on past Kubelet: the verdict that flips Ready moves a different object.
       F.route({ points: EP_LANE, after: 'report', name: 'ep', lights: ['epSlice'] }),
       F.set({ at: 'ep', sublabels: { epSlice: EP_READY } }),
     ],
@@ -201,13 +162,12 @@ export const STEPS_SPEC = [
   {
     id: 'readiness-fails',
     duration: 3100,
-    narration: 'The readinessProbe alone fails failureThreshold consecutive times. The EndpointSlice marks that endpoint ready=false rather than removing it, and kube-proxy stops sending new connections to it. Nothing is restarted and restartCount stays 0, because a readiness failure only moves traffic away.',
+    narration: 'The readinessProbe alone fails failureThreshold consecutive times. The Pod endpoint in the EndpointSlice is marked ready=false rather than removed, so new connections stop reaching it. Nothing is restarted and restartCount stays 0, because a readiness failure only moves traffic away.',
     chips: { startupChip: RETIRED, livenessChip: 'passing', readinessChip: 'failed 3/3', restartChip: '0' },
     sublabels: { epSlice: EP_NOTREADY },
     wires: { req: '503 · readiness failed' },
     opacity: { podGroup: 1, ...lanes('reportUp', 'epLane') },
     lit: ['readinessChip', 'restartChip'],
-    // Same shape as `ready`: the 503 report earns the verdict, the slice arrival earns ready=false.
     rewind: { chips: { readinessChip: 'passing 1/1' }, sublabels: { epSlice: EP_READY } },
     flow: [
       F.pulse({ pod: 'podGroup' }),
@@ -226,32 +186,27 @@ export const STEPS_SPEC = [
     wires: { req: '503 · liveness failed' },
     opacity: { podGroup: OPACITY.notready, ...lanes('reportUp', 'epRel') },
     lit: ['livenessChip', 'restartChip', 'epSlice'],
-    // The kill is what fails liveness, counts the restart and resets the other two, so all four
-    // chips turn over on the kill beat together (P-04) and read what step 4 left until then.
+    // The kill turns all four chips over on one beat (P-04).
     rewind: { chips: { startupChip: RETIRED, livenessChip: 'passing', readinessChip: 'failed 3/3', restartChip: '0' } },
     flow: [
       F.pulse({ pod: 'podGroup' }),
-      F.route({ points: SPINE_UP, delay: BEAT.afterPulse, lights: ['kubelet'] }),
-      // The kill hangs off the PULSE and not off the report arriving: the container dies when
-      // Kubelet decides, and the report is what it sends afterwards.
-      F.fade({ target: 'podGroup', from: 1, to: OPACITY.notready, dur: FADE.out, delay: BEAT.afterPulse + BEAT.afterHop, fill: 'both', easing: 'ease-in' }),
-      F.set({ delay: BEAT.afterPulse + BEAT.afterHop, chips: { startupChip: 'reset', livenessChip: 'failed 3/3', readinessChip: 'reset', restartChip: '1' } }),
+      F.route({ points: SPINE_UP, delay: BEAT.afterPulse, name: 'report', lights: ['kubelet'] }),
+      // The kill hangs off the 503 REACHING Kubelet, which decides on the failure it has received.
+      F.fade({ target: 'podGroup', from: 1, to: OPACITY.notready, dur: FADE.out, at: 'report', fill: 'both', easing: 'ease-in' }),
+      F.set({ at: 'report', chips: { startupChip: 'reset', livenessChip: 'failed 3/3', readinessChip: 'reset', restartChip: '1' } }),
     ],
   },
   {
     id: 'fresh-container',
     duration: 3100,
-    narration: 'The replacement container starts from the beginning. Kubelet runs startupProbe again and holds the other two shut until it passes, then readinessProbe succeeds and that endpoint flips back to ready=true. The restartCount never resets, so it climbs with every restart, which is how a restart loop is read off a running one.',
+    narration: 'The replacement container starts from the beginning. Kubelet runs startupProbe again and holds the other two shut until it passes, then readinessProbe succeeds and that endpoint flips back to ready=true. The restartCount carries over, so it climbs with every restart, which is how a restart loop is read off a running one.',
     chips: { startupChip: RETIRED, livenessChip: 'passing', readinessChip: 'passing 1/1', restartChip: '1' },
     sublabels: { epSlice: EP_READY },
     wires: { req: 'httpGet /healthz/start' },
     opacity: { podGroup: 1, ...lanes('spineDown', 'epLane') },
-    // Kubelet self-initiates here, so it is lit STATICALLY and its ball waits BEAT.lead (M-18a):
-    // the 800 is the beat where the lit sender stands alone before the probe leaves. Span 2951
-    // against duration 3100, the reading `ready` and `readiness-fails` take on 800 plus two hops.
+    // Kubelet self-initiates, so it is lit statically and its ball waits BEAT.lead (M-18a).
     lit: ['kubelet', 'startupChip', 'restartChip'],
-    // The probe cycle retires startup and lets the other two pass, and the slice flips on its own
-    // arrival, so every changed value waits for its ball (P-03, P-04).
+    // Every changed value waits for its ball (P-03, P-04).
     rewind: { chips: { startupChip: 'reset', livenessChip: 'failed 3/3', readinessChip: 'reset' }, sublabels: { epSlice: EP_NOTREADY } },
     flow: [
       F.route({ points: SPINE_DOWN, delay: BEAT.lead, name: 'probe' }),

@@ -1,47 +1,43 @@
-import { P, F, defineCard, OPACITY, BEAT, makeRidingLabel } from './storage-kit.js';
+import { LANE_DY, P, F, defineCard, OPACITY, BEAT, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-pv-lifecycle-phases.md
 
 
 // One pitch drives the phase row, and the row stands right of the panel wall so the controller band
 // can span all four phases above it: every write lane is then a straight drop onto a box top.
 const PITCH = 196;
-const ST_W = 150, GAP = PITCH - ST_W;                          // 150 / 46
+const ST_W = 150, GAP = PITCH - ST_W;
 const ROW_X = 400;
-const AVAIL_CX = ROW_X + ST_W / 2, BOUND_CX = AVAIL_CX + PITCH;          // 475 / 671
-const RELEASED_CX = BOUND_CX + PITCH, FAILED_CX = RELEASED_CX + PITCH;  // 867 / 1063
-const ROW_RIGHT = ROW_X + 4 * ST_W + 3 * GAP;                  // 1138
+const AVAIL_CX = ROW_X + ST_W / 2, BOUND_CX = AVAIL_CX + PITCH;
+const RELEASED_CX = BOUND_CX + PITCH, FAILED_CX = RELEASED_CX + PITCH;
+const ROW_RIGHT = ROW_X + 4 * ST_W + 3 * GAP;
 const stX = cx => cx - ST_W / 2;
-const ROW_Y = 300, ST_H = 72, ROW_BOTTOM = ROW_Y + ST_H, ROW_MID = ROW_Y + ST_H / 2;  // 372 / 336
+const ROW_Y = 300, ST_H = 72, ROW_BOTTOM = ROW_Y + ST_H, ROW_MID = ROW_Y + ST_H / 2;
 
 // Every actor is 80 tall (NET.L-01). The controller band is sized BY the row it writes to, and its
 // centre is the row centre, so the four write lanes sit at mirrored offsets on its floor (L-12).
 const BOX_H = 80, GAP_Y = 40;
-const SLOT_Y = 30, SLOT_BOTTOM = SLOT_Y + BOX_H;               // 30 / 110, the actor sending an event
-const BAND_Y = SLOT_BOTTOM + GAP_Y, BAND_BOTTOM = BAND_Y + BOX_H;   // 150 / 230
-const BAND_X = ROW_X, BAND_W = ROW_RIGHT - ROW_X, BAND_CX = BAND_X + BAND_W / 2;   // 400 / 738 / 769
-// 232 would reach 653..885 either way: the slot is centred on the band, one actor per step.
-const SLOT_W = 232, SLOT_X = BAND_CX - SLOT_W / 2;             // 653
+const SLOT_Y = 30, SLOT_BOTTOM = SLOT_Y + BOX_H;  // the actor sending an event
+const BAND_Y = SLOT_BOTTOM + GAP_Y, BAND_BOTTOM = BAND_Y + BOX_H;
+const BAND_X = ROW_X, BAND_W = ROW_RIGHT - ROW_X, BAND_CX = BAND_X + BAND_W / 2;
+// The slot is centred on the band, one actor per step.
+const SLOT_W = 232, SLOT_X = BAND_CX - SLOT_W / 2;
 
 // The way back runs UNDER the row, from the Released floor to the Available floor.
-const BACK_Y = ROW_BOTTOM + 48, WIRE_LBL_Y = ROW_BOTTOM + 20, BACK_LBL_Y = BACK_Y + 18;  // 420 / 392 / 438
-const LANE_DY = 12;
+const BACK_Y = ROW_BOTTOM + 48, WIRE_LBL_Y = ROW_BOTTOM + 20, BACK_LBL_Y = BACK_Y + 18;
 // The Delete caption sits ABOVE the row, right of the Released write lane: under the row it would
 // lie across the provisioner lane and the way back, which both leave the Released floor.
-const DELETE_LBL_X = RELEASED_CX + LANE_DY, DELETE_LBL_Y = ROW_Y - 18;   // 879 / 282
-// The Failed caption is 208 wide at 1100x800: centred on its gap it starts on the way-back line at
-// 855, so it starts at the Released centre instead, 12 clear of that line.
-const FAIL_LBL_X = RELEASED_CX;                                  // 867
+const DELETE_LBL_X = RELEASED_CX + LANE_DY, DELETE_LBL_Y = ROW_Y - 18;
+// The Failed caption starts at the Released centre, clear of the way-back line.
+const FAIL_LBL_X = RELEASED_CX;
 
-// The external-provisioner stands under Failed, 232 by 80 (NET.L-01), and reaches Released from the
-// side, 12 right of the way back on the same floor.
-const PROV_W = 232, PROV_X = FAILED_CX - PROV_W / 2, PROV_Y = 450;   // 947..1179, 450..530
-const PROV_MID = PROV_Y + BOX_H / 2;                                 // 490
+// The external-provisioner stands under Failed (NET.L-01) and reaches Released from the side.
+const PROV_W = 232, PROV_X = FAILED_CX - PROV_W / 2, PROV_Y = 450;
+const PROV_MID = PROV_Y + BOX_H / 2;
 
 // The PV object as a column of its own fields, bottom left, where the full width is free below the
-// panel, and far enough left that it balances the row: pooled content 80..1179, centre 630.
-// 260 wide: `claimRef` plus `default/data stale` is 26 characters, about 203 units.
+// panel, placed so it balances the row.
 const COL_X = 80, COL_W = 260, CHIP_H = 34, CHIP_GAP = 8, COL_Y = 440;
-const chipY = i => COL_Y + i * (CHIP_H + CHIP_GAP);            // 440 / 482 / 524 / 566, ends 600
+const chipY = i => COL_Y + i * (CHIP_H + CHIP_GAP);
 
 const W_EVENT = [[BAND_CX, SLOT_BOTTOM], [BAND_CX, BAND_Y]];
 const write = cx => [[cx, BAND_BOTTOM], [cx, ROW_Y]];
@@ -57,6 +53,9 @@ const gapMid = cx => cx + ST_W / 2 + GAP / 2;
 // it fades in once clear of it instead.
 const gapTag = makeRidingLabel({ role: 'storage', emergeMode: true });
 const GAP_TAG = { fn: gapTag, emerge: 400 };
+// DeleteVolume rises into the Released floor, so its tag rides under the ball and right of the rise,
+// landing in the gap under the row.
+const DELETE_TAG = { ...GAP_TAG, dx: 50, dy: 16 };
 const REMOVE_MS = 500;
 
 const lane = (points, key) => P.lane({ key, points, dashed: true, dim: true });
@@ -143,11 +142,9 @@ export const STEPS_SPEC = [
     lit: ['pvc'],
     rewind: { chips: { phaseChip: 'Available', claimRefChip: 'none' }, wires: { wBind: '' } },
     flow: [
-      F.route({ points: W_EVENT, delay: BEAT.lead, name: 'ev' }),
-      F.tag({ text: 'new claim', points: W_EVENT, delay: BEAT.lead, ...GAP_TAG }),
+      F.route({ points: W_EVENT, delay: BEAT.lead, name: 'ev', tag: { text: 'new claim', ...GAP_TAG } }),
       F.light({ targets: ['band'], at: 'ev' }),
-      F.route({ points: W_BOUND, after: 'ev', name: 'w' }),
-      F.tag({ text: 'Bound', points: W_BOUND, after: 'ev', ...GAP_TAG }),
+      F.route({ points: W_BOUND, after: 'ev', name: 'w', tag: { text: 'Bound', ...GAP_TAG } }),
       F.light({ targets: ['stBound'], at: 'w' }),
       writeLands('w', 'Bound', { claimRefChip: 'default/data' }),
       F.set({ at: 'w', wires: { wBind: 'claim bound' } }),
@@ -170,13 +167,11 @@ export const STEPS_SPEC = [
       wires: { wRelease: '' },
     },
     flow: [
-      F.route({ points: W_EVENT, delay: BEAT.lead, name: 'ev' }),
-      F.tag({ text: 'claim deleted', points: W_EVENT, delay: BEAT.lead, ...GAP_TAG }),
+      F.route({ points: W_EVENT, delay: BEAT.lead, name: 'ev', tag: { text: 'claim deleted', ...GAP_TAG } }),
       F.light({ targets: ['band'], at: 'ev' }),
       F.fade({ target: 'pvc', to: 0, dur: REMOVE_MS, at: 'ev', fill: 'forwards', unlight: ['pvc'] }),
       F.fade({ target: 'lEvent', to: 0, dur: REMOVE_MS, at: 'ev', fill: 'forwards' }),
-      F.route({ points: W_RELEASED, after: 'ev', name: 'w' }),
-      F.tag({ text: 'Released', points: W_RELEASED, after: 'ev', ...GAP_TAG }),
+      F.route({ points: W_RELEASED, after: 'ev', name: 'w', tag: { text: 'Released', ...GAP_TAG } }),
       F.light({ targets: ['stReleased'], at: 'w' }),
       writeLands('w', 'Released', { claimRefChip: 'default/data stale' }),
       F.set({ at: 'w', wires: { wRelease: 'claim deleted' } }),
@@ -198,8 +193,7 @@ export const STEPS_SPEC = [
     // Released takes the call through an F.set, not `lights`: the dim below takes the stroke off
     // again, and the static path must not show a lit phase on a board with no PV behind it.
     flow: [
-      F.route({ points: W_PROV, delay: BEAT.lead, name: 'del' }),
-      F.tag({ text: 'DeleteVolume', points: W_PROV, delay: BEAT.lead, ...GAP_TAG }),
+      F.route({ points: W_PROV, delay: BEAT.lead, name: 'del', tag: { text: 'DeleteVolume', ...DELETE_TAG } }),
       F.set({ on: 'stReleased', lit: ['stReleased'], at: 'del' }),
       writeLands('del', 'none, PV deleted', { claimRefChip: 'gone with the PV' }),
       ...[...BOARD, 'lProv'].map(target => F.fade({ target, to: OPACITY.notready, dur: REMOVE_MS, at: 'del', plus: 400, fill: 'forwards', unlight: [target] })),
@@ -216,11 +210,9 @@ export const STEPS_SPEC = [
     lit: ['band'],
     rewind: { chips: { phaseChip: 'Released', eventChip: 'none' } },
     flow: [
-      F.route({ points: W_RELEASED, delay: BEAT.lead, name: 'look' }),
-      F.tag({ text: 'no deleter', points: W_RELEASED, delay: BEAT.lead, ...GAP_TAG }),
+      F.route({ points: W_RELEASED, delay: BEAT.lead, name: 'look', tag: { text: 'no deleter', ...GAP_TAG } }),
       F.light({ targets: ['stReleased'], at: 'look' }),
-      F.route({ points: W_FAILED, after: 'look', name: 'w' }),
-      F.tag({ text: 'Failed', points: W_FAILED, after: 'look', ...GAP_TAG }),
+      F.route({ points: W_FAILED, after: 'look', name: 'w', tag: { text: 'Failed', ...GAP_TAG } }),
       F.light({ targets: ['stFailed'], at: 'w' }),
       writeLands('w', 'Failed', { eventChip: 'VolumeFailedDelete' }),
     ],
@@ -235,12 +227,10 @@ export const STEPS_SPEC = [
     lit: ['admin'],
     rewind: { chips: { phaseChip: 'Released', claimRefChip: 'default/data stale' }, wires: { wBack: '' } },
     flow: [
-      F.route({ points: W_EVENT, delay: BEAT.lead, name: 'ev' }),
-      F.tag({ text: 'claimRef: null', points: W_EVENT, delay: BEAT.lead, ...GAP_TAG }),
+      F.route({ points: W_EVENT, delay: BEAT.lead, name: 'ev', tag: { text: 'claimRef: null', ...GAP_TAG } }),
       F.light({ targets: ['band'], at: 'ev' }),
       F.set({ at: 'ev', chipsCued: { claimRefChip: 'cleared' } }),
-      F.route({ points: W_AVAIL, after: 'ev', name: 'w' }),
-      F.tag({ text: 'Available', points: W_AVAIL, after: 'ev', ...GAP_TAG }),
+      F.route({ points: W_AVAIL, after: 'ev', name: 'w', tag: { text: 'Available', ...GAP_TAG } }),
       F.light({ targets: ['stAvail'], at: 'w' }),
       writeLands('w', 'Available'),
       F.set({ at: 'w', wires: { wBack: 'claimRef cleared by hand' } }),

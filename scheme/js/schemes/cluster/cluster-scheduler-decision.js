@@ -1,106 +1,89 @@
-import { P, F, defineCard, laneY, ladder, spread, midX, LAYOUT, FADE, OPACITY } from './cluster-kit.js';
+import { LANE_DY, P, F, defineCard, laneY, ladder, spread, midX, CLU, LAYOUT, FADE, OPACITY } from './cluster-kit.js';
 
 // Design notes for this card: ./CARDS/cluster-scheduler-decision.md
 
 // Layout A, the Cluster exemplar: actor row clear of the panel, ladder left, chips right, candidate
-// Nodes full width at the bottom. Panel x<=397 y<=180.12, and JOG_Y clears it at 190.
+// Nodes full width at the bottom.
 const M = 60;
-const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
-// Reserved narration corner: 400 x 180. Nothing on this card derives from it, and the measured
-// worst case per viewport is in the header note above.
+const CONTENT_L = M, CONTENT_R = 1200 - M;
 
-const TOP_Y = 60, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;    // 60 / 140
-const TOP_CY = midX(TOP_Y, TOP_BOTTOM);                  // 100
-const LANE_DY = 15;
-const { out: OUT_Y, back: BACK_Y } = laneY(TOP_CY, LANE_DY);  // 85 / 115
-const SCHED_W = 190, API_W = 300, ETCD_W = 130, TOP_GAP = 50;
-const SCHED_X = 420, SCHED_R = SCHED_X + SCHED_W;        // 420..610
-const API_X = SCHED_R + TOP_GAP, API_R = API_X + API_W;  // 660..960
-const API_CX = midX(API_X, API_R);                       // 810
-const ETCD_X = API_R + TOP_GAP;                          // 1010..1140
-const WIRE_SA_X = midX(SCHED_R, API_X);                  // 635
-const WIRE_AE_X = midX(API_R, ETCD_X);                   // 985
+const TOP_Y = 60, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;
+const TOP_CY = midX(TOP_Y, TOP_BOTTOM);
+const { out: OUT_Y, back: BACK_Y } = laneY(TOP_CY, LANE_DY);
+const SCHED_W = 232, API_W = 232, ETCD_W = 130, TOP_GAP = 63;
+const SCHED_X = 420, SCHED_R = SCHED_X + SCHED_W;
+const API_X = SCHED_R + TOP_GAP, API_R = API_X + API_W;
+const API_CX = midX(API_X, API_R);
+const ETCD_X = API_R + TOP_GAP;
+const WIRE_SA_X = midX(SCHED_R, API_X);
+const WIRE_AE_X = midX(API_R, ETCD_X);
 
 const ROW_H = 32, ROW_GAP = 12;
-// LAYOUT.A of the kit, which this card is the exemplar of: ladder in the left column, state chips
-// in the right. The chip WIDTH is the one number this card takes off the preset, see CHIP_W.
-const LADDER_X = LAYOUT.A.ladder.x, LADDER_W = LAYOUT.A.ladder.w;      // 60..540
-const LADDER_Y = 220, LADDER_CX = midX(LADDER_X, LADDER_X + LADDER_W); // 220, 300
-// 270, not the preset 480: the last 210 units of the preset column are the only channel from the
-// control-plane band down to the Node band, and the kubelet lane needs them. Floor is 171.2.
-const CHIP_X = LAYOUT.A.chips.x, CHIP_W = 270;                         // 660..930
-const CHIP_Y = ladder({ y: LADDER_Y, rowH: ROW_H, gap: ROW_GAP });     // chips share the ladder rhythm
+// LAYOUT.A of the kit, except CHIP_W.
+const LADDER_X = LAYOUT.A.ladder.x, LADDER_W = LAYOUT.A.ladder.w;
+const LADDER_Y = 220, LADDER_CX = midX(LADDER_X, LADDER_X + LADDER_W);
+// Narrower than the preset: the rest of that column is the only channel down to the Node band,
+// and the kubelet lane needs it.
+const CHIP_X = LAYOUT.A.chips.x, CHIP_W = 270;
+const CHIP_ROW = ladder({ y: LADDER_Y, rowH: ROW_H, gap: ROW_GAP });   // chips share the ladder rhythm
+// Each chip centres on its rung.
+const CHIP_H = CLU.CHIP_H, CHIP_Y = i => CHIP_ROW(i) - (CHIP_H - ROW_H) / 2;
 
-// The two lanes leaving the API bottom face are a mirrored pair at +-LANE_DX (L-12), so neither is
-// off-midpoint alone: the relation down to the ladder, and the watch stream out to the Node.
+// The two lanes leaving the API bottom face are a mirrored pair at +-LANE_DX (L-12).
 const LANE_DX = 30;
-// 190, not the band midpoint 180: BOTH horizontal legs sit on it, and at 180 the left one ran
-// under the panel at 1100x800, whose bottom measures 180.12. At 190 it clears on every viewport.
+// Below the band midpoint so the left horizontal leg clears the narration panel on every viewport.
 const JOG_Y = 190;
-const REL_X = API_CX - LANE_DX, WATCH_X = API_CX + LANE_DX;   // 780 / 840
-// A relationship, not a route: the API owns the Pod objects the cycle below reads. It turns halfway
-// between the two faces rather than hugging the ladder.
+const REL_X = API_CX - LANE_DX, WATCH_X = API_CX + LANE_DX;
+// A relationship, not a route: the API owns the Pod objects the cycle below reads.
 const API_TO_CHAIN = [[REL_X, TOP_BOTTOM], [REL_X, JOG_Y], [LADDER_CX, JOG_Y], [LADDER_CX, LADDER_Y]];
-// Centred in the band between the top row and the jog, not pinned under the boxes: the +4 puts the
-// glyph MIDDLE on the band centre. Both labels in this band share it, so the two read as one row.
-const WIRE_RESP_Y = midX(TOP_BOTTOM, JOG_Y) + 4;         // 169, visual centre 165.1 against 165
+// Centred in the band between the top row and the jog, +4 puts the glyph middle on it. Shared by both labels.
+const WIRE_RESP_Y = midX(TOP_BOTTOM, JOG_Y) + 4;
 
 const NODE_Y = 410, NODE_H = 130, NODE_W = 240;
-// Fixed WIDTH, derived gap: four 240-wide Nodes spanning the content band leave 40 between them.
-const NODE_X = spread({ from: CONTENT_L, to: CONTENT_R, count: 4, w: NODE_W }).x;   // 60/340/620/900
-const VERDICT_Y = 552, VERDICT_H = 32;
+// Fixed width, derived gap.
+const NODE_X = spread({ from: CONTENT_L, to: CONTENT_R, count: 4, w: NODE_W }).x;
+const VERDICT_Y = 552, VERDICT_H = CHIP_H;
 
-// The Kubelet sits in the channel the narrowed chips open, centred on the Node it belongs to, so
-// both of its lanes are straight drops. ETCD_W wide, so it reads as a top-row peer and not a chip.
+// The Kubelet sits in the channel the narrowed chips open, centred on its Node so both its lanes
+// are straight drops. ETCD_W wide so it reads as a top-row peer and not a chip.
 const KUBELET_W = ETCD_W, KUBELET_H = TOP_H;
-// Centred on the three-chip band 220..340, whose middle is 280, so KUBELET_Y is 280 - h/2.
-const KUBELET_Y = midX(CHIP_Y(0), CHIP_Y(2) + ROW_H) - KUBELET_H / 2;   // 240..320
-const NODE4_CX = midX(NODE_X(3), NODE_X(3) + NODE_W);          // 1020
-const KUBELET_X = NODE4_CX - KUBELET_W / 2;                    // 955..1085
-const KUBELET_BOTTOM = KUBELET_Y + KUBELET_H;                  // 320
-// Api.bottom -> Kubelet.top, then Kubelet.bottom -> Node-4.top. The binding write reaching the Node
-// is what step 5 narrates, and before these two lanes the Pod materialised with nothing arriving.
+// Centred on the three-chip band.
+const KUBELET_Y = midX(CHIP_Y(0), CHIP_Y(2) + CHIP_H) - KUBELET_H / 2;
+const NODE4_CX = midX(NODE_X(3), NODE_X(3) + NODE_W);
+const KUBELET_X = NODE4_CX - KUBELET_W / 2;
+const KUBELET_BOTTOM = KUBELET_Y + KUBELET_H;
 const API_TO_KUBELET = [[WATCH_X, TOP_BOTTOM], [WATCH_X, JOG_Y], [NODE4_CX, JOG_Y], [NODE4_CX, KUBELET_Y]];
 const KUBELET_TO_NODE = [[NODE4_CX, KUBELET_BOTTOM], [NODE4_CX, NODE_Y]];
-// Anchored START just right of the drop it labels: centred anywhere on the leg the 234.3 wide
-// string runs back over the WATCH_X drop at 840, which no lint sees and a frame does.
-const WIRE_WATCH_X = WATCH_X + 14;                                          // 854
+// Start-anchored right of the drop: centred, the string runs back over the WATCH_X drop.
+const WIRE_WATCH_X = WATCH_X + 14;
 const PLACED_X = 912, PLACED_Y = 422, PLACED_W = 216, PLACED_H = 106;
 const PLACED_INNER = { dx: 10, dy: 28, w: 196, h: 52 };
 
-// The list order IS the append order, so it is the z-order: chips, lanes and the Node row first, the
-// packet layer under the chain, and the three top-row blocks absolute last.
+// List order is z-order: chips, lanes and Nodes first, the packet layer under the chain, top row last.
 export const SCENE = {
   'aria-label': 'Scheduler decision cycle: a Pod taken off the queue, four candidate Nodes filtered and then scored, the winning choice written back through the API into ETCD, and the Kubelet on Node-4 picking the Pod up and running it',
   parts: [
     P.defs(),
-    // State chips in the right column, one per ladder row so the two columns share a rhythm.
-    P.chip({ key: 'queueChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: ROW_H, name: 'queued pod', value: 'none' }),
-    P.chip({ key: 'candChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: ROW_H, name: 'candidates', value: 'none' }),
-    P.chip({ key: 'winnerChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: ROW_H, name: 'winner', value: 'none' }),
-    // Top-row arrows (out at y=85, return at y=115), all dashed.
+    P.chip({ key: 'queueChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'queued pod', value: 'none' }),
+    P.chip({ key: 'candChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: CHIP_H, name: 'candidates', value: 'none' }),
+    P.chip({ key: 'winnerChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: CHIP_H, name: 'winner', value: 'none' }),
     P.arrow({ x1: SCHED_R, y1: OUT_Y, x2: API_X, y2: OUT_Y, dim: true, dashed: true }),
     P.arrow({ x1: API_X, y1: BACK_Y, x2: SCHED_R, y2: BACK_Y, dim: true, dashed: true }),
     P.arrow({ x1: API_R, y1: OUT_Y, x2: ETCD_X, y2: OUT_Y, dim: true, dashed: true }),
     P.arrow({ x1: ETCD_X, y1: BACK_Y, x2: API_R, y2: BACK_Y, dim: true, dashed: true }),
-    // Api.bottom -> pipeline.top. No arrowhead and no ball: it states that the cycle below works on
-    // the Pod objects the API holds, it does not carry traffic.
+    // A relationship: no arrowhead, no ball.
     P.relation({ points: API_TO_CHAIN }),
-    // The two lanes the placement write travels, both carrying a ball on the last step. No `key`:
-    // nothing addresses them, and the routes ride the SAME arrays these are drawn from (A-02).
+    // No key: the routes ride the SAME arrays these are drawn from (A-02).
     P.lane({ points: API_TO_KUBELET, dim: true, dashed: true }),
     P.lane({ points: KUBELET_TO_NODE, dim: true, dashed: true }),
-    // Wire labels at fixed positions, populated per step.
     P.wire({ key: 'req', x: WIRE_SA_X, y: 46 }),
     P.wire({ key: 'resp', x: WIRE_SA_X, y: WIRE_RESP_Y }),
     P.wire({ key: 'persist', x: WIRE_AE_X, y: 46 }),
     P.wire({ key: 'watch', x: WIRE_WATCH_X, y: WIRE_RESP_Y, anchor: 'start' }),
-    // Bottom row: 4 candidate Nodes side-by-side on the derived spread.
     P.box({ key: 'n1', x: NODE_X(0), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1', sublabel: 'taint dedicated=db:NoSchedule' }),
     P.box({ key: 'n2', x: NODE_X(1), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2', sublabel: 'mem unreserved 200Mi (req 800Mi)' }),
     P.box({ key: 'n3', x: NODE_X(2), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-3', sublabel: 'cpu 40% / mem 60%' }),
-    // Node-4 is the one whose own text has to stay reachable: `placed` hides it behind the Pod.
-    // tune() only CAPTURES two refs here, it changes nothing the builder made.
+    // tune() only captures the two refs the last step hides behind the Pod.
     P.box({
       key: 'n4', x: NODE_X(3), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-4', sublabel: 'cpu 25% / mem 35%',
       tune: (el, refs) => {
@@ -108,27 +91,22 @@ export const SCENE = {
         refs.n4Sub = el.querySelector('.scheme-box-sublabel');
       },
     }),
-    // A verdict chip below each Node. P-15 asked for a literal per chip because prose.mjs seeded on
-    // one. A spec is read by import now, so these four are written out for their refs, not for that.
     P.chip({ key: 'v1', x: NODE_X(0), y: VERDICT_Y, w: NODE_W, h: VERDICT_H, name: 'verdict', value: 'none' }),
     P.chip({ key: 'v2', x: NODE_X(1), y: VERDICT_Y, w: NODE_W, h: VERDICT_H, name: 'verdict', value: 'none' }),
     P.chip({ key: 'v3', x: NODE_X(2), y: VERDICT_Y, w: NODE_W, h: VERDICT_H, name: 'verdict', value: 'none' }),
     P.chip({ key: 'v4', x: NODE_X(3), y: VERDICT_Y, w: NODE_W, h: VERDICT_H, name: 'verdict', value: 'none' }),
-    // The one actor that is not control plane. It stands in the channel above the Node it runs on,
-    // so the reader can see WHO picks the Pod up rather than only reading it in the panel.
+    // The one actor outside the control plane, above the Node it runs on.
     P.box({
       key: 'kubelet', x: KUBELET_X, y: KUBELET_Y, w: KUBELET_W, h: KUBELET_H,
       label: 'Kubelet', sublabel: 'on Node-4',
     }),
-    // The Pod the cycle places, hidden until the last step. Inner box matches the workloads canon
-    // for a 216-wide shell: 10px side insets (w=196).
     P.pod({
       key: 'placedPod', id: 'placedPod', innerKey: 'placedPodBox', opacity: 0,
       x: PLACED_X, y: PLACED_Y, w: PLACED_W, h: PLACED_H, label: 'Pod', sublabel: '', containers: 0,
       inner: { ...PLACED_INNER, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27' },
     }),
     P.packets(),
-    // Chain LAST among middle blocks so it renders on top of packetLayer.
+    // Chain after the packet layer so it renders on top of it.
     P.chain({
       key: 'chain', x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
@@ -138,26 +116,22 @@ export const SCENE = {
         '4. bind    ·  POST .../pods/{name}/binding',
       ],
     }),
-    // Top-row blocks ABSOLUTE LAST.
     P.box({ key: 'sched', x: SCHED_X, y: TOP_Y, w: SCHED_W, h: TOP_H, label: 'Scheduler', sublabel: 'watch unscheduled Pods' }),
     P.box({ key: 'api', x: API_X, y: TOP_Y, w: API_W, h: TOP_H, label: 'API', sublabel: 'pods + binding subresource' }),
-    // labelY centres the cylinder label optically: the default h/2 baseline reads high under the cap,
-    // and a full nudge to the body-below-cap centre reads low. y=60 (glyph centre ~106) balances both.
+    // labelY centres the cylinder label optically under the cap.
     P.cylinder({ key: 'etcdC', x: ETCD_X, y: TOP_Y - 10, w: ETCD_W, h: TOP_H + 20, label: 'ETCD', labelY: 60 }),
   ],
-  // placedPod is deliberately NOT in a `pods` list: the card pulses it and never clears the pulse,
-  // and a clearPodHighlight here would wipe four inline styles the picture depends on.
+  // placedPod is deliberately NOT in a `pods` list: a clearPodHighlight would wipe inline styles
+  // the pulsed picture depends on.
   reset: { keys: ['sched', 'api', 'etcdC', 'kubelet', 'queueChip', 'candChip', 'winnerChip', 'n1', 'n2', 'n3', 'n4', 'v1', 'v2', 'v3', 'v4', 'placedPodBox'] },
 };
 
 const POD = 'my-app-7d4-abc';
 const SURVIVORS = '2 of 4', WINNER = 'Node-4 · 92';
 const DROPPED = OPACITY.notready;
-// Node-4 hands its slot to the Pod. 200 clears both strings before an ease-out Pod fade is legible:
-// at 150 into a simultaneous crossfade the two label pairs sat on top of each other.
+// Long enough to clear Node-4 strings before the Pod fade is legible, so the labels never overlap.
 const HANDOVER_MS = 200;
-// P-01: a step that does not CHANGE a verdict still writes it. Nothing resets a scene between two
-// forward steps, so these are the values already on the four chips, restated rather than inherited.
+// P-01: a step that does not change a verdict still writes it.
 const FILTERED = { v1: 'filtered · taint', v2: 'filtered · resources' };
 const SCORED = { ...FILTERED, v3: 'score 78', v4: 'score 92' };
 
@@ -177,10 +151,8 @@ export const STEPS_SPEC = [
     opacity: { n1: 1, n2: 1, n3: 1, n4: 1 },
     lit: ['candChip', 'api', 'queueChip'],
     chain: 0,
-    // The Pod enters the queue when its watch event lands, so both chips turn over on that arrival.
     rewind: { chips: { queueChip: 'none', candChip: 'none' } },
-    // Watch event flows Api -> Scheduler on the return lane at y=115. The queue and the three
-    // stages below it are the Scheduler's own work, so nothing travels down to the ladder.
+    // The queue and the stages below are the Scheduler's own work, so nothing travels to the ladder.
     flow: [
       F.segment({ from: [API_X, BACK_Y], to: [SCHED_R, BACK_Y], name: 'watch', lights: ['sched'] }),
       F.set({ at: 'watch', chips: { queueChip: POD, candChip: '4 of 4' } }),
@@ -191,9 +163,8 @@ export const STEPS_SPEC = [
     duration: 2300,
     narration: 'Filter plugins test each Node against the Pod requirements, and in a large cluster they stop once enough Nodes fit. Node-1 carries a NoSchedule taint without a matching toleration, Node-2 lacks the requested memory. Both are dropped before scoring.',
     chips: { queueChip: POD, candChip: SURVIVORS, winnerChip: 'none', ...FILTERED, v3: 'none', v4: 'none' },
-    // Pin final opacity inline so cancel between steps does not flash to default.
     opacity: { n1: DROPPED, n2: DROPPED, n3: 1, n4: 1 },
-    // Filtering is the Scheduler's own work (the Api is not involved), so the Scheduler lights up.
+    // Filtering is the Scheduler's own work, so the Scheduler lights.
     lit: ['sched', 'candChip', 'v1', 'v2'],
     chain: 1,
     flow: [
@@ -203,31 +174,26 @@ export const STEPS_SPEC = [
   },
   {
     id: 'score',
-    // 1400ms was the shortest step on the card and it carries the densest text with no motion at
-    // all, so nothing but reading time sets it: 2200 matches the packet-less pace of the siblings.
+    // No motion: reading time sets this.
     duration: 2200,
     narration: 'Surviving Nodes are ranked by score plugins like NodeResourcesFit, NodeAffinity and PodTopologySpread. Each returns 0 to 100 per Node and the weighted sum of all of them ranks the Nodes: Node-3 78, Node-4 92. See the Pod Priority and Preemption card.',
     chips: { queueChip: POD, candChip: SURVIVORS, winnerChip: 'none', ...SCORED },
     opacity: { n1: DROPPED, n2: DROPPED },
-    // Computed inside the Scheduler, so nothing travels and nothing pulses: the verdicts settle
-    // via the static highlight. The Scheduler lights because the step is its own work.
+    // Computed inside the Scheduler: nothing travels, nothing pulses.
     lit: ['n3', 'n4', 'v3', 'v4', 'sched'],
     chain: 2,
   },
   {
     id: 'bind',
-    // Three hops now, span 2860: 2400 would have cut the commit ack off mid-flight.
     duration: 3000,
     narration: 'Highest score wins, ties broken at random. The Scheduler assumes the placement so the next Pod sees Node-4 as taken. It POSTs a Binding to the binding subresource, not a Pod patch, and the API writes it into ETCD, which acks the Raft commit.',
     chips: { queueChip: POD, candChip: SURVIVORS, winnerChip: WINNER, ...SCORED },
     wires: { req: 'POST .../pods/my-app-7d4-abc/binding', persist: 'spec.nodeName=Node-4 · rv=903' },
     opacity: { n1: DROPPED, n2: DROPPED },
-    // v4 is lit on score and lit on placed, so it stays lit here: the verdict chip follows the Node
-    // above it, and going dark for one step in the middle read as the winner being un-chosen.
+    // v4 follows the Node above it: going dark here reads as the winner being un-chosen.
     lit: ['sched', 'winnerChip', 'n4', 'v4'],
     chain: 3,
-    // Three hops: binding POST, persist, then the commit ack home. The Api is MID-CHAIN, so it
-    // lights on arrival like ETCD. The ack is what rv=903 on the persist wire is.
+    // The API is mid-chain, so it lights on arrival like ETCD.
     flow: [
       F.segment({ from: [SCHED_R, OUT_Y], to: [API_X, OUT_Y], name: 'post', lights: ['api'] }),
       F.segment({ from: [API_R, OUT_Y], to: [ETCD_X, OUT_Y], after: 'post', name: 'persist', lights: ['etcdC'] }),
@@ -236,28 +202,22 @@ export const STEPS_SPEC = [
   },
   {
     id: 'placed',
-    // Two hops now, arriving at 1500, plus the handover and the pulse behind it: span 2600.
     duration: 2800,
     narration: 'The Kubelet on Node-4 watches /api/v1/pods?fieldSelector=spec.nodeName=Node-4, so the write arrives there as an ADDED event. It pulls the image and starts the containers, and the Pod goes from Pending to Running.',
     chips: { queueChip: POD, candChip: SURVIVORS, winnerChip: WINNER, ...SCORED },
     wires: { watch: 'watch ADDED · spec.nodeName=Node-4' },
-    // Hide node-4's own label and sublabel so the inner box reads cleanly inside the slot, and pin
-    // the placed Pod's final state inline so cancel returns to the right value, not default.
+    // Node-4 own text hides so the inner box reads cleanly inside the slot.
     opacity: { n1: DROPPED, n2: DROPPED, n4Label: 0, n4Sub: 0, placedPod: 1 },
-    // The Api streams the event, so it stays lit from the bind step. The verdict chip belongs to the
-    // Node above it and takes the same highlight, or the winning column ends shaded like a filtered one.
+    // The API streams the event, so it stays lit. v4 takes the Node highlight or the winning column
+    // ends shaded like a filtered one.
     lit: ['api', 'n4', 'v4', 'placedPodBox'],
     flow: [
-      // The write reaching the Node is the whole of this step: the Api streams it to the Kubelet,
-      // and the Kubelet is what starts the containers. Nothing arrived here before these two hops.
       F.route({ points: API_TO_KUBELET, name: 'watch', lights: ['kubelet'] }),
       F.route({ points: KUBELET_TO_NODE, after: 'watch', name: 'start' }),
-      // Node-4 own text clears the slot on arrival, over HANDOVER_MS, so the frame is never empty
-      // and never doubled: the two strings sit on the same baselines as the Pod ones.
+      // Node-4 text clears on arrival so the frame is never empty and never doubled.
       F.fade({ target: 'n4Label', from: 1, to: 0, dur: HANDOVER_MS, at: 'start', fill: 'both', easing: 'ease-in' }),
       F.fade({ target: 'n4Sub', from: 1, to: 0, dur: HANDOVER_MS, at: 'start', fill: 'both', easing: 'ease-in' }),
-      // The placed Pod fades in and pulses together (shared delay), matching the
-      // workloads pod-pulse canon, instead of pulsing a beat after the fade.
+      // Fade and pulse share a delay, the pod-pulse canon.
       F.fade({ target: 'placedPod', from: 0, to: 1, dur: FADE.in, at: 'start', plus: HANDOVER_MS, fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'placedPod', at: 'start', plus: HANDOVER_MS }),
     ],

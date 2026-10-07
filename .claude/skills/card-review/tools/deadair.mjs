@@ -1,37 +1,7 @@
 #!/usr/bin/env node
-// deadair.mjs: how long a step STANDS STILL after its own motion has ended, ranked against the
-// catalog.
-//
-//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/deadair.mjs <card-id> [--base=URL]
-//
-// WHY THIS EXISTS. `M-19` and `render/duration.test.mjs` enforce `span <= duration`: a step must
-// OUTLAST its own motion. Nothing anywhere enforces or even prints the other side of that
-// inequality. A step whose ball lands at 700ms and whose duration is 3800 is green on every check
-// in the tree and reads on screen as a card that froze: the viewer watched the one thing that
-// moves finish, and then waited 3.1 seconds at a picture that is not changing. `timing.mjs` has
-// both numbers in its output and never subtracts them, which is how a full review reported this
-// card healthy while the author was watching the dead air.
-//
-// THE TENSION THIS TOOL MAKES VISIBLE, and it does not resolve it. `duration` is a READING hold:
-// the step has to stay up long enough for its narration to be read, and `timing.mjs` ranks that
-// side (ms per character, catalog median about 10). So dead air is not a defect on its own, it is
-// the PRICE of a long narration over a short motion. A step is only a finding when it is an
-// outlier on BOTH readings at once: far more still time than its siblings AND no reading load to
-// justify it. This tool prints the pair so that judgement is made on two numbers and not on one.
-//
-// THE TWO SPAN READINGS, and they are not interchangeable.
-//   spec  the static lower bound off `timelineOf` (test/fixtures/spec.mjs). It ignores the ripple,
-//         the packet fades and the pulse tails, so it UNDERSTATES the span and therefore OVERSTATES
-//         the dead air. It is what the catalog baseline is built from, because it needs no browser.
-//   real  the live WAAPI reading off `stepSpan`, the same one `render/duration.test.mjs` uses. Only
-//         the target card gets it, because it costs a browser.
-// The RANK is computed spec against spec, so it is internally consistent. The dead-air MILLISECONDS
-// a finding quotes must come from the `real` column, never from the rank's column.
-//
-// WHAT IT IS BLIND TO. Everything `pace.mjs` is blind to, for the same reason: it reads the spec,
-// so a card building its flow inside `step.motion` or an `F.run` escape hides its motion here. It
-// also cannot see that a step is still on PURPOSE: a beat held for emphasis and a beat nobody
-// thought about produce the same number, and only the card's record can tell them apart.
+// deadair.mjs: how long each step stands still after its own motion ends, ranked against the catalog, beside its reading load.
+// usage: cd scheme/test && node ../../.claude/skills/card-review/tools/deadair.mjs <card-id> [--base=URL]
+// The rank is spec against spec (understates span), quote milliseconds from the `real` column. Blind to motion inside step.motion or F.run.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -47,9 +17,7 @@ const id = args.find(a => !a.startsWith('--'));
 if (!id) { console.error('Usage: node deadair.mjs <card-id> [--base=URL] [--no-browser]'); process.exit(1); }
 
 const kit = { BEAT, routeDur, REVEAL_MS };
-// The static span of one step: the latest arrival over its flow, plus the tail of anything that
-// ENDS later than it lands. A fade's arrival already includes its dur; a pulse lands at its delay
-// and then rings for PULSE_MS, which is the one tail worth carrying because it is the longest.
+// The static span of one step: the latest arrival plus the longest tail, a pulse ringing PULSE_MS after its delay.
 const PULSE_MS = 900;
 function specSpan(spec) {
   const rows = timelineOf(spec.flow, kit);

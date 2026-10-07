@@ -1,74 +1,6 @@
-// baselines.test.mjs: the CATALOG-WIDE numbers a card record keeps quoting, computed in one place
-// so no record has to carry a copy of them.
-//
-// ===========================================================================================
-// WHY THIS FILE EXISTS
-// ===========================================================================================
-// A card record is written to explain ONE card: why a width is what it is, which alternative was
-// measured and fails, what a number is floored by. Alongside those, records grew a second kind of
-// number: the population a measurement was ranked against, and the catalog median it was compared
-// to. `9.60 ms per character` belongs to the card and stays true until that card's narration is
-// edited. `rank 235 of 590` belongs to the CATALOG and stops being true the moment anybody adds a
-// card anywhere, including in another category.
-//
-// That second kind is O(n) coupling written into prose. One card landing in `cluster/` in August
-// invalidated 37 numbers across 15 cluster records, and the same card moved every population in the
-// other three records too. The repository already has the rule that answers this, in the root
-// `CLAUDE.md`: A COUNT THAT HAS ONE EXECUTING HOME IS STATED ONLY THERE. The number of checks the
-// suite runs is read out of `package.json` and no document repeats it. This file is that home for
-// the pacing and motion baselines, and `js/schemes/cluster/CARDS.md` is the first record to stop
-// repeating them.
-//
-// ===========================================================================================
-// WHAT IT PRINTS, AND WHERE EACH NUMBER IS MEASURED
-// ===========================================================================================
-// Section 1  THE READING-PACE BASELINE. Population, median, tenth and seventy-fifth percentile of
-//            `duration / narration.length`, over every narrated step in the catalog, plus the same
-//            median per category. Read off the SOURCES with the identical regex
-//            `.claude/skills/card-review/tools/timing.mjs` uses, so a rank quoted from that probe
-//            and a population quoted from here are the same population by construction.
-// Section 2  THE LONG-NARRATION COHORT, steps of 290 characters or more. A long narration is read
-//            faster per character, so the catalog median is the wrong yardstick for a long step and
-//            this cohort is the right one. Size, median, p75.
-// Section 3  DURATION SHAPE PER CATEGORY: still and moving averages, and the whole-run median and
-//            mean. A card picks its holds against its OWN category, so this is the yardstick its
-//            record needs, and a catalog figure is dominated by whichever category is largest.
-// Section 4  THE STILL-TIME POPULATION. Only the population is computed here, off the specs.
-//            THE MEDIANS ARE NOT: still time is a WAAPI span, so it needs a browser, and
-//            `.claude/skills/card-review/tools/deadair.mjs` is the home for the still-time median
-//            and the percent-of-step median. Printing a second copy here would be the exact defect
-//            this file exists to remove.
-// Section 5  STEPS THAT REGISTER NO ANIMATION, the `M-27` population, computed off `flow`.
-// Section 6  THE BIBLIOGRAPHY, unique hrefs over the four `cards.js`.
-// Section 7  THE SCAN. Which record lines still quote a catalog-wide population, median or rank.
-//
-// BALL SPEED IS DELIBERATELY ABSENT. The ball population, the ball median and the floor-bound count
-// are printed by `.claude/skills/card-review/tools/pace.mjs`, and they cannot be computed here: a
-// lane length is the rendered path length, which needs a browser. `pace.mjs` is their one home, and
-// a record that needs a ball rank sends the reader there rather than storing the answer.
-//
-// ===========================================================================================
-// WHAT THIS FILE IS BLIND TO
-// ===========================================================================================
-//   - Anything needing a browser: still-time medians, ball speeds, panel extents, poster bbox
-//     coverage. Their homes are `deadair.mjs`, `pace.mjs`, `report/overlay.test.mjs` and
-//     `.claude/skills/card-poster/tools/poster-lint.mjs`.
-//   - A step whose `duration` and `narration` are not written as adjacent literals. The regex is
-//     the timing probe's regex, and a card that computed either would be invisible to BOTH. No card
-//     does today, and `unit/spec-steps.test.mjs` reads the real step count off the data, so a
-//     divergence between that count and section 1 is what would say so.
-//   - WHETHER A QUOTED NUMBER IS RIGHT. Section 7 finds lines that SPELL a catalog-wide quantity.
-//     It cannot tell a stale 575 from a fresh 580, and it is not trying to: the point is that a
-//     record should carry neither.
-//   - Prose that states a population in words with no digits.
-//
-// ===========================================================================================
-// WHAT FAILS HERE
-// ===========================================================================================
-// The census, and nothing else. A report that walked half the catalog prints half the population
-// and looks exactly like a smaller catalog, so the walk is asserted against `CATALOG_BASELINE`
-// (`S-46`). No finding in section 7 ever fails: a record that still quotes these numbers is a
-// queue, not a defect, and the output names it as a queue.
+// Catalog-wide baselines card records would otherwise quote (reading pace, long-narration cohort,
+// duration shape, still-step population, bibliography), plus a scan of record lines still quoting one.
+// Fails only on the census (S-46). Browser-only baselines live in the card-review tools.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -80,10 +12,7 @@ import { importAll } from '../fixtures/module.mjs';
 const CATS = ['cluster', 'workloads', 'network', 'storage'];
 const SCHEMES = join(ROOT, 'js', 'schemes');
 
-// The timing probe's own regex, copied deliberately rather than shared: the probe is a skill tool
-// outside the harness, and a record quoting one of its ranks has to be able to trust that the
-// population under the rank and the population under this median were read the same way. If the two
-// ever diverge, the divergence is the finding.
+// Copied from card-review/tools/timing.mjs on purpose, so a rank there and a median here share one population.
 const PACE_RE = /duration:\s*(\d+),\s*\n\s*narration:\s*'((?:[^'\\]|\\.)*)'/g;
 
 const paceRows = [];
@@ -108,9 +37,7 @@ const byPace = [...paceRows].sort((a, b) => pace(a) - pace(b));
 const modules = await importAll();
 const catalogued = await cards();
 
-// Narrated steps and the M-27 population, off the DATA rather than off the source text. A step with
-// no `flow` entry registers no animation at all, which is what `M-27` allows and what a record
-// means when it calls a step still by construction.
+// A step with no flow entry registers no animation (M-27).
 let narrated = 0;
 let noFlow = 0;
 for (const ns of modules.values()) {
@@ -121,14 +48,7 @@ for (const ns of modules.values()) {
   }
 }
 
-// `cards()` is the file view and carries no `sources`, so the bibliography comes off the catalog
-// entries themselves.
-// Per-category duration shape. A card's durations are picked against what its OWN category runs at,
-// not against the catalog: `cluster-pod-priority-preemption` aligns step by step to the cluster
-// averages and its record says why. Split by whether the step MOVES, because the two populations
-// sit hundreds of ms apart and averaging across them describes neither.
-// Whole run is the sum of every step's duration, the poster step included, which is what a reader
-// actually sits through.
+// Durations split by whether the step moves, per category. Whole run includes the poster step.
 const shape = new Map(CATS.map(c => [c, { still: [], moving: [], runs: [] }]));
 for (const [id, ns] of modules) {
   const cat = CATS.find(c => id.startsWith(`${c}-`));
@@ -147,28 +67,8 @@ const mid = (a) => (a.length ? [...a].sort((x, y) => x - y)[Math.floor(a.length 
 const hrefs = new Set();
 for (const s of await schemes()) for (const src of s.sources || []) hrefs.add(src.href);
 
-// ---------------------------------------------------------------------------------------------
-// SECTION 6: what still quotes a catalog-wide quantity.
-//
-// Each pattern names ONE class of coupling, so the output can say which class a line belongs to
-// rather than just that it matched something. A line may hit more than one; it is reported once,
-// under the first class that claims it, and the classes are ordered most specific first.
-// ---------------------------------------------------------------------------------------------
-// THE DIGITS ARE THE FINDING, and that single rule is what keeps this queue honest in both
-// directions.
-//
-// A line that NAMES a catalog quantity without a number is pointing at its home, which is the whole
-// repair: `under the catalog median (report/baselines.test.mjs prints it)` carries no debt, because
-// nothing in it can go stale. A line that SPELLS the number has taken a copy, and the copy dies the
-// next time a card lands anywhere. So every pattern below requires digits beside the catalog word,
-// and a pointer never matches. `cluster-pod-sandbox-cri` wrote that pointer form before this file
-// existed, and it is the shape the rest of the record is converted to.
-//
-// The patterns are narrow for the other direction too. `157 of the 300 the container box is wide`
-// is a card measuring its own box, so a bare number pair is not enough: a CATALOG NOUN (`steps`,
-// `balls`, `cards`, `card scenes`) or a catalog WORD (`catalog median`, `percentile`) has to stand
-// beside the digits. A queue that fills with a card's own measurements stops being read, and then
-// the real entries drown.
+// The scan: a catalog noun or word beside DIGITS. A pointer to the home carries no number and never
+// matches, and a card measuring its own box does not either.
 const NUM = String.raw`\d[\d.,]*`;
 const CLASSES = [
   ['population', new RegExp(String.raw`\b(?:of|over)\s+(?:the\s+|all\s+|that\s+)?\d{3}\s+(?:narrated\s+)?(?:steps|balls|cards|card scenes)\b|\bcatalogue's\s+\d{3}\b|\b(?:of|over)\s+that\s+\d{3}\b`)],
@@ -184,12 +84,9 @@ const CLASSES = [
 
 const scan = new Map(CATS.map(c => [c, []]));
 for (const c of CATS) {
-  // A record is one document or many (`recordFiles`), and the scan has to cover every one of them:
-  // reading only `CARDS.md` in a split category would report a clean zero over a preamble.
+  // Every record document, so a split category is not a clean zero over a preamble.
   for (const f of recordFiles(c)) {
     const lines = readFileSync(join(ROOT, f.rel), 'utf8').split('\n');
-    // A hit before the first `## <card-id>` is in the record's own preamble, which is a real place
-    // for one: the shared how-to-read block is written once per record and quotes the catalog too.
     let card = '(record preamble)';
     lines.forEach((line, i) => {
       const h = /^## ([a-z-]+)$/.exec(line);
@@ -309,8 +206,7 @@ test('BASELINES the catalog-wide numbers, computed once so no record has to carr
 
   console.log(out.join('\n'));
 
-  // The walk, and nothing else. A file that read one category prints a small population and looks
-  // exactly like a small catalog, which is the failure `S-46` names.
+  // A one-category walk looks like a small catalog (S-46).
   assert.equal(catalogued.length, CATALOG_BASELINE.cards,
     `read ${catalogued.length} card(s), the baseline is ${CATALOG_BASELINE.cards}`);
   assert.ok(byPace.length > 0 && narrated > 0,

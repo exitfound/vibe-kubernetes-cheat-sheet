@@ -1,6 +1,6 @@
 # Kubernetes Reference
 
-A fast, searchable web reference for everyone who works with Kubernetes day to day: a command cheat sheet and a library of animated architecture diagrams. No login, no ads, no tracking, no install, just open the page and use it.
+A fast, searchable web reference for everyone who works with Kubernetes day to day: a command cheat sheet and a library of animated architecture diagrams. No login, no ads, no cookies, no install, just open the page and use it. Visits are counted with cookieless Cloudflare Web Analytics.
 
 **Live at [kube.how](https://kube.how/)**
 
@@ -25,6 +25,8 @@ One static site made of three path-based sub-apps that share the same visual chr
 886 commands across eight categories, each with a short plain-English description, a one-click copy button, and a star to save personal favourites. Every section header shows its total command count.
 
 ![Commands](images/og-image.png)
+
+Every section also has its own page, for example [kube.how/cli/section/pod/](https://kube.how/cli/section/pod/), with all of its commands ready to copy, and [kube.how/cli/section/](https://kube.how/cli/section/) lists them all.
 
 | Category | Commands | Sections |
 |---|---|---|
@@ -55,6 +57,8 @@ One static site made of three path-based sub-apps that share the same visual chr
 
 ![Schemes](images/og-scheme.png)
 
+Every diagram also has its own page, for example [kube.how/scheme/card/cluster-architecture/](https://kube.how/scheme/card/cluster-architecture/): the poster, the full step-by-step explanation and the sources, readable on any screen, with a button that plays the animation. [kube.how/scheme/card/](https://kube.how/scheme/card/) lists them all.
+
 | Category | Cards | Subcategories |
 |---|---|---|
 | **Cluster** | 28 | Control Plane, Node Runtime, Node Lifecycle |
@@ -72,10 +76,11 @@ Every category carries its own accent colour, so the palette tells you where you
 - **Star a diagram** from its card or from inside the open diagram, to collect it in the Starred view, the same way as commands.
 - **Report a problem** from inside a diagram: the flag button opens a GitHub issue that already names the card and the step you are on.
 - **Search and filter** by category, or search across titles and descriptions.
-- **Two grid views**: detailed cards with the full description, or compact tiles (poster and title) that fit about three times as many on a screen. The switch sits at the right end of the category row and is remembered.
+- **Two grid views**: detailed cards with the full description, or compact tiles (poster and title) that fit three to five times as many on a screen, depending on its size. The switch sits at the right end of the category row and is remembered.
 - **New diagrams** since your last visit carry a `NEW` badge until you open them.
-- **Deep links** work here too: `kube.how/scheme/#scheme=<id>` opens a specific diagram, and the browser Back button closes it. The link icon beside each section title copies a link to that section (`kube.how/scheme/#at=<section>`).
+- **Deep links** work here too: `kube.how/scheme/#scheme=<id>` opens a specific diagram. The address bar follows the diagram and the step you are on, so you can share it as is. `Esc` or the close button returns to the grid. The link icon beside each section title copies a link to that section (`kube.how/scheme/#at=<section>`).
 - **Reduced motion** is respected: with `prefers-reduced-motion` each step snaps straight to its end state instead of animating.
+- **Desktop only for now**: on a phone the page shows a short notice instead of the diagrams, with a button to copy the link for later. The static page of each diagram reads fine on any screen.
 
 Diagrams are hand-built SVG driven by the Web Animations API inside a native `<dialog>`. No diagram library, no canvas, no WebGL.
 
@@ -92,7 +97,7 @@ The project is intentionally dependency-free. No framework, no bundler, no npm a
 - **GitHub Actions**: automatic deployment to GitHub Pages on every push to `main`, plus a tagged release artifact
 - **GitHub Pages + Cloudflare**: hosting with the custom domain `kube.how`, full SSL, and edge caching
 
-Command content lives in `cli/js/data.js` as one structured array. Adding or editing commands means touching that one file only: no templates, no CMS. Scheme content is grouped by category: `scheme/js/schemes/<category>/` holds that category's card modules, its catalogue, its grid posters and its drawing kit, so adding a diagram is a one-folder operation.
+Command content lives in `cli/js/data.js` as one structured array. Editing commands means touching that one file, plus a run of the page generator (`node tools/pages/build.mjs`) that refreshes the static pages: no templates, no CMS. Scheme content is grouped by category: `scheme/js/schemes/<category>/` holds that category's card modules, its catalogue, its grid posters and its drawing kit, so a new diagram is written in one folder, and the same generator run adds its static page and its sitemap entry.
 
 Contacts and sponsor information lives in `cli/js/contacts.js`, with a second copy in `scheme/js/contacts.js` so each path prefix stays self-contained. Both are optional: delete a copy to ship without the Contacts and Sponsor header buttons on the pages that import it (`cli/js/contacts.js` covers the hub and Commands, `scheme/js/contacts.js` covers Schemes), and the rest of the app is unaffected.
 
@@ -104,15 +109,23 @@ Contacts and sponsor information lives in `cli/js/contacts.js`, with a second co
 
 ```
 index.html               hub landing page, self-contained
+404.html                 custom not-found page (a small Tetris game)
+sitemap.xml, robots.txt  for search engines (the sitemap is generated, see below)
 cli/                     commands sub-app (data.js, app.js, styles.css)
+  js/lib/                highlighter, shortcuts sheet, sidebar, "new since last visit"
+  section/               generated static page per command section
 scheme/                  schemes sub-app
+  CANON.md               the rulebook every diagram is held to (dev-only, not shipped)
   js/app.js              router, grid, dialog lifecycle
   js/data.js             barrel: category registry + the four card manifests
   js/lib/                shared primitives, timeline, animation tokens
   js/schemes/<category>/ one folder per category: its cards, kit, catalogue, posters, design record
   css/                   tokens, layout, SVG diagram classes
+  card/                  generated static page per diagram
   test/                  dev-only test suite, not shipped
 images/                  social preview images: hub, commands, schemes
+tools/pages/build.mjs    writes the static card and section pages and sitemap.xml (dev-only)
+tools/smoke/site.mjs     drives every key, button and view in a browser (dev-only)
 configs/nginx.conf       Docker-only nginx config
 ```
 
@@ -154,9 +167,9 @@ docker run -d --name kube-cheatsheet -p 8080:80 kube-cheatsheet
 
 ## Contributing
 
-Command edits go in `cli/js/data.js`: each section is a plain JS object with a `groups` array, each group has a `title`, `desc`, and `cmds` list. Commands are sorted automatically on render, so order inside the array does not matter.
+Command edits go in `cli/js/data.js`: each section is a plain JS object with a `groups` array, each group has a `title`, `desc`, and `cmds` list. Commands are sorted automatically on render, so order inside the array does not matter. After any command or diagram change, run `node tools/pages/build.mjs` to refresh the static pages and the sitemap.
 
-New diagrams live entirely inside one category folder: a module `scheme/js/schemes/<category>/<id>.js` exporting its scene and its steps as data (`SCENE` and `STEPS_SPEC`) plus the `init(root, callbacks)` the dialog calls, an entry in that folder's `cards.js`, and a grid poster in its `posters.js`. The existing cards in the category are the reference: build on that folder's `<category>-kit.js` rather than starting from scratch.
+A new diagram is written inside one category folder (the page generator then adds its static page and sitemap entry): a module `scheme/js/schemes/<category>/<id>.js` exporting its scene and its steps as data (`SCENE` and `STEPS_SPEC`) plus the `init(root, callbacks)` the dialog calls, an entry in that folder's `cards.js`, and a grid poster in its `posters.js`. The existing cards in the category are the reference: build on that folder's `<category>-kit.js` rather than starting from scratch.
 
 To update contacts or sponsor links, edit `cli/js/contacts.js` and its `scheme/js/contacts.js` counterpart. To remove the header buttons entirely, delete both.
 

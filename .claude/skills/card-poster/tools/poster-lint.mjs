@@ -1,40 +1,7 @@
 #!/usr/bin/env node
-// poster-lint.mjs: the mechanical half of the poster canon, read off the source in milliseconds.
-// It cannot tell you whether a poster is GOOD. It tells you whether it breaks a rule that has a
-// literal shape: a token that will not resolve, an arrowhead, a packet dot frozen on a wire, a
-// flat drawing with no subject, a canvas left mostly empty, or a missing poster note.
-//
-// EVERY THRESHOLD IS CALIBRATED rather than guessed. The first cut used round numbers and reported
-// 260 findings, which is a backlog rather than a lint.
-//
-// WHAT IT IS CALIBRATED AGAINST CHANGED ON 2026-09-11, and this is the point of the file. The
-// thresholds used to be snapped off ALL 131 posters, which taught the lint the average of a catalog
-// half of which is weak: the old R-03 comment concluded, from 59 posters carrying no accent, that
-// the absence of one is not a finding. Measured per category, that 59 is not a house idiom, it is
-// two categories that never got one. The REFERENCE SET below (workloads + cluster, 60 posters) is
-// what a good poster looks like here, and every threshold is now snapped to ITS floor, so the lint
-// enforces the good rather than the mean.
-//
-// FOUR CHECKS WERE PROPOSED AND THREE DIED ON THE MEASUREMENT, which is worth more than the one
-// that lived. Do not re-propose them without re-running `--calibrate`:
-//   - mass dominance (largest mark over the median mark): the reference median is 3.87 but its 5th
-//     percentile is 1.0, because a row of peers and a bank of gauge columns are equal-mass ON
-//     PURPOSE. The check would have flagged `cluster-cpu-throttling` and `kubelet-reconcile-loop`.
-//   - rect monotony: backwards. The reference set is the rect-HEAVY one (median 0.73 of primitives,
-//     25 of 60 at 0.8 or above), and storage, the weakest category, is the lowest at 0.36. Storage
-//     is not too boxy, it is too dim.
-//   - glyph variety by tag kind: backwards for the same reason. Reference median 2 tag kinds,
-//     storage 4. The variety a reader sees in workloads is what the shapes DEPICT, which no tag
-//     count reaches. That axis is handled in reference/patterns.md and the R-01 sign-off line.
-//   - winner contrast (brightest over runner-up): fires on 6 reference posters and on ZERO in
-//     network or storage, because a poster that clears the ink floor here already uses 0.9 over 0.3.
-//     It only punished the good set.
-//
-//   node .claude/skills/card-poster/tools/poster-lint.mjs [<card-id> ...]   (default: every poster)
-//   node .claude/skills/card-poster/tools/poster-lint.mjs --category=storage
-//   node .claude/skills/card-poster/tools/poster-lint.mjs --calibrate            (re-snap thresholds)
-//
-// The judgement half is montage.mjs plus your eyes. Rules cited by id live in scheme/CANON.md.
+// poster-lint.mjs: the mechanical half of the poster canon (R-02 to R-12), read off the posters.js source.
+// usage: node .claude/skills/card-poster/tools/poster-lint.mjs [<card-id> ...] [--category=<cat>] [--calibrate]
+// Thresholds are snapped to the REFERENCE set, so re-run --calibrate after changing one. Whether a poster is good is montage.mjs.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -46,42 +13,23 @@ const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
 }));
 const wanted = args.filter(a => !a.startsWith('--'));
 
-// The ALLOWLIST for R-08a, not a census: a poster here MAY carry a chevron, and anything outside it
-// carrying one is a finding. These three are the posters that draw one, five chevrons between
-// them, and the list is trimmed to exactly them: an entry granting a permission no drawing uses
-// cannot be traced back to a picture, so a later reader cannot tell an earned exemption from a
-// forgotten one.
+// Allowlist for R-08a: exactly the posters that draw a chevron, so every exemption traces back to a picture.
 const CHEVRON_OK = new Set([
   'workloads-pod-restart-policy',            // two filled path triangles, on the two restart arcs
   'workloads-pod-startup-conditions',        // one polygon
-  'network-external-traffic-policy',           // two open polyline chevrons, where the external feed lands on each entry Node, asked for by the user 2026-09-15
+  'network-external-traffic-policy',           // two open polyline chevrons, where the external feed lands on each entry Node
 ]);
 
-// A chevron reaches the canvas in THREE shapes and R-08a used to see one of them. It tested
-// `<polygon>` only, so a `<polyline>` V and a closed `<path>` triangle both walked past it: on
-// 2026-09-05 that was five of the six chevrons in the catalog, and the comment above this list
-// asserted "only one poster draws one" because of it. What separates a chevron from an honest
-// drawing is SIZE and SYMMETRY, not the tag:
-//   - a polyline of exactly three points whose two legs are both short and near-equal. The elbow
-//     connectors in storage and network run 30 to 73 units on a leg, and the three tick marks on
-//     `workloads-job-parallelism` are 9.9 against 21.9, so neither shape reaches this.
-//   - a path that closes (`Z`) on three points or fewer and fills with `currentColor`. The
-//     cylinders and brackets elsewhere close too, but they fill with a literal `rgba()` and carry
-//     arcs, so the fill is what separates them.
-const CHEV_LEG = 15;      // units. The longest real chevron leg in the catalog is 6.4
+// A chevron is told by size and symmetry, not by tag: a three-point polyline with two short near-equal legs, or a path
+// closing (`Z`) on three points or fewer filled with `currentColor` (cylinders close too, but fill a literal rgba).
+const CHEV_LEG = 15;      // units, well above any real chevron leg
 const CHEV_RATIO = 1.3;   // a chevron is symmetric. A short elbow is not
 
-// The set every threshold in this file is snapped to. Not a favourite list: these are the two
-// categories that carry a bright subject on 50 of their 60 posters, and the two the user reads as
-// finished. If a third category is rebuilt to that standard, add it here and re-run `--calibrate`.
+// The categories every threshold is snapped to: add one rebuilt to that standard and re-run `--calibrate`.
 const REFERENCE = new Set(['workloads', 'cluster']);
 
-// INK: how bright a mark actually lands, which is the one number that separates the reference set
-// from the weak categories. It is not readable off a single attribute, because brightness arrives
-// three ways that multiply: the fill itself (`currentColor` is full white, `rgba(255,255,255,a)` is
-// a), the element's own `opacity`/`fill-opacity`, and the same two on every `<g>` above it. A poster
-// whose accent bar sits inside `<g opacity="0.35">` is a dim poster no matter what the bar says, so
-// the walk below keeps a stack of open groups and multiplies down it.
+// INK: brightness multiplies the fill alpha (`currentColor` is 1), the element's opacity/fill-opacity and those of
+// every enclosing `<g>`, so the walk keeps a stack of open groups.
 const attrOf = (tag, name) => {
   const m = tag.match(new RegExp(`\\s${name}="([^"]*)"`));
   return m ? m[1] : null;
@@ -120,17 +68,13 @@ function inks(svg) {
   return out;
 }
 
-// Measured 2026-09-11 over the reference 60: median brightest mark 0.90, 5th percentile 0.70, and
-// only 3 posters land under this line. The same line catches 17 of 40 in network and 27 of 31 in
-// storage, whose brightest mark anywhere in the category is 0.20.
+// Floor on the brightest mark, snapped under the reference set by `--calibrate`.
 const INK_FLOOR = 0.55;
 
-// Measured over the same 60: median 11 primitives, 90th percentile 18, and 2 of the 60 pass this.
+// Ceiling on primitives, snapped above the reference set by `--calibrate`.
 const PRIM_CEILING = 20;
 
-// The union box of the drawing against the 320x180 canvas. Reference median 0.54, 5th percentile
-// 0.35, and NONE of the 60 falls under the line. Raising it to the reference floor was tried and
-// rejected: 0.28 starts flagging a reference poster to buy one extra storage hit.
+// Floor on the drawing's union box as a fraction of the 320x180 canvas.
 const COVER_FLOOR = 0.22;
 function coverOf({ rects, circles, lines }) {
   const xs = [...rects.map(r => r.x), ...rects.map(r => r.x + r.w), ...circles.map(c => c.x - c.r), ...circles.map(c => c.x + c.r), ...lines.flatMap(l => [l.x1, l.x2])];
@@ -202,14 +146,8 @@ for (const cat of readdirSync(SCHEMES)) {
   }
 }
 
-// R-05: a poster is judged next to its SIBLINGS, and until now nothing but a human eye could say
-// that two neighbours look the same. The SIGNATURE below is a coarse description of the silhouette
-// a reader takes in before reading anything: how the big blocks are arranged, and how many there
-// are. It is deliberately coarse. It is not trying to say two posters are identical, it is trying
-// to say a reader scrolling the grid sees the same shape twice in a row, which is the defect.
-//
-// Measured over the catalog: 13 adjacent pairs share a signature, 6 of them inside the reference
-// set, so this fires on about a tenth of the grid and every hit is worth one montage.
+// R-05: a coarse silhouette signature (block arrangement and count), so a reader scrolling the grid
+// is told when the same shape shows twice in a row.
 const gridOrder = () => {
   const out = [];
   for (const cat of readdirSync(SCHEMES)) {
@@ -232,8 +170,7 @@ function signature(svg) {
   const band = rects.some(r => r.w >= 190 && r.h <= 45);
   const nested = blocks.some(a => blocks.some(b => a !== b
     && a.x >= b.x - 1 && a.y >= b.y - 1 && a.x + a.w <= b.x + b.w + 1 && a.y + a.h <= b.y + b.h + 1));
-  // A cylinder is two arcs and an ellipse, NOT a ring. Storage draws 22 of them and every one signed
-  // as a ring on the first cut, which collapsed the category into a single bucket and hid its twins.
+  // A cylinder is two arcs and an ellipse, not a ring, or every storage poster signs alike.
   const ring = circles.some(c => c.r >= 12) || (/\bA\s/.test(svg) && !/<ellipse\b/.test(svg));
   const widest = a => a.reduce((best, v) => Math.max(best, a.filter(u => Math.abs(u - v) <= 16).length), 0);
   const row = widest(blocks.map(b => b.y + b.h / 2));
@@ -252,8 +189,7 @@ function signature(svg) {
 const ORDER = gridOrder();
 const SIG = new Map();
 for (const { id } of ORDER) if (posters.has(id)) SIG.set(id, signature(posters.get(id).svg));
-// Neighbours within the same SECTION only. Across a section boundary the reader has just been shown
-// a heading, so two similar silhouettes no longer read as a repeat.
+// Neighbours within the same section only: a heading between two posters breaks the repeat.
 const neighboursOf = id => {
   const i = ORDER.findIndex(c => c.id === id);
   if (i < 0) return [];
@@ -274,11 +210,7 @@ const onSegment = (p, l) => {
   return Math.hypot(p.x - px, p.y - py) <= 3;
 };
 
-// --calibrate: re-snap every threshold in this file against the reference set, which is the only
-// thing that keeps them from rotting as the catalog grows. It prints the distribution of each
-// metric over the reference categories and over everything else, and how many posters each current
-// threshold flags on each side. A threshold that flags a tenth of the reference set is too tight; a
-// threshold that flags nothing outside it has stopped doing anything.
+// --calibrate: print each metric over the reference set and over the rest, and how many posters each threshold flags on each side.
 if (flags.calibrate) {
   const pct = (a, q) => { const t = [...a].sort((x, y) => x - y); return t[Math.min(t.length - 1, Math.floor(q * t.length))]; };
   const rows = [...posters].map(([id, { cat, svg }]) => {
@@ -341,15 +273,8 @@ for (const id of ids) {
     if (lines.some(l => onSegment(c, l))) say('R-09', `a filled r=${c.r} dot sits on a line at (${c.x}, ${c.y}): that reads as a frozen packet`);
   }
 
-  // R-03b: the ink floor, and the highest-yield check in this file. A poster can satisfy every
-  // other rule here, carry a correct composition and a correct sentence, and still read as nothing
-  // on the grid, because its brightest mark is 9 percent white on a dark card. That is not a taste
-  // difference between categories, it is the whole difference: the reference set puts a
-  // full-brightness mark on 57 of 60 posters and storage does it on 0 of 31.
-  //
-  // It is deliberately a floor on the BRIGHTEST mark and says nothing about which mark that is. A
-  // poster may earn its subject with a 0.9 accent bar (R-07), with a heavy stroke, or with the one
-  // solid form in a field of outlines. What it may not do is have no brightest thing at all.
+  // R-03b: a floor on the BRIGHTEST mark, whichever it is (accent bar, heavy stroke, solid form), because a poster
+  // satisfying every other rule still reads as nothing on the grid when nothing in it is bright.
   const ink = inks(svg);
   const maxInk = ink.length ? Math.max(...ink) : 0;
   if (shapes > 3 && maxInk < INK_FLOOR) {
@@ -364,8 +289,7 @@ for (const id of ids) {
     }
   }
 
-  // R-03 / R-07: one thing is brightest. What R-03 catches that the ink floor does not is a FLAT
-  // poster: every fill identical and one stroke-width, which means nothing at all stands out.
+  // R-03 / R-07: one thing is brightest. R-03 catches the FLAT poster the ink floor misses: one fill, one stroke-width.
   const accents = (svg.match(/fill="currentColor"/g) || []).length;
   const fillSet = new Set([...svg.matchAll(/rgba\(255,255,255,([\d.]+)\)/g)].map(m => m[1]));
   const widthSet = new Set([...svg.matchAll(/stroke-width="([\d.]+)"/g)].map(m => m[1]));
@@ -373,13 +297,8 @@ for (const id of ids) {
   if (!accents && fillSet.size <= 1 && widthSet.size <= 1 && !opacitySet.size && shapes > 3) {
     say('R-03', 'FLAT: one fill, one stroke-width, no opacity ramp. Nothing is the subject');
   }
-  // R-07 is a contract about the SHAPE of the accent set, not about its size: one winner, and the
-  // losers all carrying the same low bar. Counting `fill="currentColor"` elements measured the wrong
-  // thing and said so in the message: of the 8 posters a `> 3` count flagged, four are textbook
-  // R-07 (`kubelet-reconcile-loop`, `env-before-pid-1` and `effective-pod-requests` each run
-  // 0.9 over nothing but 0.3s). What breaks the contract is a RAMP, where the losers climb through
-  // several values and no single bar is the winner. Measured over the shipped catalog: 27 posters
-  // carry two or more accent bars, 18 use two tiers, and only 4 use three or more.
+  // R-07 is about the shape of the accent set, not its size: one winner over losers on one low bar.
+  // A ramp, where the losers climb through several values, breaks it.
   const accentTiers = new Set(
     svg.split('\n').filter(l => l.includes('fill="currentColor"'))
       .map(l => (l.match(/opacity="([\d.]+)"/) || [, '1'])[1]),
@@ -388,8 +307,7 @@ for (const id of ids) {
     say('R-07', `accent bars run ${accentTiers.size} opacity tiers (${[...accentTiers].join(' ')}): a ramp, not an accent. One winner, the losers on one low bar`);
   }
 
-  // R-02 / R-10: a poster is one sentence, not a small diagram. Measured over the reference 60: the
-  // median carries 11 primitives and the 90th percentile is 18, and 2 of the 60 pass this line.
+  // R-02 / R-10: a poster is one sentence, not a small diagram.
   if (shapes > PRIM_CEILING) say('R-02', `${shapes} primitives, against a reference median of 11: decide the sentence and drop the rest`);
 
   // Air: the union box against the 320x180 canvas.
@@ -398,9 +316,7 @@ for (const id of ids) {
     say('R-06', `the drawing covers ${(air.cover * 100).toFixed(0)}% of the canvas (reference median is 54%): x ${air.bx[0]}..${air.bx[1]}, y ${air.by[0]}..${air.by[1]}, and dead air reads as a mistake`);
   }
 
-  // R-12: the note that explains the choice is the comment directly above the entry in the
-  // folder's `posters.js`, in all four categories. A record is one `### layout` block (`S-51`) and
-  // holds no poster note, so asking a record for one would ask for what G1 fails the gate on.
+  // R-12: the poster note is the comment directly above the entry in posters.js, never a record block (`S-51`).
   if (!entry.noted) say('R-12', `no comment above this poster in ${cat}/posters.js saying what its composition is`);
 
   if (out.length) {

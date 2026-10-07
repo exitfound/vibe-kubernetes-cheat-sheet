@@ -4,9 +4,9 @@ import { Timeline } from './timeline.js';
 import { PULSE_POD, PULSE_BLOCK, OPACITY } from './tokens.js';
 export { FADE, BEAT, OPACITY } from './tokens.js';
 
-// The shared BASE kit for all four categories. No card imports this file: a kit re-exports the
+// The shared BASE kit for every category. No card imports this file: a kit re-exports the
 // card-facing part of it and overrides only the pod tint, while the rest is called from lib/ (the
-// scene and step builders). A name a CARD is to import goes into all four kits at once (S-22).
+// scene and step builders). A name a CARD is to import goes into every kit at once (S-22).
 
 // ---- geometry constants ----
 // Not exported: each card owns its own spine, and the ball rides the SAME points array as the wire.
@@ -103,7 +103,7 @@ export function makeInit(SceneClass, STEPS, opts = {}) {
 
 // The single source of truth for the pod pulse, bound to a tint by each kit. `podEl` is the WRAPPER
 // GROUP: the queries match descendants only, so a bare pod() pulses at half strength (CANON.md M-03).
-export function pulsePodWithTint(podEl, ctx, delay, { persist = false } = {}, tint) {
+function pulsePodWithTint(podEl, ctx, delay, { persist = false } = {}, tint) {
   if (!podEl) return;
   const RAMP = PULSE_POD.ms / 2;
   for (const el of podEl.querySelectorAll('.scheme-pod-rect, .scheme-box-rect')) {
@@ -132,7 +132,7 @@ export function pulsePodWithTint(podEl, ctx, delay, { persist = false } = {}, ti
 }
 // Pulse a DIMMED pod (booting, not-Ready): the ordinary pulse plus an opacity flash up to `peak`
 // and back to `from`, so the blink reads against the faded shade instead of vanishing into it.
-export function pulsePodDimWithTint(podEl, ctx, delay, { from = OPACITY.pending, peak = PULSE_POD.dimPeak, dur = PULSE_POD.ms } = {}, tint) {
+function pulsePodDimWithTint(podEl, ctx, delay, { from = OPACITY.pending, peak = PULSE_POD.dimPeak, dur = PULSE_POD.ms } = {}, tint) {
   if (!podEl) return;
   pulsePodWithTint(podEl, ctx, delay, {}, tint);
   ctx.register(podEl.animate(
@@ -141,7 +141,7 @@ export function pulsePodDimWithTint(podEl, ctx, delay, { from = OPACITY.pending,
   ));
 }
 // The camera: only the aria sentence varies. 'aria-label' STAYS A SPELLED-OUT OBJECT KEY, because
-// the prose scrapes match it in source (108 sentences), and attribute ORDER is observable.
+// the prose scrapes match it in source, and attribute ORDER is observable.
 export function diagramRoot({ 'aria-label': ariaLabel }) {
   return svg({
     class: 'diagram',
@@ -168,11 +168,9 @@ export function clearPodHighlight(podEl) {
   }
 }
 
-// A brightness pulse on any ref, reached through `F.flash` and never imported by a card. NO CARD
-// CALLS IT and none may: this is `filter: brightness`, which M-04 calls a pulse and M-01 forbids on
-// infrastructure, so a packet-less pod-less step takes a static `.highlight` instead (M-27, S-25c).
-// It stays because S-25 names it the reason PULSE_BLOCK lives in tokens.js rather than as keyframes
-// in a card, and because unit/spec-steps.test.mjs watches this door for M-26.
+// A brightness pulse reached through `F.flash`, never called by a card: M-01 forbids it on infrastructure,
+// so a packet-less pod-less step takes a static `.highlight` (M-27, S-25c). It stays as the reason
+// PULSE_BLOCK lives in tokens.js (S-25), and unit/spec-steps.test.mjs watches it for M-26.
 export function flashChips(s, ctx, keys, delay = 0) {
   if (ctx.reduced) return;
   const FRAMES = [
@@ -184,16 +182,17 @@ export function flashChips(s, ctx, keys, delay = 0) {
   });
 }
 
-// An address tag that travels WITH a ball instead of sitting as static wire text. ITS EASING AND
-// `dur` MUST MATCH THE BALL (M-30): mismatched, it drifts off mid-flight and rejoins at the ends.
+// An address tag that travels WITH a ball. ITS EASING AND `dur` MUST MATCH THE BALL (M-30) or it drifts
+// off mid-flight. The fade defaults are M-30a for a packetAlong ball, and a segmentPacket ball binds
+// its own 100ms fades as inMs and outMs.
 export function makeRidingLabel({
   role,                        // palette role for the tag
   dy = -14,                   // resting offset above the ball
   dx = 0,
-  easing = 'ease-in-out',     // default; a call may override per hop
-  inMs = 150,                 // fade-in duration
-  outMs = 180,                // fade-out duration
-  hold = 160,                 // gap between arrival and the fade-out starting
+  easing = 'ease-in-out',     // a call may override it per hop
+  inMs = 200,                 // fade-in duration, ending at departure
+  outMs = 200,                // fade-out duration, starting at arrival
+  hold = 0,                   // gap between arrival and the fade-out starting: never negative (M-30a)
   emergeMode = false,         // fade in at delay+emerge (tag appears from inside a block)
 } = {}) {
   return function ridingLabel(s, ctx, txt, points, opts = {}) {
@@ -231,7 +230,7 @@ export function relationPath({ points, d, role = null, dash = null }) {
 
 // A thing coming INTO EXISTENCE mid-step rests at `from` and lands on full when its packet arrives:
 // hiding it aims the arrowhead at blank canvas for the whole flight.
-export const REVEAL_MS = 500;   // the landing beat: inside BEAT.lead 800, and not FADE.in's 600
+export const REVEAL_MS = 500;   // the landing beat: shorter than both BEAT.lead and FADE.in
 // DO NOT short-circuit `delay <= 0` to opacity 1: that throws `from` away and leaves the element on
 // the wrong resting shade. Only ctx.reduced snaps, because a zero-delay reveal is still a real beat.
 export function revealAt(el, ctx, delay = 0, from = 0) {
@@ -263,16 +262,14 @@ export function at(s, ctx, delay, fn) {
 
 // THE SPEED CANON, and the one place to tune pacing: travel time comes from path LENGTH at
 // PKT_SPEED, so route calls omit `dur` and an explicit one needs a justification at the call site.
-const HOP_MS = 700;   // topPacket's duration AND routeDur's FLOOR: under ~315 units a path would
-                      // otherwise outrun a hop and read as a dart (a 220 unit arrow at 489ms)
+export const HOP_MS = 700;   // topPacket's duration AND routeDur's FLOOR, so a short path never darts
 const PKT_SPEED = 0.45, PKT_DUR_MIN = HOP_MS, PKT_DUR_MAX = 2600;   // units per ms, clamped
 export function routeLength(points) {
   let total = 0;
   for (let i = 1; i < points.length; i++) total += Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
   return total;
 }
-// Length-based, so MOVING a lane is a TIMING change: pushing a start from 300 to 400 units right
-// takes the ball from 250 to 870ms. Raise the step's duration, never shorten the motion.
+// Length-based, so MOVING a lane is a TIMING change: raise the step's duration, never shorten the motion.
 export function routeDur(points) {
   return Math.round(Math.min(PKT_DUR_MAX, Math.max(PKT_DUR_MIN, routeLength(points) / PKT_SPEED)));
 }
@@ -301,10 +298,8 @@ export function packetAlong(packetLayer, ctx, points, {
     if (offsets) {
       frames = points.map((pt, i) => ({ transform: `translate(${pt[0]}px, ${pt[1]}px)`, offset: offsets[i] }));
     } else {
-      const seg = []; let total = 0;
-      for (let i = 1; i < points.length; i++) { const d = Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]); seg.push(d); total += d; }
-      let acc = 0;
-      frames = points.map((pt, i) => { if (i > 0) acc += seg[i - 1]; return { transform: `translate(${pt[0]}px, ${pt[1]}px)`, offset: total ? acc / total : 0 }; });
+      const total = routeLength(points);
+      frames = points.map((pt, i) => ({ transform: `translate(${pt[0]}px, ${pt[1]}px)`, offset: total ? routeLength(points.slice(0, i + 1)) / total : 0 }));
     }
     ctx.register(p.animate(frames, { duration: travel, delay, fill: 'forwards', easing: 'linear' }));
   } else {
@@ -336,7 +331,7 @@ export function arrivalRipple(packetLayer, ctx, point, delay, role = '') {
 export function topPacket(s, ctx, { from = 540, to = 580, y = 65, delay = 0, dur = HOP_MS, role = '' } = {}) {
   return packetAlong(s.refs.packetLayer, ctx, [[from, y], [to, y]], { delay, dur, role, fadeIn: delay > 0 });
 }
-// ROUTES glide eased; a short hop is topPacket (eased, top strip) or segmentPacket (linear, body).
+// ROUTES glide eased, and a short hop is topPacket (eased, top strip) or segmentPacket (linear, body).
 // The points array is SHARED with the matching pathArrow, so the wire and the packet cannot differ.
 export function routePacket(s, ctx, points, {
   delay = 0, dur = null, role = '', easing = 'ease-in-out',
@@ -345,6 +340,6 @@ export function routePacket(s, ctx, points, {
   return packetAlong(s.refs.packetLayer, ctx, points, { delay, dur, role, easing, offsets, fadeIn, fadeOut });
 }
 // Segment-visible hop across a single arrow: crisp short fades, always linear.
-export function segmentPacket(s, ctx, { from, to, delay = 0, dur = null, role = '', fadeMs = 100 } = {}) {
+export function segmentPacket(s, ctx, { from, to, delay = 0, dur = null, role = '', fadeMs = 200 } = {}) {
   return packetAlong(s.refs.packetLayer, ctx, [from, to], { delay, dur, role, easing: 'linear', fadeMs, fadeIn: true, fadeOut: true });
 }

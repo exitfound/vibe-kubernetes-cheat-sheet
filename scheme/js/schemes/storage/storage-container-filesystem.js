@@ -3,44 +3,40 @@ import { P, F, defineCard, BEAT, FADE, OPACITY, REVEAL_MS, makeRidingLabel, chip
 
 
 // A layer-precedence grid: rows are the overlay layers top to bottom, columns are four paths, and a
-// cell is drawn only where that layer holds that path. The whole grid is right of the panel (x<=397).
-// The row box is a row header sized by its widest string, 208, and the four cells share what is
-// left of 420..1180 on one 12 unit rhythm, so every cell is 126 (record, SIZES).
+// cell is drawn only where that layer holds that path.
 const ROW_X = 420, ROW_W = 208, BLOCK_H = 80, GRID_R = 1180, CELL_GAP = 12;
-const CELL_X0 = ROW_X + ROW_W + CELL_GAP;                                 // cells 640..1180
-const CELL_W = (GRID_R - CELL_X0 - 3 * CELL_GAP) / 4;                     // 126
+const CELL_X0 = ROW_X + ROW_W + CELL_GAP;
+const CELL_W = (GRID_R - CELL_X0 - 3 * CELL_GAP) / 4;
 const colX = (i) => CELL_X0 + i * (CELL_W + CELL_GAP);
-const colCX = (i) => colX(i) + CELL_W / 2;                                // 703 / 841 / 979 / 1117
+const colCX = (i) => colX(i) + CELL_W / 2;
 const DATA_CX = colCX(0), CONF_CX = colCX(1), CACHE_CX = colCX(2), TOOL_CX = colCX(3);
 const ROW_GAP = 52;                                                       // the gap a tag rides in
-const rowY = (i) => 20 + i * (BLOCK_H + ROW_GAP);                         // 20 / 152 / 284 / 416
+const rowY = (i) => 20 + i * (BLOCK_H + ROW_GAP);
 const MERGED_Y = rowY(0), UPPER_Y = rowY(1), BASE_Y = rowY(3);
-const MERGED_B = MERGED_Y + BLOCK_H, UPPER_B = UPPER_Y + BLOCK_H;         // 100, 232
+const MERGED_B = MERGED_Y + BLOCK_H, UPPER_B = UPPER_Y + BLOCK_H;
 
-// Three chips of 280 centred on 600, 164..1036: the worst pair needs 256 (record, SIZES).
+// Wider than the catalog chip: the longest value needs 256.
 const CHIP_Y = 596;
 const CH = chipStrip({ count: 3, w: 280 });
 
-// The volume sits on the left margin, mirroring the grid's 20 on the right so the content centres
-// on 600. The /data shaft enters its face below the cap ellipse, level with the label (STO.L-02).
-const VOL_X = 1200 - GRID_R, VOL_Y = 484, VOL_W = 200, VOL_H = 96;        // 20..220, 484..580
-const VOL_MY = VOL_Y + VOL_H / 2 + 8, VOL_RIGHT = VOL_X + VOL_W;          // 540, 220
+// The volume mirrors the grid's right margin so the content centres on 600. The /data shaft enters
+// its face below the cap ellipse, level with the label (STO.L-02).
+const VOL_X = 1200 - GRID_R, VOL_Y = 484, VOL_W = 200, VOL_H = 96;
+const VOL_MY = VOL_Y + VOL_H / 2 + 8, VOL_RIGHT = VOL_X + VOL_W;
 
 // The read and the copy-up never share a frame (stage), so both run on the column centre.
-const L_READ   = [[CONF_CX, BASE_Y], [CONF_CX, MERGED_B]];                // base -> merged
-const L_COPY   = [[CONF_CX, BASE_Y], [CONF_CX, UPPER_B]];                 // base -> upperdir
-const L_CREATE = [[CACHE_CX, MERGED_B], [CACHE_CX, UPPER_Y]];             // merged -> upperdir
-const L_WHITE  = [[TOOL_CX, MERGED_B], [TOOL_CX, UPPER_Y]];               // merged -> upperdir
+const L_READ   = [[CONF_CX, BASE_Y], [CONF_CX, MERGED_B]];
+const L_COPY   = [[CONF_CX, BASE_Y], [CONF_CX, UPPER_B]];
+const L_CREATE = [[CACHE_CX, MERGED_B], [CACHE_CX, UPPER_Y]];
+const L_WHITE  = [[TOOL_CX, MERGED_B], [TOOL_CX, UPPER_Y]];
 const L_VOL    = [[DATA_CX, MERGED_B], [DATA_CX, VOL_MY], [VOL_RIGHT, VOL_MY]];
 
-// The grid legs are 52 to 316 units and would sit on or near the 700ms floor, where a tag
-// retires unread, so they ride a fixed leg. Every ball runs 15 percent faster than its base pace:
-// the legs than 1500, the 923 unit shaft than its routeDur.
+// The grid legs are short enough to sit on the 700ms floor, where a tag retires unread, so they ride
+// a fixed leg (M-12). Every ball runs 15 percent faster than its base pace.
 const PACE = 1.15;
-const LEG_DUR = Math.round(1500 / PACE);                                  // 1304
-const SHAFT_DUR = Math.round(routeDur(L_VOL) / PACE);                     // 2051 -> 1784
-// Every tag rides level with its ball, 12 clear of it beside the lane, and lives exactly as long
-// as the ball (M-30a). dy 4 centres the 11px text on the ball.
+const LEG_DUR = Math.round(1500 / PACE);
+const SHAFT_DUR = Math.round(routeDur(L_VOL) / PACE);
+// dy 4 centres the 11px text on the ball.
 const tagGrid = makeRidingLabel({ role: 'storage', dy: 4, inMs: 200, outMs: 200, hold: 0 });
 const tagShaft = makeRidingLabel({ role: 'storage', dx: 24, dy: 17 });
 
@@ -49,8 +45,6 @@ const row = (key, i, label, sublabel) => P.box({ key, x: ROW_X, y: rowY(i), w: R
 const cell = (key, col, r, label, sublabel, opacity) =>
   P.box({ key, x: colX(col), y: rowY(r), w: CELL_W, h: BLOCK_H, label, sublabel, opacity });
 
-// Z-order (bottom -> top): the four row boxes, the cells, the volume, the lanes, the chip strip,
-// then the packet layer. Upperdir cells and the merged /tmp/cache cell are born hidden.
 export const SCENE = {
   'aria-label': 'Container filesystem layers: with the default overlayfs snapshotter, a container sees its root filesystem as one overlay mount, drawn as a grid of layers by paths. The merged row on top is what the container sees. A read of /etc/app.conf falls through the empty upperdir and the app layer to the base layer. Creating /tmp/cache writes a new file into the upperdir. Editing app.conf first copies the whole file up from the base layer into the upperdir, and the base copy stays unchanged. Deleting /bin/tool writes a whiteout into the upperdir, so the merged view hides the file while the app layer still holds it. A write under /data never enters the overlay: /data is a volume mounted over the merged tree, and the bytes land on the volume. When the container is replaced, the new one starts with an empty upperdir, so /bin/tool shows again and app.conf comes from the base layer, the old upperdir is deleted once the old container is removed, and only the volume still holds db.',
   parts: [
@@ -121,8 +115,7 @@ export const STEPS_SPEC = [
     lit: ['bConf'],
     rewind: { chips: { fromChip: 'not read yet' } },
     flow: [
-      F.route({ points: L_READ, delay: BEAT.lead, dur: LEG_DUR, name: 'read', lights: ['mConf'] }),
-      F.tag({ text: 'app.conf', points: L_READ, delay: BEAT.lead, dur: LEG_DUR, fn: tagGrid, dx: -37 }),
+      F.route({ points: L_READ, delay: BEAT.lead, dur: LEG_DUR, name: 'read', lights: ['mConf'], tag: { text: 'app.conf', fn: tagGrid, dx: -37 } }),
       F.set({ at: 'read', chips: { fromChip: 'base layer' }, lights: ['fromChip'] }),
     ],
   },
@@ -136,14 +129,12 @@ export const STEPS_SPEC = [
     opacity: stage({ cache: 1 }),
     lit: ['mCache'],
     rewind: { chips: { upperChip: 'empty' } },
-    // The merged cell, its lane and the pending upperdir cell appear as one before the ball leaves,
-    // and the upperdir cell lands on full with it.
+    // The cell and its lane appear as one before the ball leaves (STO.S-02).
     flow: [
       F.reveal({ target: 'mCache' }),
       F.reveal({ target: 'lCreate' }),
       F.fade({ target: 'uCache', from: 0, to: PEND, dur: REVEAL_MS, easing: 'ease-out' }),
-      F.route({ points: L_CREATE, delay: BEAT.lead, dur: LEG_DUR, name: 'create', lights: ['uCache'] }),
-      F.tag({ text: 'cache', points: L_CREATE, delay: BEAT.lead, dur: LEG_DUR, fn: tagGrid, dx: 28 }),
+      F.route({ points: L_CREATE, delay: BEAT.lead, dur: LEG_DUR, name: 'create', lights: ['uCache'], tag: { text: 'cache', fn: tagGrid, dx: 28 } }),
       F.reveal({ target: 'uCache', from: PEND, at: 'create' }),
       F.set({ at: 'create', chips: { upperChip: 'cache' }, lights: ['upperChip'] }),
     ],
@@ -158,14 +149,12 @@ export const STEPS_SPEC = [
     opacity: stage({ cache: 1, conf: 1 }),
     lit: ['bConf'],
     rewind: { chips: { fromChip: 'base layer', upperChip: 'cache' }, sublabels: SUB },
-    // The read lane leaves the upper slot before the copy takes it, so the two never share a frame,
-    // and both are done before the copy departs on BEAT.lead.
+    // The read lane leaves the slot before the copy takes it, so the two never share a frame.
     flow: [
       F.fade({ target: 'lRead', from: 1, to: 0, dur: SLOT_MS, fill: 'forwards', easing: 'ease-out', name: 'slot' }),
       F.fade({ target: 'uConf', from: 0, to: PEND, dur: SLOT_MS, at: 'slot', easing: 'ease-out' }),
       F.fade({ target: 'lCopy', from: 0, to: 1, dur: SLOT_MS, at: 'slot', easing: 'ease-out' }),
-      F.route({ points: L_COPY, delay: BEAT.lead, dur: LEG_DUR, name: 'copy', lights: ['uConf'] }),
-      F.tag({ text: 'copy-up', points: L_COPY, delay: BEAT.lead, dur: LEG_DUR, fn: tagGrid, dx: 34 }),
+      F.route({ points: L_COPY, delay: BEAT.lead, dur: LEG_DUR, name: 'copy', lights: ['uConf'], tag: { text: 'copy-up', fn: tagGrid, dx: 34 } }),
       F.reveal({ target: 'uConf', from: PEND, at: 'copy' }),
       F.set({
         at: 'copy', chips: { fromChip: 'upperdir', upperChip: 'cache, app.conf' },
@@ -186,8 +175,7 @@ export const STEPS_SPEC = [
     flow: [
       F.reveal({ target: 'lWhite' }),
       F.fade({ target: 'uTool', from: 0, to: PEND, dur: REVEAL_MS, easing: 'ease-out' }),
-      F.route({ points: L_WHITE, delay: BEAT.lead, dur: LEG_DUR, name: 'white', lights: ['uTool'] }),
-      F.tag({ text: 'whiteout', points: L_WHITE, delay: BEAT.lead, dur: LEG_DUR, fn: tagGrid, dx: -37 }),
+      F.route({ points: L_WHITE, delay: BEAT.lead, dur: LEG_DUR, name: 'white', lights: ['uTool'], tag: { text: 'whiteout', fn: tagGrid, dx: -37 } }),
       F.reveal({ target: 'uTool', from: PEND, at: 'white' }),
       F.set({ at: 'white', chips: { upperChip: HELD }, sublabels: { mTool: 'no such file' }, lights: ['upperChip'] }),
     ],
@@ -202,10 +190,8 @@ export const STEPS_SPEC = [
     opacity: stage({ cache: 1, conf: 1, tool: 1 }),
     lit: ['rowMerged', 'mData'],
     rewind: { chips: { dataChip: 'empty' } },
-    // The one lane with no cell on it below the merged row: the shaft rides SHAFT_DUR.
     flow: [
-      F.route({ points: L_VOL, delay: BEAT.lead, dur: SHAFT_DUR, name: 'vol', lights: ['volume'] }),
-      F.tag({ text: 'db', points: L_VOL, delay: BEAT.lead, dur: SHAFT_DUR, fn: tagShaft }),
+      F.route({ points: L_VOL, delay: BEAT.lead, dur: SHAFT_DUR, name: 'vol', lights: ['volume'], tag: { text: 'db', fn: tagShaft } }),
       F.set({ at: 'vol', chips: { dataChip: 'db' }, lights: ['dataChip'] }),
     ],
   },
@@ -223,14 +209,11 @@ export const STEPS_SPEC = [
       chips: { fromChip: 'upperdir', upperChip: HELD },
       sublabels: { mConf: 'from upperdir', mTool: 'no such file' },
     },
-    // The upperdir contents and their lanes fade as one, the read lane comes back, then the
-    // replacement reads app.conf along it.
     flow: [
       ...GONE.map((k, i) => F.fade({ target: k, to: 0, dur: FADE.out, fill: 'forwards', name: i ? undefined : 'wipe' })),
       F.set({ at: 'wipe', chips: { upperChip: 'new, empty' }, sublabels: { mTool: 'from app layer' }, lights: ['upperChip', 'mTool'] }),
       F.fade({ target: 'lRead', from: 0, to: 1, dur: REVEAL_MS, at: 'wipe', fill: 'forwards', easing: 'ease-out', name: 'back' }),
-      F.route({ points: L_READ, after: 'back', dur: LEG_DUR, name: 'reread', lights: ['mConf'] }),
-      F.tag({ text: 'app.conf', points: L_READ, after: 'back', dur: LEG_DUR, fn: tagGrid, dx: -37 }),
+      F.route({ points: L_READ, after: 'back', dur: LEG_DUR, name: 'reread', lights: ['mConf'], tag: { text: 'app.conf', fn: tagGrid, dx: -37 } }),
       F.set({ at: 'reread', chips: { fromChip: 'base layer' }, sublabels: { mConf: 'from base' }, lights: ['fromChip'] }),
     ],
   },

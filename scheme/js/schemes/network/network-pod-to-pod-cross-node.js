@@ -2,49 +2,49 @@ import { P, F, defineCard, midX, strip, BEAT } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-pod-to-pod-cross-node.md
 
-
 // The card is one mirrored pair: every block on the right is the reflection of its twin on the
 // left about the canvas centre, so a Node, a dataplane or a Pod cannot be moved on one side
 // alone. mirror() is what makes that a fact of the code rather than a promise in this comment.
 const CX = 600;
 const mirror = (x) => 2 * CX - x;
 
-// The two Node frames. NODE_L and NODE_R are the outer edges the chip strip spans exactly.
-// NODE_Y is a measured literal and not a derivation: the panel is deepest at 1100x800, reading
-// 254.66 on `routed`, and both frames open left of x=420, so `L-03` pins this edge. The frame
-// label prints at NODE_Y + 18 and inks from NODE_Y + 7, which clears that reading by 7.34.
-const NODE_Y = 255, NODE_W = 470, NODE_H = 230;
-const NODE1_X = 70, NODE2_X = mirror(NODE1_X + NODE_W);   // 70 / 660
-const NODE_L = NODE1_X, NODE_R = NODE2_X + NODE_W;        // 70 / 1130
+// NODE_L and NODE_R are the outer edges the chip strip spans exactly. Both frames open left of
+// x=420, so NODE_Y must clear the panel (L-03).
+const NODE_Y = 287, NODE_W = 470;
+const NODE1_X = 70, NODE2_X = mirror(NODE1_X + NODE_W);
+const NODE_L = NODE1_X, NODE_R = NODE2_X + NODE_W;
 
 // The two CNI dataplanes. The underlay leaves and re-enters on their bottom EDGE, which is what
 // keeps the ball out from under a box, and turns at each box centre.
-const CNI_Y = 341, CNI_W = 150, CNI_H = 64;
-const CNI1_L = 370, CNI2_L = mirror(CNI1_L + CNI_W);      // 370 / 680
-const CNI2_R = CNI2_L + CNI_W;                            // 830: where the veth leaves cni2
-const CNI_BOTTOM = CNI_Y + CNI_H;                         // 405
-const CNI1_X = CNI1_L + CNI_W / 2;                        // 445: drop point
-const CNI2_X = CNI2_L + CNI_W / 2;                        // 755: rise point, the mirror of 445
+const CNI_W = 150, CNI_H = 64;
+const CNI1_L = 370, CNI2_L = mirror(CNI1_L + CNI_W);
+const CNI2_R = CNI2_L + CNI_W;                            // where the veth leaves cni2
+const CNI1_X = CNI1_L + CNI_W / 2;                        // drop point
+const CNI2_X = CNI2_L + CNI_W / 2;                        // rise point
 
-// The two Pods, each a translucent shell around its eth0 box, so pulsePod animates both rects.
-const POD_Y = 315, POD_W = 180, POD_H = 120;
-const PODA_X = 98, PODB_X = mirror(PODA_X + POD_W);       // 98 / 922
-const PODA_R = PODA_X + POD_W;                            // 278: where the veth leaves Pod A
+// Each Pod is a translucent shell around its eth0 box, so pulsePod animates both rects. The Pods are
+// the tallest thing in a frame, so they set its height.
+const POD_W = 180, POD_H = 120, POD_Y = NODE_Y + 34;
+const NODE_H = 34 + POD_H + 12;
+const CNI_Y = POD_Y + 26;                                 // centred on VETH_Y
+const CNI_BOTTOM = CNI_Y + CNI_H;
+const PODA_X = 98, PODB_X = mirror(PODA_X + POD_W);
+const PODA_R = PODA_X + POD_W;                            // where the veth leaves Pod A
 const POD_INNER = { dx: 20, dy: 30, w: POD_W - 40, h: 56, label: 'app', sublabel: 'eth0' };
 
 // The veth links and the short packets on them share this y, so both Nodes read as one row, and
 // the underlay leg hangs at UNDERLAY_Y below the frames. Each leg is ONE array feeding both the
 // static wire and the ball that rides it, so the two cannot drift apart (A-02).
-const VETH_Y = 373;
-const UNDERLAY_Y = 530;                                   // physical underlay between the two Node IPs
+const VETH_Y = CNI_Y + CNI_H / 2;
+const UNDERLAY_Y = NODE_Y + NODE_H + 45;                  // physical underlay between the two Node IPs
 const VETH_A = [[PODA_R, VETH_Y], [CNI1_L, VETH_Y]];      // Pod A -> cni1
 const VETH_B = [[CNI2_R, VETH_Y], [PODB_X, VETH_Y]];      // cni2  -> Pod B
 const UNDERLAY_PATH = [[CNI1_X, CNI_BOTTOM], [CNI1_X, UNDERLAY_Y], [CNI2_X, UNDERLAY_Y], [CNI2_X, CNI_BOTTOM]];
 
-// Four equal chips spanning the Node frames edge to edge, so the strip and the picture share
-// both outer verticals. strip fixes the gap and derives the width: 1060 less three 20s over 4.
-const CHIP_Y = 573, CHIP_H = 34;
-const CHIPS = strip({ from: NODE_L, to: NODE_R, count: 4, gap: 20 });   // w 250, x 70/340/610/880
+// Four equal chips spanning the Node frames edge to edge, so the strip and the picture share both
+// outer verticals.
+const CHIP_Y = UNDERLAY_Y + 43, CHIP_H = 34;
+const CHIPS = strip({ from: NODE_L, to: NODE_R, count: 4, gap: 20 });
 
 // The list order IS the append order, which is the z-order: Node frames, then the dataplane boxes
 // and the Pods, then the wires and their labels, then the chip strip, and finally the packet layer.
@@ -54,10 +54,8 @@ export const SCENE = {
     P.defs(),
     P.node({ key: 'node1', x: NODE1_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1   ·   10.244.1.0/24' }),
     P.node({ key: 'node2', x: NODE2_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2   ·   10.244.2.0/24' }),
-    // The block is the node CNI DATAPLANE and not the cni0 bridge: `cni0` is the L2 bridge the
-    // bridge plugin creates for containers on one host, and a bridge neither encapsulates nor
-    // reaches another Node. What wraps the frame is the kernel overlay device the plugin adds
-    // beside it, and in routed mode nothing wraps it at all, so one box carries both.
+    // The node CNI DATAPLANE and not the cni0 bridge: a bridge neither encapsulates nor reaches another
+    // Node. The overlay device sits beside it, and in routed mode nothing wraps, so one box carries both.
     P.box({ key: 'cni1', x: CNI1_L, y: CNI_Y, w: CNI_W, h: CNI_H, label: 'CNI dataplane', sublabel: 'Node-1' }),
     P.box({ key: 'cni2', x: CNI2_L, y: CNI_Y, w: CNI_W, h: CNI_H, label: 'CNI dataplane', sublabel: 'Node-2' }),
     P.pod({
@@ -75,8 +73,8 @@ export const SCENE = {
     // runs across, and rises into the remote box. The packet rides this same UNDERLAY_PATH.
     P.lane({ points: UNDERLAY_PATH, dashed: true, dim: true }),
     P.tag({ x: CX, y: UNDERLAY_Y - 14, text: 'physical network' }),
-    P.wire({ key: 'va', x: midX(PODA_R, CNI1_L), y: VETH_Y - 12 }),   // 324
-    P.wire({ key: 'vb', x: midX(CNI2_R, PODB_X), y: VETH_Y - 12 }),   // 876
+    P.wire({ key: 'va', x: midX(PODA_R, CNI1_L), y: VETH_Y - 12 }),
+    P.wire({ key: 'vb', x: midX(CNI2_R, PODB_X), y: VETH_Y - 12 }),
     P.wire({ key: 'encap', x: CX, y: UNDERLAY_Y + 22 }),
     P.chip({ key: 'innerChip', x: CHIPS.x(0), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'inner src/dst', value: '.1.5 -> .2.7' }),
     P.chip({ key: 'outerChip', x: CHIPS.x(1), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'outer', value: 'none' }),
@@ -150,8 +148,7 @@ export const STEPS_SPEC = [
     // Down-arrow: the decapsulated inner frame leaves cni2 and hops the veth into Pod B,
     // which pulses on arrival (the receiver).
     flow: [
-      F.segment({ from: VETH_B[0], to: VETH_B[1], name: 'into' }),
-      F.pulse({ pod: 'podB', at: 'into' }),
+      F.segment({ from: VETH_B[0], to: VETH_B[1], pulse: 'podB' }),
     ],
   },
   {
@@ -160,10 +157,8 @@ export const STEPS_SPEC = [
     narration: 'Not every CNI encapsulates. A routed plugin such as Calico with BGP advertises the Pod subnet of each Node to the network, so the packet crosses the underlay carrying its real Pod IPs with no outer headers at all. It travels Pod A to Pod B in one routed path. This drops the encapsulation cost and the MTU overhead, at the price of the network having to carry Pod routes.',
     chips: { innerChip: '.1.5 -> .2.7', outerChip: 'none', encapChip: 'none', modeChip: 'routed · BGP' },
     wires: { va: VETH, vb: VETH, encap: 'routed · no outer headers' },
-    // Both dataplanes are on the path and never pulse, but each is a receiver before it forwards,
-    // so both light on arrival below and the pair reads as a route rather than as a lit corridor.
-    // `outer` returns to none and is cued, because none here is a different fact from the
-    // `stripped` before it: no wrap was ever made. `encap` read none already and takes no cue.
+    // Both dataplanes light on arrival, so the pair reads as a route. `outer` returns to none and is
+    // cued: no wrap was ever made, a different fact from `stripped`.
     lit: ['outerChip', 'modeChip'],
     // Both Pods are pulsed by the animated path, which no lights list can name.
     reducedLit: ['podABox', 'podBBox'],
@@ -172,8 +167,7 @@ export const STEPS_SPEC = [
       F.pulse({ pod: 'podA' }),
       F.segment({ from: VETH_A[0], to: VETH_A[1], delay: BEAT.afterPulse, name: 'h1', lights: ['cni1'] }),
       F.route({ points: UNDERLAY_PATH, after: 'h1', name: 'h2', lights: ['cni2'] }),
-      F.segment({ from: VETH_B[0], to: VETH_B[1], after: 'h2', name: 'h3' }),
-      F.pulse({ pod: 'podB', at: 'h3' }),
+      F.segment({ from: VETH_B[0], to: VETH_B[1], after: 'h2', pulse: 'podB' }),
     ],
   },
 ];

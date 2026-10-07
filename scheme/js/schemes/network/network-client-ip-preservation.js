@@ -2,67 +2,57 @@ import { P, F, defineCard, makeRidingLabel, BEAT } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-client-ip-preservation.md
 
-
 // Two connections drawn as two packets, the edge standing OVER both of them. The content band is
 // symmetric about the canvas centre, so the edge, both packet frames and the strip centre on 600.
 const SCHEME_L = 60, SCHEME_R = 1140;          // midpoint 600, the canvas centre
 
 // The edge is the APEX: it stands above both packets and each leg meets it on a SIDE face, so a
 // side block leaves its OWN TOP face, rises to the leg row, and turns 90 degrees into the edge.
-const EDGE_W = 232, POD_H = 124;               // NET.L-01 width, the category Pod height
-const EDGE_X = 600 - EDGE_W / 2;               // 484
-const EDGE_R = EDGE_X + EDGE_W;                // 716
-// 244: the ENTRY tag rides 14 UNDER its ball and inks from 248, clearing the 1100x800 panel floor
-// of 219.69 by 28.31. The row itself clears it by 24.31.
+const EDGE_W = 232, POD_H = 124;               // NET.L-01 width, a Pod height of this card's own
+const EDGE_X = 600 - EDGE_W / 2;
+const EDGE_R = EDGE_X + EDGE_W;
+// Low enough that the ENTRY tag, riding UNDER its ball, clears the panel floor.
 const LANE_Y = 244;
-// The edge hangs OFF the row, not the row off the edge: L-11 wants a lone endpoint on the MIDPOINT
-// of the face it lands on, so both side faces centre on LANE_Y.
-const EDGE_Y = LANE_Y - POD_H / 2;             // 182, edge 182..306
-// The side blocks hang under the leg row. 286 and no lower: Pod web is 124 deep and the caption
-// over the right packet inks from 418.8, which its bottom at 410 clears by 8.8.
+// The edge hangs OFF the row: L-11 wants a lone endpoint on the MIDPOINT of the face it lands on.
+const EDGE_Y = LANE_Y - POD_H / 2;
+// The side blocks hang under the leg row, no lower: Pod web must clear the caption over the right packet.
 const ROW_Y = 286;
 
 // A packet frame holds three rows sized by the widest value either side ever writes,
-// `192.0.2.1, 198.51.100.9`. The two frames close on the content edges, so the gap to the wall is derived.
-const ROW_W = 290, ROW_H = 28, ROW_GAP = 8, FRAME_PAD = 14;
-const FRAME_W = ROW_W + 2 * FRAME_PAD;         // 318
-const FRAME_H = 3 * ROW_H + 2 * ROW_GAP + 2 * FRAME_PAD;   // 128
-const FRAME_Y = 444;                           // frames 444..572, under the tag band and the captions
-const L_FRAME_X = SCHEME_L;                    // 60..378
-const R_FRAME_X = SCHEME_R - FRAME_W;          // 822..1140
-const frameCX = (x) => x + FRAME_W / 2;        // 219 and 981
-const rowY = (i) => FRAME_Y + FRAME_PAD + i * (ROW_H + ROW_GAP);   // 458 / 494 / 530
-const CAP_Y = FRAME_Y - 14;                    // 430: the caption baseline over each frame
+// `192.0.2.1, 198.51.100.9`. The two frames close on the content edges.
+const ROW_W = 290, ROW_H = 34, ROW_GAP = 8, FRAME_PAD = 14;
+const FRAME_W = ROW_W + 2 * FRAME_PAD;
+const FRAME_H = 3 * ROW_H + 2 * ROW_GAP + 2 * FRAME_PAD;
+const FRAME_Y = 444;                           // under the tag band and the captions
+const L_FRAME_X = SCHEME_L;
+const R_FRAME_X = SCHEME_R - FRAME_W;
+const frameCX = (x) => x + FRAME_W / 2;
+const rowY = (i) => FRAME_Y + FRAME_PAD + i * (ROW_H + ROW_GAP);
+const CAP_Y = FRAME_Y - 14;                    // the caption baseline over each frame
 
 // Each actor centres on its own packet frame, so a column reads as one column.
 const ACTOR_W = 232, CLIENT_H = 80;
-const CLIENT_CX = frameCX(L_FRAME_X);                      // 219: the leg leaves this top face
-const CLIENT_X = CLIENT_CX - ACTOR_W / 2;                  // 103, Client 286..366
-const POD_CX = frameCX(R_FRAME_X);                         // 981: the leg drops on this top face
-const POD_X = POD_CX - ACTOR_W / 2;                        // 865, Pod web 286..410
+const CLIENT_CX = frameCX(L_FRAME_X);                      // the leg leaves this top face
+const CLIENT_X = CLIENT_CX - ACTOR_W / 2;
+const POD_CX = frameCX(R_FRAME_X);                         // the leg drops on this top face
+const POD_X = POD_CX - ACTOR_W / 2;
 
 // Chip strip: three cells spanning the content edges, each sized for its own longest value.
-const CHIP_Y = 592, CHIP_H = 32, CHIP_GAP = 20;
+const CHIP_Y = FRAME_Y + FRAME_H + 10, CHIP_H = 34, CHIP_GAP = 20;
 const CHIP_WS = [340, 360, 340];               // sums with the gaps to SCHEME_R - SCHEME_L
 const CHIP_X = i => SCHEME_L + CHIP_WS.slice(0, i).reduce((a, w) => a + w + CHIP_GAP, 0);
 
-// Each static wire and the ball that rides it share the same endpoints. Both are an L of 307 units,
-// a 42 rise off a TOP face and a 265 run into a SIDE face of the edge, mirrored about the centre.
+// Each static wire and the ball that rides it share the same endpoints, an L mirrored about the centre.
 const ENTRY = [[CLIENT_CX, ROW_Y], [CLIENT_CX, LANE_Y], [EDGE_X, LANE_Y]];
 const DELIVER = [[EDGE_R, LANE_Y], [POD_CX, LANE_Y], [POD_CX, ROW_Y]];
 
-// A TAGGED leg rides 1200, not the 700 its 307 units floor at: inside 700 the tag cannot fade in
-// clear of the sender and be read before it dissolves with the ball (M-12, PACING).
-const TAG_DUR = 1200;
-// A TAG IS VISIBLE FOR ITS WHOLE FLIGHT and lives exactly as long as its ball (M-30a): in with it
-// before departure, out with it on arrival.
-// Each rides on the side AWAY FROM THE EDGE, because centred on a face a tag prints over the app
-// box inside it. ENTRY trails 95 to clear EDGE_X 484 on arrival, DELIVER leads 110 to clear 716.
+// A TAGGED leg rides LEG_DUR so its tag is readable (M-12, PACING).
+const LEG_DUR = 1200;
+// Each tag rides on the side AWAY FROM THE EDGE: centred on a face it prints over the app box inside.
 // ENTRY leaves at t=0, where a route ball does not fade in, so its tag shows at once (inMs 0).
 const labelIn = makeRidingLabel({ role: 'network', dy: 14, dx: -95, inMs: 0, outMs: 200, hold: 0 });
 const labelOut = makeRidingLabel({ role: 'network', dy: -14, dx: 110, inMs: 200, outMs: 200, hold: 0 });
-// Both legs are multi-point routePackets, which glide EASED, so each tag takes the same default
-// easing: mismatched, it drifts off its ball mid-flight and rejoins only at the ends (M-30).
+// Both legs glide EASED, so each tag keeps the default easing to stay on its ball (M-30).
 const tagIn = (p) => F.tag({ fn: labelIn, ...p });
 const tagOut = (p) => F.tag({ fn: labelOut, ...p });
 
@@ -84,10 +74,8 @@ export const SCENE = {
       key: 'podW', innerKey: 'podWBox', x: POD_X, y: ROW_Y, w: ACTOR_W, h: POD_H,
       label: 'Pod web', sublabel: '10.244.2.7', inner: podInner,
     }),
-    // The two packets. Same three rows on both sides, so a difference between them reads as a
-    // difference and not as two unrelated readouts.
-    // The keys are required: a text-bearing part must declare text or carry one, which
-    // `unit/spec-scene.test.mjs` holds. `statics.mjs` reports them UNREAD and is a heuristic here.
+    // Same three rows on both sides, so a difference reads as a difference. The keys are required by
+    // `unit/spec-scene.test.mjs`, whatever `statics.mjs` reports.
     P.box({ key: 'lFrame', x: L_FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H }),
     P.box({ key: 'rFrame', x: R_FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H }),
     P.lane({ points: ENTRY, dashed: true, dim: true }),
@@ -142,8 +130,8 @@ export const STEPS_SPEC = [
     // Down-arrow: the request reaches the proxy, which pulses on arrival. The true source rides with
     // the ball, because that is what this leg still carries.
     flow: [
-      F.route({ points: ENTRY, dur: TAG_DUR, name: 'inb' }),
-      tagIn({ text: 'src 198.51.100.9', points: ENTRY, dur: TAG_DUR }),
+      F.route({ points: ENTRY, dur: LEG_DUR, name: 'inb' }),
+      tagIn({ text: 'src 198.51.100.9', points: ENTRY, dur: LEG_DUR }),
       F.pulse({ pod: 'proxy', at: 'inb' }),
       F.set({ at: 'inb', chips: { ipChip: 'seen at the edge' } }),
     ],
@@ -163,8 +151,8 @@ export const STEPS_SPEC = [
     rewind: { chips: { rSrc: 'none', readsChip: 'none', ipChip: 'seen at the edge' } },
     flow: [
       F.pulse({ pod: 'proxy' }),
-      F.route({ points: DELIVER, delay: BEAT.afterPulse, dur: TAG_DUR, name: 'out' }),
-      tagOut({ text: 'src 10.244.0.9 (proxy)', points: DELIVER, delay: BEAT.afterPulse, dur: TAG_DUR }),
+      F.route({ points: DELIVER, delay: BEAT.afterPulse, dur: LEG_DUR, name: 'out' }),
+      tagOut({ text: 'src 10.244.0.9 (proxy)', points: DELIVER, delay: BEAT.afterPulse, dur: LEG_DUR }),
       F.pulse({ pod: 'podW', at: 'out' }),
       F.set({ at: 'out', chips: { rSrc: '10.244.0.9', readsChip: 'socket', ipChip: 'lost' } }),
     ],
@@ -182,8 +170,8 @@ export const STEPS_SPEC = [
     rewind: { chips: { rXff: 'none', readsChip: 'socket', ipChip: 'lost' } },
     flow: [
       F.pulse({ pod: 'proxy' }),
-      F.route({ points: DELIVER, delay: BEAT.afterPulse, dur: TAG_DUR, name: 'out' }),
-      tagOut({ text: 'X-Forwarded-For: 198.51.100.9', points: DELIVER, delay: BEAT.afterPulse, dur: TAG_DUR }),
+      F.route({ points: DELIVER, delay: BEAT.afterPulse, dur: LEG_DUR, name: 'out' }),
+      tagOut({ text: 'X-Forwarded-For: 198.51.100.9', points: DELIVER, delay: BEAT.afterPulse, dur: LEG_DUR }),
       F.pulse({ pod: 'podW', at: 'out' }),
       F.set({ at: 'out', chips: { rXff: '198.51.100.9', readsChip: 'header', ipChip: 'recovered' } }),
     ],
@@ -203,14 +191,13 @@ export const STEPS_SPEC = [
     // Each row turns over on the arrival that produces it.
     rewind: { chips: { lXff: 'none', rXff: '198.51.100.9', ipChip: 'recovered' } },
     flow: [
-      F.route({ points: ENTRY, dur: TAG_DUR, name: 'inb' }),
-      tagIn({ text: 'X-Forwarded-For: 192.0.2.1', points: ENTRY, dur: TAG_DUR }),
+      F.route({ points: ENTRY, dur: LEG_DUR, name: 'inb' }),
+      tagIn({ text: 'X-Forwarded-For: 192.0.2.1', points: ENTRY, dur: LEG_DUR }),
       F.pulse({ pod: 'proxy', at: 'inb' }),
       F.set({ at: 'inb', chips: { lXff: '192.0.2.1' } }),
-      // The list itself and no header name: naming the header here as well as in the row it lands
-      // in is what drove this tag to 229 units and into the caption (DO NOT).
-      F.route({ points: DELIVER, at: 'inb', plus: BEAT.afterPulse, dur: TAG_DUR, name: 'out' }),
-      tagOut({ text: '192.0.2.1, 198.51.100.9', points: DELIVER, at: 'inb', plus: BEAT.afterPulse, dur: TAG_DUR }),
+      // The list itself and no header name, or the tag grows into the caption (DO NOT).
+      F.route({ points: DELIVER, at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, name: 'out' }),
+      tagOut({ text: '192.0.2.1, 198.51.100.9', points: DELIVER, at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR }),
       F.pulse({ pod: 'podW', at: 'out' }),
       F.set({ at: 'out', chips: { rXff: '192.0.2.1, 198.51.100.9', ipChip: 'trusted hop only' } }),
     ],
@@ -232,8 +219,8 @@ export const STEPS_SPEC = [
     rewind: { chips: { rPre: 'none', readsChip: 'header', ipChip: 'trusted hop only' } },
     flow: [
       F.pulse({ pod: 'proxy' }),
-      F.route({ points: DELIVER, delay: BEAT.afterPulse, dur: TAG_DUR, name: 'out' }),
-      tagOut({ text: 'PROXY TCP4 198.51.100.9', points: DELIVER, delay: BEAT.afterPulse, dur: TAG_DUR }),
+      F.route({ points: DELIVER, delay: BEAT.afterPulse, dur: LEG_DUR, name: 'out' }),
+      tagOut({ text: 'PROXY TCP4 198.51.100.9', points: DELIVER, delay: BEAT.afterPulse, dur: LEG_DUR }),
       F.pulse({ pod: 'podW', at: 'out' }),
       F.set({ at: 'out', chips: { rPre: 'TCP4 198.51.100.9', readsChip: 'preamble', ipChip: 'recovered' } }),
     ],

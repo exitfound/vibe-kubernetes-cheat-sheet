@@ -1,27 +1,7 @@
 #!/usr/bin/env node
-// buildframe.mjs: the BUILD frame, the picture standing on screen BEFORE any step is entered.
-//   node tools/buildframe.mjs <id> [--base=URL]
-//   node tools/buildframe.mjs --all --out=DIR [--base=URL]
-//
-// WHY IT EXISTS. Every other probe in this repository enters a step or replays one: the render
-// tests call enterStep, and tools/settled-dump.mjs starts at gotoStep(0). Nothing reads the frame
-// `Scene.build()` leaves behind, and that frame is what the reader looks at for the first second
-// of every card (`D-14`, the poster model). A part built at the wrong opacity, or a `reset` that
-// pins something `build()` did not, is invisible to the whole suite and obvious to a human.
-//
-// WHAT IT SEES. Every element carrying an inline opacity other than 1, by document position and
-// class, plus the glyph inside it. That is the axis a build defect lands on: parts are drawn from
-// one ordered list and their initial opacity is the only per-part state `build()` sets.
-//
-// WHAT IT IS BLIND TO. Geometry, colour, text placement, and anything a step does. It answers one
-// question, "does the card start from the recorded picture", which is the question a
-// migration has to answer and no test file asks.
-//
-// THE RACE, AND WHY THE CONTROLLER IS PAUSED FIRST. The poster auto-plays step 1 about a second
-// after the dialog opens (`Timeline.autoPlay`). Read the frame without pausing and the answer
-// depends on how fast the machine was, which is how the first run of this probe produced garbage.
-// `pause()` cancels the pending auto-play, and the two-run determinism check below is what proves
-// the pause won the race: a dump that disagrees with itself is reported instead of returned.
+// Dumps the build frame (before any step, D-14): every element with an inline opacity other than 1.
+// node tools/buildframe.mjs <id> | --all --out=DIR [--base=URL]
+// Pauses the controller first so the poster auto-play cannot race the read, then reads twice.
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { launch, initPage, openCard, discoverIds, DEFAULT_BASE, DIAGRAM } from '../fixtures/render.mjs';
@@ -61,7 +41,6 @@ async function dump(ctx, id) {
   const page = await ctx.newPage();
   try {
     await openCard(page, id, base);
-    // Kill the pending auto-play before reading, then read twice: same answer or the run is void.
     await page.evaluate(() => { const c = window.__schemeCtl; if (c && c.pause) c.pause(); });
     const first = await readFrame(page);
     const second = await readFrame(page);

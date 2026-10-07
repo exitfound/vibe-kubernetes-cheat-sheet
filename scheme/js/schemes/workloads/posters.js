@@ -2,9 +2,8 @@
 // The workloads posters, keyed by card id: the still frame each card shows on the grid.
 
 export const POSTERS = {
-  // A wheel, the fleet as a ring around one hub that never unplugs: the new-version half of the
-  // rim and its three slots are solid, the old half is dashed and leaving, and the slot at the top
-  // of the roll, the one that just came up, carries the accent. Rolling is the picture.
+  // A wheel: the fleet as a ring round one hub, the new half solid, the old half dashed and leaving.
+  // Accent on the slot that just came up at the top of the roll.
   'workloads-rolling-update': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <g opacity="0.35" stroke-dasharray="2 3">
@@ -97,15 +96,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // One Pod of three stacked slabs, read upward: the fill ramp brightens toward the bottom slab,
-  // the accent bar names it as the one that goes first, and a dashed comb ties all three in the
-  // order the shutdown takes them.
-  // Nested containment with a WALL: one Pod split by the gate, three slabs above it and two below,
-  // the accent on BOTH lower slabs because they go together, and the upper ramp brightening right
-  // to left so the order after the wall reads backwards with no arrowhead.
-  // Mirror: the declared order over the stop order, the two rows rotationally symmetric about
-  // the canvas centre. Order reads off bar WIDTH, one accent drawn at BOTH ends of the staple:
-  // the slab declared first and the slab stopped last are the same container.
+  // Mirror: the declared order over the stop order, rotationally symmetric, order read off bar width.
+  // One accent at both ends of the staple: declared first and stopped last are the same container.
   'workloads-termination-order': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="11"  y="30" width="50" height="44" rx="6" fill="rgba(255,255,255,0.055)"/>
@@ -159,7 +151,7 @@ export const POSTERS = {
 
   // Chain of stages as a shift register: live record, kept record, and the slot that holds
   // nothing. Accent on the middle block, the one that answers what killed the container.
-  'workloads-container-states': `
+  'workloads-container-restarts-laststate': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="16"  y="52" width="80" height="76" rx="9" fill="rgba(255,255,255,0.06)"/>
       <rect x="30"  y="64" width="30" height="6" rx="2" fill="currentColor" stroke="none" opacity="0.3"/>
@@ -184,10 +176,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Stack of layers, append only: the declared container list held in one frame with a padlock on its
-  // top edge, and one more entry hanging below the frame, outside the lock, on a solid leg. Same slot
-  // shape inside and out, so the third reads as the same kind of thing in a place the lock does not
-  // reach. Accent: the appended entry's bar.
+  // Stack of layers, append only: the container list locked in a frame, one more entry hanging
+  // below it on a solid leg in the same slot shape. Accent: the appended entry's bar.
   'workloads-ephemeral-containers': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="74" y="32" width="172" height="88" rx="10" fill="rgba(255,255,255,0.03)"/>
@@ -205,8 +195,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Rank ladder against a ceiling: five columns doubling 20 / 40 / 80 and then clamped at 110
-  // under a dashed cap rule. Accent in the first capped column, a break glyph in the smallest.
+  // Rank ladder against a ceiling: columns doubling, then clamped under a dashed cap rule.
+  // Accent in the first capped column, a break glyph in the smallest.
   'workloads-crashloopbackoff': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <line x1="24" y1="40" x2="296" y2="40" stroke-dasharray="4 3" opacity="0.7"/>
@@ -279,9 +269,8 @@ export const POSTERS = {
     <rect x="226" y="84" width="64" height="10" rx="2" fill="currentColor" opacity="0.75"/>
   `,
 
-  // Fan, three kinds of place converging on one assembled set. The sources differ by their INSIDES
-  // (a key list, a nested object, one value) and the dashed third is the one nobody asked for.
-  // Legs are orthogonal: the middle drops onto the top face, the outer two elbow into the sides.
+  // Fan: three kinds of source converging on one assembled set, told apart by their insides.
+  // The dashed third is the one nobody asked for. Orthogonal legs.
   'workloads-env-before-pid-1': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="30"  y="22" width="76" height="42" rx="6" fill="rgba(255,255,255,0.05)"/>
@@ -299,10 +288,8 @@ export const POSTERS = {
     <rect x="235" y="39"  width="34" height="8"  rx="2" fill="currentColor" opacity="0.3"/>
     <rect x="114" y="129" width="92" height="16" rx="2" fill="currentColor" opacity="0.9"/>
   `,
-  // Nested containment: a thin Node frame, one solid Pod at stroke 2 inside it, and inside the Pod
-  // three container rows top to bottom on ONE descending fill ramp 0.10 / 0.06 / 0.03: the first
-  // init done, the second init running (the only accent, carried by its inner bar), the app
-  // container dashed because it does not exist yet. No legs.
+  // Nested containment: Node, Pod, three container rows on one descending fill ramp. First init
+  // done, second running (the only accent), app dashed because it does not exist yet.
   'workloads-pod-pending-init-states': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="24" y="16" width="272" height="148" rx="10" fill="rgba(255,255,255,0.03)"/>
@@ -316,10 +303,8 @@ export const POSTERS = {
       <rect x="112" y="89" width="40" height="8" rx="2" opacity="0.9"/>
     </g>
   `,
-  // A chain of stages read as a time-lapse: ONE gate list in three moments, the live entries ramping
-  // 2 / 1 / 0 while the slots they left stay behind as dashed ghosts, because a removal is one-way.
-  // Solid legs join the frames and the Pod into one continuous spine, so the strip reads as one
-  // line the Pod stands at the end of. Accent: the Pod, past the empty list.
+  // Time-lapse chain: one gate list in three moments, emptied slots left as dashed ghosts.
+  // Solid legs make one spine ending on the Pod, which carries the accent.
   'workloads-pod-scheduling-gates': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="16"  y="36" width="58" height="108" rx="9" fill="rgba(255,255,255,0.04)"/>
@@ -360,10 +345,8 @@ export const POSTERS = {
     <circle cx="190" cy="153" r="2.5" fill="currentColor" opacity="0.7"/>
   `,
 
-  // A symmetric fan, two into one: both readings of the same spec feed the one block the Node sets
-  // aside, and the leg of the reading that WON is solid where the loser's is dashed. Left frame,
-  // init bodies side by side, so the group is a maximum. Right frame, app on sidecar, so it is a
-  // sum. Accent: the bar inside the top block. Body heights are 0.075 units per milli, exactly.
+  // Symmetric fan, two into one: the init maximum and the app-plus-sidecar sum feed one block,
+  // the winning leg solid, the loser dashed. Body heights are to scale. Accent: the top block bar.
   'workloads-effective-pod-requests': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="108" y="18" width="104" height="44" rx="8" fill="rgba(255,255,255,0.10)" stroke-width="2"/>
@@ -409,9 +392,8 @@ export const POSTERS = {
     <rect x="175" y="16"  width="12" height="148" rx="3" fill="currentColor" opacity="0.9"/>
   `,
 
-  // The closed gate: three ordinals on the centre line, the lower two joined by a solid link, the
-  // link above running up into a bar it does not pass, and the third block ghosted beyond it.
-  // Accent: the bar in the middle block, the ordinal the one above is waiting on.
+  // Closed gate: three ordinals, the link above stopping at a bar, the third block ghosted beyond.
+  // Accent: the middle block, the ordinal the next one waits on.
   'workloads-statefulset-ordered-rollout': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="85" y="10" width="150" height="34" rx="6" fill="rgba(255,255,255,0.03)" stroke-opacity="0.5"/>
@@ -427,10 +409,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // A strict five by two grid under one strike. The upper row is a dashed cell per column, where
-  // the lost Pod stood; the lower row is a solid cell, where a replacement stands. A bar in the
-  // upper cell means the same one came back, a bar in the lower one means a different one did,
-  // and no bar at all means nothing did. Accent: the bar in its own ghost, at 0.9.
+  // A five by two grid under one strike: dashed cells where the lost Pods stood, solid where
+  // replacements stand. A bar up means the same came back, down a new one, none nothing.
   'workloads-pod-replacement-guarantees': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <line x1="34" y1="30" x2="286" y2="30" stroke-width="3"/>
@@ -457,11 +437,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // A descending cascade cut by one rule: four ordinals each stepping 34 further right as they fall,
-  // so POSITION carries the order the walk takes and the diagonal is the direction (R-08). The two
-  // above the rule are solid and carry the revision, the two below are dashed and untouched, and the
-  // rule overhangs the whole stack because it stops the movement rather than crossing a list.
-  // Accent: the top block at 0.9, the largest ordinal, where the walk opens.
+  // Descending cascade cut by one rule, the diagonal as direction (R-08): solid revised ordinals
+  // above, dashed untouched ones below. Accent: the top block, the largest ordinal.
   'workloads-statefulset-update-strategy': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="34"  y="16"  width="150" height="26" rx="5" fill="rgba(255,255,255,0.10)" stroke-width="2"/>
@@ -476,10 +453,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Segmented budget bar in a frame: a stadium body holding five equal completion units on a
-  // brightness ramp, the whole of it inscribed in the squared outer frame that is the fixed batch
-  // it may not exceed. The ramp is the direction (R-08). Accent: the fifth unit, at 0.9, the run
-  // that closes the batch.
+  // Segmented budget bar in a frame: five completion units on a brightness ramp (R-08) inside the
+  // fixed batch frame. Accent: the fifth unit, the run that closes the batch.
   'workloads-job-parallelism': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="16" y="32" width="268" height="116" rx="8" fill="rgba(255,255,255,0.03)" stroke-width="2"/>
@@ -510,9 +485,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Form and cast: the cluster above with four notches on an even pitch, the fleet below with the
-  // four tongues that seat in them, margins 10 and 18 mirrored about x=160. Accent: the bar in the
-  // fleet, 44 to 276, running the whole seat field, because the promise is one Pod per Node.
+  // Form and cast: the cluster above with four notches, the fleet below with the tongues that seat
+  // in them. Accent: the fleet bar across the whole seat field, one Pod per Node.
   'workloads-daemonset': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <path fill="rgba(255,255,255,0.03)"
@@ -549,9 +523,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // One field, two roads from the old version to the new: a lens of two arcs between two Pods.
-  // The upper road runs unbroken, RollingUpdate. The lower road is cut in the middle and a dashed
-  // hollow stands in the cut, Recreate and the window where nobody serves. Accent on the new Pod.
   // Two zones compared, stacked: one ribbon per strategy, the same three cells on both, and the
   // whole difference is the middle one. Accent: the two bars in the RollingUpdate window.
   'workloads-deployment-strategy': `
@@ -647,9 +618,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // A field of Pod objects the API is still holding: most are simply records, three are already
-  // cleared to hollows, and the accent is on the one being taken now. The cleared cells are
-  // scattered because the four rules that clear them are unrelated, not a sweep from one end.
   // Empty shells: three Pod records left to right, the container slot inside each one already a
   // dashed hollow, and the accent on the record PodGC takes next. The object outlives its contents.
   'workloads-pod-garbage-collection': `

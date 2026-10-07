@@ -3,19 +3,9 @@ import { g, rect, line, text } from '../../lib/svg.js';
 
 // Design notes for this card: ./CARDS/network-proxy-rule-resync.md
 
-
-// Nothing on this card is measured off the content edges any more: the two blocks take the chip
-// strip walls and the instrument is pinned right of the panel, which is the L-shaped safe zone
-// (L-01).
-
-// Narration panel measured at right <= 396.55 and bottom 180.12..229.82 at 1100x800, deepest on the
-// poster frame. The top band and the instrument start at x >= 420, so no panel depth reaches either,
-// and the kernel, the one block left of 420, starts at 322 with 92 clear under the deepest bottom.
-const TOP_Y = 40, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;    // 40..120
-// NET.L-01: an actor block is 232 unless a measured string says otherwise, and nothing here does.
-// MEASURED at 1100x800, the widest reading: the label inks 139.9 and the sublabel 116.6, so 232
-// leaves 46 a side. The box centres on the INSTRUMENT and not on the canvas, so the update it sends
-// falls straight down instead of jogging across the gap.
+// The two blocks take the chip strip walls and the instrument is pinned right of the panel (L-01).
+const TOP_Y = 40, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;
+// NET.L-01 width. The box centres on the instrument, not the canvas, so its update falls straight down.
 const BOX_W = 232;
 
 // The chip grid comes first because the two blocks hang off its edges: the instrument takes its
@@ -23,69 +13,56 @@ const BOX_W = 232;
 const CHIP_H = 34, CHIP_GAP = 12, CHIP_VGAP = 8;
 const CHIP_TOP = 548, CHIP_L = 60, CHIP_R = 1140;
 
-// The instrument: one box whose BODY is a clock, pinned at x 420 so the panel can never occlude it.
-// It is a DIAL and not a room: the clock spans 440..1104 of its 720. 234 deep is the FLOOR, set by
-// the window bracket stack above the comb, and the record carries that arithmetic.
-const LOOP_X = 420, LOOP_W = CHIP_R - LOOP_X;                // 420..1140, right wall on the chips
-const LOOP_Y = 250, LOOP_H = 244;                            // 250..494
-const LOOP_CX = LOOP_X + LOOP_W / 2;                         // 780
-const LOOP_CY = LOOP_Y + LOOP_H / 2;                         // 372, the left face the write leaves
-const SLICE_CX = LOOP_CX;                                    // 780
-const SLICE_X = SLICE_CX - BOX_W / 2;                        // 664..896
+// The instrument: one box whose body is a clock, pinned at x 420 so the panel never occludes it.
+// Its 244 depth is the floor set by the window bracket stack above the comb.
+const LOOP_X = 420, LOOP_W = CHIP_R - LOOP_X;                // right wall on the chips
+const LOOP_Y = 250, LOOP_H = 244;
+const LOOP_CX = LOOP_X + LOOP_W / 2;
+const LOOP_CY = LOOP_Y + LOOP_H / 2;                         // the left face the write leaves
+const SLICE_CX = LOOP_CX;
+const SLICE_X = SLICE_CX - BOX_W / 2;
 
-// The kernel stands BESIDE the instrument, in the column the panel vacates, and its face midpoint is
-// the instrument face midpoint, which is what makes the write lane one straight horizontal segment.
-// A receiver carrying two short strings, so it takes a 232 block (NET.L-01), and the chip strip left
-// edge rather than the content edge, so it shares a column wall with the readout under it.
-const KERN_X = CHIP_L, KERN_W = BOX_W;                       // 60..292
+// The kernel shares the instrument face midpoint, so the write lane is one horizontal segment,
+// and the chip strip left edge, so it shares a column wall with the readout under it.
+const KERN_X = CHIP_L, KERN_W = BOX_W;
 const KERN_H = 80;
-const KERN_CY = LOOP_CY;                                     // 372, both faces on one line
-const KERN_Y = KERN_CY - KERN_H / 2;                         // 332..412
-const KERN_R = KERN_X + KERN_W;                              // 292
+const KERN_CY = LOOP_CY;                                     // both faces on one line
+const KERN_Y = KERN_CY - KERN_H / 2;
+const KERN_R = KERN_X + KERN_W;
 
 // Inside the instrument. AXIS_Y is the clock line: changes stand above it, kernel writes below it,
 // and both sides share one x, so a write sits under the change that caused it.
-// 388 and not the box centre 372. Pinning the axis to the centre read well on the lane and printed
-// the bracket caption on the SAME baseline as the box label, two titles on one row. 388 is the floor
-// the top band sets: label 276, caption 296, bracket 310, comb 328.
+// Below the box centre so the bracket caption does not share the box label baseline.
 const AXIS_Y = 388;
-// The axis starts at 512, not at the box wall, because the two standing side captions live to its
-// left and a caption over the comb would print through a hundred tick marks. 512 and not 560,
-// because 560 keeps 77 units of clear where the rule needs far less: the captions ink 440..482.9 at
-// 1100x800, so 512 still leaves 29 clear and gives the other 48 to the comb.
+// The axis starts right of the two side captions, so no caption prints through the comb.
 const AXIS_L = 512, AXIS_R = 1104;
 // 5 bursts of 20 is 100 ticks, the two numbers the narration states and the only quantities drawn.
 const BURSTS = 5, PER_BURST = 20;
-const BURST_W = 88, BURST_GAP = 18;                          // 5*88 + 4*18 = 512, so 512..1024
+const BURST_W = 88, BURST_GAP = 18;
 const BURST_X = (i) => AXIS_L + i * (BURST_W + BURST_GAP);
 const TICK_X = (i, j) => BURST_X(i) + j * (BURST_W / (PER_BURST - 1));
 // Each burst is resynced at its own right edge, which is where its window closes.
 const SYNC_X = (i) => BURST_X(i) + BURST_W;
-const CHANGE_TOP = 328, SYNC_BOT = 450;                      // the two sides, 60 above and 62 below
+const CHANGE_TOP = 328, SYNC_BOT = 450;
 // The clock beats: a short mark under the axis at every resync point, standing on every step. They
 // are what the idle frame has to show, and a sparse write landing ON one is the aggregation.
-const BEAT_BOT = AXIS_Y + 14;                                // 402
-// The syncPeriod resync stands 52 right of the last burst, so the space above it is visibly empty.
+const BEAT_BOT = AXIS_Y + 14;
+// The syncPeriod resync stands clear of the last burst, so the space above it is visibly empty.
 const PERIOD_X = 1076;
 const LAG_Y = 310;                                           // the window bracket, over the first burst
-const LAG_CX = BURST_X(0) + BURST_W / 2;                     // 598, where its caption centres
+const LAG_CX = BURST_X(0) + BURST_W / 2;                     // where its caption centres
 // The two side captions, left of the axis and vertically centred on the band each one names.
 const SIDE_X = 440, CHANGE_LABEL_Y = 361, WRITE_LABEL_Y = 423;
 
-// Six chips as a three by two grid: this card is about state, and its state is two counters, two
-// periods, what is watched and how far behind the kernel is. The strip pulls in off the content
-// edges and closes its gaps, 60..1140 at 12 against 40..1160 at 20, so the three read as one row
-// rather than three bars spanning the card. 352 is the FLOOR: `render/chipfit.test.mjs` fails the
-// watch chip at 338.67 by 6, and the record carries that reading.
-const CHIP_COL = strip({ from: CHIP_L, to: CHIP_R, count: 3, gap: CHIP_GAP });        // w 352
-const CHIP_ROW = ladder({ y: CHIP_TOP, rowH: CHIP_H, gap: CHIP_VGAP });              // 548 / 590
+// Six chips as a three by two grid. The column width is the floor `render/chipfit.test.mjs` allows
+// for the watch chip.
+const CHIP_COL = strip({ from: CHIP_L, to: CHIP_R, count: 3, gap: CHIP_GAP });
+const CHIP_ROW = ladder({ y: CHIP_TOP, rowH: CHIP_H, gap: CHIP_VGAP });
 const CHIP_X = (i) => CHIP_COL.x(i % 3);
 const CHIP_Y = (i) => CHIP_ROW(Math.floor(i / 3));
 
-// The watch update falls into the loop, the write leaves its bottom and turns left into the kernel.
-// Both jog once in the gap between the blocks they join, and every endpoint is a face midpoint
-// (L-11). WRITE runs 430 units against the old 216: the kernel moved out from under the instrument
-// into the column beside it, so the write now crosses the card instead of dropping 26 units.
+// The watch falls straight into the loop and the write runs straight into the kernel, face midpoint
+// to face midpoint (L-11).
 const WATCH = [[SLICE_CX, TOP_BOTTOM], [SLICE_CX, LOOP_Y]];
 const WRITE = [[LOOP_X, LOOP_CY], [KERN_R, KERN_CY]];
 
@@ -191,7 +168,7 @@ export const SCENE = {
     P.lane({ points: WRITE, dashed: true, dim: true }),
     P.box({
       key: 'slice', x: SLICE_X, y: TOP_Y, w: BOX_W, h: TOP_H,
-      label: 'EndpointSlice web-x9f2', sublabel: '100 endpoints ready',
+      label: 'EndpointSlice web-x9f2k', sublabel: '100 endpoints ready',
     }),
     // One raw, one tune. The tune files five LITERAL ref keys so every step can move a side of the
     // clock by opacity: a computed key would be invisible to unit/spec-steps.test.mjs.
@@ -213,9 +190,7 @@ export const SCENE = {
     // Standing captions, true on every step, so the picture says what each side of the axis is.
     P.tag({ x: SIDE_X, y: CHANGE_LABEL_Y, anchor: 'start', text: 'changes' }),
     P.tag({ x: SIDE_X, y: WRITE_LABEL_Y, anchor: 'start', text: 'resyncs' }),
-    // -14 and +19 are measured clearances at 1100x800, not offsets: the lag caption inks 14 above
-    // the bracket line it names, and the state line rides 19 under the write bars with the box wall
-    // 13 under its own baseline.
+    // Measured clearances, not offsets: the lag caption over its bracket, the state line under the bars.
     P.wire({ key: 'lag', x: LAG_CX, y: LAG_Y - 14 }),
     P.wire({ key: 'state', x: LOOP_CX, y: SYNC_BOT + 19 }),
     P.chip({ key: 'watchChip',  x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_COL.w, h: CHIP_H, name: 'kube-proxy watches', value: 'none' }),
@@ -226,8 +201,7 @@ export const SCENE = {
     P.chip({ key: 'periodChip', x: CHIP_X(5), y: CHIP_Y(5), w: CHIP_COL.w, h: CHIP_H, name: 'syncPeriod',         value: 'none' }),
     P.packets(),
   ],
-  // No Pod on this card and therefore no inner box in `keys`: the deleted Pod reaches kube-proxy
-  // only as a change to the slice, which is step 1 in words, and drawing it argued the opposite.
+  // No Pod on this card: the deleted Pod reaches kube-proxy only as a change to the slice.
   reset: {
     keys: ['slice', 'loop', 'kernel',
       'watchChip', 'changeChip', 'floorChip', 'updateChip', 'lagChip', 'periodChip'],
@@ -288,8 +262,7 @@ export const STEPS_SPEC = [
     // state has them standing and the animated path winds both back and lands them on the arrival.
     rewind: { opacity: { changeSide: 0 }, chips: { changeChip: 'none yet' } },
     flow: [
-      F.route({ points: WATCH, delay: BEAT.lead, name: 'w', lights: ['loop'] }),
-      F.tag({ text: '100 endpoints removed', points: WATCH, delay: BEAT.lead }),
+      F.route({ points: WATCH, delay: BEAT.lead, name: 'w', lights: ['loop'], tag: { text: '100 endpoints removed' } }),
       F.anim({ target: 'changeSide', ...FADE_IN, at: 'w' }),
       F.set({ at: 'w', chips: { changeChip: '100 in one window' } }),
       F.light({ targets: ['changeChip'], at: 'w' }),

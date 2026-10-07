@@ -1,32 +1,6 @@
-// text.test.mjs: the half of the T block of ../../CANON.md that a test can read WITHOUT a browser.
-// The term rules over `desc`, and the R-dash sweep, which runs over a FILE TREE rather than over
-// catalog strings.
-//
-// ===========================================================================================
-// WHY THE T BLOCK IS SPLIT ACROSS TWO FILES, and it is not a preference
-// ===========================================================================================
-// A card exports exactly one symbol, `init`. `narration`, the step `id` and the diagram's
-// `aria-label` are arguments to makeInit and live inside its closure, so nothing here can reach
-// them (fixtures/module.mjs says the same thing at length). They are read by RENDER, in
-// ../render/inline.test.mjs, together with every string that is DRAWN on the canvas.
-//
-// What is statically readable, and therefore lives here:
-//   - `desc`, which is declared in each category's cards.js and imports cleanly;
-//   - the SOURCE TEXT of every file the dash rule covers, prose and code and comments alike.
-//
-// The dash sweep is the reason this file exists at all. unit/catalog.test.mjs deliberately scans
-// only the strings the CATALOG owns (title, desc, source labels, posters). That leaves the card
-// modules themselves, the four kits, the four manifests, the four poster maps, js/lib, the CSS,
-// the three page shells and the named cli files with no dash coverage whatsoever, and a dash in a
-// COMMENT is exactly the kind that survives review. T-05 names the area, and a directory is WALKED
-// rather than listed, because a listed scan silently leaves out the next file that lands in one of
-// these folders: a walk covers a file the day it moves in, a list covers it whenever someone
-// remembers to add it.
-//
-// Two rules this sweep is built on:
-//   1. A target that cannot be read is a FINDING. A catch that continues (`catch (_) { continue; }`)
-//      makes the sweep silently smaller on the next rename: never swallow.
-//   2. The counts below are asserted, not printed. Coverage can collapse at zero findings.
+// The browser-free half of the T block: terminology, casing and characters over `desc`, and the T-04/T-05
+// dash sweep over a walked file tree (narration and drawn strings are ../render/inline.test.mjs).
+// An unreadable target is a finding, and the coverage counts are asserted.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -35,27 +9,18 @@ import { join } from 'node:path';
 import { ROOT, cards, categories, folderFiles, folderModules, census, schemes } from '../fixtures/catalog.mjs';
 import { loadTerms, sentences, sentenceStarts, termIssues, termRegex } from '../fixtures/prose.mjs';
 
-// The repo root, one level above scheme/. index.html, README.md and the cli/ files live there.
 const REPO = join(ROOT, '..');
 
-// The catalog as it stood when this suite was written. Fewer than this is a broken walk, not a
-// smaller catalog, and it must be red.
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const CARD_TOTAL = (await cards()).length;
 
-// Measured by walking the tree below: 110 cards + 12 category modules (four folders x
-// kit, cards.js, posters.js) + 11 js/lib modules + 3 stylesheets + the 8 named files. A floor
-// rather than an equality, because a new card or a new lib module legitimately raises it, and the
-// failure this guards against is the sweep getting SMALLER.
+// A floor: new cards and modules raise it, a shrinking sweep must go red.
 const DASH_TARGET_FLOOR = 142;
 
-// terms.json is DATA and it is the source of truth for T-06. Its section sizes are asserted so a
-// dictionary that silently loses half its entries cannot turn every rule below green.
+// Section sizes asserted so a dictionary that loses entries cannot turn every rule green.
 const DICT_SIZES = { hard: 71, hardLower: 13, exceptions: 11, soft: 8 };
 const INLINE_SIZES = { names: 32, apiWords: 105, components: 29, homographs: 3 };
 
-// Built from code points, so this file does not itself contain the characters it bans.
+// Built from code points so this file does not contain the characters it bans.
 const EM_DASH = String.fromCharCode(0x2014);
 const EN_DASH = String.fromCharCode(0x2013);
 const DASH_RE = new RegExp(`[${EM_DASH}${EN_DASH}]`, 'g');
@@ -67,19 +32,11 @@ const SCHEMES = await schemes();
 const CARDS = await cards();
 const CATS = await categories();
 
-// ---------------------------------------------------------------------------------------------
-// The dash area (T-04, T-05)
-// ---------------------------------------------------------------------------------------------
-
-// Paths relative to the REPO root. Three walked groups and one named list. The four CARDS.md stay
-// outside the area on purpose (T-05): a design record quotes what a card must not do.
+// The CARDS.md records stay outside the area on purpose (T-05).
 async function dashTargets() {
   const out = [];
   for (const c of CARDS) out.push(join('scheme', c.rel));
-  // Everything in a category folder that is NOT a card: the kit, the manifest that holds that
-  // category's descriptions, the poster map. Walked, never listed: when the kits left js/lib and
-  // when the card descriptions left js/data.js, a listed set would have kept passing over an area
-  // that no longer contained them.
+  // Walked, never listed, so a moved module is still covered.
   for (const cat of CATS) {
     const allowed = folderModules(cat);
     for (const n of await folderFiles(cat)) {
@@ -89,8 +46,7 @@ async function dashTargets() {
   return out;
 }
 
-// js/lib and css are read straight off disk, because neither is a catalog projection: a new module
-// there has to join the sweep the day it lands.
+// Read off disk, so a new module joins the sweep the day it lands.
 async function walkedDirs() {
   const out = [];
   for (const dir of [join('scheme', 'js', 'lib'), join('scheme', 'css')]) {
@@ -101,16 +57,14 @@ async function walkedDirs() {
   return out;
 }
 
-// The files that belong to no walk: the three page shells, the barrels, and the cli modules whose
-// prose reaches the same reader.
+// Files that belong to no walk.
 const NAMED_TARGETS = [
   join('scheme', 'js', 'data.js'),
   join('scheme', 'js', 'app.js'),
   join('scheme', 'js', 'posters.js'),
   join('scheme', 'js', 'contacts.js'),
   join('scheme', 'index.html'),
-  // CANON.md is in scope where the design records are not: a record describes one decision, the
-  // canon states the rules, and a rule that quotes a dash teaches the dash.
+  // A rule that quotes a dash teaches the dash.
   join('scheme', 'CANON.md'),
   join('cli', 'js', 'data.js'),
   join('cli', 'js', 'app.js'),
@@ -124,19 +78,12 @@ async function allDashTargets() {
   return [...set].sort();
 }
 
-// ---------------------------------------------------------------------------------------------
-// The prose this file owns: one entry per `desc`, tagged with the manifest that declares it.
-// ---------------------------------------------------------------------------------------------
 const prose = SCHEMES.map(s => ({
   id: s.id,
   where: 'desc',
   file: join('js', 'schemes', s.category, 'cards.js'),
   text: s.desc,
 }));
-
-// ---------------------------------------------------------------------------------------------
-// Census first. Every rule below walks one of these two lists.
-// ---------------------------------------------------------------------------------------------
 
 test(`the prose census is whole (${CARD_TOTAL} desc strings)`, () => {
   assert.equal(prose.length, CARD_TOTAL,
@@ -157,17 +104,12 @@ test(`terms.json declares ${DICT_SIZES.hard} hard terms and ${DICT_SIZES.hardLow
     const size = Array.isArray(v) ? v.length : Object.keys(v).length;
     assert.equal(size, n, `terms.json inline.${section} holds ${size} entries, the recorded size is ${n}`);
   }
-  // T-07: two decisions that are deliberately not the upstream ones, pinned so a dictionary sweep
-  // cannot quietly reverse them.
+  // T-07: two decisions that differ from upstream, pinned against a dictionary sweep.
   for (const t of ['Node', 'Pod', 'Service', 'Kubelet', 'ETCD']) {
     assert.ok(t in dict.hard, `${t} left terms.json hard: it is always capitalised in this catalog`);
   }
   assert.ok('kubectl' in dict.hardLower, 'kubectl left terms.json hardLower: it is always lowercase');
 });
-
-// ---------------------------------------------------------------------------------------------
-// T-04 / T-05: no em-dash and no en-dash, anywhere in the area
-// ---------------------------------------------------------------------------------------------
 
 test(`T-04 no em-dash or en-dash in any of the ${DASH_TARGET_FLOOR}+ files the rule covers`, async () => {
   const targets = await allDashTargets();
@@ -184,8 +126,7 @@ test(`T-04 no em-dash or en-dash in any of the ${DASH_TARGET_FLOOR}+ files the r
     try {
       src = await readFile(join(REPO, rel), 'utf8');
     } catch (e) {
-      // Collected, never swallowed: a catch that continued in silence here would make the sweep
-      // smaller on the next rename without a word.
+      // Never swallowed: a silent catch shrinks the sweep on the next rename.
       unreadable.push(`${rel} (${e.code || e.message})`);
       continue;
     }
@@ -199,14 +140,13 @@ test(`T-04 no em-dash or en-dash in any of the ${DASH_TARGET_FLOOR}+ files the r
   }
   assert.deepEqual(unreadable, [], `${unreadable.length} dash target(s) could not be read, so they were not scanned`);
   assert.equal(scanned, targets.length);
-  // Named so the finding says which file and which line, the two things a fixer needs.
   assert.deepEqual(bad, [],
     `${bad.length} dash(es) in the covered tree (project rule: never, anywhere, prose and comments alike)`);
 });
 
 test('T-05 the dash area covers the card modules, the four kits, the manifests and the page shells', async () => {
   const targets = new Set(await allDashTargets());
-  // Each half of the area named explicitly, because "the walk found some files" is not the claim.
+  // Each half of the area named explicitly.
   for (const c of CARDS) {
     assert.ok(targets.has(join('scheme', c.rel)), `${c.id} is outside the dash sweep`);
   }
@@ -216,19 +156,12 @@ test('T-05 the dash area covers the card modules, the four kits, the manifests a
     }
   }
   for (const rel of NAMED_TARGETS) assert.ok(targets.has(rel), `${rel} is outside the dash sweep`);
-  // T-05 states the exclusion as flatly as the inclusion: a design record may quote what a card
-  // must not write, so the four CARDS.md stay out.
+  // T-05: a design record may quote what a card must not write.
   const records = [...targets].filter(t => /CARDS\.md$/.test(t));
   assert.deepEqual(records, [], 'a design record joined the dash sweep, and T-05 puts it deliberately outside');
 });
 
-// ---------------------------------------------------------------------------------------------
-// T-06 / T-07: terminology and casing over `desc`
-// ---------------------------------------------------------------------------------------------
-
-// Both classes come out of one matcher, so the CASE rule and the REWORD rule cannot disagree about
-// what a defect is. `reword` is a lowercase-only NAME opening a sentence: two rules that cannot
-// hold at once, so a human rephrases rather than a tool capitalising.
+// One matcher for both classes. `reword` is a lowercase-only name opening a sentence.
 function issuesOf(p) {
   const out = { case: [], reword: [] };
   for (const it of termIssues(dict, p.text)) {
@@ -257,7 +190,7 @@ test('T-07 no desc opens a sentence with a term that must stay lowercase (REWORD
     bad.push(...issuesOf(p).reword);
   }
   census('desc REWORD walk', seen, CARD_TOTAL);
-  // Capitalising is the wrong fix: kubectl is never Kubectl. The sentence gets reworded instead.
+  // kubectl is never Kubectl: the sentence gets reworded.
   assert.deepEqual(bad, [], `${bad.length} sentence(s) open with a name that may not take a capital`);
 });
 
@@ -271,24 +204,15 @@ test('every sentence of every desc opens with a capital (OPEN)', () => {
       if (t && /^[a-z]/.test(t)) bad.push(`${p.id} ${p.where}  "${t.slice(0, 60)}"`);
     }
   }
-  // 3 sentences per desc is the target, so a walk that found fewer than two per card collapsed.
+  // Fewer than two sentences per card means the splitter collapsed.
   assert.ok(seen >= CARD_TOTAL * 2, `split ${seen} sentences out of ${CARD_TOTAL} descriptions`);
-  // Blind spot carried over knowingly: a fully qualified name with its trailing dot
-  // (api.ns.svc.cluster.local.) is indistinguishable from a sentence end here, and widening the
-  // splitter would blind this rule, whose whole job is telling a real lowercase opening from a
-  // false one. Write a comma straight after the name instead.
+  // A trailing-dot FQDN reads as a sentence end: write a comma after it.
   assert.deepEqual(bad, [], `${bad.length} sentence(s) open with a lowercase word`);
 });
 
-// ---------------------------------------------------------------------------------------------
-// T-01 / T-03: the two characters a narration string may not carry, applied to `desc`
-// ---------------------------------------------------------------------------------------------
-
 test('T-01 no apostrophe in any desc: cards.js declares them single-quoted', () => {
   const bad = prose.filter(p => APOSTROPHE_RE.test(p.text)).map(p => `${p.id} (${p.file})`);
-  // The same rule that governs narration, on the one prose field a card does not own. An
-  // apostrophe here ends the string early and the manifest stops parsing, which takes the whole
-  // category off the grid rather than one card.
+  // An apostrophe ends the single-quoted desc early and takes the whole category off the grid.
   assert.deepEqual(bad, [], `${bad.length} desc(s) carry an apostrophe`);
 });
 
@@ -297,15 +221,8 @@ test('T-03 no semicolon in any desc: a comma, or a period and a capital', () => 
   assert.deepEqual(bad, [], `${bad.length} desc(s) carry a semicolon`);
 });
 
-// ---------------------------------------------------------------------------------------------
-// T-19: absolutes in prose. REPORTING, not enforced.
-// ---------------------------------------------------------------------------------------------
+// T-19, reporting only: an absolute is true or false only in its sentence, so the list is for a reader.
 
-// T-19 says an absolute is "a defect waiting to be found" and names the words to grep for, and T-20
-// says the fix is a CLAUSE rather than a rewrite. Neither is a verdict a machine can reach: "the
-// only field a Pod may not change" is true, and the identical sentence about another field is not.
-// So this prints the list a reader has to judge and never fails. It is here rather than nowhere
-// because the grep is the part nobody remembers to run.
 const ABSOLUTES = ['only', 'never', 'always', 'the whole of', 'nothing', 'every', 'all of'];
 
 test('T-19 absolutes in card descriptions, listed for a human to judge (reporting)', (t) => {
@@ -327,14 +244,8 @@ test('T-19 absolutes in card descriptions, listed for a human to judge (reportin
   assert.ok(prose.length === CARD_TOTAL, 'the reporting walk must still see the whole catalog');
 });
 
-// ---------------------------------------------------------------------------------------------
-// SOFT terms: a distribution, never a verdict. REPORTING.
-// ---------------------------------------------------------------------------------------------
+// SOFT terms, reporting only: ordinary English words that are also Kubernetes objects.
 
-// Eight dictionary entries are ordinary English words as well as Kubernetes objects (a Job, a
-// Volume, a Namespace). Which form is right depends on the sentence, so the minority form is
-// printed for a reader and nothing here fails. The other half of this distribution lives in
-// ../render/inline.test.mjs, over narration and aria-label.
 test('SOFT ambiguous terms across the descriptions, minority form listed (reporting)', (t) => {
   const forms = new Map();
   for (const p of prose) {
@@ -343,7 +254,7 @@ test('SOFT ambiguous terms across the descriptions, minority form listed (report
       const re = termRegex(term);
       let m;
       while ((m = re.exec(p.text))) {
-        // Sentence-initial casing carries no information: the position forced it.
+        // Sentence-initial casing carries no information.
         if (starts.has(m.index)) continue;
         const got = m[0];
         const core = got.length === term.length + 1 && /s$/i.test(got) ? got.slice(0, -1) : got;

@@ -2,43 +2,39 @@ import { P, F, defineCard, spread, strip, midX, shade, CLU, BEAT, OPACITY } from
 
 // Design notes for this card: ./CARDS/cluster-pod-cgroup-hierarchy.md
 
-// A TREE, not a sequence: five tiers of one cgroup v2 hierarchy, each tier revealed with the lanes
-// that point into it. Panel x<=397, bottom 232 worst case at 1100x800 against tier 3 at y 288.
+// A tree, not a sequence: tiers of one cgroup v2 hierarchy, each revealed with the lanes into it.
 const M = CLU.M;
-const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
-const CX = midX(CONTENT_L, CONTENT_R);                   // 600, the spine every tier centres on
+const CONTENT_L = M, CONTENT_R = 1200 - M;
+const CX = midX(CONTENT_L, CONTENT_R);                   // the spine every tier centres on
 
-// The top row holds the root of the tree and the one actor that owns the four tiers under it.
-const BOX_W = CLU.BOX_W, BOX_H = CLU.BOX_H;              // 232 / 80
-const TOP_Y = CLU.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;     // 40 / 120
-const ROOT_X = CX - BOX_W / 2, ROOT_R = ROOT_X + BOX_W;  // 484..716, on the spine
-const KUBE_X = CONTENT_R - BOX_W, KUBE_CX = midX(KUBE_X, CONTENT_R);   // 908..1140, centre 1024
+const BOX_W = CLU.BOX_W, BOX_H = CLU.BOX_H;
+const TOP_Y = CLU.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;
+const ROOT_X = CX - BOX_W / 2, ROOT_R = ROOT_X + BOX_W;
+const KUBE_X = CONTENT_R - BOX_W, KUBE_CX = midX(KUBE_X, CONTENT_R);
 
-// Tier heights and the bands between them. TIER_H 52 is the shortest box that clears a label plus a
-// sublabel: box() puts the sublabel baseline at h / 2 + 12.78, which is 38.78 here.
+// 52 is the shortest box that clears a label plus a sublabel.
 const TIER_H = 52;
-const T1_Y = 172, T1_B = T1_Y + TIER_H;                  // 172..224, kubepods.slice
-const T2_Y = 288, T2_B = T2_Y + TIER_H;                  // 288..340, the three children
-const T3_Y = 388, T3_B = T3_Y + TIER_H;                  // 388..440, the per-Pod slice
-const T4_Y = 488, T4_H = 68, T4_B = T4_Y + T4_H;         // 488..556, the container leaf
-const T1_CY = midX(T1_Y, T1_B), T4_CY = midX(T4_Y, T4_B);     // 198 / 522
-// The band under tier 1 is 64 rather than the 48 the others take, so the two elbows out to the
-// flanking children turn exactly half way down it, 32 above the tier and 32 below the one before.
-const FORK_Y = midX(T1_B, T2_Y);                         // 256
+const T1_Y = 172, T1_B = T1_Y + TIER_H;                  // kubepods.slice
+const T2_Y = 288, T2_B = T2_Y + TIER_H;                  // the three children
+const T3_Y = 388, T3_B = T3_Y + TIER_H;                  // the per-Pod slice
+const T4_Y = 488, T4_H = 68, T4_B = T4_Y + T4_H;         // the container leaf
+const T1_CY = midX(T1_Y, T1_B), T4_CY = midX(T4_Y, T4_B);
+// The fork elbows turn half way down the band under tier 1.
+const FORK_Y = midX(T1_B, T2_Y);
 
-const T1_W = 320, T1_X = CX - T1_W / 2, T1_R = T1_X + T1_W;   // 440..760
-const T3_W = 420, T3_X = CX - T3_W / 2;                       // 390..810
-const LEAF_W = 440, LEAF_X = CX - LEAF_W / 2, LEAF_R = LEAF_X + LEAF_W;   // 380..820
-const RT_X = CONTENT_R - BOX_W, RT_CX = midX(RT_X, CONTENT_R);            // 908..1140, centre 1024
+const T1_W = 320, T1_X = CX - T1_W / 2, T1_R = T1_X + T1_W;
+const T3_W = 420, T3_X = CX - T3_W / 2;
+const LEAF_W = 440, LEAF_X = CX - LEAF_W / 2, LEAF_R = LEAF_X + LEAF_W;
+const RT_X = CONTENT_R - BOX_W, RT_CX = midX(RT_X, CONTENT_R);
+// Centred on the leaf it writes, so the hop leaves its face midpoint.
+const RT_Y = T4_CY - BOX_H / 2;
 
-// The three children of kubepods.slice, fixed WIDTH across the content band, so the middle one lands
-// on the spine by construction and the two outer ones sit symmetrically about it.
+// Fixed width, so the middle child lands on the spine and the outer two sit symmetric about it.
 const KID_W = 340;
-const KID = spread({ from: CONTENT_L, to: CONTENT_R, count: 3, w: KID_W });   // 60 / 430 / 800
-const KID_CX = i => KID.x(i) + KID_W / 2;                // 230 / 600 / 970
+const KID = spread({ from: CONTENT_L, to: CONTENT_R, count: 3, w: KID_W });
+const KID_CX = i => KID.x(i) + KID_W / 2;
 
-// Two endpoints on the kubepods bottom face at mirrored offsets, which is the deliberate pair L-12
-// reads, plus the spine at the midpoint itself.
+// Mirrored endpoints on the kubepods bottom face, the deliberate pair L-12 reads.
 const FORK_DX = 60;
 
 const ROOT_TO_KUBEPODS = [[CX, TOP_BOTTOM], [CX, T1_Y]];
@@ -50,29 +46,23 @@ const BU_TO_POD = [[CX, T2_B], [CX, T3_Y]];
 const POD_TO_LEAF = [[CX, T3_B], [CX, T4_Y]];
 const RUNTIME_TO_LEAF = [[RT_X, T4_CY], [LEAF_R, T4_CY]];
 
-// Anchored END just left of the drop it labels, the same call cluster-scheduler-decision makes for
-// its watch label: centred on the leg the string runs back over the kubepods block at 440..760.
-const WIRE_CREATE_X = KUBE_CX - 14, WIRE_CREATE_Y = midX(TOP_BOTTOM, T1_Y) + 6;    // 1010 / 152
-// Anchored START just right of the spine, in the free middle of the fork band.
-const WIRE_POD_X = CX + 14, WIRE_POD_Y = midX(T2_B, T3_Y) + 6;                     // 614 / 370
-// Above the hop it labels rather than on it: the hop is 88 units and the string is 179.
-const WIRE_LEAF_X = midX(LEAF_R, RT_X), WIRE_LEAF_Y = midX(T3_B, T4_Y) + 4;        // 864 / 468
+// Anchored end just left of the drop: centred, the string runs back over the kubepods block.
+const WIRE_CREATE_X = KUBE_CX - 14, WIRE_CREATE_Y = midX(TOP_BOTTOM, T1_Y) + 6;
+const WIRE_POD_X = CX + 14, WIRE_POD_Y = midX(T2_B, T3_Y) + 6;
+// Above the hop rather than on it: the string is longer than the hop.
+const WIRE_LEAF_X = midX(LEAF_R, RT_X), WIRE_LEAF_Y = midX(T3_B, T4_Y) + 4;
 
-// Three across on the kit strip: 350.67 wide, which is LAYOUT.C.strip.three to the unit.
-const CHIP_H = CLU.CHIP_H, CHIPS_Y = 580;                // 580..614
+const CHIP_H = CLU.CHIP_H, CHIPS_Y = 580;
 const CHIP = strip({ from: CONTENT_L, to: CONTENT_R, count: 3, gap: 14 });
 
-// The list order IS the append order, so it is the z-order: lanes, wire labels and chips first, the
-// packet layer under every block, then the tree tiers and the top row absolute last.
+// Parts order is z-order: lanes and chips, packets under every block, the top row last.
 export const SCENE = {
   'aria-label': 'Pod cgroup hierarchy on a Node: the unified cgroup v2 tree at /sys/fs/cgroup, kubepods.slice under it holding every end-user Pod, the BestEffort and Burstable QoS slices beside a Guaranteed Pod slice, one slice per Pod below Burstable, and the container leaf where the runtime writes cpu.max, memory.max and cpu.weight',
   parts: [
     P.defs(),
-    // Two parentage links and nothing rides either: kubepods.slice lives under the root, and the
-    // container leaf lives under the Pod slice. No arrowhead, because no step names traffic there.
+    // Parentage links: nothing rides them, so no arrowhead.
     P.relation({ key: 'rootRel', points: ROOT_TO_KUBEPODS, opacity: OPACITY.pending }),
     P.relation({ key: 'leafRel', points: POD_TO_LEAF, opacity: OPACITY.pending }),
-    // Five lanes, each carrying a ball on the step that creates the block it points at.
     P.lane({ key: 'kubeLane', points: KUBELET_TO_KUBEPODS, dim: true, dashed: true, opacity: OPACITY.pending }),
     P.lane({ key: 'beLane',   points: KUBEPODS_TO_BE,  dim: true, dashed: true, opacity: OPACITY.pending }),
     P.lane({ key: 'buLane',   points: KUBEPODS_TO_BU,  dim: true, dashed: true, opacity: OPACITY.pending }),
@@ -82,22 +72,19 @@ export const SCENE = {
     P.wire({ key: 'create', x: WIRE_CREATE_X, y: WIRE_CREATE_Y, anchor: 'end' }),
     P.wire({ key: 'pod',    x: WIRE_POD_X,    y: WIRE_POD_Y,    anchor: 'start' }),
     P.wire({ key: 'leaf',   x: WIRE_LEAF_X,   y: WIRE_LEAF_Y }),
-    // The three interface files of the leaf, the answer the whole tree is walked for.
     P.chip({ key: 'cpuMaxChip',  x: CHIP.x(0), y: CHIPS_Y, w: CHIP.w, h: CHIP_H, name: 'cpu.max',    value: 'no leaf cgroup yet' }),
     P.chip({ key: 'memMaxChip',  x: CHIP.x(1), y: CHIPS_Y, w: CHIP.w, h: CHIP_H, name: 'memory.max', value: 'no leaf cgroup yet' }),
     P.chip({ key: 'weightChip',  x: CHIP.x(2), y: CHIPS_Y, w: CHIP.w, h: CHIP_H, name: 'cpu.weight', value: 'no leaf cgroup yet' }),
     P.packets(),
-    // The four tiers under the root, each hidden until the step that creates it.
     P.box({ key: 'kubepodsBox', x: T1_X, y: T1_Y, w: T1_W, h: TIER_H, opacity: OPACITY.pending, label: 'kubepods.slice', sublabel: 'every end-user Pod' }),
     P.box({ key: 'beBox',  x: KID.x(0), y: T2_Y, w: KID_W, h: TIER_H, opacity: OPACITY.pending, label: 'kubepods-besteffort.slice', sublabel: 'one slice per BestEffort Pod' }),
     P.box({ key: 'buBox',  x: KID.x(1), y: T2_Y, w: KID_W, h: TIER_H, opacity: OPACITY.pending, label: 'kubepods-burstable.slice',  sublabel: 'one slice per Burstable Pod' }),
     P.box({ key: 'gtdBox', x: KID.x(2), y: T2_Y, w: KID_W, h: TIER_H, opacity: OPACITY.pending, label: 'kubepods-pod<uid>.slice',   sublabel: 'a Guaranteed Pod · no QoS slice' }),
     P.box({ key: 'podBox',  x: T3_X,  y: T3_Y, w: T3_W,   h: TIER_H, opacity: OPACITY.pending, label: 'kubepods-burstable-pod<uid>.slice', sublabel: 'Pod web-0 · Burstable' }),
     P.box({ key: 'leafBox', x: LEAF_X, y: T4_Y, w: LEAF_W, h: T4_H,  opacity: OPACITY.pending, label: 'Leaf cgroup', sublabel: 'app container · where the processes live' }),
-    // Top row and the runtime ABSOLUTE LAST, so a ball tucks under the block it lands on.
     P.box({ key: 'rootBox', x: ROOT_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: '/sys/fs/cgroup', sublabel: 'cgroup2fs · one hierarchy' }),
     P.box({ key: 'kubelet', x: KUBE_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'Kubelet', sublabel: 'cgroupDriver systemd' }),
-    P.box({ key: 'runtimeBox', x: RT_X, y: T4_Y, w: BOX_W, h: T4_H, label: 'Container runtime', sublabel: 'containerd or CRI-O' }),
+    P.box({ key: 'runtimeBox', x: RT_X, y: RT_Y, w: BOX_W, h: BOX_H, label: 'Container runtime', sublabel: 'containerd or CRI-O' }),
   ],
   reset: {
     keys: [
@@ -108,28 +95,24 @@ export const SCENE = {
   },
 };
 
-// A block and the lanes that point at it are ONE construction, so each tier names both in one place
-// and no step can bring a lane up over a block that is not there yet (A-14, A-16).
+// A block and the lanes into it are one construction, shaded together (A-14, A-16).
 const T1 = ['kubepodsBox', 'rootRel', 'kubeLane'];
 const T2 = ['beBox', 'buBox', 'gtdBox', 'beLane', 'buLane', 'gtdLane'];
 const T3 = ['podBox', 'podLane'];
 const T4 = ['leafBox', 'leafRel', 'rtLane'];
-// A tier the Kubelet has not reached yet RESTS at pending rather than being cut out (C-14): the
-// poster then shows the whole tree and each step brings one level up to full.
+// An unreached tier rests at pending rather than being cut out (C-14).
 const NONE = shade([...T1, ...T2, ...T3, ...T4], OPACITY.pending);
 const UPTO1 = { ...NONE, ...shade(T1, 1) };
 const UPTO2 = { ...UPTO1, ...shade(T2, 1) };
 const UPTO3 = { ...UPTO2, ...shade(T3, 1) };
 const UPTO4 = { ...UPTO3, ...shade(T4, 1) };
 
-// Every step writes every chip. Until the runtime creates the leaf there is no file to read, and a
-// chip left alone would let a limit stand on screen one tier before anything holds it.
+// Every step writes every chip: until the leaf exists there is no file to read.
 const ABSENT = 'no leaf cgroup yet';
 const EMPTY = { cpuMaxChip: ABSENT, memMaxChip: ABSENT, weightChip: ABSENT };
 // The three kernel defaults a fresh non-root cgroup carries before anything is written into it.
 const DEFAULTS = { cpuMaxChip: 'max 100000', memMaxChip: 'max', weightChip: '100' };
-// 256Mi is 268435456 bytes, and the file holds bytes. The cpu pair is the same container spec the
-// CPU Throttling and CFS Quota card runs on, so the two cards cannot disagree about one weight.
+// memory.max holds bytes. The cpu values match the CPU Throttling and CFS Quota card.
 const WRITTEN = {
   cpuMaxChip: '50000 100000 · limits.cpu 500m',
   memMaxChip: '268435456 · limits.memory 256Mi',
@@ -201,8 +184,7 @@ export const STEPS_SPEC = [
     wires: { leaf: 'creates the container leaf' },
     opacity: UPTO4,
     lit: ['runtimeBox', 'podBox', 'cpuMaxChip', 'memMaxChip', 'weightChip'],
-    // A fresh cgroup carries the kernel defaults, and the three files only read as limits once the
-    // write lands, so the chips stand at those defaults until the ball reaches the leaf.
+    // The chips stand at the kernel defaults until the write lands on the leaf.
     rewind: { chips: DEFAULTS },
     flow: [
       ...reveal(T4),

@@ -1,8 +1,6 @@
 // The workloads catalogue: every workloads card and the subcategories they sort into.
-// Adding a card means one entry here, one file beside it, one poster, one note.
 
-// The SUBCATEGORIES list below is an ORDER, not a set: the sequence is an editorial argument
-// about what a reader has to know first, never alphabetical and never a merge artefact.
+// SUBCATEGORIES is an editorial order, not a set (D-10).
 
 export const SUBCATEGORIES = [
     { key: 'pods-bootstrap', label: 'Pods Bootstrap' },
@@ -106,7 +104,7 @@ export const CARDS = [
     title: 'Pod Pending and Init States',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'A Pod is not Running yet, so which component is still holding it? The STATUS column answers exactly that: Pending means no Node has been chosen and the Scheduler owns it, an Init:N/M counter or Init:CrashLoopBackOff means the Kubelet is working through the init containers, and PodInitializing means those are done and the app containers are being created. READY stays 0/1 through all of them, because that column asks a different question.',
+    desc: 'A Pod is not Running yet, so which component is still holding it? The STATUS column answers that: Pending with no Node in the Node column means the Scheduler owns it, an Init:N/M counter or Init:CrashLoopBackOff means the Kubelet is working through the init containers, and PodInitializing means those are done and the app containers are being created. READY stays 0/1 through all of them, because that column asks a different question.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -121,7 +119,7 @@ export const CARDS = [
     title: 'Pod Scheduling Gates',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'Why has the Scheduler not even looked at a Pod created a minute ago? Because spec.schedulingGates holds it out of the scheduling queue entirely: kubectl prints STATUS SchedulingGated, the PodScheduled condition is False with reason SchedulingGated, and scheduler_pending_pods counts it under queue gated rather than unschedulable. Entries come off in any order and none can be added after creation, so the Pod is queued only once the list is empty.',
+    desc: 'Why has the Scheduler not even tried to place a Pod created a minute ago? Because spec.schedulingGates holds it out of the active queue: kubectl prints STATUS SchedulingGated, the PodScheduled condition is False with reason SchedulingGated, and scheduler_pending_pods counts it under queue gated rather than unschedulable. Entries come off in any order and none can be added after creation, so the Pod joins the active queue only once the list is empty.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -167,7 +165,7 @@ export const CARDS = [
     title: 'Init Containers and Native Sidecars',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'How does a Pod start its containers when some of them must run before others? Regular init containers run strictly in order, each exiting 0 before the next begins, and a native sidecar (an initContainer with restartPolicy=Always, GA in 1.33) starts after them and runs for the whole Pod lifetime. The main container is held back until that sidecar reports Started, and on shutdown the termination order reverses. The sidecar still counts in the init list.',
+    desc: 'How does a Pod start its containers when some of them must run before others? Regular init containers run strictly in order, each exiting 0 before the next begins, and a native sidecar (an initContainer with restartPolicy=Always, GA in 1.33) declared after them starts next and runs for the whole Pod lifetime. The main container is held back until that sidecar reports Started, and on shutdown the termination order reverses. The sidecar still counts in the init list.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -182,7 +180,7 @@ export const CARDS = [
     title: 'Environment Before PID 1',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'How does a value from a ConfigMap reach the container before its process starts? At launch the Kubelet resolves env, envFrom and the downward API into one set of variables and hands it over in the CreateContainer call, adding a pair for every Service that exists at that instant unless enableServiceLinks is false. That set is a copy taken once, so a later edit moves the object and never the running process, and only a restarted container reads the new value.',
+    desc: 'How does a value from a ConfigMap reach the container before its process starts? At launch the Kubelet resolves env, envFrom and the downward API into one set of variables and hands it over in CreateContainer, adding a pair per Service with a cluster IP in the namespace at that instant unless enableServiceLinks is false. That set is a copy taken once, so a later edit moves the object and never the running process, and only a restarted container reads the new value.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -225,12 +223,13 @@ export const CARDS = [
     title: 'DaemonSet Controller',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How does a DaemonSet decide how many Pods to run, when there is no replicas field to set? With no nodeSelector or affinity it runs one Pod on every eligible Node, and with a selector it matches each Node against it, so desiredNumberScheduled is computed from the cluster, not declared by you. Labelling a Node adds a Pod, removing the Node takes its Pod and nothing is rescheduled, and updateStrategy picks RollingUpdate with maxUnavailable or OnDelete.',
+    desc: 'How does a DaemonSet decide how many Pods to run, when there is no replicas field to set? With no nodeSelector or affinity it runs one Pod on every eligible Node, and with a selector it matches each Node against it, so desiredNumberScheduled is computed from the cluster, not declared by you. Labelling a Node to match adds a Pod, removing the Node takes its Pod and nothing is rescheduled, and updateStrategy picks RollingUpdate with maxUnavailable or OnDelete.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
       { label: 'DaemonSet', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/' },
       { label: 'Perform a Rolling Update on a DaemonSet', href: 'https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/' },
+      { label: 'kubectl drain', href: 'https://kubernetes.io/docs/reference/kubectl/generated/kubectl_drain/' },
     ],
   },
   {
@@ -265,7 +264,7 @@ export const CARDS = [
     title: 'CronJob Schedule and Concurrency',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How do you run a Job on a repeating schedule instead of on demand? A CronJob holds a cron expression and, each time the clock matches, creates a Job from its template, which runs a Pod. It also decides what happens when a run is still going at the next tick, prunes finished Jobs, and starts a run missed while it was down, bounded both by startingDeadlineSeconds and by a ceiling of 100 missed ticks. A CronJob never runs a Pod itself, it only creates Jobs.',
+    desc: 'How do you run a Job on a repeating schedule instead of on demand? A CronJob holds a cron expression and, each time the clock matches, creates a Job from its template, which runs a Pod. It also decides what happens when a run is still going at the next tick, prunes finished Jobs, and starts a run missed while it was down if startingDeadlineSeconds allows, warning when more than 100 ticks were missed. A CronJob never runs a Pod itself, it only creates Jobs.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -293,7 +292,7 @@ export const CARDS = [
     title: 'Pod Lifecycle Phases',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'What single field tells you where a Pod is in its life? The status.phase field moves through Pending while the Pod is placed and its images pulled, Running once every container exists and one has started, and then Succeeded or Failed once they have all exited and none will be restarted. It is deliberately coarse, so a container crash-looping inside a Running Pod never changes it. Phase is a summary of placement, not a statement about health.',
+    desc: 'What single field tells you where a Pod is in its life? The status.phase field moves through Pending while any container has yet to start, scheduling and image pulls included, Running once every container exists and one is running, and then Succeeded or Failed once they have all exited and none will be restarted. It is deliberately coarse, so a container crash-looping inside a Running Pod never changes it. Phase says where a Pod is, not whether it is healthy.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -318,7 +317,7 @@ export const CARDS = [
     title: 'CrashLoopBackOff and Restart Backoff',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'Why does a broken container restart slower and slower? The Kubelet backs off exponentially, doubling the wait from 10s up to a 5 minute ceiling, so a crashing process cannot hot-loop and saturate the Node. During each wait the container reports Waiting with reason CrashLoopBackOff while the Pod phase stays Running, and a clean 10 minutes resets the backoff, so a new crash counts as a first one, restarted at once. CrashLoopBackOff is a symptom, never the cause.',
+    desc: 'Why does a broken container restart slower and slower? The Kubelet backs off exponentially, doubling the wait from 10s up to a default 5 minute cap, so a crashing process cannot hot-loop and saturate the Node. During each wait the container reports Waiting with reason CrashLoopBackOff while the Pod phase stays Running, and a clean 10 minutes resets the backoff, so a new crash counts as a first one, restarted at once. CrashLoopBackOff is a symptom, never the cause.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -326,7 +325,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'workloads-container-states',
+    id: 'workloads-container-restarts-laststate',
     title: 'Container Restarts and lastState',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
@@ -441,7 +440,7 @@ export const CARDS = [
     title: 'Pod Garbage Collection',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'Who deletes a Pod once it has finished? The object outlives the containers: a Succeeded or Failed Pod stays in the API until something removes it, and that something is PodGC in kube-controller-manager. It deletes terminated Pods oldest first once their number passes terminated-pod-gc-threshold, which defaults to 12500, and three further rules ignore the count and take orphans, unscheduled terminating Pods, and ones on a Node tainted out-of-service.',
+    desc: 'Who deletes a Pod once it has finished? The object outlives the containers: a Succeeded or Failed Pod stays in the API until something removes it, and that something is PodGC in kube-controller-manager. It deletes terminated Pods, evicted first and then oldest, once their number passes terminated-pod-gc-threshold, 12500 by default, and three further rules ignore the count and take orphans, unscheduled terminating Pods, and ones on a Node tainted out-of-service.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

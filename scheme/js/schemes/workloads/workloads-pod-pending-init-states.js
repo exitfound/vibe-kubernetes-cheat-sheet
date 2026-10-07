@@ -3,76 +3,50 @@ import { box } from '../../lib/primitives.js';
 
 // Design notes for this card: ./CARDS/workloads-pod-pending-init-states.md
 
-// Layout C on the Workloads canon (WL): the Node band sits under the panel and the chips take the
-// floor as a strip THREE across, because the strip IS the subject here rather than a readout beside
-// it. Both bands are narrowed off the full width and centred on CX, each to the measurement written
-// on it. Panel measured at x<=397, y<=255 (worst of 1600/1280/1100).
+// Layout C (WL): the Node band under the panel, the chips a strip three across on the floor
+// because the strip is the subject. The panel bound is measured for the longest narration here.
 
-// The strip is narrowed off LAYOUT.C.strip.three, which would give 350.67, and 340 is the whole
-// reduction available. The thesis cell is what binds it: chipfit measures the gap between the name
-// and the VALUE PILL, not between the two texts, and at 350.67 that gap is 23.7 against a MIN_GAP
-// of 4. So a cell of 330 collides on three steps and 340 leaves 13.
-// It is declared first because the actor row and the frame are both measured off it.
+// The strip is narrowed to the width the thesis cell needs (chipfit), declared first because the
+// actor row and the frame are measured off it.
 const CHIP_GAP = 14, CHIP_VGAP = 8, CHIP_COLS = 3;
-const STRIP_W = 1048;                                    // 3 cells of 340 plus 2 gaps of 14
-const STRIP_X = WL.CX - STRIP_W / 2;                     // 76..1124, centred on CX
-const STRIP_R = STRIP_X + STRIP_W;                       // 1124
+const STRIP_W = 1048;
+const STRIP_X = WL.CX - STRIP_W / 2;
+const STRIP_R = STRIP_X + STRIP_W;
 
-// The Node band, lifted off the floor to leave the whole floor to the kubectl row. NODE_H 140 is
-// the workloads frame family (daemonset, deployment-rollback, rolling-update carry it).
-const NODE_Y = 316, NODE_H = 140;                        // 316..456, 61 clear of the deepest panel
-// 820 and not the WL.L-02 full width: 1080 around a 460 Pod left the band 57 percent empty, and
-// 820 leaves 44. WL.A-03 requires a narrowed frame to be centred on WL.CX so its top midpoint
-// still equals the spine the corridor lands on. 820 rather than less is set by the actor row it
-// right-aligns: under 816 the Kubelet crosses the house 60 unit gap from the Scheduler, and the
-// content box geometry-soft measures stops balancing on CX. The working is in the record.
-const NODE_W = 820, NODE_X = WL.CX - NODE_W / 2;         // 190..1010, 180 either side of the Pod
-const NODE_R = NODE_X + NODE_W;                          // 1010
+// The Node band is lifted off the floor to leave the floor to the kubectl row.
+const NODE_Y = 316, NODE_H = 142;
+// Narrowed frame, centred on WL.CX so its top midpoint stays on the spine (WL.A-03).
+const NODE_W = 820, NODE_X = WL.CX - NODE_W / 2;
+const NODE_R = NODE_X + NODE_W;
 
-// Both actor boxes take the 232 that workloads-pod-startup-conditions draws its pair at, and its
-// arrangement too: the left box centred on CX, the right one right-aligned. Workloads declares no
-// box width of its own, so it is a literal here rather than an import past the kit (S-21).
-// extents.mjs at 1100x800 reads `holds it while Pending` at 135 and `holds it after that` at
-// 116.6, so 232 leaves 97 and 115.4.
-const TOP1_W = 232, TOP1_X = WL.CX - TOP1_W / 2;         // 484..716, centred on CX (WL.L-07)
-const TOP2_W = 232, TOP2_X = NODE_R - TOP2_W;            // 778..1010, right edge on the frame
-const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 894
+// The 232 pair of workloads-pod-startup-conditions, a literal because Workloads declares no box width (S-21).
+const TOP1_W = 232, TOP1_X = WL.CX - TOP1_W / 2;
+const TOP2_W = 232, TOP2_X = NODE_R - TOP2_W;
+const TOP2_CX = TOP2_X + TOP2_W / 2;
 const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
 const WIRE_X = midX(TOP1_X + TOP1_W, TOP2_X);
 
 const POD_W = 460, POD_H = 96, POD_X = WL.CX - POD_W / 2;
-const POD_Y = NODE_Y + 22;                               // 338..434
-// 44 and not 52: the Pod sublabel is written per step and its ink runs 415.7 to 428.6 (measured),
-// so the container boxes have to stop at 412 and the Pod floor at 434 clears the text by 5.4.
-// THREE boxes and not one: the STATUS counter counts init containers, so the two it counts and
-// the app it holds back stand inside the Pod, and each step says which one the Kubelet is on.
+const POD_Y = NODE_Y + 34;
+// CONT_H 44 keeps the per-step Pod sublabel clear of the boxes. Three boxes because STATUS counts
+// init containers, so each step shows which one the Kubelet is on.
 const C_PAD = 10, C_GAP = 12, CONT_H = 44;
-const CONT = strip({ from: POD_X + C_PAD, to: POD_X + POD_W - C_PAD, count: 3, gap: C_GAP });   // 138.67 each
-const CONT_Y = POD_Y + 30;                               // 368..412
+const CONT = strip({ from: POD_X + C_PAD, to: POD_X + POD_W - C_PAD, count: 3, gap: C_GAP });
+const CONT_Y = POD_Y + 30;
 
-// The kubectl get pods -o wide row, on the floor, THREE cells across and wrapped onto two rows
-// (WL.L-05: two or three, never four). 350.67 is what LAYOUT.C.strip.three names. The reading
-// order across then down IS the column order kubectl prints, and the one cell that is NOT a
-// kubectl column sits last, off the end of the row.
-const CHIPS_Y = 500;                                     // 500..576, 44 under the frame, 48 off the floor
+// The kubectl row, three cells across on two rows (WL.L-05), read in kubectl column order, with
+// the one cell that is not a kubectl column last.
+const CHIPS_Y = 500;
 const CHIP_COL = strip({ from: STRIP_X, to: STRIP_R, count: CHIP_COLS, gap: CHIP_GAP });
-const CHIP_W = CHIP_COL.w;                               // 340
+const CHIP_W = CHIP_COL.w;
 const CHIP_ROW = ladder({ y: CHIPS_Y, rowH: WL.CHIP_H, gap: CHIP_VGAP });
 const CHIP_X = i => CHIP_COL.x(i % CHIP_COLS);
 const CHIP_Y = i => CHIP_ROW(Math.floor(i / CHIP_COLS));
 
-// The corridor belongs to the Kubelet and stops on the FRAME top face, never on the Pod inside it
-// (WL.A-03). The Scheduler carries no path of its own: it holds the Pod while it is Pending and
-// sends it nothing, and a line drawn to a Pod that no Node has been chosen for asserts the
-// relationship step 1 exists to deny.
-// The jog takes the MIDPOINT of the 120..316 band rather than the house 140, which centres it
-// between the actor row and the frame. The path is the same length at any DROP_Y.
-const DROP_Y = midX(WL.TOP_BOTTOM, NODE_Y);              // 218
-// The corridor is a PAIR, both halves drawn on every step, mirrored by WL.LANE_DY about the two
-// face midpoints they touch: 588 and 612 on the frame top face, 882 and 906 on the Kubelet bottom.
-// L-12 is what a mirrored pair is, and OFFEDGE reads exactly that, an endpoint alone on its face.
-// Offsetting each segment perpendicular to itself keeps both paths 490 units, so the ball takes
-// the same routeDur either way and the spans do not move with the direction.
+// The Kubelet corridor stops on the frame, never the Pod (WL.A-03). The Scheduler has no path: a
+// line to an unbound Pod would assert what step 1 denies. A mirrored pair (L-12), offset so both
+// paths are the same length and take the same routeDur.
+const DROP_Y = midX(WL.TOP_BOTTOM, NODE_Y);
 const D = WL.LANE_DY;
 const LANE_DOWN = [[TOP2_CX - D, WL.TOP_BOTTOM], [TOP2_CX - D, DROP_Y - D], [WL.SPINE_X - D, DROP_Y - D], [WL.SPINE_X - D, NODE_Y]];
 const LANE_UP = [[WL.SPINE_X + D, NODE_Y], [WL.SPINE_X + D, DROP_Y + D], [TOP2_CX + D, DROP_Y + D], [TOP2_CX + D, WL.TOP_BOTTOM]];
@@ -81,13 +55,11 @@ export const SCENE = {
   'aria-label': 'Where a Pod stalls before Running: five columns of the kubectl get pods -o wide row are drawn on the floor, and each STATUS value names the component still holding the Pod, from the Scheduler on Pending with no Node to the Kubelet on Init and PodInitializing, while READY stays 0 of 1 through all of them',
   parts: [
     P.defs(),
-    // The Kubelet corridor, both directions drawn on every step: the takeover comes down and the
-    // report goes up, and which one the ball takes is the step saying which way the traffic ran.
+    // Both directions drawn on every step, the ball says which way the traffic ran.
     P.lane({ key: 'laneKubeDown', points: LANE_DOWN, dim: true, dashed: true, role: 'cluster' }),
     P.lane({ key: 'laneKubeUp', points: LANE_UP, dim: true, dashed: true, role: 'cluster' }),
-    // The two actors never talk to each other, so the top row is a RELATION and carries no ball.
+    // The two actors never talk, so the top row is a relation and carries no ball.
     P.relation({ points: [[TOP1_X + TOP1_W, TOP_CY], [TOP2_X, TOP_CY]], role: 'cluster', dash: '5 5' }),
-    // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
     P.wire({ key: 'req', x: WIRE_X, y: WL.TOP_Y - 12 }),
     P.chip({ key: 'readyChip', x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'READY', value: '0/1' }),
     P.chip({ key: 'statusChip', x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'STATUS', value: 'Pending' }),
@@ -100,9 +72,7 @@ export const SCENE = {
     P.pod({
       key: 'podGroup', id: 'podGroup',
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'not on a Node yet', containers: 0,
-      // buildPod carries ONE inner box, and this Pod holds three peers: the two init containers
-      // the counter counts and the app they gate. They sit inside the shell so pulsePod reaches
-      // them, and box() defaults its role to the empty string, so the kit binding is written out.
+      // Three peers inside the shell so pulsePod reaches them. box() defaults its role to '' so the kit role is passed by hand.
       tune: (el, refs) => {
         refs.initA  = box({ x: CONT.x(0), y: CONT_Y, w: CONT.w, h: CONT_H, label: 'init-1', sublabel: 'init container', role: 'workloads' });
         refs.initB  = box({ x: CONT.x(1), y: CONT_Y, w: CONT.w, h: CONT_H, label: 'init-2', sublabel: 'init container', role: 'workloads' });
@@ -110,7 +80,7 @@ export const SCENE = {
         for (const k of ['initA', 'initB', 'appBox']) el.appendChild(refs[k]);
       },
     }),
-    P.box({ key: 'scheduler', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Scheduler', sublabel: 'holds it while Pending', role: 'cluster' }),
+    P.box({ key: 'scheduler', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Scheduler', sublabel: 'holds it until bound', role: 'cluster' }),
     P.box({ key: 'kubelet', x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'holds it after that', role: 'cluster' }),
   ],
   reset: {
@@ -119,24 +89,19 @@ export const SCENE = {
   },
 };
 
-// READY answers a different question from STATUS, so it reads the same on every step of this card.
-// That is the thesis and not an oversight: P-01 states it six times on purpose.
+// READY reads the same on every step: that is the thesis (P-01).
 const NOT_READY = '0/1';
 const NO_NODE = '<none>';
-// The NODE column prints the Node object name, and the frame above the row is labelled Node-1.
 const ON_NODE = 'Node-1';
-// The column stops counting a regular init container the moment it completes, so the count the
-// backoff step shows is gone by PodInitializing (kubectl printPod, printers.go).
+// The column drops a completed regular init container's restarts, so the backoff count is gone by PodInitializing.
 const NO_RESTARTS = '0';
 
-// The three container sublabels are the container STATE the Kubelet reports, in the words kubectl
-// prints for it. `PodInitializing` is what every container not yet started reads while the Pod has
-// init containers (kubelet_pods.go), which is why both the second init and the app carry it.
+// Sublabels are the container state in kubectl words: every not-yet-started container reads
+// PodInitializing while the Pod has init containers (kubelet_pods.go).
 const NO_STATUS = 'no status yet', WAITING = 'PodInitializing', DONE = 'Completed';
 const crew = (a, b, app) => ({ initA: a, initB: b, appBox: app });
 // The corridor takes the shade of the Node it lands on (A-13): dim while NODE reads <none>.
 const corridor = (bound) => ({ laneKubeDown: bound ? 1 : OPACITY.notready, laneKubeUp: bound ? 1 : OPACITY.notready });
-
 
 export const STEPS_SPEC = [
   {
@@ -162,13 +127,13 @@ export const STEPS_SPEC = [
     opacity: { podGroup: OPACITY.notready, nodeEl: OPACITY.notready, ...corridor(false) },
     podSublabels: { podGroup: 'not on a Node yet' },
     sublabels: crew(NO_STATUS, NO_STATUS, NO_STATUS),
-    // No packet and no Pod act here, so the beat is a static highlight alone (M-27).
+    // No packet and no Pod act here, so a static highlight alone (M-27).
     lit: ['scheduler', 'statusChip', 'nodeChip', 'holdChip'],
   },
   {
     id: 'init-running',
     duration: 2800,
-    narration: 'A Node is chosen, the Node column fills in, and the Kubelet takes over. STATUS turns into a counter: Init:0/2 means two init containers with none completed, and Init:1/2 means one has. That counter is the only field here that reports progress, because READY cannot move until an app container starts.',
+    narration: 'A Node is chosen, the Node column fills in, and the Kubelet takes over. STATUS turns into a counter: Init:0/2 means two init containers with none completed, and Init:1/2 means one has. That counter is the only column here that tracks init progress, because without a sidecar READY cannot move until an app container starts.',
     chips: {
       readyChip: NOT_READY, statusChip: 'Init:0/2', restartChip: NO_RESTARTS,
       ageChip: '50s', nodeChip: ON_NODE, holdChip: 'the Kubelet, running init 1',
@@ -178,10 +143,9 @@ export const STEPS_SPEC = [
     podSublabels: { podGroup: 'init container 1 of 2 running' },
     sublabels: crew('Running', WAITING, WAITING),
     lit: ['kubelet', 'statusChip', 'nodeChip', 'holdChip'],
-    // The Kubelet writes containerStatuses, so the readings, STATUS, the Pod line and `running` land
-    // with its ball (A-06). NODE is the bind, true at entry, and the holder starts init 1 until then.
+    // The readings land with the Kubelet ball (A-06), NODE is the bind and true at entry.
     rewind: {
-      chips: { statusChip: 'Pending', holdChip: 'the Kubelet, starting init 1' },
+      chips: { statusChip: 'Pending', holdChip: 'the Kubelet, init 1 next' },
       podSublabels: { podGroup: '' }, sublabels: crew(NO_STATUS, NO_STATUS, NO_STATUS),
     },
     flow: [
@@ -190,14 +154,15 @@ export const STEPS_SPEC = [
         at: 'take', chips: { statusChip: 'Init:0/2', holdChip: 'the Kubelet, running init 1' },
         podSublabels: { podGroup: 'init container 1 of 2 running' }, sublabels: crew('Running', WAITING, WAITING),
       }),
-      F.pulse({ pod: 'podGroup', dim: true, at: 'take' }),
+    // Not dim: the fade owns the Pod opacity from entry, so a dim lift under it never renders.
+      F.pulse({ pod: 'podGroup', at: 'take' }),
       F.fade({ target: 'podGroup', from: OPACITY.notready, to: OPACITY.pending, dur: FADE.in, at: 'take', fill: 'both', easing: 'ease-out' }),
     ],
   },
   {
     id: 'init-failing',
     duration: 3300,
-    narration: 'Init:Error means an init container has failed to execute, and when it keeps failing the same cell reads Init:CrashLoopBackOff. The counter is replaced by the reason, and RESTARTS carries the count and the time of the last one. AGE is the age of the Pod, so an Init: value still on the row at four minutes is a stall.',
+    narration: 'Init:Error means an init container has failed to execute, and when it keeps failing the same cell reads Init:CrashLoopBackOff. The counter is replaced by the reason, and RESTARTS carries the count and the time of the last one. AGE is the age of the Pod, so an Init: value still on the row at four minutes is likely a stall.',
     chips: {
       readyChip: NOT_READY, statusChip: 'Init:CrashLoopBackOff', restartChip: '3 (20s ago)',
       ageChip: '4m10s', nodeChip: ON_NODE, holdChip: 'the Kubelet, backoff timer',
@@ -208,7 +173,7 @@ export const STEPS_SPEC = [
     sublabels: crew('CrashLoopBackOff', WAITING, WAITING),
     lit: ['statusChip', 'restartChip', 'ageChip', 'holdChip', 'initA'],
     flow: [
-      // Up-arrow: the Pod blinks first and the report leaves at BEAT.afterPulse (M-15).
+    // Up-arrow: the Pod blinks first, the report leaves at BEAT.afterPulse (M-15).
       F.pulse({ pod: 'podGroup', dim: true }),
       F.route({ points: LANE_UP, delay: BEAT.afterPulse, lights: ['kubelet'] }),
     ],
@@ -216,20 +181,17 @@ export const STEPS_SPEC = [
   {
     id: 'initializing',
     duration: 2800,
-    narration: 'PodInitializing means the Pod has already finished executing its init containers and the app containers are being created. It is what those containers read until the runtime reports on them, so a Pod that sits here is held by the app image or its mounts and not by anything the init containers did.',
+    narration: 'PodInitializing means the Pod has already finished executing its init containers and the app containers are being created. It is what those containers read until the runtime reports on them, so a Pod that sits here is held by the app image or the runtime and not by anything the init containers did.',
     chips: {
       readyChip: NOT_READY, statusChip: 'PodInitializing', restartChip: NO_RESTARTS,
       ageChip: '4m40s', nodeChip: ON_NODE, holdChip: 'the Kubelet, app containers',
     },
-    // The caption and not the narration: the panel is a character budget on this card (L-08) and
-    // the head room over the frame is 61.34 units, so the mechanism goes where it costs nothing.
+    // The mechanism goes in the caption: the panel is a character budget here (L-08).
     wires: { req: 'regular init containers done · RESTARTS drops their count' },
     opacity: { podGroup: OPACITY.pending, nodeEl: 1, ...corridor(true) },
     podSublabels: { podGroup: 'app container being created' },
     sublabels: crew(DONE, DONE, WAITING),
     lit: ['kubelet', 'statusChip', 'restartChip', 'holdChip'],
-    // Same shape as step 2: the two Completed readings, the three row cells, the Pod line and the
-    // cue on the app land with the ball.
     rewind: {
       chips: { statusChip: 'Init:CrashLoopBackOff', restartChip: '3 (20s ago)', holdChip: 'the Kubelet, backoff timer' },
       podSublabels: { podGroup: 'init container 1 keeps exiting 1' },
@@ -249,7 +211,7 @@ export const STEPS_SPEC = [
   {
     id: 'running-not-ready',
     duration: 3200,
-    narration: 'Running ends the STATUS column and starts the confusion, because READY has read 0/1 at every value before it. STATUS answers whether the containers exist and have started, READY answers whether they are serving, and the gap between them is the readiness half of the condition ladder. Running here is the Pod phase, which never reports readiness.',
+    narration: 'Running ends the STATUS column and starts the confusion, because READY has read 0/1 at every value before it. STATUS answers whether the containers exist and are running, READY answers whether they are serving, and the gap between them is the readiness half of the condition ladder. Running here is the Pod phase, which never reports readiness.',
     chips: {
       readyChip: NOT_READY, statusChip: 'Running', restartChip: NO_RESTARTS,
       ageChip: '5m10s', nodeChip: ON_NODE, holdChip: 'the app, readiness is next',
@@ -259,9 +221,7 @@ export const STEPS_SPEC = [
     podSublabels: { podGroup: 'started, not ready' },
     sublabels: crew(DONE, DONE, 'Running'),
     lit: ['kubelet', 'statusChip', 'readyChip', 'holdChip'],
-    // The app box is the RECEIVER of this step: the ball is the runtime reporting the container
-    // started, so its cue, its `Running` and the STATUS cell land with the ball (A-06), not at entry.
-    // The static block above still writes the end state; rewind holds the text back until the arrival.
+    // The app box receives this step, so its cue and readings land with the ball (A-06), held back by rewind.
     rewind: {
       chips: { statusChip: 'PodInitializing', holdChip: 'the Kubelet, app containers' },
       podSublabels: { podGroup: 'app container being created' },
@@ -275,7 +235,7 @@ export const STEPS_SPEC = [
         podSublabels: { podGroup: 'started, not ready' },
         sublabels: { appBox: 'Running' },
       }),
-      // NOT dim: pulsePodDim fills opacity forward to OPACITY.pending and this step ends at full.
+    // Not dim: pulsePodDim fills forward to OPACITY.pending and this step ends at full.
       F.pulse({ pod: 'podGroup', at: 'start' }),
       F.fade({ target: 'podGroup', from: OPACITY.pending, to: 1, dur: FADE.in, at: 'start', fill: 'both', easing: 'ease-out' }),
     ],

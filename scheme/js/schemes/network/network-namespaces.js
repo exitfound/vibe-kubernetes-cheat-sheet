@@ -4,64 +4,56 @@ import { podShell } from '../../lib/primitives.js';
 
 // Design notes for this card: ./CARDS/network-namespaces.md
 
-
-// One derived column. The slab row is the unit: the band is padded off it, the shell is padded off
-// the band, the three tenants are sized across the band, and the host block outside takes the
-// category width (NET.L-01). HOST_Y is derived from the SHELL and the host height, so the host
-// stands level with the middle of the Pod NETNS block and the cable lands on its left face
-// midpoint. Re-typing the host y is what breaks the pairing.
-const CX = 820;                            // Pod NETNS column centre: shell, band, slabs and the middle container all centre here
+// One derived column: slabs, band, shell and tenants are padded off each other, and HOST_Y derives
+// from the shell so the host stands level with the Pod NETNS block and the cable lands on its left
+// face midpoint. Re-typing the host y breaks the pairing.
+const CX = 820;                            // Pod NETNS column centre: shell, band, slabs and the middle container centre here
 const SLAB_W = 472;                        // a layer is a slab across the band, not an actor box
-const SLAB_X = CX - SLAB_W / 2;            // 584
+const SLAB_X = CX - SLAB_W / 2;
 const SLAB_H = 44;
 const SLAB_GAP = 8;
 const SLAB_TOP = 312;                      // top of the ports slab, the first layer under the tenants
-const slabY = (i) => SLAB_TOP + i * (SLAB_H + SLAB_GAP);   // 312, 364, 416, 468
+const slabY = (i) => SLAB_TOP + i * (SLAB_H + SLAB_GAP);
 
 const BAND_PAD = 16;                       // band face to slab face
 const SLAB_PAD = 24;                       // the extra inset the slabs take inside the band, left and right
-const BAND_X = SLAB_X - SLAB_PAD;          // 560
-const BAND_W = SLAB_W + 2 * SLAB_PAD;      // 520: the stack band, and the width the tenants are sized across
-const BAND_Y = SLAB_TOP - BAND_PAD;        // 296
-const BAND_H = slabY(3) + SLAB_H + BAND_PAD - BAND_Y;      // 232: 296..528
+const BAND_X = SLAB_X - SLAB_PAD;
+const BAND_W = SLAB_W + 2 * SLAB_PAD;      // the stack band, and the width the tenants are sized across
+const BAND_Y = SLAB_TOP - BAND_PAD;
+const BAND_H = slabY(3) + SLAB_H + BAND_PAD - BAND_Y;
 
 const IN_PAD = 40;                         // shell face to band face
-const SHELL_X = BAND_X - IN_PAD;           // 520: clear of the narration panel wall, measured at 396.55 on 1100x800
-const SHELL_W = BAND_W + 2 * IN_PAD;       // 600
+const SHELL_X = BAND_X - IN_PAD;           // clear of the narration panel wall
+const SHELL_W = BAND_W + 2 * IN_PAD;
 const SHELL_Y = 91;
 const SHELL_FOOT = 32;                     // band bottom to shell bottom: the room the shell sublabel prints in
-const SHELL_H = BAND_Y + BAND_H + SHELL_FOOT - SHELL_Y;    // 469: 91..560
+const SHELL_H = BAND_Y + BAND_H + SHELL_FOOT - SHELL_Y;
 
-const CROW_Y = SHELL_Y + 40;               // 131: container row top, under the shell label and over the taps
+const CROW_Y = SHELL_Y + 40;               // container row top, under the shell label and over the taps
 const CROW_H = 56;
-const CROW_BOT = CROW_Y + CROW_H;          // 187: taps leave here and run 125 to the ports slab, 12 whole `5 5` periods plus a closing dash
+const CROW_BOT = CROW_Y + CROW_H;          // taps leave here, sized to whole `5 5` dash periods
 const CTR_GAP = 20;
-const CTR_W = (BAND_W - 2 * CTR_GAP) / 3;  // 160: three tenants across the band width
-const ctrX = (i) => BAND_X + i * (CTR_W + CTR_GAP);        // 560, 740, 920
-const ctrCX = (i) => ctrX(i) + CTR_W / 2;                  // 640, 820, 1000
+const CTR_W = (BAND_W - 2 * CTR_GAP) / 3;  // three tenants across the band width
+const ctrX = (i) => BAND_X + i * (CTR_W + CTR_GAP);
+const ctrCX = (i) => ctrX(i) + CTR_W / 2;
 
 const HOST_W = 232;                        // NET.L-01: an actor outside the band takes the category width
-const HOST_H = 80;                         // the catalog actor height, matching `network-model` Kubelet
-const HOST_CY = SHELL_Y + SHELL_H / 2;     // 325.5: the left face midpoint of the shell, and the height the cable runs at
-const HOST_Y = HOST_CY - HOST_H / 2;       // 285.5: the host block centres on the Pod NETNS block, not on a layer inside it
-const VETH_LEN = 155;                      // 15 whole `5 5` periods plus a closing dash, so both ends of the cable land on paint
-const HOST_X = SHELL_X - VETH_LEN - HOST_W; // 133
-const HOST_EDGE = HOST_X + HOST_W;         // 365: veth start
+const HOST_H = 80;                         // the catalog actor height, matching `network-flat-pod-network` Kubelet
+const HOST_CY = SHELL_Y + SHELL_H / 2;     // the left face midpoint of the shell, and the height the cable runs at
+const HOST_Y = HOST_CY - HOST_H / 2;       // the host block centres on the Pod NETNS block, not on a layer inside it
+const VETH_LEN = 155;                      // whole `5 5` periods plus a closing dash, so both ends of the cable land on paint
+const HOST_X = SHELL_X - VETH_LEN - HOST_W;
+const HOST_EDGE = HOST_X + HOST_W;         // veth start
 
-// The three lines a ball rides, and the one it never does. Each array feeds BOTH the drawn line and
-// the packet that travels it (A-02), so the two cannot drift. Every one ends on the FACE MIDPOINT
-// of what it really touches (L-11). The veth stops on the SHELL, because the namespace as a whole
-// is what the cable joins and what answers the arrival. The two taps stay interior, since a
-// container socket IS in this port space and a lane terminating on a box inside a Pod shell is an
-// arrival rather than a lane through it.
+// Each array feeds BOTH the drawn line and its packet (A-02). The veth stops on the SHELL, because the
+// namespace as a whole is what the cable joins. The taps stay interior: a container socket IS in this
+// port space.
 const VETH = [[HOST_EDGE, HOST_CY], [SHELL_X, HOST_CY]];         // host stack -> the namespace boundary
 const TAP_APP = [[ctrCX(1), CROW_BOT], [ctrCX(1), SLAB_TOP]];    // app     -> the port layer
 const TAP_SIDE = [[ctrCX(2), SLAB_TOP], [ctrCX(2), CROW_BOT]];   // the port layer -> sidecar
 const TAP_PAUSE = [[ctrCX(0), CROW_BOT], [ctrCX(0), SLAB_TOP]];  // pause HOLDS the namespace: no ball rides this one
 
-// The four layers, top to bottom as the stack really runs: sockets at the top where the containers
-// sit, the wire at the bottom where the veth lands. Every step states all four (P-01 applied to the
-// field the values live in), so a value is never carried silently.
+// The four layers, top to bottom as the stack really runs. Every step states all four (P-01).
 const SLABS = (ports, rules, routes, iface) => ({
   slabPorts: ports, slabRules: rules, slabRoutes: routes, slabIface: iface,
 });
@@ -90,15 +82,12 @@ export const SCENE = {
       parts: [
         P.raw({ make: netnsShell }),
         P.raw({ make: stackBand }),
-        // pause holds the namespace open. Nothing travels this line on any step, so it is the one
-        // interior link that is a relation at 0.45 rather than a route at full strength (A-06).
+        // pause holds the namespace open and nothing travels this line, so it is a relation (A-06).
         P.relation({ key: 'tapPause', points: TAP_PAUSE }),
         P.arrow({ key: 'tapApp', from: TAP_APP[0], to: TAP_APP[1], dashed: true, dim: true }),
         P.arrow({ key: 'tapSide', from: TAP_SIDE[0], to: TAP_SIDE[1], dashed: true, dim: true }),
-        // The four layers of the one stack. The value of each layer is its sublabel, so a reading
-        // sits beside the thing it describes instead of in a strip under the picture. A block label
-        // is a heading and takes a capital (T-09), and `iptables` is the one that keeps its own
-        // casing because the lowercase IS the program name.
+        // The value of each layer is its sublabel. `iptables` keeps its lowercase because it IS the
+        // program name (T-09).
         P.box({ key: 'slabPorts', x: SLAB_X, y: slabY(0), w: SLAB_W, h: SLAB_H, label: 'Ports', sublabel: 'one shared space' }),
         P.box({ key: 'slabRules', x: SLAB_X, y: slabY(1), w: SLAB_W, h: SLAB_H, label: 'iptables', sublabel: 'own chains' }),
         P.box({ key: 'slabRoutes', x: SLAB_X, y: slabY(2), w: SLAB_W, h: SLAB_H, label: 'Routes', sublabel: 'default via eth0' }),
@@ -110,10 +99,7 @@ export const SCENE = {
         P.box({ key: 'side', x: ctrX(2), y: CROW_Y, w: CTR_W, h: CROW_H, label: 'sidecar', sublabel: 'container' }),
       ],
     }),
-    // A ball rides this cable, so A-06 makes it an arrow rather than a relation, and it keeps its
-    // arrowhead: the head is the pointer into the Pod NETNS block, where the ball lands and what
-    // pulses when it does. No step writes its opacity: all five stand at full strength, so the
-    // field would be five copies of the CSS default.
+    // A ball rides this cable, so A-06 makes it an arrow, its head pointing into the Pod NETNS block.
     P.arrow({ key: 'vethWire', from: VETH[0], to: VETH[1], dashed: true, dim: true }),
     P.wire({ key: 'veth', x: (HOST_EDGE + SHELL_X) / 2, y: HOST_CY - 12 }),
     P.wire({ key: 'local', x: (ctrCX(1) + ctrCX(2)) / 2, y: BAND_Y - 12 }),
@@ -129,24 +115,16 @@ export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    // The poster states the values the card STARTS on, not the ones it ends on. It previews the
-    // text of `open` (D-14) and that sentence reads `no routes, no rules and every port still
-    // free`, so PRIVATE here put four end-of-card values under it for a second and then flipped all
-    // four at once with no beat. `network-netfilter-path`, `network-dns-ndots` and
-    // `network-conntrack-nat` all state their pre-story values here for the same reason.
+    // The poster states the values the card STARTS on, because it previews the text of `open` (D-14).
     sublabels: EMPTY,
   },
   {
     id: 'open',
-    // 303 chars. With no motion left on this step the whole hold is reading time, and 2800 put it at
-    // 9.24 ms/char against a catalog median of 10.27 (tools/timing.mjs). 3100 is that median.
     duration: 3100,
     narration: 'When the Pod sandbox starts, the pause container opens a brand new network namespace and holds it for the life of the Pod, and only a Pod that sets hostNetwork goes without one. The stack inside is empty: one loopback device, no routes, no rules and every port still free. Nothing reaches in or out yet.',
     sublabels: EMPTY,
-    // The one beat here is the pair that lights: pause as the container holding the namespace open,
-    // and the loopback as the one thing a fresh stack holds. No pod pulse, because nothing arrives
-    // and nothing travels, and a pulse over an already-drawn picture cues nothing while ERASING
-    // these two (the OPEN note in the record). A step with no motion is M-27, and this is one.
+    // The one beat is the pair that lights: pause holding the namespace open and the loopback. No pod
+    // pulse, because nothing arrives and nothing travels (M-27).
     lit: ['pause', 'slabIface'],
   },
   {
@@ -158,14 +136,11 @@ export const STEPS_SPEC = [
     sublabels: WIRED,
     rewind: { sublabels: { slabRoutes: 'none', slabIface: 'lo only' } },
     wires: { veth: 'veth pair' },
-    // The ball leaves the host stack, so the host lights before it goes (M-18a). It lands on the
-    // shell rather than on a layer, so what answers is the whole namespace pulsing, and the two
-    // layers the cable brought turn over and light after that pulse: the outer block first, the
-    // events inside it second. The reduced guard derives the pair from `lights`.
+    // The host lights before the ball leaves (M-18a). It lands on the shell, so the whole namespace
+    // pulses, then the two layers the cable brought turn over and light.
     lit: ['host'],
     flow: [
-      F.segment({ from: VETH[0], to: VETH[1], name: 'hop', delay: BEAT.lead }),
-      F.pulse({ pod: 'podGroup', at: 'hop' }),
+      F.segment({ from: VETH[0], to: VETH[1], name: 'hop', delay: BEAT.lead, pulse: 'podGroup' }),
       F.set({ at: 'hop', plus: BEAT.afterPulse, lights: ['slabIface', 'slabRoutes'], sublabels: { slabRoutes: 'default via eth0', slabIface: 'lo + eth0' } }),
     ],
   },

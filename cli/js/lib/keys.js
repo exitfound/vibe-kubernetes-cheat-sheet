@@ -1,16 +1,12 @@
-// The keyboard shortcuts sheet: a modal opened by `?` or by the keyboard button in the sidebar. Each
-// page passes its own groups. A copy lives in scheme/js/lib/keys.js, duplicated like sidebar.js so
-// each path prefix stays self-contained.
-//
+// The shortcuts sheet, opened by `?` or the sidebar keyboard button. A copy lives in scheme/js/lib/keys.js.
 // groups: [{ title, rows: [{ keys: [['Shift', '←'], ['Shift', '→']], desc }] }]
 // `keys` is a list of alternatives, each one a combination pressed together.
 
 const CLOSE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 
-// Shortcut matching that survives a non-Latin layout. `e.key` is the character the layout typed, so
-// on a Russian layout the `/` key types "." and Shift+/ types ",", and the F key types "а". A letter
-// falls back to the physical key (`e.code`) only when the layout typed something that is not a Latin
-// letter, so a Dvorak or AZERTY reader still presses the letter printed on the key.
+// `e.key` is what the layout typed (a Russian layout types "." for `/` and "а" for F), so a non-Latin
+// result falls back to the physical key (`e.code`). A Latin one is trusted, so a Dvorak or AZERTY
+// reader still presses the letter printed on the key.
 export const isSlash = (e) => e.key === '/' || (e.code === 'Slash' && e.key === '.');
 export const isQuestion = (e) => e.key === '?' || (e.code === 'Slash' && e.key === ',');
 export const isLetter = (e, ch) => {

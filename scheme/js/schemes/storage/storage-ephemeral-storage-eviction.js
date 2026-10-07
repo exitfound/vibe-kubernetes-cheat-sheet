@@ -1,19 +1,19 @@
-import { P, F, defineCard, chipStrip, BEAT, OPACITY, FADE, makeRidingLabel } from './storage-kit.js';
+import { LANE_DY, P, F, defineCard, chipStrip, BEAT, OPACITY, FADE } from './storage-kit.js';
 import { rect, line } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS/storage-ephemeral-storage-eviction.md
 
 
 // Top row right of the panel: the Pod, then the Kubelet on the Pod centre line (the SIZES line).
-const POD_X = 484, POD_Y = 80, POD_W = 232, POD_H = 104;                  // 484..716 / 80..184
+const POD_X = 484, POD_Y = 80, POD_W = 232, POD_H = 104;
 const POD_R = POD_X + POD_W, POD_CX = POD_X + POD_W / 2, POD_CY = POD_Y + POD_H / 2;
 const APP_DX = 20, APP_DY = 34, APP_W = 192, APP_H = 44;
-const KUBE_W = 232, KUBE_H = 80, KUBE_X = 884, KUBE_Y = POD_CY - KUBE_H / 2;   // 884..1116 / 92..172
+const KUBE_W = 232, KUBE_H = 80, KUBE_X = 884, KUBE_Y = POD_CY - KUBE_H / 2;
 const KUBE_CX = KUBE_X + KUBE_W / 2, KUBE_B = KUBE_Y + KUBE_H;
 
-// The gauge: where web-a's bytes land on Node-1, full width below the panel (measured in the record).
-const G_X = 120, G_W = 960, G_Y = 300, G_H = 168;                        // 120..1080 / 300..468
-const ROW_H = 36, ROW_A_Y = G_Y + 36, ROW_B_Y = ROW_A_Y + ROW_H + 16;    // 336 / 388
-const ROW_B_BOTTOM = ROW_B_Y + ROW_H;                                    // 424
+// The gauge: where web-a bytes land on Node-1, full width below the panel.
+const G_X = 120, G_W = 960, G_Y = 300, G_H = 168;
+const ROW_H = 36, ROW_A_Y = G_Y + 36, ROW_B_Y = ROW_A_Y + ROW_H + 16;
+const ROW_B_BOTTOM = ROW_B_Y + ROW_H;
 const LABEL_X = G_X + 16;
 
 // ONE linear scale for both rows, 0 to 1.25Gi, so a length IS a quantity.
@@ -21,32 +21,29 @@ const SCALE_X = 320, SCALE_W = 720, SCALE_MI = 1280;
 const px = (mi) => (mi * SCALE_W) / SCALE_MI;
 const xOf = (mi) => SCALE_X + px(mi);
 const REQUEST_MI = 512, LIMIT_MI = 1024;
-const WR_MI = 300, LOG_MI = 400, ED_MI = 400;                             // container 700, Pod 1100
-const X_REQ = xOf(REQUEST_MI), X_LIM = xOf(LIMIT_MI);                       // 608 / 896
+const WR_MI = 300, LOG_MI = 400, ED_MI = 400;
+const X_REQ = xOf(REQUEST_MI), X_LIM = xOf(LIMIT_MI);
 
 // Segment n of a row starts where the ones before it end: writable, log, then the emptyDir.
 const SEG_MI = [WR_MI, LOG_MI, ED_MI];
 const segX = (n) => xOf(SEG_MI.slice(0, n).reduce((a, b) => a + b, 0));
 const segW = (n) => px(SEG_MI[n]);
-const A_END = segX(2), B_END = segX(3);                                   // 713.75 / 938.75
+const A_END = segX(2), B_END = segX(3);
 
 // Each lane and its ball share one array. The scan pair is mirrored on both faces (L-12).
-const LANE_DY = 12;
 const W_WRITE = [[POD_CX, POD_Y + POD_H], [POD_CX, G_Y]];
 const W_SCAN = [[KUBE_CX - LANE_DY, KUBE_B], [KUBE_CX - LANE_DY, G_Y]];
 const W_BACK = [[KUBE_CX + LANE_DY, G_Y], [KUBE_CX + LANE_DY, KUBE_B]];
 const W_EVICT = [[KUBE_X, POD_CY], [POD_R, POD_CY]];
 
-const CHIP_Y = G_Y + G_H + 24, CHIP_H = 34;                              // 492
-const CH = chipStrip({ w: (G_W - 3 * 16) / 4, gap: 16, count: 4 });         // 228: the strip spans the gauge, 120..1080
+const CHIP_Y = G_Y + G_H + 24, CHIP_H = 34;
+const CH = chipStrip({ w: (G_W - 3 * 16) / 4, gap: 16, count: 4 });         // the strip spans the gauge
 
-// Every ball rides routeDur, as on storage-emptydir, and each tag shows from departure and lives
-// exactly as long as its ball (M-30a), outside its lane and clear of both faces at rest (the record).
-const tagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
-const WRITE_TAG = { dx: 40, dy: 16, fn: tagFn };
-const SCAN_TAG = { dx: -40, dy: 16, fn: tagFn };
-const BACK_TAG = { dx: 40, dy: 16, fn: tagFn };
-const EVICT_TAG = { dx: -36, dy: -26, fn: tagFn };
+// Each tag rides outside its lane, clear of both faces at rest.
+const WRITE_TAG = { dx: 40, dy: 16 };
+const SCAN_TAG = { dx: -40, dy: 16 };
+const BACK_TAG = { dx: 40, dy: 16 };
+const EVICT_TAG = { dx: -36, dy: -26 };
 
 // Presentation shades of the jade tint, not lifecycle states: a byte count is not a phase.
 const INK = Object.freeze({
@@ -69,8 +66,7 @@ const seg = (key, rowY, n) => P.raw({
   make: () => bare(segX(n), rowY, segW(n), ROW_H, INK.seg[n], INK.edge, n === 2 ? '4 3' : null),
 });
 const track = (rowY, end) => P.raw({ make: () => bare(SCALE_X, rowY, end - SCALE_X, ROW_H, 'rgba(255, 255, 255, 0.03)', INK.track) });
-// The limit is the one line the whole card is read against, so it is drawn at full jade rather
-// than at the 0.45 a relation sinks to. One segment, no caps.
+// The limit is the line the card is read against, so it is drawn at full jade, not relation 0.45.
 const limitLine = () => {
   const l = line({ x1: X_LIM, y1: ROW_A_Y - 8, x2: X_LIM, y2: ROW_B_BOTTOM + 8 });
   l.style.stroke = 'var(--storage-color)';
@@ -88,8 +84,6 @@ const requestTick = () => {
 const SEG_KEYS = { a0: [ROW_A_Y, 0], a1: [ROW_A_Y, 1], b0: [ROW_B_Y, 0], b1: [ROW_B_Y, 1], b2: [ROW_B_Y, 2] };
 const SUB = 'scheme-box-sublabel';
 
-// Z-order (bottom -> top): the gauge and its marks, the Pods and the Kubelet, the lanes, the chip
-// strip, then the packet layer.
 export const SCENE = {
   'aria-label': 'Ephemeral storage limit: Pod web-a on Node-1 requests 512Mi and is limited to 1Gi of local ephemeral storage. Its app writes 300Mi to its writable layer, 400Mi of log and 400Mi into a disk emptyDir, and a gauge drawn to scale shows the container sum of 700Mi inside the limit and the Pod sum of 1100Mi over it. The Kubelet reads the measured usage on its eviction loop, finds the Pod total over the 1Gi sum of container limits and evicts the whole Pod, which ends Failed with reason Evicted while Node-1 still has disk to spare. The Pod is not restarted in place, and its ReplicaSet creates web-b, which starts from zero.',
   parts: [
@@ -205,22 +199,19 @@ export const STEPS_SPEC = [
     opacity: stage({ fill: 3 }),
     rewind: { chips: { useChip: '0' } },
     enter: paint({ fill: 3 }),
-    // The Pod blinks as one, app included, and its first ball leaves after the blink (STO.C-02). Each
-    // landing grows its segment in every row it counts in, so the emptyDir alone grows the Pod row.
+    // The Pod blinks as one and its first ball leaves after the blink (STO.C-02). Each landing grows
+    // its segment in every row it counts in, so the emptyDir alone grows the Pod row.
     flow: [
       F.pulse({ pod: 'podA' }),
-      F.route({ points: W_WRITE, delay: BEAT.afterPulse, name: 'w1' }),
-      F.tag({ text: 'temp files', points: W_WRITE, delay: BEAT.afterPulse, ...WRITE_TAG }),
+      F.route({ points: W_WRITE, delay: BEAT.afterPulse, name: 'w1', tag: { text: 'temp files', ...WRITE_TAG } }),
       ...grow(['a0', 'b0'], 'w1'),
       F.reveal({ target: 'lbl0', at: 'w1' }),
       F.set({ at: 'w1', chips: { useChip: '300Mi on disk' }, lights: ['useChip'] }),
-      F.route({ points: W_WRITE, after: 'w1', name: 'w2' }),
-      F.tag({ text: 'stdout', points: W_WRITE, after: 'w1', ...WRITE_TAG }),
+      F.route({ points: W_WRITE, after: 'w1', name: 'w2', tag: { text: 'stdout', ...WRITE_TAG } }),
       ...grow(['a1', 'b1'], 'w2'),
       F.reveal({ target: 'lbl1', at: 'w2' }),
       F.set({ at: 'w2', chips: { useChip: '700Mi on disk' } }),
-      F.route({ points: W_WRITE, after: 'w2', name: 'w3' }),
-      F.tag({ text: '/scratch', points: W_WRITE, after: 'w2', ...WRITE_TAG }),
+      F.route({ points: W_WRITE, after: 'w2', name: 'w3', tag: { text: '/scratch', ...WRITE_TAG } }),
       ...grow(['b2'], 'w3'),
       F.reveal({ target: 'lbl2', at: 'w3' }),
       F.set({ at: 'w3', chips: { useChip: FULL } }),
@@ -236,10 +227,8 @@ export const STEPS_SPEC = [
     rewind: { chips: { useChip: FULL } },
     enter: paint({ fill: 3 }),
     flow: [
-      F.route({ points: W_SCAN, delay: BEAT.lead, name: 'scan' }),
-      F.tag({ text: 'read usage', points: W_SCAN, delay: BEAT.lead, ...SCAN_TAG }),
-      F.route({ points: W_BACK, after: 'scan', name: 'back' }),
-      F.tag({ text: '1100Mi', points: W_BACK, after: 'scan', ...BACK_TAG }),
+      F.route({ points: W_SCAN, delay: BEAT.lead, name: 'scan', tag: { text: 'read usage', ...SCAN_TAG } }),
+      F.route({ points: W_BACK, after: 'scan', name: 'back', tag: { text: '1100Mi', ...BACK_TAG } }),
       F.set({ at: 'back', chips: { useChip: '1100Mi measured' }, lights: ['useChip'] }),
     ],
   },
@@ -269,8 +258,7 @@ export const STEPS_SPEC = [
     enter: paint({ fill: 3 }),
     // The Kubelet sends, the Pod blinks as the kill lands and then goes, its two lanes with it.
     flow: [
-      F.route({ points: W_EVICT, delay: BEAT.lead, name: 'kill' }),
-      F.tag({ text: 'evict', points: W_EVICT, delay: BEAT.lead, ...EVICT_TAG }),
+      F.route({ points: W_EVICT, delay: BEAT.lead, name: 'kill', tag: { text: 'evict', ...EVICT_TAG } }),
       F.set({ at: 'kill', chips: { podChip: 'Failed, Evicted' }, lights: ['podChip'] }),
       F.pulse({ pod: 'podA', at: 'kill' }),
       F.fade({ target: 'podA', to: OPACITY.terminated, dur: FADE.out, at: 'kill', plus: BEAT.afterPulse }),

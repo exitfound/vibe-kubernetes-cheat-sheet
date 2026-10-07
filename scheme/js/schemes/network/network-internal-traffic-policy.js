@@ -1,45 +1,45 @@
-import { P, F, defineCard, makeRidingLabel, shade, strip, BEAT, OPACITY } from './network-kit.js';
+import { P, F, defineCard, shade, strip, BEAT, OPACITY } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-internal-traffic-policy.md
 
-
-// Two peer Node frames mirrored about x=600, each holding the same row. The frame tops and the
-// Service bus hang under the deepest panel, so every narration is held to eight lines at 1100x800.
+// Two peer Node frames mirrored about x=600. The frame tops and the Service bus hang under the
+// deepest panel.
 const FRAME_W = 540, FRAME_GAP = 40;
-const N1_X = 600 - FRAME_GAP / 2 - FRAME_W;    // 40
-const N2_X = 600 + FRAME_GAP / 2;              // 620
-const NODE_Y = 254, NODE_H = 254;
-const NODE_BOTTOM = NODE_Y + NODE_H;           // 508
+const N1_X = 600 - FRAME_GAP / 2 - FRAME_W;
+const N2_X = 600 + FRAME_GAP / 2;
+const NODE_Y = 254, NODE_H = 256;              // floors 12 under the readiness notes
+const NODE_BOTTOM = NODE_Y + NODE_H;
 
-// One row per frame, sized BY the frame (NET.L-01 third clause): 14 + 140 + 38 + 156 + 38 + 140 + 14.
-// kube-proxy stands above the Pods, so it is not in the row and takes 232, spanning client to agent.
+// One row per frame, sized BY the frame (NET.L-01). kube-proxy stands above the Pods, outside the row.
 const PAD = 14, POD_W = 140, HOP = 38, DP_W = 156, KP_W = 232;
-const POD_H = 100, DP_H = 80, KP_H = 80, KP_Y = NODE_Y + 20;   // kube-proxy 274..354
-const DP_Y = KP_Y + KP_H + 30;                 // 384, the relation gap: the Pod tops stand 20 under kube-proxy
-const FLOW_Y = DP_Y + DP_H / 2;                // 424
-const POD_Y = FLOW_Y - POD_H / 2;              // 374
+const POD_H = 100, DP_H = 80, KP_H = 80, KP_Y = NODE_Y + 20;
+const DP_Y = KP_Y + KP_H + 30;                 // the relation gap: the Pod tops stand 20 under kube-proxy
+const FLOW_Y = DP_Y + DP_H / 2;
+const POD_Y = FLOW_Y - POD_H / 2;
 const NOTE_Y = 494;                            // agent readiness note, between the Pod bottom and the frame bottom
 
 // Everything in a row is an offset from its frame, so Node-2 is Node-1 moved 580 to the right.
 const row = (nx) => {
-  const client = nx + PAD;                     // 54 | 634
-  const dp = client + POD_W + HOP;             // 232 | 812
-  const agent = dp + DP_W + HOP;               // 426 | 1006
+  const client = nx + PAD;
+  const dp = client + POD_W + HOP;
+  const agent = dp + DP_W + HOP;
   return { client, dp, agent, dpCx: dp + DP_W / 2, agentCx: agent + POD_W / 2 };
 };
-const R1 = row(N1_X), R2 = row(N2_X);          // dpCx 310 | 890, agentCx 496 | 1076
+const R1 = row(N1_X), R2 = row(N2_X);
 
 // The Service sits over the gap between the frames, and its bus lands on each frame top above kube-proxy.
 const SVC_W = 232, SVC_H = 80, SVC_Y = 112;
-const SVC_X = 600 - SVC_W / 2;                 // 484
-const BUS_Y = NODE_Y - 14;                     // 240
+const SVC_X = 600 - SVC_W / 2;
+const BUS_Y = NODE_Y - 14;
 
-// Both cross legs use each frame bottom as an L-12 pair about the dataplane axis, out at -70 and in
-// at +70, 8 inside the dataplane edges. Nested, 820..380 inside 240..960, so no vertical crosses a horizontal.
+// Both cross legs use each frame bottom as an L-12 pair about the dataplane axis, nested so no
+// vertical crosses a horizontal.
 const TWIN = 70;
-const INNER_Y = NODE_BOTTOM + 22, OUTER_Y = NODE_BOTTOM + 54;   // 530, 562
+// The two horizontals are one out and back pair, the inner one far enough under the frame that its
+// tag rides ABOVE it, outside the pair.
+const INNER_Y = NODE_BOTTOM + 27, OUTER_Y = INNER_Y + 24;
 const CHIP_Y = 596, CHIP_H = 34;
-const CHIPS = strip({ from: N1_X, to: N2_X + FRAME_W, count: 4, gap: 20 });   // 265 wide each
+const CHIPS = strip({ from: N1_X, to: N2_X + FRAME_W, count: 4, gap: 20 });
 
 // Each static wire and the ball that rides it share the same points array.
 const IN1 = [[R1.dp - HOP, FLOW_Y], [R1.dp, FLOW_Y]];
@@ -52,11 +52,9 @@ const X2 = [[R2.dpCx - TWIN, NODE_BOTTOM], [R2.dpCx - TWIN, INNER_Y], [R1.dpCx +
 const BUS1 = [[600, SVC_Y + SVC_H], [600, BUS_Y], [R1.dpCx, BUS_Y], [R1.dpCx, NODE_Y]];
 const BUS2 = [[600, SVC_Y + SVC_H], [600, BUS_Y], [R2.dpCx, BUS_Y], [R2.dpCx, NODE_Y]];
 
-// The tag rides a cross-node ball from departure, below it and TWIN behind it, between the two verticals
-// of each frame bottom, and dissolves with it on arrival (M-30a): rising, it crosses its own lane.
-const crossLabel = makeRidingLabel({ role: 'network', inMs: 200, outMs: 200, hold: 0 });
-const TAG_INNER = { fn: crossLabel, dx: TWIN };    // rides left, trails right
-const TAG_OUTER = { fn: crossLabel, dx: -TWIN };   // rides right, trails left
+// Each tag rides TWIN left of its ball and OUTSIDE the pair.
+const TAG_INNER = { dx: -TWIN, dy: -10 };   // rides left, leads left, above its lane
+const TAG_OUTER = { dx: -TWIN };   // rides right, trails left
 const tag = (p) => F.tag({ dy: 18, ...p });
 
 const CLIENT_INNER = { dx: 18, dy: 26, w: POD_W - 36, h: 44, label: 'app', sublabel: 'eth0' };
@@ -139,8 +137,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'cluster',
-    // Motion: both clients pulse, both balls reach their dataplane at 1500, the inner leg lands at
-    // 2676 and the outer one at 3440, whose agent pulse ends at 4340.
     duration: 4800,
     narration: 'A DaemonSet runs one agent Pod per Node behind Service node-agent. With the default Cluster, kube-proxy on each Node writes both agents into its Service rules, so a call can be DNAT-ed to either one. Here both calls land on the agent of the other Node and cross the cluster network.',
     chips: { policyChip: 'Cluster', rules1Chip: BOTH, rules2Chip: BOTH, resultChip: 'crossed Nodes' },
@@ -165,8 +161,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'local',
-    // Motion: kube-proxy writes at 300, both balls reach their dataplane at 2100, the local legs land
-    // at 2900 and the agent pulses end at 3800.
     duration: 4200,
     narration: 'Set internalTrafficPolicy to Local. On the next sync, kube-proxy on each Node rewrites its rules: Node-1 keeps only agent-1 and Node-2 only agent-2. The same call to the same ClusterIP now stays on its own Node. This lets a Pod reach the node-local agent of a DaemonSet, such as a log shipper or a metrics agent.',
     chips: { policyChip: 'Local', rules1Chip: 'agent-1', rules2Chip: 'agent-2', resultChip: 'stayed on its Node' },
@@ -193,8 +187,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'no-local-backend',
-    // Motion: kube-proxy on Node-2 writes the DROP rule at 300, the Node-2 ball dies on its dataplane
-    // at 2100. Nothing leaves it: the absent second hop is the whole point of the step.
+    // Nothing leaves the Node-2 dataplane: the absent second hop is the whole point of the step.
     duration: 3300,
     narration: 'Local never falls back to another Node. Once agent-2 turns ready=false, kube-proxy on Node-2 writes a DROP rule for the ClusterIP, in the default iptables mode, so this call hangs until it times out though agent-1 is ready. Local suits a DaemonSet only while every Node with callers runs a ready agent.',
     chips: { policyChip: 'Local', rules1Chip: 'agent-1', rules2Chip: 'drop', resultChip: 'dropped on Node-2' },

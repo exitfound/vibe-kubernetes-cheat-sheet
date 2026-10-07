@@ -2,42 +2,30 @@ import { P, F, defineCard, ladder, spread, WL, BEAT, OPACITY } from './workloads
 
 // Design notes for this card: ./CARDS/workloads-controller-kinds.md
 
-// No A / B / C preset: the card carries neither a ladder nor a chip column flanking a spine, so it
-// has no columns for the three presets to choose between. The argument is in the record.
+// No ladder and no flanking chip column, so no A / B / C preset applies.
 
-// Four columns over the full WL width, one per kind that creates Pods directly. spread fixes the
-// box WIDTH and derives the gap, so the board spans 60..1140 and centres on WL.CX by construction.
-const BOX_W = 240;
-const COL = spread({ from: WL.L, to: WL.R, count: 4, w: BOX_W });   // gap 40, x 60 / 340 / 620 / 900
-const CX = (i) => COL.x(i) + BOX_W / 2;                             // 180 / 460 / 740 / 1020
+// Four columns, one per kind that creates Pods directly. Fixed width, derived gap.
+const BOX_W = 232;
+const COL = spread({ from: WL.L, to: WL.R, count: 4, w: BOX_W });
+const CX = (i) => COL.x(i) + BOX_W / 2;
 
-// Band 1: the two kinds that create another controller, over columns 0 and 3 only. The measured
-// panel bottom is 180.12 at 1100x800, so 224 stands 43.88 clear of it and L-03 is met on the left.
-const OWNER_Y = 224, OWNER_H = 56, OWNER_B = OWNER_Y + OWNER_H;     // 224..280
-// Band 2: the four kinds that create Pods. The two gaps left over once all three bands are placed
-// are spent on the lanes, 106 and 100, because the ownership hop is what the card is about.
-const KIND_Y = 386, KIND_H = 64, KIND_B = KIND_Y + KIND_H;          // 386..450
-// Band 3: one Pod per column, at the FULL column width, so a column reads as one stack rather than
-// as a box with a narrower tile under it. Bottom on the 624 floor the category draws its Node rows to.
-const POD_W = BOX_W, POD_H = 74, POD_Y = 550;                       // 550..624
-const POD_X = (i) => COL.x(i);                                      // 60 / 340 / 620 / 900
+// Band 1: the two kinds that create another controller, over columns 0 and 3 only.
+const OWNER_Y = 224, OWNER_H = WL.BOX_H, OWNER_B = OWNER_Y + OWNER_H;
+// Band 2: the four kinds that create Pods.
+const KIND_Y = 386, KIND_H = WL.BOX_H, KIND_B = KIND_Y + KIND_H;
+// Band 3: one Pod per column at full column width, so a column reads as one stack.
+const POD_W = BOX_W, POD_H = 74, POD_Y = 550;
+const POD_X = (i) => COL.x(i);
 
-// What the controller hands its Pod rides INSIDE the Pod, the way workloads-pod-garbage-collection
-// draws a phase: a Pod holding nothing reads as an empty rectangle, and this is the one thing each
-// of these four actually holds. 216 wide leaves 39.1 clear at each wall on the longest string,
-// measured 137.8 as a 12px scheme-box-label.
-const IN_DX = 12, IN_W = POD_W - IN_DX * 2;                         // 216, inset 12 each side
-const IN_DY = 24, IN_H = 42;                                        // 574..616, 8 clear under it
+// What the controller hands its Pod rides inside the Pod, or the Pod reads empty.
+const IN_DX = 12, IN_W = POD_W - IN_DX * 2;
+const IN_DY = 24, IN_H = 42;
 
-// The band above the board is the only one L-03 leaves: the full height right of x=420 is free.
-// The column is 360 rather than the 480 of WL.COL_R, which is what lets it sit CENTRED on WL.CX
-// while its left wall stands exactly on the 420 L-03 allows, 23.45 clear of this card's widest
-// panel. 336 of usable width is still 46.5 more than the longest name and value pair needs.
-const CHIP_W = 360, CHIP_X = WL.CX - CHIP_W / 2;                    // 420..780, centred on WL.CX
-const CHIP_Y = ladder({ y: WL.TOP_Y, rowH: WL.CHIP_H, gap: 8 });    // 40..158
+// Narrower than WL.COL_R so it centres on WL.CX with its left wall on the L-03 limit.
+const CHIP_W = 360, CHIP_X = WL.CX - CHIP_W / 2;
+const CHIP_Y = ladder({ y: WL.TOP_Y, rowH: WL.CHIP_H, gap: 8 });
 
-// Every lane is built ONCE and the P.arrow and the F.segment index the SAME two point objects, so
-// the drawn wire and the ball it carries cannot drift apart (A-02).
+// P.arrow and F.segment index the same point objects, so wire and ball cannot drift (A-02).
 const LANE = (x, y1, y2) => ({ from: [x, y1], to: [x, y2] });
 const LANES = {
   laneDep:  LANE(CX(0), OWNER_B, KIND_Y),
@@ -49,9 +37,7 @@ const LANES = {
 };
 const lanePart = (key) => P.arrow({ key, ...LANES[key], dim: true, dashed: true, role: 'cluster' });
 
-// What each Pod IS to the controller above it, in the two halves the reader needs: the thing it
-// holds, and the consequence. The kind BOX says what the controller does, so this says what the Pod
-// is, and no half of a pair repeats the sublabel over it.
+// What each Pod is to its controller: what it holds, and the consequence. Never repeats the kind box.
 const POD_HELD = [
   ['Pod', 'Name generated', 'replaced by an equal'],
   ['Pod web-0', 'Ordinal 0', 'the same name returns'],
@@ -59,8 +45,7 @@ const POD_HELD = [
   ['Pod', 'Exits when done', 'no restart on success'],
 ];
 
-// The list order IS the append order, so it is the z-order: lanes, chips and the two captions
-// first, then the packet layer, and every box and Pod above the ball it sends.
+// List order is z-order: boxes and Pods sit above the packet layer.
 export const SCENE = {
   'aria-label': 'Six workload controller kinds over one row of Pods: a Deployment creates a ReplicaSet and a CronJob creates a Job, while ReplicaSet, StatefulSet, DaemonSet and Job each create the Pods, and three questions separate them, whether a replica carries a stable identity, whether the count follows the matching Node set, and whether the work ends',
   parts: [
@@ -70,8 +55,7 @@ export const SCENE = {
     P.chip({ key: 'countChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'what sets the count', value: 'none yet' }),
     P.chip({ key: 'endChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'does the work end', value: 'none yet' }),
     P.tag({ key: 'chipTag', x: WL.CX, y: CHIP_Y(0) - 14, text: 'three questions that pick one' }),
-    // The middle of the owner band is empty because only two kinds stand there, so the caption
-    // saying why sits in the 300..900 gap the two of them leave.
+    // Says why the middle of the owner band is empty.
     P.tag({ key: 'ownerTag', x: WL.CX, y: OWNER_Y + OWNER_H / 2 + 4, text: 'neither of these creates a Pod' }),
     P.packets(),
     P.box({ key: 'dep', x: COL.x(0), y: OWNER_Y, w: BOX_W, h: OWNER_H, label: 'Deployment', sublabel: 'owns a ReplicaSet', role: 'cluster' }),
@@ -91,8 +75,8 @@ export const SCENE = {
   },
 };
 
-// The board as ONE opacity field (A-16): whatever is not named LIVE holds the outside-this-path
-// shade, and every lane then takes min(source, sink) so no lane outshines the box it leaves (A-13).
+// One opacity field (A-16): unnamed blocks hold the outside-this-path shade, and each lane takes
+// min(source, sink) so it never outshines its box (A-13).
 const BLOCKS = ['dep', 'cron', 'rs', 'sts', 'ds', 'job', 'pod0', 'pod1', 'pod2', 'pod3'];
 const LANE_ENDS = [
   ['laneDep', 'dep', 'rs'], ['laneCron', 'cron', 'job'],
@@ -107,7 +91,6 @@ const stage = (live) => {
   return o;
 };
 
-// Values that recur, named once so a three-key chips block stays one readable line.
 const PLAIN = 'none, interchangeable', SET = 'spec.replicas', FOREVER = 'no, it keeps running';
 
 export const STEPS_SPEC = [
@@ -115,7 +98,6 @@ export const STEPS_SPEC = [
     id: 'idle',
     duration: 1500,
     chips: { identityChip: 'none yet', countChip: 'none yet', endChip: 'none yet' },
-    // Nothing is picked yet, so the whole board sits at the outside-this-path shade.
     opacity: stage([]),
   },
   {
@@ -124,9 +106,7 @@ export const STEPS_SPEC = [
     narration: 'Six built-in kinds manage Pods for you, and each one of them ends at the same thing, a Pod. Four create Pods directly. The other two create another controller instead, so their Pods always arrive through something else.',
     chips: { identityChip: 'none yet', countChip: 'none yet', endChip: 'none yet' },
     opacity: stage(BLOCKS),
-    // The whole map lifts to full and the Pod row blinks left to right. The three chips still read
-    // `none yet`, which is what the CARD has claimed so far: what each Pod holds stands on the
-    // canvas from the poster on, and this beat is the row every one of the six ends at.
+    // The chips still read `none yet`: nothing has been picked.
     flow: [0, 1, 2, 3].map(i => F.pulse({ pod: `pod${i}`, delay: 300 + i * 200 })),
   },
   {
@@ -137,11 +117,9 @@ export const STEPS_SPEC = [
     opacity: stage(['dep', 'rs', 'pod0']),
     lit: ['dep', 'identityChip', 'countChip', 'endChip'],
     flow: [
-      // The Deployment acts on its own, so its ball waits BEAT.lead and the ReplicaSet lights on
-      // arrival, which is what makes it a receiver before it is the next sender.
+      // The Deployment acts on its own, so its ball waits BEAT.lead.
       F.segment({ ...LANES.laneDep, delay: BEAT.lead, name: 'own', lights: ['rs'] }),
-      F.segment({ ...LANES.laneRs, after: 'own', name: 'make' }),
-      F.pulse({ pod: 'pod0', at: 'make' }),
+      F.segment({ ...LANES.laneRs, after: 'own', name: 'make', pulse: 'pod0' }),
     ],
   },
   {
@@ -152,8 +130,7 @@ export const STEPS_SPEC = [
     opacity: stage(['sts', 'pod1']),
     lit: ['sts', 'identityChip'],
     flow: [
-      F.segment({ ...LANES.laneSts, delay: BEAT.lead, name: 'make' }),
-      F.pulse({ pod: 'pod1', at: 'make' }),
+      F.segment({ ...LANES.laneSts, delay: BEAT.lead, name: 'make', pulse: 'pod1' }),
     ],
   },
   {
@@ -164,8 +141,7 @@ export const STEPS_SPEC = [
     opacity: stage(['ds', 'pod2']),
     lit: ['ds', 'identityChip', 'countChip'],
     flow: [
-      F.segment({ ...LANES.laneDs, delay: BEAT.lead, name: 'make' }),
-      F.pulse({ pod: 'pod2', at: 'make' }),
+      F.segment({ ...LANES.laneDs, delay: BEAT.lead, name: 'make', pulse: 'pod2' }),
     ],
   },
   {
@@ -176,8 +152,7 @@ export const STEPS_SPEC = [
     opacity: stage(['job', 'pod3']),
     lit: ['job', 'countChip', 'endChip'],
     flow: [
-      F.segment({ ...LANES.laneJob, delay: BEAT.lead, name: 'make' }),
-      F.pulse({ pod: 'pod3', at: 'make' }),
+      F.segment({ ...LANES.laneJob, delay: BEAT.lead, name: 'make', pulse: 'pod3' }),
     ],
   },
   {
@@ -189,8 +164,7 @@ export const STEPS_SPEC = [
     lit: ['cron', 'countChip', 'endChip'],
     flow: [
       F.segment({ ...LANES.laneCron, delay: BEAT.lead, name: 'tick', lights: ['job'] }),
-      F.segment({ ...LANES.laneJob, after: 'tick', name: 'make' }),
-      F.pulse({ pod: 'pod3', at: 'make' }),
+      F.segment({ ...LANES.laneJob, after: 'tick', name: 'make', pulse: 'pod3' }),
     ],
   },
 ];

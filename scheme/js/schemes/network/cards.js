@@ -1,8 +1,7 @@
 // The network catalogue: every network card and the subcategories they sort into.
 // Adding a card means one entry here, one file beside it, one poster, one note.
 
-// The SUBCATEGORIES list below is an ORDER, not a set: the sequence is an editorial argument
-// about what a reader has to know first, never alphabetical and never a merge artefact.
+// SUBCATEGORIES is an editorial order (D-10): what a reader has to know first, never alphabetical.
 
 export const SUBCATEGORIES = [
     { key: 'network-foundations',        label: 'Network Foundations'    },
@@ -14,7 +13,7 @@ export const SUBCATEGORIES = [
 
 export const CARDS = [
   {
-    id: 'network-model',
+    id: 'network-flat-pod-network',
     title: 'Flat Pod Network Model',
     category: 'network',
     subcategory: 'network-foundations',
@@ -180,7 +179,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'network-pod-localhost',
+    id: 'network-containers-share-localhost',
     title: 'Containers Share Localhost',
     category: 'network',
     subcategory: 'pod-networking',
@@ -207,7 +206,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'network-cni-invocation',
+    id: 'network-wiring-pod-via-cni',
     title: 'Wiring a Pod via CNI',
     category: 'network',
     subcategory: 'pod-networking',
@@ -335,7 +334,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'network-endpointslice-reconcile',
+    id: 'network-service-and-endpointslice',
     title: 'Service and EndpointSlice',
     category: 'network',
     subcategory: 'services-endpoints',
@@ -429,7 +428,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'network-loadbalancer-bare-metal',
+    id: 'network-loadbalancer-without-cloud',
     title: 'LoadBalancer without a Cloud',
     category: 'network',
     subcategory: 'external-traffic',
@@ -444,7 +443,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'network-loadbalancer-direct-to-pods',
+    id: 'network-loadbalancer-straight-to-pods',
     title: 'LoadBalancer Straight to Pods',
     category: 'network',
     subcategory: 'external-traffic',

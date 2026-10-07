@@ -132,7 +132,7 @@ export class Timeline {
         try {
           const t = a.effect && a.effect.getTiming();
           if (!t) continue;
-          // Skip infinite-iteration animations: network-model's marchWire is one, and waiting
+          // Skip infinite-iteration animations: network-flat-pod-network's marchWire is one, and waiting
           // on it would hang the step forever. Do not remove this guard.
           if (!isFinite(t.iterations)) continue;
           const iters = t.iterations || 1;

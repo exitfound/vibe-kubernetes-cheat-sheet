@@ -278,6 +278,16 @@ body.sidebar-collapsed .side-expand { display: grid; }
   }
 }
 
+/* Text for screen readers and crawlers only: the page's h1, which the visible logo already says. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 /* ===== HEADER ===== */
 .header {
   position: sticky;
@@ -440,6 +450,10 @@ body.sidebar-collapsed .side-expand { display: grid; }
 
 .dropdown-copy-row:hover { background: rgba(255, 255, 255, 0.04); }
 
+/* The Donate link wears a wallet row's shape, with an open-in-new-tab mark where a wallet has its copy button. */
+.dropdown-donate { text-decoration: none; }
+.dropdown-donate:hover .dropdown-addr { color: var(--text-bright); }
+
 .dropdown-coin {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
@@ -472,7 +486,8 @@ body.sidebar-collapsed .side-expand { display: grid; }
   min-width: 0;
 }
 
-.dropdown-copy-btn {
+.dropdown-copy-btn,
+.dropdown-go {
   flex-shrink: 0;
   width: 26px;
   height: 26px;
@@ -488,7 +503,8 @@ body.sidebar-collapsed .side-expand { display: grid; }
   line-height: 0;
 }
 
-.dropdown-copy-btn:hover {
+.dropdown-copy-btn:hover,
+.dropdown-donate:hover .dropdown-go {
   color: var(--accent);
   border-color: var(--accent-border);
   background: var(--accent-glow);
@@ -1040,7 +1056,7 @@ body.starred-mode .nav-sub { display: none !important; }
   font-family: 'JetBrains Mono', monospace;
   font-size: 15px;
   line-height: 1.55;
-  /* Flags and short tokens are unbreakable .tok boxes (hl() in app.js), long URLs and paths wrap
+  /* Flags and short tokens are unbreakable .tok boxes (hl() in js/lib/commands.js), long URLs and paths wrap
      after a "/". `break-all` cut mid-word, "kubernet|es.io", and a plain wrap still split "-|-token"
      at a hyphen. */
   overflow-wrap: anywhere;
@@ -1498,8 +1514,10 @@ mark {
 @media (hover: none) {
   .copy-btn { opacity: 0.7; min-width: 44px; min-height: 44px; }
   .section-action { min-width: 36px; min-height: 36px; }
-  .star-btn { opacity: 0.85; min-width: 44px; min-height: 44px; right: 50px; }
-  .cmd-item { padding-right: 96px; }
+  /* Both buttons grow to 44px here, so the star sits 44 + 8 + a 4px gap from the edge: at right: 50px
+     the two tap targets overlapped by 2px (Lighthouse target-size). */
+  .star-btn { opacity: 0.85; min-width: 44px; min-height: 44px; right: 56px; }
+  .cmd-item { padding-right: 104px; }
   /* Touch screens: per-element minimums so context row doesn't overflow */
   .top-btn { min-height: 40px; }
   .cat-btn { min-height: 34px; }

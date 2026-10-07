@@ -1,45 +1,37 @@
-import { P, F, defineCard, BEAT, OPACITY, makeRidingLabel } from './storage-kit.js';
+import { FADE, LANE_DY, P, F, defineCard, BEAT, OPACITY, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-csi-ephemeral-volume.md
 
 
-// Two regions right of the panel (x<=397), both 420..1160: the claim path that is never made, and
-// the Node-1 frame where the inline volume is. The two API objects that ARE read sit left, below it.
-const RIGHT_X = 420, RIGHT_W = 740, RIGHT_CX = RIGHT_X + RIGHT_W / 2;       // 420..1160, centre 790
+// Two regions right of the panel: the claim path that is never made, and the Node-1 frame.
+// The two API objects that ARE read sit left, below the panel.
+const RIGHT_X = 420, RIGHT_W = 740, RIGHT_CX = RIGHT_X + RIGHT_W / 2;
 
-// The ghost row: four boxes on one pitch spanning exactly the frame width, so 4w + 3g = 740.
-const GHOST_Y = 40, GHOST_H = 80, GHOST_GAP = 36;                          // 40..120, 56 above the frame
-const GHOST_W = (RIGHT_W - 3 * GHOST_GAP) / 4;                            // 158
-const ghostX = i => RIGHT_X + i * (GHOST_W + GHOST_GAP);                   // 420 / 614 / 808 / 1002
-const GHOST_MID = GHOST_Y + GHOST_H / 2;                                   // 80
+// The ghost row spans exactly the frame width on one pitch.
+const GHOST_Y = 40, GHOST_H = 80, GHOST_GAP = 36;
+const GHOST_W = (RIGHT_W - 3 * GHOST_GAP) / 4;
+const ghostX = i => RIGHT_X + i * (GHOST_W + GHOST_GAP);
+const GHOST_MID = GHOST_Y + GHOST_H / 2;
 
-// The frame is placed by its CENTRE, not by its rows: the two face midpoints are the only doors
-// anything outside uses, so everything else is derived from them. 176 hangs it 56 under the ghost
-// row and puts its left door clear of the panel (229.82 at 1100x800) for the column beside it.
-const NODE_Y = 176, NODE_H = 320;                                          // 176..496
-const NODE_CY = NODE_Y + NODE_H / 2, NODE_BOT = NODE_Y + NODE_H;           // 336: the left door, 496
+// The frame is placed by its CENTRE: its two face midpoints are the only doors anything outside
+// uses, so the rest derives from them. Its height follows the catalog padding round its two columns.
+const BLOCK_W = 232, BLOCK_H = 80, POD_H = 104, ROW_GAP = 64;
+const NODE_CY = 336, NODE_H = 34 + POD_H + ROW_GAP + BLOCK_H + 12;
+const NODE_Y = NODE_CY - NODE_H / 2, NODE_BOT = NODE_Y + NODE_H;
+const K_X = 452, D_X = 896;
+const D_CX = D_X + BLOCK_W / 2;
+const POD_Y = NODE_Y + 34, POD_MID = POD_Y + POD_H / 2;
+const VOL_H = BLOCK_H, VOL_Y = POD_MID - VOL_H / 2;
+// The store pair meets the frame at its bottom face, so no store duct runs inside it.
+const ROW_Y = POD_Y + POD_H + ROW_GAP, ROW_MID = ROW_Y + BLOCK_H / 2;
+const STORE_Y = NODE_BOT + 48, STORE_X = RIGHT_CX - BLOCK_W / 2;
 
-// Two columns inside the frame. The catalog block: 232 by 80, a Pod 232 by 104.
-const BLOCK_W = 232, BLOCK_H = 80, POD_H = 104;
-const K_X = 452, D_X = 896;                                                // 452..684, 896..1128
-const D_CX = D_X + BLOCK_W / 2;                                            // 1012
-const POD_Y = 212, POD_MID = POD_Y + POD_H / 2;                            // 212..316, mid 264
-const VOL_H = BLOCK_H, VOL_Y = POD_MID - VOL_H / 2;                        // 224..304, mid on the Pod
-// The lane row leaves 36 clear beneath itself, enough for the Node frame without a store duct
-// inside it. The store pair meets the frame at its bottom face instead.
-const ROW_Y = 380, ROW_MID = ROW_Y + BLOCK_H / 2;                          // 380..460, mid 420
-const STORE_Y = 544, STORE_X = RIGHT_CX - BLOCK_W / 2;                     // 544..624, 674..906
+// The two API objects stand mirrored about the left door, their lanes converging on one funnel x.
+const L_X = 60, L_RIGHT = L_X + BLOCK_W;
+const FUNNEL_X = (L_RIGHT + RIGHT_X) / 2;
+const API_MID = NODE_CY - 52, CSID_MID = NODE_CY + 52;
+const API_Y = API_MID - BLOCK_H / 2, CSID_Y = CSID_MID - BLOCK_H / 2;
 
-// The two API objects stand mirrored about the left door, 52 each side, and their own lanes converge
-// on it at one funnel x midway between the column and the frame. The column clears the panel by 14.
-const L_X = 60, L_RIGHT = L_X + BLOCK_W;                                   // 60..292
-const FUNNEL_X = (L_RIGHT + RIGHT_X) / 2;                                  // 356
-const API_MID = NODE_CY - 52, CSID_MID = NODE_CY + 52;                     // 284 / 388
-const API_Y = API_MID - BLOCK_H / 2, CSID_Y = CSID_MID - BLOCK_H / 2;      // 244..324 / 348..428
-
-// The store round trip runs straight down and straight up the bottom face as a mirrored pair,
-// 24 apart (LANE_DY 12, L-12), so no path runs from the Node face to the plugin. Both API lanes
-// end at the left door.
-const LANE_DY = 12;
+// The store round trip is a mirrored pair on the bottom face (L-12). Both API lanes end at the left door.
 
 const L_SPEC  = [[L_RIGHT, API_MID], [FUNNEL_X, API_MID], [FUNNEL_X, NODE_CY - LANE_DY],
   [FUNNEL_X, NODE_CY], [RIGHT_X, NODE_CY]];                                           // API server -> Node
@@ -51,21 +43,15 @@ const L_ANS   = [[RIGHT_CX + LANE_DY, STORE_Y], [RIGHT_CX + LANE_DY, NODE_BOT]];
 const L_WRITE = [[D_CX, ROW_Y], [D_CX, VOL_Y + VOL_H]];                            // plugin -> volume
 const L_READ  = [[D_X, POD_MID], [K_X + BLOCK_W, POD_MID]];                        // volume -> Pod
 
-// Every ball carries a name, and at routeDur these 48 to 212 unit legs retire the tag unread.
+// Every ball carries a name, and at routeDur these short legs retire the tag unread.
 const LEG_DUR = 1500;
-// Every tag lives exactly as long as its ball (M-30a). The two funnel legs end at the Node left face,
-// so their tags ride just inside the corridor. The publish leg ends head-on in a block ROOF, so its
-// tag rides 50 up, since its string is wider than the 212 gap it crosses and can only clear the two roofs.
-const lockstep = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
-// The store pair crosses the Node face directly, while the write and the read run head-on between
-// two blocks. Each tag trails its ball on the side away from the block it heads for and emerges once
-// clear of that face.
+// Each tag trails its ball on the side away from the block it heads for, and those that would
+// start on a block emerge once clear of it. The publish tag rides 50 up to clear both roofs.
 const trailing = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true });
-const API_TAG = { fn: lockstep, dx: 46, dy: -6 };
-const PUB_TAG = { fn: lockstep, dy: -50 };
-// The store pair runs in the 48 unit gap under the frame, so each tag rides in the band its own
-// lane leaves free, and each clears the face it ends on by leaving the other side of its ball.
-const GET_TAG = { fn: trailing, dx: -50, dy: -12, emerge: 650 };
+const API_TAG = { dx: 46, dy: -6 };
+const PUB_TAG = { dy: -50 };
+// Each store tag rides in the band its own lane leaves free, clear of the face it ends on.
+const GET_TAG = { dx: -50, dy: -12 };   // starts clear of the Node face, so no emerge
 const ANS_TAG = { fn: trailing, dx: 60, dy: 14, emerge: 650 };
 const WRITE_TAG = { fn: trailing, dx: 42, dy: 22, emerge: 700 };
 const READ_TAG = { fn: trailing, dx: 45, dy: -14, emerge: 650 };
@@ -76,8 +62,6 @@ const ghost = (key, i, label, sublabel = 'not created') => P.box({
 const ghostLink = i => P.relation({ points: [[ghostX(i) + GHOST_W, GHOST_MID], [ghostX(i + 1), GHOST_MID]] });
 const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 
-// Z-order (bottom -> top): the frame, then the blocks and the Pod, then the ghost row with its
-// relations and caption, then the lanes, then the packet layer.
 export const SCENE = {
   'aria-label': 'CSI ephemeral volumes: Pod web-0 declares a CSI volume inline, with a driver name and volumeAttributes, and no claim. No PVC, PV or VolumeAttachment is ever created, and no StorageClass is read. Kubelet checks that the CSIDriver object lists the Ephemeral lifecycle mode, then calls NodePublishVolume on the node plugin directly, with no attach and no stage. Here the driver is the Secrets Store driver: its attributes name a SecretProviderClass, whose provider fetches db-password from an external store, and the driver creates the volume and writes the file. Only then does the container start and read it at /mnt/secrets. When the Pod is deleted and its containers have stopped, Kubelet calls NodeUnpublishVolume and the driver deletes the volume, so it lives and dies with the Pod.',
   parts: [
@@ -143,8 +127,7 @@ export const STEPS_SPEC = [
     // The API server acts first: lit at entry, it sends on BEAT.lead and Kubelet lights on arrival.
     lit: ['api'],
     flow: [
-      F.route({ points: L_SPEC, delay: BEAT.lead, dur: LEG_DUR, lights: ['kubelet'] }),
-      F.tag({ text: 'Pod web-0', points: L_SPEC, delay: BEAT.lead, dur: LEG_DUR, ...API_TAG }),
+      F.route({ points: L_SPEC, delay: BEAT.lead, dur: LEG_DUR, lights: ['kubelet'], tag: { text: 'Pod web-0', ...API_TAG } }),
     ],
   },
   {
@@ -156,8 +139,7 @@ export const STEPS_SPEC = [
     opacity: stage(),
     lit: ['csid'],
     flow: [
-      F.route({ points: L_MODE, delay: BEAT.lead, dur: LEG_DUR, lights: ['kubelet'] }),
-      F.tag({ text: 'Ephemeral', points: L_MODE, delay: BEAT.lead, dur: LEG_DUR, ...API_TAG }),
+      F.route({ points: L_MODE, delay: BEAT.lead, dur: LEG_DUR, lights: ['kubelet'], tag: { text: 'Ephemeral', ...API_TAG } }),
     ],
   },
   {
@@ -169,8 +151,7 @@ export const STEPS_SPEC = [
     opacity: stage(),
     lit: ['kubelet'],
     flow: [
-      F.route({ points: L_PUB, delay: BEAT.lead, dur: LEG_DUR, lights: ['plugin'] }),
-      F.tag({ text: 'NodePublishVolume', points: L_PUB, delay: BEAT.lead, dur: LEG_DUR, ...PUB_TAG }),
+      F.route({ points: L_PUB, delay: BEAT.lead, dur: LEG_DUR, lights: ['plugin'], tag: { text: 'NodePublishVolume', ...PUB_TAG } }),
     ],
   },
   {
@@ -183,10 +164,8 @@ export const STEPS_SPEC = [
     // The store lights as the request lands, so the answer leaves a lit sender one hop later.
     lit: ['plugin'],
     flow: [
-      F.route({ points: L_GET, delay: BEAT.lead, dur: LEG_DUR, name: 'get', lights: ['store'] }),
-      F.tag({ text: 'get db-password', points: L_GET, delay: BEAT.lead, dur: LEG_DUR, ...GET_TAG }),
-      F.route({ points: L_ANS, after: 'get', dur: LEG_DUR }),
-      F.tag({ text: 'db-password', points: L_ANS, after: 'get', dur: LEG_DUR, ...ANS_TAG }),
+      F.route({ points: L_GET, delay: BEAT.lead, dur: LEG_DUR, name: 'get', lights: ['store'], tag: { text: 'get db-password', ...GET_TAG } }),
+      F.route({ points: L_ANS, after: 'get', dur: LEG_DUR, tag: { text: 'db-password', ...ANS_TAG } }),
     ],
   },
   {
@@ -197,17 +176,13 @@ export const STEPS_SPEC = [
     podSublabels: { pod: 'Running' },
     opacity: stage({ vol: 1 }),
     lit: ['plugin'],
-    // The volume comes into existence as the write lands and the container starts, so the Pod turns
-    // Running there. The app then reads the file. The rewind puts the animated path back to before.
+    // The volume comes into existence as the write lands and the container starts.
     rewind: { sublabels: NOT_YET, podSublabels: WAIT, opacity: { vol: PEND } },
     flow: [
-      F.route({ points: L_WRITE, delay: BEAT.lead, dur: LEG_DUR, name: 'write', lights: ['vol'] }),
-      F.tag({ text: 'db-password', points: L_WRITE, delay: BEAT.lead, dur: LEG_DUR, ...WRITE_TAG }),
+      F.route({ points: L_WRITE, delay: BEAT.lead, dur: LEG_DUR, name: 'write', lights: ['vol'], tag: { text: 'db-password', ...WRITE_TAG } }),
       F.reveal({ target: 'vol', from: PEND, at: 'write' }),
       F.set({ sublabels: HOLDS, podSublabels: { pod: 'Running' }, at: 'write' }),
-      F.route({ points: L_READ, after: 'write', dur: LEG_DUR, name: 'read' }),
-      F.tag({ text: 'db-password', points: L_READ, after: 'write', dur: LEG_DUR, ...READ_TAG }),
-      F.pulse({ pod: 'pod', at: 'read' }),
+      F.route({ points: L_READ, after: 'write', dur: LEG_DUR, tag: { text: 'db-password', ...READ_TAG }, pulse: 'pod' }),
     ],
   },
   {
@@ -218,18 +193,14 @@ export const STEPS_SPEC = [
     podSublabels: { pod: 'deleted' },
     opacity: stage({ pod: T, vol: T }),
     lit: ['api'],
-    // The Pod blinks BEFORE it goes (M-08), Kubelet sends the unpublish once it is gone, and the
-    // volume ghosts on that arrival. The rewind starts both at full for the animated path.
+    // The Pod blinks BEFORE it goes (M-08), and the volume ghosts on the unpublish arrival.
     rewind: { sublabels: HOLDS, podSublabels: { pod: 'Running' }, opacity: stage({ vol: 1 }) },
     flow: [
-      F.route({ points: L_SPEC, delay: BEAT.lead, dur: LEG_DUR, name: 'kill', lights: ['kubelet'] }),
-      F.tag({ text: 'Pod deleted', points: L_SPEC, delay: BEAT.lead, dur: LEG_DUR, ...API_TAG }),
-      F.pulse({ pod: 'pod', at: 'kill' }),
-      F.fade({ target: 'pod', to: T, dur: 700, at: 'kill', plus: BEAT.afterPulse, fill: 'forwards', name: 'gone' }),
+      F.route({ points: L_SPEC, delay: BEAT.lead, dur: LEG_DUR, name: 'kill', lights: ['kubelet'], tag: { text: 'Pod deleted', ...API_TAG }, pulse: 'pod' }),
+      F.fade({ target: 'pod', to: T, dur: FADE.out, at: 'kill', plus: BEAT.afterPulse, fill: 'forwards', name: 'gone' }),
       F.set({ podSublabels: { pod: 'Terminating' }, at: 'kill', plus: BEAT.afterPulse }),
-      F.route({ points: L_PUB, after: 'gone', dur: LEG_DUR, name: 'unpub', lights: ['plugin'] }),
-      F.tag({ text: 'NodeUnpublishVolume', points: L_PUB, after: 'gone', dur: LEG_DUR, ...PUB_TAG }),
-      F.fade({ target: 'vol', to: T, dur: 700, at: 'unpub', fill: 'forwards' }),
+      F.route({ points: L_PUB, after: 'gone', dur: LEG_DUR, name: 'unpub', lights: ['plugin'], tag: { text: 'NodeUnpublishVolume', ...PUB_TAG } }),
+      F.fade({ target: 'vol', to: T, dur: FADE.out, at: 'unpub', fill: 'forwards' }),
       F.set({ sublabels: { vol: 'deleted' }, podSublabels: { pod: 'deleted' }, at: 'unpub' }),
     ],
   },

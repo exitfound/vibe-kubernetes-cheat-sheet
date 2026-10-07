@@ -2,12 +2,9 @@
 // The network posters, keyed by card id: the still frame each card shows on the grid.
 
 export const POSTERS = {
-  // A bus band over two dashed Node frames. The band carries ONE bright full-width range bar, which
-  // is the accent and the subject: the flat address space itself. Each Pod carries the same bar at
-  // 0.3, identical across all three, because the promise is that no Pod is special. The Node frames
-  // say the second half of the sentence: two different Nodes, one space, and the legs cross the
-  // frame edge the way a Pod attaches itself to the space rather than to its Node.
-  'network-model': `
+  // A bus band over two dashed Node frames: one bright full-width range bar is the flat address space,
+  // each Pod carries the same bar at 0.3, and the legs cross the Node frames to attach to the space.
+  'network-flat-pod-network': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="24" y="32" width="272" height="36" rx="7" fill="rgba(255,255,255,0.05)" stroke-width="2"/>
       <rect x="34" y="46" width="252" height="8" rx="4" fill="currentColor" opacity="0.9" stroke="none"/>
@@ -29,12 +26,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Nested containment: three tenants standing directly over the one stack they share, four bars deep
-  // inside its frame. Each leg drops STRAIGHT down under its own block rather than converging, so the
-  // picture says three-into-one by position instead of by a fan, and nothing runs down the column
-  // because the card holds the layers to be a layering and not a packet path. The stack is the subject
-  // and takes the heaviest stroke, the largest mass and the brightest fill. The accent is one bright
-  // bar in the top layer with the same bar dim inside each tenant: one port space, not three.
+  // Nested containment: three tenants over the one stack they share, each leg dropping straight down.
+  // The stack carries the weight, and one bright bar in its top layer echoes dim in each tenant.
   'network-namespaces': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="68"  y="70"  width="184" height="96" rx="10" stroke-width="2" fill="rgba(255,255,255,0.03)"/>
@@ -57,11 +50,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // The scheme in miniature, vertically centred: client Pod to netfilter (holding a 2x2 conntrack
-  // table mapping the original tuple to the translated one) to server Pod. Two lanes carry the flow
-  // with explicit chevrons, the request left to right on the top lane and the reply right to left on
-  // the bottom. Neither lane carries a packet: a filled dot resting on a lane in a still frame reads
-  // as a paused animation. Accent is the TRANSLATED tuple, the pair the entry remembers.
+  // Client Pod to netfilter (a 2x2 conntrack table) to server Pod, request and reply on two chevroned
+  // lanes with no packet resting on them. Accent: the translated tuple the entry remembers.
   'network-conntrack-nat': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="14" y="57" width="64" height="66" rx="11" fill="rgba(255,255,255,0.03)"/>
@@ -83,11 +73,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // TWO ZONES COMPARED, split along Y. Two transfers on one link: each frame carries a faint link
-  // track, a datagram carved into a dim outer header and a payload whose LENGTH is the whole
-  // difference, and an outcome cell, filled where the echo came home and a dashed hollow where
-  // nothing did. Accent is the overrun, the tail of the lower datagram the hop does not carry.
-  // The proportions are drawn for legibility at 200px and are not the card's declared 0.72 scale.
+  // Two zones compared: two datagrams on one link, header plus a payload whose length is the difference,
+  // and an outcome cell filled or dashed hollow. Accent: the overrun the hop does not carry.
   'network-mtu-overhead': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20" y="26" width="280" height="54" rx="10" fill="rgba(255,255,255,0.03)"/>
@@ -107,12 +94,8 @@ export const POSTERS = {
     <rect x="214" y="119.7" width="35.3" height="14.6" fill="currentColor" opacity="0.9"/>
   `,
 
-  // BRANCH. One rule sorts the traffic, and only the half that leaves the cluster goes out wearing a
-  // different source. Three two-row address readouts, src over dst, every bar the same size in all
-  // three: the input on the left, the outcome that stays inside reached by a solid leg, and the
-  // outcome that leaves reached by a dashed one. The accent is the whole readout of that lower
-  // block, both rows at 0.9 against 0.3 everywhere else, which is the Branch idiom of lighting the
-  // taken outcome and leaving the untaken one at the sibling fill.
+  // Branch: three src-over-dst readouts, the input, the outcome that stays inside on a solid leg, and
+  // the outcome that leaves on a dashed one. Accent: the whole leaving readout at 0.9.
   'network-pod-egress-snat': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="22"  y="56" width="80" height="68" rx="9" fill="rgba(255,255,255,0.03)"/>
@@ -130,7 +113,7 @@ export const POSTERS = {
   `,
   // Two containers side by side, both wired into one shared loopback node (lo, 127.0.0.1) in the
   // middle: they share localhost and one network stack. Sub-blocks centred inside the Pod.
-  'network-pod-localhost': `
+  'network-containers-share-localhost': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="46" y="36" width="228" height="108" rx="12" fill="rgba(255,255,255,0.03)"/>
       <rect x="56"  y="68" width="58" height="44" rx="6" fill="rgba(255,255,255,0.05)"/>
@@ -203,11 +186,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Segmented budget bar under a replica ruler on ONE 40..280 grid: Pods grouped 3 and 1, a dashed
-  // tick where the replica count would cut (75), a solid divider where the weights do (250). Accent
-  // is the 90 share, the opposite way round from the card, where the web-v1 share is the opaque
-  // rect over a bright web-v2 track. It carries no version labels, so it claims nothing about which
-  // share is which, and inverting it would leave a bar that reads as an empty track.
+  // Segmented budget bar under a replica ruler on one grid: Pods grouped 3 and 1, a dashed tick where
+  // the replica count would cut, a solid divider where the weights do. Accent: the 90 share.
   'network-gateway-traffic-splitting': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="40"  y="41" width="48" height="44" rx="6" fill="rgba(255,255,255,0.06)"/>
@@ -229,7 +209,7 @@ export const POSTERS = {
   // Branch from a roster row: the balancer holds its target list, two Node port rows dashed and unused
   // and one solid Pod IP row, and only that row runs a heavy leg out to the Node holding the Pod.
   // Accent: the Pod IP row, the Pod bar at 0.3.
-  'network-loadbalancer-direct-to-pods': `
+  'network-loadbalancer-straight-to-pods': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="28"  y="42"  width="100" height="96" rx="10" fill="rgba(255,255,255,0.05)"/>
       <rect x="42"  y="59"  width="72"  height="14" rx="3" fill="rgba(255,255,255,0.02)" stroke-dasharray="4 3"/>
@@ -242,12 +222,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // The staircase of guesses. A short name is not asked once: the resolver walks the search list and
-  // each attempt drops one suffix, so the candidate names get SHORTER row by row until only the bare
-  // name is left. The rows are a descending staircase, the dashed rail on the left is the walk down
-  // it, and the dot trailing each row is the query that attempt costs. The staircase IS the cost,
-  // which is the whole point of ndots, so the poster spends everything on that shape and draws no
-  // topology.
+  // The staircase of guesses: each search-list attempt drops one suffix, so the rows descend down a
+  // dashed rail with one query dot each. The staircase is the cost, no topology.
   'network-dns-ndots': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="54"  y="20"  width="44" height="28" rx="5" fill="rgba(255,255,255,0.04)"/>
@@ -354,7 +330,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Signed off by the author 2026-09-18 as final and acceptable, closeness to the diagram included.
   // Two axis meters of unequal reading over the replica row they decide.
   'network-dns-autoscaling': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
@@ -379,11 +354,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Where a normal Service keeps a VIP, headless keeps an ANSWER. The middle of the path is not a box
-  // that rewrites the destination, since clusterIP None means kube-proxy programs nothing, but the
-  // DNS reply itself, a sheet of three A records. One leg leaves the sheet onto a shared vertical
-  // bus, which then branches once per Pod, so the record count and the Pod count are visibly the same
-  // number, which IS headless.
+  // Where a normal Service keeps a VIP, headless keeps an answer: a sheet of three A records feeds one
+  // bus that branches once per Pod, so the record count and the Pod count match.
   'network-headless-service': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20"  y="74"  width="60" height="32" rx="6" fill="rgba(255,255,255,0.04)"/>
@@ -410,11 +382,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Ghost to solid, ONE object twice, and the bars are ADDRESSES rather than blocks: four groups
-  // against eight is why the v6 one is longer, which is the whole sentence in one rhythm. The ghost
-  // carries the v4 groups and an empty dashed slot, the family it has no address for yet, aligned
-  // with where the solid one fills it. The eight bright groups are the only accent. Entry stubs on
-  // the right face were drawn and cut: `either family reaches it` is a second sentence (`R-02`).
+  // Ghost to solid, one object twice, the bars are address groups: v4 groups plus an empty dashed slot,
+  // then the eight bright v6 groups that fill it, the only accent.
   'network-dualstack': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="24" y="40" width="110" height="100" rx="8" fill="rgba(255,255,255,0.04)" stroke-dasharray="4 3"/>
@@ -440,38 +409,9 @@ export const POSTERS = {
     </g>
   `,
 
-  // TWO ZONES COMPARED, and the comparison is a SLOT FILLED against the SAME SLOT EMPTY. The
-  // sentence is that of the two ends of one veth pair, only the end inside the Pod carries an
-  // address. Two furnished frames of equal size stand either side of one dashed boundary at x=160,
-  // and the two ends face each other across it on one row, y=52, both 80 wide so a reader reads
-  // them as the same kind of thing. The accent is the 64x10 bar at 0.9 inside `eth0`, the only full
-  // brightness on the canvas, and the peer carries that bar's box redrawn as an EMPTY dashed
-  // outline: the asymmetry is a shape a reader can compare rather than a label they have to read.
-  // NOTHING IS DRAWN BETWEEN THE TWO ENDS, and that is the author's call after three renders that
-  // had something there. A `stroke-width` 2 lane with one tick 20 inboard of each end went first:
-  // at the ends the ticks landed 2 units off the zone frame walls and vanished into them at true
-  // size, and moved clear into the gutter they read as a gate cutting the link. A 100x14 capsule at
-  // rx 7 replaced it and said `one body, two ends` with its own rounded ends, and it was turned
-  // down in turn for reading as a THIRD block floating between the two big ones, which at 200px is
-  // what a horizontal rounded rect between two frames looks like. The cost is named rather than
-  // hidden: the poster no longer draws the pair as one object, and what it draws is the second half
-  // of the card's question, WHERE the address lives. The two ends still face each other on one row
-  // at one size, which is what says they are a pair.
-  // THE OLD POSTER IS NOT RE-RUN. Its note has `two boxes sharing a bar` measured and turned down
-  // twice, a capsule SPANNING the whole width over a stroked ground whose two halves were empty.
-  // Both halves here are furnished (3 blocks left, 2 plus a three port band right, 8 marks of
-  // furniture inside them) and there is no bar for them to hang off at all. What that poster got
-  // right and this one keeps is the dashed boundary and the address on the left against nothing on
-  // the right, which is the sentence.
-  // THE CONTAINERS SIT UNDER THE INTERFACE, not beside it. `pause` and `app` are two 18 tall rows at
-  // 0.3 below the one `eth0` block, which is the last clause of the card's own desc drawn rather
-  // than written: one pair and one address per POD, and the containers are what share it. Rowed
-  // beside eth0 they would read as three peers, which is what the card's record rejects on the
-  // diagram for the same reason.
-  // cni0 IS A BAND WITH THREE PORTS, not a bridge glyph: the claim is that the host end plugs into
-  // something that switches, and a port row says that where a drawn bridge says only its noun. The
-  // leg from the peer lands on the MIDDLE port at x=250 and is solid, because enslavement is real
-  // and the house dash means `not real yet, leaving, optional`.
+  // Two zones compared, a slot filled against the same slot empty: the two veth ends face each other
+  // across a dashed boundary, eth0 holding the bright address bar and the peer an empty dashed box.
+  // pause and app sit under eth0, and the peer's solid leg lands on the middle port of the cni0 band.
   'network-pod-ip-and-veth': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <line x1="160" y1="16" x2="160" y2="150" stroke-dasharray="4 3" opacity="0.7"/>
@@ -495,22 +435,9 @@ export const POSTERS = {
     <rect x="262" y="101" width="20" height="10" rx="1" fill="currentColor" opacity="0.3"/>
   `,
 
-  // CHAIN OF STAGES over a SEGMENTED RESULT BAND. The sentence is that the runtime runs the plugin
-  // list in order and ONE result accumulates as it goes. Three equal programs stand in a row, each
-  // carrying its own name bar at 0.3, joined by short dashed legs, and under them one band cut into
-  // three parts, one part per plugin, each part standing under the program that wrote it. The band
-  // takes the heavy stroke because the RESULT is the subject, and the third part alone carries the
-  // accent at 0.9 with the first two at 0.3: the last plugin prints the one finished result, and
-  // that ramp is what says direction with no arrowhead (`R-08`).
-  // host-local hangs UNDER the middle program on a dashed stub, dashed and off the row, which is the
-  // claim the card makes: it is named inside the bridge config, not listed beside the others.
-  // The three programs are EQUAL on purpose. A rising staircase of unequal blocks was described
-  // first and says the plugins grow, which is false: they are peers and only their output grows.
-  // Rejected before that: the old stack of two entries with the nested member drawn INSIDE entry
-  // one, which read as a stack of layers and put the accent on the delegate rather than on the
-  // result the card is about. Interior rungs under each name bar were drawn and cut: they pushed the
-  // drawing to 23 primitives and gave the fills a third opacity tier, which is a ramp, not an accent.
-  'network-cni-invocation': `
+  // Chain of stages over a segmented result band: three equal programs on dashed legs, one band part
+  // under each, the third part the accent (R-08). host-local hangs dashed under the middle program.
+  'network-wiring-pod-via-cni': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="24"  y="30" width="80" height="44" rx="6" fill="rgba(255,255,255,0.05)"/>
       <rect x="120" y="30" width="80" height="44" rx="6" fill="rgba(255,255,255,0.05)"/>
@@ -532,10 +459,8 @@ export const POSTERS = {
     <rect x="218" y="135" width="68" height="12" rx="2" fill="currentColor" opacity="0.9"/>
   `,
 
-  // The hero is ENCAPSULATION itself: Pod A on Node-1 to Pod B on Node-2, and mid-gap the packet is a
-  // packet-in-packet, a bright inner Pod frame wrapped inside an outer Node header. Source Pod
-  // bright, destination dim, the wrapped packet crossing the inter-Node gap on a dashed flow. The
-  // nesting reads as the Pod frame carried between Nodes inside an outer envelope.
+  // Encapsulation as the hero: Pod A on Node-1 to Pod B on Node-2, mid-gap a bright inner Pod frame
+  // wrapped in an outer Node header on a dashed flow. Source bright, destination dim.
   'network-pod-to-pod-cross-node': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="14"  y="54" width="84" height="72" rx="9" fill="rgba(255,255,255,0.03)"/>
@@ -567,12 +492,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // A bracket down the left, cut into three, with a block beside each piece: one range divided into
-  // parts that cannot overlap, and an address taken from inside one of them. Every block begins and
-  // ends exactly where its own bracket segment does, and that alignment is what says no two parts
-  // share any of the range. The bright bar sits INSIDE the middle block with the others at 0.3 on
-  // the same bar: an address comes out of one part, never out of the range at large. No leg and no
-  // block on top, because nothing here is handing anything down.
+  // A bracket down the left cut into three, a block beside each piece aligned to its segment, so no
+  // two parts overlap. Accent: the bar inside the middle block, an address out of one part.
   'network-ipam-pod-cidr': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <line x1="30" y1="26"  x2="48" y2="26"/>
@@ -592,7 +513,7 @@ export const POSTERS = {
   // The scheme abstracted: live Pods on the left as the source, the notReady one dimmed, reconciled
   // into the EndpointSlice on the right as the derived list, one endpoint row per Pod with the
   // notReady row dimmed. Straight horizontal wires carry the one-row-per-Pod mapping.
-  'network-endpointslice-reconcile': `
+  'network-service-and-endpointslice': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="28"  y="35"  width="86"  height="34" rx="6"  fill="rgba(255,255,255,0.05)"/>
       <rect x="28"  y="79"  width="86"  height="34" rx="6"  fill="rgba(255,255,255,0.05)"/>
@@ -633,13 +554,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Two zones compared, stacked on one x and fed from a SHARED SOURCE on the left (patterns.md): one
-  // packet, the same skeleton twice, so the only thing that moves is what happens inside the frame.
-  // The top five slots are CHAINED to each other, first to last, and that chain floats free of the
-  // entry leg: the walk is a property of the frame, not something the packet drags in. The bottom
-  // frame holds one bright slot alone, on the SAME x as the top's third, with nothing linking it to
-  // anything, which is the hash lookup owing nothing to a predecessor. Ink against no ink inside two
-  // identical frames. No backend block, since where the packet lands is the same either way.
+  // Two zones compared on one x, fed from a shared source: the top frame chains five slots, the bottom
+  // holds one bright slot alone on the top third slot's x, the hash lookup. No backend block.
   'network-kube-proxy-modes': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="22" y="76" width="36" height="28" rx="5" fill="rgba(255,255,255,0.05)"/>
@@ -659,11 +575,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // The wall (patterns.md): minSyncPeriod is a FLOOR and the card says so in words, so the poster
-  // draws it as the one upright bar in the gap. Left, SMALLER and lighter because it is the side
-  // held off, a queue of change
-  // ticks, uniform because they are a COUNT of identical waits and not a chart of magnitudes.
-  // Right, heavier, the three rule slabs already written. The bar is the whole accent.
+  // The wall: minSyncPeriod is a floor, drawn as the one upright bar in the gap. Left, smaller, a queue
+  // of identical change ticks, right, heavier, the three rule slabs already written.
   'network-proxy-rule-resync': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="30" y="50" width="100" height="84" rx="6" fill="rgba(255,255,255,0.03)"/>
@@ -688,13 +601,8 @@ export const POSTERS = {
     <rect x="152" y="26" width="10" height="128" rx="2" fill="currentColor" opacity="0.9"/>
   `,
 
-  // One row LEAVES the map and becomes the connection. Five candidate entries sit at 0.3 inside the
-  // BPF map frame, which carries the heavier stroke as the source of the answer, and the middle one
-  // is lit inside it at 0.9, on the same width as its neighbours, the address the connect() rewrite
-  // installed. The second bright bar to its right is that same address on the path, and three empty
-  // frames stand across it, the per-packet stops this dataplane does not have, which it passes over
-  // uncut. No socket, no backend and no topology
-  // at all: the picture is the chosen entry and the distance it covers without being touched again.
+  // One row leaves the map and becomes the connection: five entries in the BPF map frame, the middle lit,
+  // and the same bright bar on the path passing three empty per-packet stops uncut.
   'network-ebpf-dataplane': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="16"  y="36" width="80" height="100" rx="8" stroke-width="2" fill="rgba(255,255,255,0.05)"/>
@@ -710,20 +618,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // ONE input sorted into one of three identical slots. The three slots are the SAME size on purpose:
-  // a slot drawn larger because a range is bigger would be a quantity with no value behind it
-  // anywhere on the card. What differs is which one is lit. The single square on the left is the
-  // packet, its trunk runs into a fork bus, and three legs leave it for three slots of equal weight,
-  // the middle one at 0.9 because that is where both of the card's cluster journeys end. No Node, no
-  // station and no address: the picture is a sort, not a path.
-  //
-  // OUTLINED 2026-09-10. Every slot used to BE its accent: a 142 x 24 rect filled with currentColor
-  // at 0.3 or 0.9, so its inherited stroke fell on its own fill and the right two thirds of the
-  // canvas read as three flat lozenges. That is the shape R-07 names outright, a bright fill on a
-  // whole shape rather than a bar inside the block it belongs to. Each slot is now a stroked block
-  // over a washed fill with a 118 x 10 bar centred in it, so the losers keep the same bar at 0.3 and
-  // the winner is the only solid thing on the canvas. The middle block also takes stroke-width 2,
-  // matching the packet square it is the answer to, which is weight rather than a second accent.
+  // One input sorted into one of three equal slots (equal on purpose, size would be a fake quantity):
+  // packet, trunk, fork bus, three stroked slots with a bar each, the middle one lit (R-07).
   'network-packet-classification': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="18" y="77" width="26" height="26" rx="5" stroke-width="2" fill="rgba(255,255,255,0.05)"/>
@@ -741,34 +637,9 @@ export const POSTERS = {
     </g>
   `,
 
-  // The conjunction, and nothing else: one connection between two Pods, and a bright bar standing ON
-  // THE ROAD at each end of it. The bars are the only accent and they are identical, because neither
-  // verdict outranks the other and either one alone ends the connection. The two dim plates above are
-  // where the bars come from, one over each.
-  //
-  // REDRAWN 2026-09-10 WITH THE CARD, AND THE PREVIOUS RULING HERE IS INVERTED. That version stood
-  // both bars INSIDE the two faces and argued at length that a bar in the gap would say two
-  // checkpoints on a wire, which was then the one sentence this thumbnail must not say. The card now
-  // says exactly that on purpose: opened at true size, a verdict drawn as a sliver on a face was not
-  // visible at all, and the redesign puts a 44 x 100 bar on the road with 100 units of run-up so a
-  // refused packet has a journey to die at the end of. The thumbnail follows the card, so the bars
-  // moved out onto the wire and the third plate went with the additivity subject the card dropped.
-  //
-  // Clearances measured off the grid at true size, where the poster paints 369px wide for 320 units,
-  // 1.15px per unit: each 9 unit bar is 10.3px, bar one clears the sender face at 104 by 14 units and
-  // bar two clears the receiver face at 206 by 13, and 57 units of road stay lit between them. Nothing
-  // merges and neither bar touches a block.
-  //
-  // ONE PLATE DROPS ONTO ONE BAR, and the two drops are the same length. A plate reaching across to
-  // the other bar, or one line longer than the other, draws an order between two boundaries that
-  // know nothing about each other, which is the sentence of the card.
-  //
-  // OUTLINED 2026-09-11, the same pass the sibling took. Both plates used to be a whole shape filled
-  // with currentColor at 0.28 and no stroke, which is what R-07 forbids and what made them read as
-  // smears rather than as the two objects they are: each is now a stroked block over a washed fill.
-  // The two Pods gained the inner app box every Pod in this catalog carries, because an empty 84 x 48
-  // rectangle twice over is what left the canvas hollow. Neither change touches the accent: the two
-  // bars on the road are still the only solid ink, and they are still identical.
+  // The conjunction: one connection between two Pods with an identical bright bar on the road at each
+  // end, neither verdict outranking the other. One dim plate above drops onto each bar, equal length,
+  // since the two boundaries know nothing of each other.
   'network-policy': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="99"  y="21" width="46" height="20" rx="4" fill="rgba(255,255,255,0.05)"/>
@@ -808,14 +679,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Chain of stages read top to bottom, where the fallthrough is said by the BREAK in the first
-  // stage rather than by a line: the cache band is split open in the middle, its left slot empty and
-  // its right one holding a dim copy the answer left behind, and the whole question lands on the one
-  // bright bar of the stage below. Both halves drop a dashed leg into that stage, so the BREAK says
-  // the fallthrough and the legs say what the chain is fed by. Accent: that answer bar at 0.9, the
-  // six losers on the same bar at 0.3. forward is a dashed empty rung on a dashed leg at half the
-  // weight of those legs and twice their stroke, drawn and never taken. The three stages stand 23
-  // apart, the same distance the top and bottom margins take.
+  // Chain of stages read top to bottom: the cache band breaks open, left slot empty, right a dim copy,
+  // and both halves drop dashed legs onto the bright answer bar below. forward is a dashed untaken rung.
   'network-dns-coredns': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="24"  y="18" width="110" height="32" rx="7" fill="rgba(255,255,255,0.04)"/>
@@ -842,11 +707,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // One name, several shapes of answer. The FQDN is a band of four identical segments joined by the
-  // dots of the name itself, and it forks into three identical record chips. The ONLY difference the
-  // poster draws is the answer count: the middle chip carries three dots (headless, one record per
-  // Pod), the others carry one. No resolver box and no record ladder, since the card already draws
-  // those and the poster only has to say what the card is ABOUT.
+  // One name, several shapes of answer: the FQDN band forks into three identical record chips, the middle
+  // carrying three dots (headless, one record per Pod), the others one.
   'network-dns-records': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="31"  y="40"  width="60" height="28" rx="5" fill="rgba(255,255,255,0.04)"/>
@@ -912,13 +774,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Three shapes on the way in, one band on the way back, nothing else. The two NAT hooks are the
-  // boxes and each carries the same rewrite glyph, one address chip becoming another: the destination
-  // on the way in, the source on the way out. Between them the routing decision is a DIAMOND, the one
-  // shape that is not a box because it is the one that CHOOSES, and it sits AFTER the first rewrite,
-  // which is why the order matters: routing only ever sees the already rewritten address. The reply
-  // walks none of it, the conntrack band under the rail IS the way back. FORWARD, the filter hook and
-  // the Node frame are left out: the poster only has to say why the ORDER is the point.
+  // Two NAT hooks with the same rewrite glyph, the routing diamond between them after the first rewrite,
+  // and the conntrack band under the rail as the way back. Says why the order is the point.
   'network-netfilter-path': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="34"  y="44" width="72" height="42" rx="6" fill="rgba(255,255,255,0.06)"/>
@@ -946,12 +803,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Nested containment, and the shell is the whole subject. The band along the bottom is the Node
-  // address and both Pods carry the same core. Left is hostPort: the core sits inside the Pod own
-  // network shell, and the link to the band stops on that shell outer edge. Right is hostNetwork:
-  // the same shell in the same place but dashed away, a boundary that is not really there, and the
-  // link meets it at the same edge. Accent is the address bar in the left core, its own, against the
-  // same bar at 0.3 in the right core, which is the Node one.
+  // Nested containment over the Node address band: left hostPort, the core inside the Pod own shell,
+  // right hostNetwork, the shell dashed away. Accent: the left core own address bar.
   'network-hostnetwork-hostport': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20" y="136" width="280" height="28" rx="6" fill="rgba(255,255,255,0.08)"/>
@@ -971,13 +824,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // A diptych: the same little scene twice, and the ONLY thing the policy changes is the Node border.
-  // Left is Cluster, so the border is a faint dashed hint and the call reaches the backend inside the
-  // Node and also climbs out over that border to the one outside. Right is Local, so the same border
-  // is drawn solid as a wall: the leg that would leave the Node is cut short and crossed out at it,
-  // and the outside backend with its would-be path fade to a ghost, leaving only the short leg that
-  // stays home. Same caller, same two backends, one boundary that either lets traffic through or does
-  // not.
+  // A diptych where only the Node border changes: Cluster, a faint dashed border the call climbs out over,
+  // Local, a solid wall that cuts the outside leg and ghosts the outside backend.
   'network-internal-traffic-policy': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <line x1="160" y1="24" x2="160" y2="156" stroke-dasharray="4 3"/>
@@ -1007,12 +855,9 @@ export const POSTERS = {
     </g>
   `,
 
-  // Mirrors the diagram: clients above an upstream router, which fans down to three Nodes that each
-  // hold a backend Pod. All three Pods carry the same tint and no ball rides the fan, so the poster
-  // states the composition and which Node owns the address is what the steps answer. Client and
-  // router centred on x=160, the three Nodes mirrored about it, each Pod centred inside its Node,
-  // every fan leg leaving the router bottom edge and landing on a Node top edge without crossing one.
-  'network-loadbalancer-bare-metal': `
+  // Clients over an upstream router fanning to three Nodes, each holding a backend Pod in one tint with
+  // no ball on the fan, so which Node owns the address is left to the steps.
+  'network-loadbalancer-without-cloud': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="130" y="18"  width="60" height="20" rx="5" fill="rgba(255,255,255,0.04)"/>
       <rect x="112" y="50"  width="96" height="26" rx="5" fill="rgba(255,255,255,0.06)"/>
@@ -1032,13 +877,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // A routing junction, not another box-and-line row: one request enters a square decision node, which
-  // splits it into two CURVED paths sweeping out to a pair of rounded backend pills. The Ingress rule
-  // table, two bars with the shorter one the more specific rule, docks above the junction and feeds
-  // it. Curves and pills keep this poster from reading like the rectangle rows of its siblings. The
-  // junction sits on the flow line y=100, the two pills mirror it at -/+34, the entry dash meets the
-  // square left edge at 96, both curves leave its right edge at 128 and the rule table drops onto its
-  // top edge at 84.
+  // A routing junction: one request enters a square decision node and splits into two curved paths to
+  // rounded backend pills, the rule table docked above. Curves keep it off the siblings rectangle rows.
   'network-ingress-routing': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="84" y="28" width="56" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
@@ -1056,10 +896,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Two zones compared, side by side on one skeleton: traffic enters a Node with no Pod, above a Node
-  // with one. Cluster (left) hands it down to that Pod, Local (right) has no hop and drops it where
-  // it landed. Accent on the Cluster Pod, the one the traffic reaches. One dashed feed drops from the
-  // top edge, an unseen external source, and forks onto both entry Nodes with a chevron on each.
+  // Two zones compared on one skeleton, one dashed feed forking onto a Node with no Pod over a Node with
+  // one: Cluster hands it down, Local drops it. Accent: the Cluster Pod the traffic reaches.
   'network-external-traffic-policy': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="32"  y="46" width="104" height="44" rx="8" fill="rgba(255,255,255,0.04)"/>
@@ -1080,10 +918,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Twin three-row stacks flanking a wall: the same packet drawn on both sides of the proxy, so the
-  // reader compares row by row. The accent is the row CARRYING the client address, and it MOVES,
-  // top row on the left (the socket still holds it) and middle row on the right (only the header
-  // does). Symmetric about cx 160, the wall solid at 0.3 so the barrier is not the subject.
+  // Twin three-row stacks flanking a wall, the same packet each side of the proxy. The accent is the row
+  // carrying the client address, and it moves: the socket row left, the header row right.
   'network-client-ip-preservation': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="28"  y="44" width="112" height="96" rx="8" fill="rgba(255,255,255,0.05)"/>
@@ -1127,14 +963,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // The same shape as the cross-node card but wholly inside ONE big Node block, both Pods sharing it:
-  // Pod A bright as the source and Pod B dim as the destination flank the cni0 bridge, joined by
-  // clean dashed veths with no packet dots. The hero is the bright frame sitting BARE inside the
-  // bridge, no outer wrapper, which is the same-node point.
-  // One Node, one bridge, and the table under it that learns which port the answer came from. The
-  // table is what separates this silhouette from `network-pod-to-pod-cross-node`, which is the same
-  // peer pair with no table and TWO frames: a reader scrolling the section must not meet one shape
-  // twice (R-05). Every block carries interior furniture rather than standing as a bare outline.
+  // One Node, one cni0 bridge, Pod A bright and Pod B dim on dashed veths, and the table under the bridge
+  // that learns the answer port, which sets it apart from network-pod-to-pod-cross-node (R-05).
   'network-pod-to-pod-same-node': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="12"  y="30" width="296" height="120" rx="12" fill="rgba(255,255,255,0.03)"/>

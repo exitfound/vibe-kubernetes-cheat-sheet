@@ -1,104 +1,6 @@
-// lane-traffic.test.mjs: the two halves of "a ball and the wire under it", read off the DATA.
-// A-02 asks whether the points that MOVE a packet are the same points that DRAW the wire, and A-05
-// asks the mirror question, whether a drawn wire has anything moving over it. Nothing in the harness
-// has ever asked either: both rows read `review` in CANON.md, and the pair between them covers every
-// lane and every route in the catalog, which is why they share one walk and one geometry reader.
-//
-// It needs no browser. A lane's points and a route's points are both fields on the spec.
-//
-// ===========================================================================================
-// A-02 IS THREE DIFFERENT DISEASES AND THEY MUST NOT BE ADDED UP
-// ===========================================================================================
-// The rule is "the SAME points array feeds the static wire and the packet route, so the two cannot
-// drift". Three ways a route can stand to the lanes of its own card, in falling order of trust:
-//
-//   SHARED     the route's `points` IS the lane's array, one object. The rule satisfied literally:
-//              moving the lane moves the ball, because there is one number to move.
-//   COPIED     deep-equal to a lane's points, and a DIFFERENT array. This is the drift the rule
-//              exists to stop, and it is invisible until the day somebody edits one of the two
-//              copies. It is not a picture defect today and it is not one tomorrow either: it is a
-//              defect the FIRST time the geometry is touched, which is why it is a queue and not a
-//              finding list.
-//   NO LANE    equal to no lane on the card at all. This one is NOT a single condition, and reading
-//              it as one is the mistake this file is written to avoid: most of the population is a
-//              route ASSEMBLED out of several drawn legs (a spine plus a tap), which rides drawn
-//              wires perfectly well and simply cannot be one array. The triage below splits it.
-//
-// The NO LANE tier is triaged by GEOMETRY, segment by segment, against every drawn path on the card:
-//
-//   OTHER-PART  the whole route is deep-equal to an `arrow` or a `relation` part rather than a
-//               `lane`. Same disease as COPIED, one drawn kind over.
-//   ASSEMBLED   every segment of the route lies on some drawn segment, but no single part matches.
-//               The composite route. A-01 is satisfied and A-02 cannot be, in this form.
-//   PARTIAL     some segments lie on drawn geometry and some do not.
-//   UNDRAWN     no segment does. This is A-01 territory, "no ball travels over blank canvas", and
-//               it is the sharpest thing this file can say. Read it against the `raw` count printed
-//               beside it before believing it: see the blind spots.
-//
-// ===========================================================================================
-// A-05 NEEDS TRIAGE AND NOT A VERDICT, FOR TWO SEPARATE REASONS
-// ===========================================================================================
-// 1. A PASS-THROUGH IS NOT AN UNRIDDEN LANE. Many short taps (22 units, a block edge down to the
-//    row below it) have a LONGER route running straight through them, and an exact comparison sees
-//    nothing on them. So the walk does the geometry: a lane every one of whose segments lies under
-//    some ball path is reported as TRAVERSED and kept out of the queue. On this catalog that is 17
-//    of the 26 lanes an exact reading calls unridden, so an exact-only report would have been two
-//    thirds noise.
-// 2. AN UNRIDDEN FAN LEG IS LEGAL AND SAID SO IN WRITING. `NET.A-03`: "N destinations get N wires.
-//    A fan to three candidate backends draws all three even though a step takes one, so the reader
-//    sees the choice was made among drawn alternatives. Those unridden legs are NOT a defect and
-//    several card records say so." Those records are the reason A05_CARRIED starts with entries in
-//    it, which no other queue in this harness does: the decision was taken and written down before
-//    the check existed, so importing it is reading the record, not quieting the queue.
-//
-// A-05's own words are about an ARROWHEAD, not about a lane: "a wire nothing rides carries no
-// arrowhead, use relationPath". So a finding here is a question, "should this be a relation", and
-// the answer is a reading of the card. `storage-volume-detach-on-node-loss` answers it NO in its
-// record, with a reason about symmetry, and that is a legitimate answer.
-//
-// ===========================================================================================
-// WHY report/ AND NOT render/ OR unit/
-// ===========================================================================================
-// The cycle is written in ./arrival.test.mjs and this project has run it three times: report-only,
-// then a human triage of the queue, then promotion into the mandatory set. A-02's COPIED tier alone
-// is 56 routes, none of which is a defect on screen today, so promoted straight into the gate it
-// would redden a working catalog against work nobody has scheduled. Nothing here fails on a finding.
-//
-// WHAT DOES FAIL: the census, and the shape of the carried table. A report that walked less than the
-// catalog prints few findings and looks exactly like a clean catalog, which is the lesson of stage
-// once, when the first run of a report test came back one step short and nothing in the output
-// looked wrong. Fewer cards or steps than the catalog holds is an assertion failure, not a note.
-//
-// ===========================================================================================
-// WHAT THIS FILE IS BLIND TO
-// ===========================================================================================
-//   - A PATH DRAWN BY AN ESCAPE. `part.raw` builds an element from a function body (43 sites) and
-//     `part.tune` can rewrite a `d` attribute on one the layer already made (33 sites). Neither is
-//     data. `network-model` draws its whole flat-network bus inside a raw hook, in BAND-LOCAL
-//     coordinates under a translate, and its three bus routes therefore land in UNDRAWN here while
-//     riding a drawn rail on screen. Every UNDRAWN and PARTIAL line carries its card's raw count for
-//     exactly this reason, and a card with a raw part is a card whose UNDRAWN findings are suspect.
-//   - A GROUP TRANSFORM. Coordinates are compared as written. Measured on this catalog: 3 group
-//     parts carry a transform, one of them `translate(0, 0)`, and the other two hold `raw` parts
-//     only, so nothing is misread today. A card that put a lane inside a translated group would be
-//     misread, and there is no finding for it because there is nothing wrong with doing it.
-//   - COVERAGE IS INK, NOT IDENTITY. A leg is covered when the UNION of the collinear drawn legs
-//     under it spans it end to end, so a route running down a spine and then out along a tap is
-//     ASSEMBLED even though three different parts drew what it rides. That union is not optional:
-//     reading one drawn segment at a time called four routes UNDRAWN that run down a spine straight
-//     into a tap, on `workloads-pod-qos-classes` and `workloads-statefulset-ordered-rollout`, which
-//     is a loud false finding in the tier that matters most.
-//   - OPACITY, AND THEREFORE WHETHER THE WIRE IS ON SCREEN AT ALL. A lane pinned at opacity 0 for
-//     every step counts as drawn here, and a ball riding a lane on a step where that lane is hidden
-//     counts as riding a drawn wire. That is A-14 and A-15, and they have their own checks.
-//   - WHICH STEP. A lane ridden on ONE step of eight is ridden, full stop. The reader that wants
-//     "this lane is dead on this step" is looking at a different rule.
-//   - `top` PACKETS. topPacket draws its own two-point path across the top strip and there is no
-//     part under it by construction, so counting them would be 100 percent false findings.
-//   - `F.anim` AND `F.tag`. A ball moved by hand through anim, and a label riding one, are not the
-//     route/segment verbs this file reads.
-//   - WHETHER THE LANE AND THE BALL AGREE ABOUT DIRECTION. Points are compared as a set of segments
-//     in order, and a route running a lane BACKWARDS reads as riding it. A-03 is that rule.
+// A-02 (does a ball ride the array that drew its wire: SHARED, COPIED, OTHER-PART, ASSEMBLED, PARTIAL,
+// UNDRAWN) and A-05 (does a drawn wire carry anything: traversed or carried, NET.A-03), reported.
+// Fails only on the census. Blind to part.raw/tune paths, group transforms, opacity, direction and top packets.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -106,44 +8,14 @@ import { cards } from '../fixtures/catalog.mjs';
 import { carriedBlock, shapeProblems, staleKeys } from '../fixtures/carried.mjs';
 import { importAll, stepTotal } from '../fixtures/module.mjs';
 
-// The recorded walk. Assertions, not notes: see the header.
-
-// Every part kind that puts a LINE on the canvas. `wire` is a text label and `chain` is a listing,
-// so neither is here.
-
-// The reference set A-02 is measured against, and it is NARROWER than DRAWN_KINDS on purpose: the
-// rule is about the lane a route rides, and a route equal to an `arrow` instead is its own tier so
-// the two cannot be added up by accident.
-
-// Half a unit. Coordinates in this catalog are integers or exact thirds (`464.6666666666667`), and
-// nothing is meant to be near-collinear, so the tolerance only has to survive float arithmetic.
-
-// -------------------------------------------------------------------------------------------
-// A-05 findings a human has READ and decided to carry, keyed `<card id> <points as JSON>`, with the
-// reason on each. Same shape and same discipline as R2_STEP_CARRIED in ./arrival.test.mjs: an entry
-// here is a decision with a measurement behind it, never a way to quiet the queue, and an entry that
-// stops being reported is a stale carry the run names below.
-//
-// This table does NOT start empty, and it is the only one in the harness that does not. Every entry
-// below was written into a card record BEFORE this check existed, under a `NOT A DEFECT` heading,
-// and the citation on each is where to go and read it. Importing a decision somebody already took
-// and wrote down is the opposite of shortening a queue.
-// -------------------------------------------------------------------------------------------
-// The carried rulings are DATA and live beside the walk, so the gate and this report treat one
-// table. See ../fixtures/lane-traffic.mjs.
-
-
 const catalogued = await cards();
 const modules = await importAll();
 
 const pad = (n) => String(n).padStart(4);
 const cardsOf = (rows) => new Set(rows.map(r => r.card)).size;
 
-// The walk itself now lives in ../fixtures/lane-traffic.mjs, shared with the gate file that
-// asserts the two tiers whose queues are empty. See that file's header for why.
+// The walk lives in ../fixtures/lane-traffic.mjs, shared with ../unit/lane-shared.test.mjs.
 import { A05_CARRIED, readCard, tierOf, segTierOf, key, segsOf, covered, TIERS, DRAWN_KINDS } from '../fixtures/lane-traffic.mjs';
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_CARDS = (await cards()).length;
 const EXPECTED_STEPS = await stepTotal();
 
@@ -243,11 +115,7 @@ test('A-02, a ball rides the array that drew its wire (report only, census is th
   out.push('===== end of report =====');
   console.log(out.join('\n'));
 
-  // -------------------------------------------------------------------------------------------
-  // The assertions, and none of them is about a card. A finding here is a statement about a card
-  // and its acceptance belongs to a person; a walk that covered less than the catalog is not a
-  // measurement at all.
-  // -------------------------------------------------------------------------------------------
+  // The census assertions. Findings belong to a person.
   assert.ok(walked >= EXPECTED_CARDS,
     `walked ${walked} card(s), the catalog had ${EXPECTED_CARDS} when this report was written. ` +
     'A report over a subset prints few findings and looks exactly like a clean catalog.');
@@ -329,7 +197,6 @@ test('A-05, a drawn lane nothing rides (report only, census is the assertion)', 
       (r.on ? `   (${r.on} of ${r.of} segments do carry something)` : '') +
       (r.raws || r.tunes ? `   [${r.raws} raw, ${r.tunes} tune on this card]` : ''));
   }
-  // One shape for a carried row across every report file: ../fixtures/carried.mjs owns it.
   const stale = staleKeys('A-05', [...traversed, ...dead].map(r => r.carryKey));
   for (const l of carriedBlock('A-05', held.map(r => ({ key: r.carryKey, why: r.why })), stale)) out.push(l);
   for (const b of shapeProblems('A-05', new Set(catalogued.map(c => c.id)))) out.push(`   BROKEN RULING  ${b}`);

@@ -1,12 +1,12 @@
-// Shared animation magnitude tokens, kept dependency-free (zero imports) so timeline.js,
-// scheme-kit.js and the four category kits can all read one source of truth without an import cycle.
+// Shared animation magnitude tokens, kept free of imports so timeline.js, scheme-kit.js and every
+// category kit can read one source of truth without an import cycle.
 
 // Pod pulse: a stroke ramp plus a brightness flash, half the ms up and half down, tinted per kit.
 // `dimPeak` is how bright a DIM pod gets at the top of its blink: a MAGNITUDE, so not in OPACITY.
 export const PULSE_POD = Object.freeze({ ms: 900, bright: 1.4, dimPeak: 0.8 });
 
-// Block flash: a single brightness flash for value chips on packet-less steps, via
-// flashChips, and by the Timeline auto-pulse on a fresh highlight. 600ms, ease-out.
+// Block flash: one brightness flash, via flashChips on packet-less steps and via the Timeline
+// auto-pulse on a fresh highlight.
 export const PULSE_BLOCK = Object.freeze({ ms: 600, bright: 1.55, easing: 'ease-out' });
 
 // Fade-phase vocabulary: one shade per lifecycle phase, catalog-wide, so a card writes a bare 0 or
@@ -24,5 +24,5 @@ export const OPACITY = Object.freeze({
 export const FADE = Object.freeze({ in: 600, out: 700 });
 
 // Choreography gaps: `afterPulse` after a pod blink, `afterHop` between an arrival and the next
-// send, `lead` before a self-initiated packet. AN ADDED HOP COSTS ~800ms, so `duration` must rise.
+// send, `lead` before a self-initiated packet. An added hop lengthens the step, so `duration` must rise.
 export const BEAT = Object.freeze({ afterPulse: 800, afterHop: 100, lead: 800 });

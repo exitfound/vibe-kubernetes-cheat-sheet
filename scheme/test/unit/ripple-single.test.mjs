@@ -1,36 +1,6 @@
-// ripple-single.test.mjs: two rings on one pixel in one millisecond, promoted out of
-// ../report/ripple-double.test.mjs on 2026-08-17 when its queue reached zero.
-//
-// `M-14` is "every ball ripples at its destination, on the millisecond it lands", and
-// render/motion.test.mjs asks whether a ripple EXISTS, never how many. Where two rings start on the
-// same point at the same millisecond they stack, and the composite alpha is visibly higher than one:
-// measured 0.902 against 0.631, against a prediction of 0.905 that matched to 0.003.
-//
-//   RING-SINGLE  no two rings start on one point in the same millisecond, or the pair carries a
-//                written ruling.
-//
-// ===========================================================================================
-// WHY dt === 0 ONLY
-// ===========================================================================================
-// The report prints three tiers and this asserts one. STAGGERED (7 pairs) is two rings sharing a
-// point INSIDE the 560ms a ring lives but starting apart, which is a legitimate second arrival at the
-// same place and reads as one: it is context, and the report says so. NEAR is the same question at a
-// tolerance. Only dt === 0 is two rings drawn as one thicker ring, which no card ever means.
-//
-// The original four were all one shape and all on network-service-cidr: an `F.ripple` naming the last
-// point of a route in its own step at that route's own arrival, where `packetAlong` already fires
-// `arrivalRipple`. The repair was to delete the redundant verb, not to retime anything, so no arrival
-// moved and `M-14` was never in question.
-//
-// ===========================================================================================
-// WHAT THIS FILE IS BLIND TO
-// ===========================================================================================
-//   - A RING FIRED FROM AN ESCAPE. `step.enter` and `F.run` are function bodies, so an
-//     arrivalRipple() called inside one is invisible to a reader of the flow as data.
-//   - WHETHER THE RING BELONGS THERE AT ALL. That is `M-14` and `M-10`, and a rendered ring carries
-//     no record of which wrapper made it: render/motion.test.mjs owns the existence question.
-//   - RIPPLE_MS. The window is a second copy of a number `arrivalRipple` does not export, asserted in
-//     the report file so a stale window cannot go quiet. This file inherits it from the fixture.
+// RING-SINGLE (M-14): no two rings start on one point in the same millisecond unless carried.
+// Staggered and near pairs are the report's tiers. Blind to rings fired from an escape
+// (step.enter, F.run) and to whether a ring belongs there at all.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -40,8 +10,6 @@ import { timelineOf } from '../fixtures/spec.mjs';
 import { routeDur, REVEAL_MS, BEAT } from '../../js/lib/scheme-kit.js';
 import { RIPPLE_CARRIED, ringOf, at } from '../fixtures/ripple-double.mjs';
 
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_CARDS = (await cards()).length;
 const EXPECTED_STEPS = await stepTotal();
 const KIT = { routeDur, REVEAL_MS, BEAT };

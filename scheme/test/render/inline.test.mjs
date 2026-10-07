@@ -1,37 +1,6 @@
-// inline.test.mjs: the half of the T block of ../../CANON.md that only a RENDER can read.
-// Successor of tools/check-inline.mjs, tools/check-labels.mjs, tools/check-figures.mjs, and of the
-// narration and aria-label halves of tools/check-terms.mjs.
-//
-// ===========================================================================================
-// WHY THIS IS A RENDER TEST AND NOT A UNIT TEST
-// ===========================================================================================
-// A card exports exactly one symbol, `init`. `narration` and the diagram's `aria-label` are
-// arguments to makeInit and live inside its closure, so no import reaches them. The strings DRAWN
-// on the canvas are worse than unreachable: half of them are built at run time from an array, a
-// loop index or a card-local helper, which is why the four predecessors scraped the source with
-// thirteen regexes and then had to carry a hardcoded COVERAGE FLOOR to notice when the scraping
-// went quiet.
-//
-// Here the input is the DOM. Narration comes off window.__schemeCtl._timeline.steps (the path
-// tools/check-duration.mjs already used), the drawn strings come off the <text> elements of the
-// diagram, one static walk per step. That is the whole reason two of the sixty inherited rules are
-// NOT carried over:
-//
-//   COVERAGE FLOOR (321 indirect strings) and UNREAD CEILING (8 unresolvable writes) exist only
-//   because a regex over the source can stop matching. A string read off the canvas either is
-//   drawn or is not, there is no resolver to go quiet, and there is nothing left to insure. What
-//   replaces them is a CENSUS: the counts below are the numbers this suite measured on a green
-//   tree, and a run that sees materially fewer is red. Same discipline, honest mechanism.
-//
-// The census is wider than the predecessors, and it costs findings. Reading the canvas finds
-// strings no INLINE_SITE could match: a block label written through setBoxLabel(el, parts[i][0]),
-// a chainList row taken from an array literal, a node frame label built by ['node-1', ...].map().
-// Those carry 8 casing findings and 3 drift findings that no check has ever seen. They are NOT
-// fixed here and they are NOT hidden: they are frozen below, one line each, and the assertion is
-// EQUALITY, so a new one is red and a repaired one is red too. That is the project's own
-// report-then-enforce discipline, applied to a coverage extension rather than to a rule.
-//
-// What this cannot do: judge meaning. A sentence can match its diagram and still be false.
+// The T block of CANON.md that only a render can read: terminology, banned characters, System A
+// casing, label drift and Pod-address arithmetic over narration, aria-labels and drawn strings.
+// Known findings are frozen by equality. Cannot judge meaning.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -40,126 +9,68 @@ import { loadTerms, sentences, sentenceStarts, termIssues, termRegex } from '../
 import { readSnapshot } from '../fixtures/snapshot.mjs';
 import { vpName, VIEWPORTS } from '../tools/walk.mjs';
 
-// The viewport the walk takes this reading at, named rather than retyped.
 const VP = vpName(VIEWPORTS[0]);
 
-// ---------------------------------------------------------------------------------------------
-// The census. Measured 2026-08-24 on a green tree, at 110 cards and 665 steps.
-// ---------------------------------------------------------------------------------------------
+// Census floors: a run that reads materially fewer strings is red.
 const CARD_TOTAL = CATALOG_BASELINE.cards;
 
-// Prose reachable only through the running controller: one narration per step that has one (the
-// poster step of each card has none), plus one aria-label per card.
+// One narration per non-poster step plus one aria-label per card.
 const NARRATION_FLOOR = floor(555);
 const ARIA_TOTAL = (await cards()).length;
 
-// Distinct (card, text class, string) triples over a static walk of every step. Counted once per
-// card even when a string is redrawn on six steps, because the question is which strings exist,
-// not how often they are painted. The predecessors counted OCCURRENCES IN THE SOURCE and reported
-// 3093 (check-inline) and 3041 (check-labels), so these numbers are not comparable to those: a
-// different mechanism counting a different thing, deliberately.
-// 3613 / 3520: `cluster-leader-election` draws its `holderIdentity` as the bare replica name on
-// every step that has one, so `expire` and `renew` share one string where a `(stale)` marker on the
-// expire reading would be a second. A chip named for a field states what the FIELD holds (-1).
-// 4014 / 3913: re-read over 121 cards where 3613 / 3520 were read over 117, so these are a fresh
-// walk of a bigger catalog rather than one card's arithmetic.
-// 4012 / 3911: workloads-pod-scheduling-gates stops drawing `Pending` and a bare `False` (-2 each).
-// Its last step turns over neither reading: the PodScheduled condition is written once at Pod
-// creation and the STATUS column follows that condition, so removing the last scheduling gate
-// leaves both saying SchedulingGated until the Scheduler finishes an attempt. The two strings the
-// card used to draw there were the values of a LATER beat, and both already exist on its other
-// steps, so the pair leaves the catalog rather than moving. Re-measured off a full walk.
+// Distinct (card, text class, string) triples over a static walk of every step.
 const DRAWN_FLOOR = floor(4012);
-const CASE_ELIGIBLE_FLOOR = floor(3911);   // the same set minus the node frame labels, see T-12 below
+const CASE_ELIGIBLE_FLOOR = floor(3911);   // the same set minus the node frame labels (T-12)
 
-// Strings a diagram BLOCK owns: its own label and sublabel texts, nested frames excluded. This is
-// the input to the two figure rules. tools/check-figures.mjs anchored a string to the nearest
-// preceding label in the FILE and counted 1251; ownership here is structural, which is both the
-// stronger claim and a different count.
-// A step earns a line here only for a string no other step of its card draws, so the count moves
-// with what a step SAYS and not with how many steps a card has.
-// 1638: the same one string, and the kubectl block is what owns it (+1).
-// 1818: re-read over 121 cards, on the same walk the two floors above were re-read on.
+// Strings a block owns (label, sublabel, nested frames excluded), counted once per card.
 const ANCHORED_FLOOR = floor(1818);
 
-// Every class a drawn string can carry. Asserted as a closed set, and this is the real successor
-// of COVERAGE FLOOR: a new primitive that draws text under a class nobody listed would fall
-// outside every rule below at zero findings, which is exactly the failure the floor was invented
-// for. A count cannot catch that. A closed inventory can.
+// Closed set of text classes: a new primitive drawing text under an unlisted class would escape every rule.
 const TITLE_CLASSES = ['scheme-box-label', 'scheme-pod-label', 'scheme-cylinder-label'];
-// T-12: a node frame label is uppercased catalog-wide by .scheme-node-label in css/diagrams.css,
-// so the casing of the SOURCE string is invisible to the reader and correcting it changes nothing
-// on screen. It is counted, and it is excluded from the casing and drift rules for that reason:
-// including it turns three pairs of node-1 / Node-1 into findings no one can see.
+// T-12: CSS uppercases node frame labels, so their source casing is invisible and excluded from casing and drift.
 const NODE_CLASS = 'scheme-node-label';
 const LOWER_CLASSES = ['scheme-box-sublabel', 'scheme-pod-sublabel', 'scheme-chip-text', 'scheme-label'];
 const ALL_TEXT_CLASSES = [...TITLE_CLASSES, NODE_CLASS, ...LOWER_CLASSES].sort();
 
-// ---------------------------------------------------------------------------------------------
-// Findings carried OPEN, frozen as data. Each is a string the source-scraping predecessors could
-// not see. Equality, not a threshold: a tenth one is red, and so is a ninth that disappeared,
-// because a stale exception is an exception nobody re-reads.
-// ---------------------------------------------------------------------------------------------
+// Findings carried open, by equality: a new one is red and so is a repaired one.
 
-// System A (T-09): a block label is a heading and takes a capital, everything else on the canvas
-// is body text and stays lowercase.
+// System A (T-09): a block label is a heading and takes a capital, all other canvas text is lowercase.
 const KNOWN_CASING = [
-  // DNS names and projected file names drawn as block labels. Lowercase is the literal being
-  // named (a DNS subdomain, a file in a projected volume), so capitalising it would print
-  // something that does not exist.
+  // Lowercase literals: a DNS subdomain, a projected file name.
   'network-dns-coredns         scheme-box-label   UP    "forward"',
   'network-dns-records         scheme-box-label   UP    "default"',
   'network-dns-records         scheme-box-label   UP    "svc"',
   'storage-projected-volume    scheme-box-label   UP    "token"',
-  // One body string opening with a capital. It opens with an API word used as a heading inside
-  // a value, which is the case System A has no way to spell.
+  // An API word used as a heading inside a value.
   'network-dns-records         scheme-chip-text   DOWN  "Headless A: -> .2.7 .3.4 .1.9"',
-  // A dnsPolicy value in a chip. `Default` is the API enum as the Pod spec spells it, so lowering
-  // it would print a policy that does not exist, the same reason as the DNS names above.
+  // The API enum as the Pod spec spells it.
   'network-dns-pod-policy      scheme-chip-text   DOWN  "Default"',
-  // Enum values in a chip, as the API spells them: hostPath `type` (Directory), a
-  // volumeMount `recursiveReadOnly` with its status, and a CSIDriver `fsGroupPolicy` (File).
-  // Same reason as Default above.
+  // Enum values as the API spells them.
   'storage-csidriver           scheme-chip-text   DOWN  "File"',
   'storage-hostpath            scheme-chip-text   DOWN  "Directory"',
   'storage-recursive-readonly  scheme-chip-text   DOWN  "Disabled"',
   'storage-recursive-readonly  scheme-chip-text   DOWN  "Enabled"',
-  // Container names drawn as the label of a container box: the `name` field of the container,
-  // as `app` and `web` already are through the names list. Capitalising one prints a container
-  // the Pod spec does not have.
+  // Container names as the Pod spec has them.
   'storage-subpath             scheme-box-label   UP    "proxy"',
   'storage-volume-model        scheme-box-label   UP    "seed"',
-  // An image reference drawn as a block label: `llm:v1` is the literal a Pod spec names.
   'storage-image-volume        scheme-box-label   UP    "llm:v1"',
-  // The four rows of the overlay mount, named by their overlayfs roles: the `lowerdir` and
-  // `upperdir` mount options and the `merged` view. The narration uses the same lowercase names,
-  // and capitalising one row would break the set the grid reads as.
+  // overlayfs roles, lowercase as in the narration.
   'storage-container-filesystem scheme-box-label  UP    "lowerdir: app layer"',
   'storage-container-filesystem scheme-box-label  UP    "lowerdir: base layer"',
   'storage-container-filesystem scheme-box-label  UP    "merged"',
   'storage-container-filesystem scheme-box-label  UP    "upperdir"',
-  // Pod labels drawn as rows of the Pod object, `key: value` as metadata.labels holds them, and
-  // level with the `key="value"` lines of the file they become. Capitalising one prints a label
-  // key the Pod does not carry and breaks the row-for-row match with the file.
+  // Pod labels as metadata.labels holds them, row for row with the file they become.
   'storage-downward-api-volume scheme-box-label   UP    "rack: r22"',
   'storage-downward-api-volume scheme-box-label   UP    "zone: east"',
   'storage-downward-api-volume scheme-box-label   UP    "zone: west"',
 ].sort();
 
-// T-13: one object, one label, compared only inside the same position class.
 const KNOWN_DRIFT = [
-  // "pod" here is the DNS subdomain under the cluster domain, not the object. terms.json carries a
-  // `homographs` list for exactly this, and it has no entry for it. Adding one is a fixture edit,
-  // which is out of scope for this file.
-  // The count is not what this list freezes, the PAIR is: a new pair is a defect, a higher
-  // count is not.
+  // "pod" here is the DNS subdomain, not the object. The pair is frozen, not the count.
   'pod: "Pod" x27 vs "pod" x1',
 ].sort();
 
-// T-03 bans the semicolon in narration prose, and an aria-label is the diagram read aloud, so the
-// rule reaches it too. The list is empty because the one that stood here, on
-// network-pod-to-pod-cross-node, was read and repaired into a full stop. Empty is the correct
-// resting state: a new entry belongs here only after a human has read it and decided to carry it.
+// T-03 reaches aria-labels. Empty: an entry needs a human ruling first.
 const KNOWN_SEMICOLONS = [];
 
 // Built from code points so this file does not contain the characters it bans.
@@ -169,19 +80,14 @@ const DASH_RE = new RegExp(`[${EM_DASH}${EN_DASH}]`);
 const DASH_NAME = { [EM_DASH]: 'em-dash', [EN_DASH]: 'en-dash' };
 const APOSTROPHE_RE = new RegExp(`['${String.fromCharCode(0x2019)}]`);
 
-// ---------------------------------------------------------------------------------------------
-// The classifier, carried over from tools/check-inline.mjs unchanged. Report and verdict share it
-// so they cannot disagree about what a defect is.
-// ---------------------------------------------------------------------------------------------
+// The classifier the report and the verdict share.
 const dict = await loadTerms();
 const NAMES = new Set([...dict.inline.names, ...Object.keys(dict.hardLower)]);
 const API = new Set(dict.inline.apiWords);
 const COMPONENTS = dict.inline.components;
 const HOMOGRAPHS = new Set((dict.inline.homographs || []).map(s => s.toLowerCase()));
 
-// The rule is about the first character, so only the first token can decide it.
 const firstToken = s => s.trim().split(/[\s·:,+|]+/)[0].replace(/[.,;]$/, '');
-// A token whose casing belongs to Kubernetes, Linux or a protocol, not to this project.
 const isIdentifier = t =>
   /[0-9]/.test(t) ||              // eth0, v2, 10.96.0.1
   /[-.\/:=_]/.test(t) ||          // kube-proxy, status.phase, /var/lib, app=web
@@ -205,38 +111,22 @@ function verdict(text, want) {
   const s = text.trim();
   if (!s || untouchable(s)) return null;
   const c = s[0];
-  // Several capitalised words in a row is Title Case, and lowering only the first character would
-  // leave "root Filesystem". Those need a human sentence, so they are reported, not fixed.
+  // Title Case needs a human sentence, so it is reported, not auto-fixed.
   if (want === 'lower' && /^[A-Z][a-z]+ [A-Z][a-z]/.test(s)) return 'MANUAL';
   if (want === 'title' && /[a-z]/.test(c)) return 'UP';
   if (want === 'lower' && /[A-Z]/.test(c)) return 'DOWN';
   return null;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Gather: one browser, one page, one static walk of every step of every card.
-// ---------------------------------------------------------------------------------------------
 const catalogued = await cards();
 
-// THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` opens each card once for the whole
-// suite; the probe moved into fixtures/probes.mjs as `inlineProbe`, verbatim.
-//
-// reducedMotion is not set there either, and for the same reason this file gave: gotoStep already
-// replays a step the way prev and reset do, which is the deterministic path. The PLAYED path is
-// deliberately not read here, because it is not reproducible between runs (measured while porting
-// check-palette) and every string it adds is a riding label that a static frame also carries at its
-// destination. The one thing that did move is the window size: the walk reads at 1600x1000 where
-// this file used the default. Every string and every frame identity below is DOM and viewBox, not
-// pixels, and the old and new outputs were diffed line for line to say so rather than assume it.
+// The probe is inlineProbe in fixtures/probes.mjs on the walk's static pass: the played path is not
+// reproducible and adds only riding labels a static frame also carries.
 const snap = readSnapshot();
 const ids = snap.ids;
 
-// card id -> { aria, steps: [{id, narration}], drawn: [{cls, text}], frames: [{key, kind, labels, texts}] }
 const collected = new Map();
-// Cards whose module never loaded, whose controller never appeared, or that threw on the way in.
-// An apostrophe in a narration string ends it early and the module stops parsing, so this list is
-// where T-01 lands: the browser refuses the file, app.js logs "Failed to load scheme" and the
-// diagram is never built.
+// An apostrophe in narration breaks the module, so T-01 lands here as a card that never built.
 const broken = [];
 
 for (const id of ids) {
@@ -249,8 +139,7 @@ for (const id of ids) {
   const total = card.steps;
   const meta = card.meta;
   if (!total || !meta) {
-    // stepMeta() returning null means the debug handle is absent, and a caller that treats that as
-    // "no findings" has written a check that cannot fail.
+    // A null stepMeta means the debug handle is absent, never "no findings".
     broken.push(`${id}: stepCount ${total}, stepMeta ${meta ? 'present' : 'MISSING'}`);
     continue;
   }
@@ -274,27 +163,19 @@ for (const id of ids) {
   collected.set(id, { aria: card.aria, steps: meta, drawn: [...drawn.values()], frames: [...frames.values()] });
 }
 
-// ---- the two flat views every rule below reads ----
-
-// Prose: one narration per step that carries one, plus one aria-label per card.
 const prose = [];
 for (const [id, rec] of collected) {
   if (rec.aria) prose.push({ id, where: 'aria-label', text: rec.aria });
   for (const s of rec.steps) if (s.narration) prose.push({ id, where: `narration:${s.id || '?'}`, text: s.narration });
 }
 
-// Drawn strings, with the position class System A judges them in.
 const wantOf = cls => (TITLE_CLASSES.includes(cls) ? 'title' : LOWER_CLASSES.includes(cls) ? 'lower' : null);
 const drawn = [];
 for (const [id, rec] of collected) {
   for (const d of rec.drawn) drawn.push({ id, cls: d.cls, text: d.text, want: wantOf(d.cls) });
 }
-// The casing and drift rules see everything but the node frame labels (T-12).
+// Everything but the node frame labels (T-12).
 const eligible = drawn.filter(d => d.want !== null);
-
-// ---------------------------------------------------------------------------------------------
-// The census. Every rule below walks one of the lists it counts.
-// ---------------------------------------------------------------------------------------------
 
 test(`the grid renders the whole catalog (${CARD_TOTAL} cards)`, () => {
   assert.ok(ids.length > 0, `NO CARDS RENDERED at ${snap.base}/scheme/ : posters or grid broken`);
@@ -304,10 +185,7 @@ test(`the grid renders the whole catalog (${CARD_TOTAL} cards)`, () => {
 });
 
 test('every card loaded, built and handed over its step list (T-01, T-02)', () => {
-  // The module-load rule lands here. A narration string is single-quoted JS: an apostrophe inside
-  // it closes the string early, the browser refuses the module, and the card that renders nothing
-  // is the only symptom. The .claude/hooks/check-js.sh write hook catches the syntax error as the
-  // file is saved, this catches the class it does not.
+  // T-01: the write hook catches a syntax error on save, this catches the card that renders nothing.
   assert.deepEqual(broken, [], `${broken.length} card(s) did not render:\n  ${broken.join('\n  ')}`);
   census('inline walked', collected.size, CARD_TOTAL);
 });
@@ -315,8 +193,7 @@ test('every card loaded, built and handed over its step list (T-01, T-02)', () =
 test(`the prose census holds (${NARRATION_FLOOR}+ narration, ${ARIA_TOTAL} aria-label)`, FULL_ONLY, () => {
   const narration = prose.filter(p => p.where.startsWith('narration')).length;
   const aria = prose.filter(p => p.where === 'aria-label').length;
-  // A floor, not an equality: a new card raises it. A run that reads FEWER strings has lost a path
-  // into the controller, and every terminology rule below would then pass over less than it did.
+  // A floor: fewer strings means a lost path into the controller.
   assert.ok(narration >= NARRATION_FLOOR,
     `read ${narration} narration strings off the controller, the baseline is ${NARRATION_FLOOR}. ` +
     'window.__schemeCtl._timeline.steps is the only way in: if it changed shape, every rule here went quiet.');
@@ -336,18 +213,12 @@ test(`the drawn-string census holds (${DRAWN_FLOOR}+ strings over ${CARD_TOTAL} 
 });
 
 test('every drawn string carries a known text class, and no primitive draws outside them', FULL_ONLY, () => {
-  // The other half of the census, and the sharper half. A count cannot see a NEW class: a new
-  // primitive drawing text under .scheme-badge-label would add strings, raise the count and be
-  // judged by nothing. This closes the set instead.
+  // A count cannot see a new class, so the set is closed.
   const seen = [...new Set(drawn.map(d => d.cls))].sort();
   assert.deepEqual(seen, ALL_TEXT_CLASSES,
     `the diagram draws text under ${seen.join(', ')}. The rules below classify ${ALL_TEXT_CLASSES.join(', ')}, ` +
     'so anything unlisted is drawn on the canvas and read by nothing.');
 });
-
-// ---------------------------------------------------------------------------------------------
-// T-06 / T-07 / T-08: terminology over narration and aria-label
-// ---------------------------------------------------------------------------------------------
 
 function issuesOf(p) {
   const out = { case: [], reword: [] };
@@ -375,8 +246,7 @@ test('every sentence of every narration opens with a capital (OPEN)', () => {
   const bad = [];
   let split = 0;
   for (const p of prose) {
-    // An aria-label is a label read aloud, not a sentence, so opening it with hostNetwork or
-    // emptyDir is correct and the only rewrite this rule would allow is Hostnetwork.
+    // An aria-label is a label read aloud, not a sentence, so it may open with hostNetwork.
     if (p.where === 'aria-label') continue;
     for (const part of sentences(p.text)) {
       split++;
@@ -387,10 +257,6 @@ test('every sentence of every narration opens with a capital (OPEN)', () => {
   assert.ok(split >= NARRATION_FLOOR, `split ${split} sentences out of ${NARRATION_FLOOR}+ narration strings`);
   assert.deepEqual(bad, [], `${bad.length} sentence(s) open with a lowercase word`);
 });
-
-// ---------------------------------------------------------------------------------------------
-// T-01 / T-03 / T-04: the three characters user-visible text may not carry
-// ---------------------------------------------------------------------------------------------
 
 test('T-04 no em-dash or en-dash in narration, aria-label or any drawn string', () => {
   const bad = [];
@@ -406,10 +272,7 @@ test('T-04 no em-dash or en-dash in narration, aria-label or any drawn string', 
 });
 
 test('T-01 no apostrophe survives in any narration, aria-label or drawn string', () => {
-  // Belt and braces to the load rule above. A card whose narration carries an apostrophe usually
-  // fails to parse, but not always: the string simply ends early and what follows may still be
-  // valid JS, in which case the card renders and the SENTENCE is wrong. That is the case this
-  // catches, and only a render can.
+  // An apostrophe that ends a string early can leave valid JS and a wrong sentence, which only a render sees.
   const bad = [];
   for (const p of prose) if (APOSTROPHE_RE.test(p.text)) bad.push(`${p.id} ${p.where}`);
   for (const d of drawn) if (APOSTROPHE_RE.test(d.text)) bad.push(`${d.id} ${d.cls}: ${JSON.stringify(d.text)}`);
@@ -421,15 +284,10 @@ test('T-03 no semicolon in narration prose, and the one known aria-label is stil
   for (const p of prose) if (p.text.includes(';')) found.push(`${p.id} ${p.where}`);
   const narration = found.filter(f => f.includes('narration'));
   assert.deepEqual(narration, [], `${narration.length} narration string(s) carry a semicolon: use a comma, or a period and a capital`);
-  // Equality, so a second one is red and the recorded one being repaired is red too. A stale
-  // exception is an exception nobody re-reads.
+  // Equality: a stale exception is one nobody re-reads.
   assert.deepEqual(found.sort(), [...KNOWN_SEMICOLONS].sort(),
     'the recorded semicolon findings changed. Add the new one here only after reading it, and drop a repaired one.');
 });
-
-// ---------------------------------------------------------------------------------------------
-// T-09 / T-10 / T-11: System A, the casing of strings drawn ON the diagram
-// ---------------------------------------------------------------------------------------------
 
 test(`T-09 System A over ${CASE_ELIGIBLE_FLOOR}+ drawn strings, with ${KNOWN_CASING.length} carried open`, FULL_ONLY, () => {
   const found = [];
@@ -437,8 +295,7 @@ test(`T-09 System A over ${CASE_ELIGIBLE_FLOOR}+ drawn strings, with ${KNOWN_CAS
     const v = verdict(d.text, d.want);
     if (v) found.push(`${d.id.padEnd(27)} ${d.cls.padEnd(18)} ${v.padEnd(6)} ${JSON.stringify(d.text)}`.replace(/\s+$/, ''));
   }
-  // Normalised so the frozen list can be written readably: the columns above are padded, and a
-  // finding must compare by content, not by how wide a card id happens to be.
+  // Normalised so the frozen list can be column-padded.
   const norm = s => s.replace(/\s+/g, ' ').trim();
   assert.deepEqual(found.map(norm).sort(), KNOWN_CASING.map(norm).sort(),
     `System A findings changed.\n  now:\n    ${found.map(norm).sort().join('\n    ')}\n` +
@@ -448,8 +305,7 @@ test(`T-09 System A over ${CASE_ELIGIBLE_FLOOR}+ drawn strings, with ${KNOWN_CAS
 });
 
 test('T-09 no drawn string misspells a component name (NAME)', () => {
-  // The half the casing rule is blind to by construction: Api, Kubectl and ControllerManager all
-  // open with a capital, so they were "correct" on 23 cards until this dictionary was written.
+  // The half the casing rule cannot see: Api, Kubectl and ControllerManager all open with a capital.
   const bad = [];
   for (const d of eligible) {
     for (const n of componentIssues(d.text)) bad.push(`${d.id} ${d.cls} ${JSON.stringify(d.text)}  ${n.from} -> ${n.to}`);
@@ -457,14 +313,8 @@ test('T-09 no drawn string misspells a component name (NAME)', () => {
   assert.deepEqual(bad, [], `${bad.length} component name(s) drawn the wrong way`);
 });
 
-// ---------------------------------------------------------------------------------------------
-// T-13 / T-14: one object, one label, inside one position class
-// ---------------------------------------------------------------------------------------------
-
-// Two indexes over the same list: exact lowercase, and "shape" with spaces, dots, hyphens and
-// underscores thrown away. The position class is part of the key, because a heading and a chip
-// value are SUPPOSED to differ: "Conntrack" over a block and "conntrack" in a chip is System A
-// working, not drift.
+// Exact lowercase and "shape" (spaces, dots, hyphens, underscores dropped), keyed by position class:
+// "Conntrack" on a block and "conntrack" in a chip is System A working.
 function driftRows(list) {
   const byCase = new Map(), byShape = new Map();
   const add = (m, key, surface, id) => {
@@ -485,7 +335,7 @@ function driftRows(list) {
       if (forms.size < 2) continue;
       const [want, norm] = key.split('\t');
       if (HOMOGRAPHS.has(norm)) continue;
-      // A shape clash that is only a case clash is already reported by the case pass.
+      // A pure case clash is already reported by the case pass.
       if (skipIfSameCase && new Set([...forms.keys()].map(s => s.toLowerCase())).size < 2) continue;
       rows.push({ want, norm, forms });
     }
@@ -507,24 +357,19 @@ test(`T-13 one object is labelled one way, with ${KNOWN_DRIFT.length} carried op
 });
 
 test('T-14 ambiguous VALUES, an API literal and an English word wearing one set of letters (reporting)', (t) => {
-  // Never a verdict. MemoryPressure False is a Node condition and cordon false is a boolean,
-  // Terminated is a container state and terminated is what TLS did. Nothing here tells them apart,
-  // so the list is printed for a human exactly as the predecessor printed it.
+  // Never a verdict: MemoryPressure False and cordon false are different things.
   const rows = driftRows(eligible).filter(r => r.want === 'lower').map(rowText).sort();
   t.diagnostic(`T-14 ambiguous value pairs: ${rows.length}`);
   for (const r of rows) t.diagnostic('  ' + r);
   assert.ok(eligible.length >= CASE_ELIGIBLE_FLOOR, 'the reporting walk must still see the whole canvas');
 });
 
-// ---------------------------------------------------------------------------------------------
-// T-18: the arithmetic a reader does across one diagram
-// ---------------------------------------------------------------------------------------------
+// T-18: the arithmetic a reader does across one diagram.
 
 const IPV4 = /\b(?:\d{1,3}\.){3}\d{1,3}\b/g;
 // Cluster IPs and gateways are shared by construction, so only Pod-range addresses are compared.
 const POD_RANGE = /^10\.244\./;
-// A Pod and the eth0 box drawn inside it share an address by definition, so only frames whose
-// label names a Pod are compared: "Client Pod", "Pod web-a", "pod-b", never "eth0" or "lo".
+// A Pod and its eth0 box share an address by definition, so only frames labelled as Pods compare.
 const IS_POD = s => /\bPod\b/.test(s) || /^pod-/.test(s);
 const UNITS = { '': 1, k: 1e3, m: 1e-3, M: 1e6, G: 1e9, T: 1e12, Ki: 1024, Mi: 1024 ** 2, Gi: 1024 ** 3, Ti: 1024 ** 4 };
 const qty = t => {
@@ -581,13 +426,9 @@ test('T-18 no block asks for more than its own limit (REQ>LIMIT)', () => {
   assert.deepEqual(bad, [], `${bad.length} block(s) draw a request above their own limit`);
 });
 
-// ---------------------------------------------------------------------------------------------
-// SOFT terms over narration and aria-label. REPORTING, the other half of the split in
-// ../unit/text.test.mjs.
-// ---------------------------------------------------------------------------------------------
+// SOFT terms, reporting only (the other half of ../unit/text.test.mjs).
 
-// FULL_ONLY because the closing assertion is a matcher-collapse guard over the whole prose set: a
-// one-card walk matches no soft term and reads as a collapse, which reddens every filtered run.
+// A one-card walk matches no soft term and would read as a matcher collapse.
 test('SOFT ambiguous terms across narration and aria-label, minority form listed (reporting)', FULL_ONLY, (t) => {
   const forms = new Map();
   for (const p of prose) {

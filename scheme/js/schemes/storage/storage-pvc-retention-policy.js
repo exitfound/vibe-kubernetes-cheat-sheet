@@ -3,27 +3,25 @@ import { rect } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS/storage-pvc-retention-policy.md
 
 
-// A 2x2 policy matrix: one ROW per field (the two ways a replica leaves), one COLUMN per position,
-// Retain left and Delete right, and the owner that leaves in each row standing between its cells.
+// A 2x2 policy matrix: one ROW per field, one COLUMN per position (Retain left, Delete right),
+// and the owner that leaves in each row standing between its cells.
 const CX = 600;
 
-// A cell holds the three ordinal claims, each over its disk. 116 is the slot the worst claim string
-// `PVC data-web-0` fits with its inset (measured in the record), and the cell frame pads it by 10.
+// A cell holds the three ordinal claims, each over its disk. SLOT_W fits `PVC data-web-0`.
 const SLOT_W = 116, SLOT_GAP = 8, CELL_PAD = 10;
 const CLAIM_H = 44, DISK_H = 40, DISK_DY = CELL_PAD + CLAIM_H + 6;
-const CELL_W = 3 * SLOT_W + 2 * SLOT_GAP + 2 * CELL_PAD;           // 384
-const CELL_H = DISK_DY + DISK_H + CELL_PAD;                        // 110
+const CELL_W = 3 * SLOT_W + 2 * SLOT_GAP + 2 * CELL_PAD;
+const CELL_H = DISK_DY + DISK_H + CELL_PAD;
 
-// The owner column is the catalog block (NET.L-01), 40 off each cell, so the matrix spans 60..1140.
+// The owner column is the catalog block (NET.L-01).
 const OWNER_W = 232, OWNER_GAP = 40;
-const RET_X = CX - OWNER_W / 2 - OWNER_GAP - CELL_W;              // 60
-const DEL_X = CX + OWNER_W / 2 + OWNER_GAP;                        // 756
-const RET_CX = RET_X + CELL_W / 2, DEL_CX = DEL_X + CELL_W / 2;    // 252 / 948
+const RET_X = CX - OWNER_W / 2 - OWNER_GAP - CELL_W;
+const DEL_X = CX + OWNER_W / 2 + OWNER_GAP;
+const RET_CX = RET_X + CELL_W / 2, DEL_CX = DEL_X + CELL_W / 2;
 
-// Row 0 is whenScaled, row 1 whenDeleted. The matrix is centred in the band under the deepest panel
-// (1100x800), and the pitch keeps a row 0 verdict clear of the row 1 caption (both in the record).
+// Row 0 is whenScaled, row 1 whenDeleted. The pitch keeps a row 0 verdict clear of the row 1 caption.
 const CELL_Y = [272, 456];
-const ROW_CY = CELL_Y.map(y => y + CELL_H / 2);                    // 327 / 511
+const ROW_CY = CELL_Y.map(y => y + CELL_H / 2);
 const CAP_DY = 12, VERDICT_DY = CELL_H + 18;
 
 // The Retain cell counts ordinals 0, 1, 2 away from the panel, the Delete cell mirrors it, so in
@@ -32,24 +30,22 @@ const slotX = (col, i) => (col === 'R'
   ? RET_X + CELL_PAD + i * (SLOT_W + SLOT_GAP)
   : DEL_X + CELL_PAD + (2 - i) * (SLOT_W + SLOT_GAP));
 
-// The owners: Pod web-2, 232 by 104 around a 192 by 44 app box, and StatefulSet web, 232 by 80.
 const POD_W = 232, POD_H = 104, APP_W = 192, APP_H = 44, APP_DY = 26;
-const POD_X = CX - POD_W / 2, POD_Y = ROW_CY[0] - POD_H / 2;       // 484 / 275
-const POD_BOTTOM = POD_Y + POD_H;                                  // 379
-const STS_W = 232, STS_H = 80, STS_X = CX - STS_W / 2, STS_Y = ROW_CY[1] - STS_H / 2;   // 471
+const POD_X = CX - POD_W / 2, POD_Y = ROW_CY[0] - POD_H / 2;
+const POD_BOTTOM = POD_Y + POD_H;
+const STS_W = 232, STS_H = 80, STS_X = CX - STS_W / 2, STS_Y = ROW_CY[1] - STS_H / 2;
 
-// The garbage collector acts only on the Delete column, so it stands in the free band over it,
-// centred on the row 0 claim it deletes. Its second lane runs a gutter 30 right of the matrix.
-const GC_W = 232, GC_H = 80, GC_CX = slotX('D', 2) + SLOT_W / 2;  // 824
+// The garbage collector acts only on the Delete column, so it stands over it, centred on the
+// row 0 claim it deletes. Its second lane runs a gutter right of the matrix.
+const GC_W = 232, GC_H = 80, GC_CX = slotX('D', 2) + SLOT_W / 2;
 const GC_X = GC_CX - GC_W / 2, GC_Y = 56, GC_MY = GC_Y + GC_H / 2;
-const GUTTER_X = DEL_X + CELL_W + 30;                              // 1170
+const GUTTER_X = DEL_X + CELL_W + 30;
 
-// Every lane array is built ONCE and read by both the lane and the ball (A-02). The Pod lane stops on
-// the Pod shell, and both GC lanes stop on a cell FRAME face, which holds every claim a ball deletes.
+// Every lane array is read by both the lane and the ball (A-02). Both GC lanes stop on a cell
+// FRAME face, which holds every claim a ball deletes.
 const POD_LANE = [[CX, STS_Y], [CX, POD_BOTTOM]];
 const GC_S = [[GC_CX, GC_Y + GC_H], [GC_CX, CELL_Y[0]]];
-// GC_D rides untagged: down its 30 wide gutter a tag sits on the lane, runs off the canvas to the
-// right or over the Delete cells to the left. The GC_S ball on scale-down already names the verb.
+// GC_D rides untagged: its gutter has no room for a tag, and the GC_S ball already names the verb.
 const GC_D = [[GC_X + GC_W, GC_MY], [GUTTER_X, GC_MY], [GUTTER_X, ROW_CY[1]], [DEL_X + CELL_W, ROW_CY[1]]];
 
 // The ownerReference lives ON the claims and names the owner: a relation, no arrowhead, never a
@@ -70,8 +66,7 @@ const ORD = [0, 1, 2];
 const claimKey = (row, col, i) => `${row}${col}c${i}`;
 const diskKey = (row, col, i) => `${row}${col}k${i}`;
 
-// One cell: its frame, then its three claims each over its disk. The disk label takes the family
-// re-centre, h/2 + 10 (STO.L-02).
+// One cell: its frame, then its three claims each over its disk (STO.L-02 disk label re-centre).
 const cell = (r, col) => P.group({
   key: `cell${ROWS[r]}${col}`,
   parts: [
@@ -86,8 +81,7 @@ const cell = (r, col) => P.group({
 const CLAIMS = ROWS.flatMap(row => ['R', 'D'].flatMap(col => ORD.map(i => claimKey(row, col, i))));
 const DISKS = ROWS.flatMap(row => ['R', 'D'].flatMap(col => ORD.map(i => diskKey(row, col, i))));
 
-// Z-order (bottom -> top): the four cells, the owners and the collector, then the lanes, relations
-// and captions, then the packet layer. No chip: the matrix itself is the readout.
+// No chip: the matrix itself is the readout.
 export const SCENE = {
   'aria-label': 'StatefulSet persistentVolumeClaimRetentionPolicy as a two by two matrix: whenScaled governs the claims of replicas removed by a scale-down and whenDeleted the claims when the StatefulSet itself is deleted, each Retain, the default, or Delete. A field at Retain adds no ownerReference, so its event deletes no claim. Delete gives the claim an ownerReference, to the removed Pod for whenScaled and to the StatefulSet for whenDeleted, so the garbage collector deletes it after its owner is gone, and only ordinals at or above the new replica count lose theirs on a scale-down. Deleting a claim releases its PersistentVolume, whose own reclaimPolicy decides whether the disk goes too',
   parts: [
@@ -143,8 +137,7 @@ const subs = ({ sD2 = 'Bound', dD = 'Bound' } = {}) => ({
   sDc2: sD2, dDc0: dD, dDc1: dD, dDc2: dD,
 });
 
-// Every verdict wire on every step (T-30): the prologue blanks them, so a wire no step states reads
-// blank on prev and reset while the narration names it.
+// Every verdict wire on every step (T-30): the prologue blanks them.
 const verdicts = ({ sR = '', sD = '', dR = '', dD = '', pv = '' } = {}) => ({ vsR: sR, vsD: sD, vdR: dR, vdD: dD, pvCap: pv });
 const BLANK = verdicts();
 // The PV reclaimPolicy the narration speaks from scale-down on, drawn where `disk` flips it.
@@ -155,11 +148,8 @@ const ROW_S_DOWN = { sR: 'data-web-2 kept, Bound', sD: 'data-web-2 and its disk 
 const ROW_S_UP = { sR: 'same claim, same data', sD: 'fresh claim, empty disk' };
 const ROW_D_GONE = { dR: 'all three kept, no owner', dD: 'claims and disks deleted' };
 
-// Every tag lives exactly as long as its ball (M-30a): in before departure, out as it lands.
-const tagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
-// A tag rides right of its vertical lane and TRAILS its ball, below it up the Pod lane and above it
-// down the collector lane. The Pod lane tag hugs its ball and emerges once clear of the StatefulSet,
-// so it never prints over `StatefulSet web` (record, SIZES).
+// A tag rides right of its vertical lane and TRAILS its ball. The Pod lane tag emerges once
+// clear of the StatefulSet, so it never prints over `StatefulSet web`.
 const podTagFn = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true });
 const POD_TAG = { dx: 34, dy: 16, fn: podTagFn, emerge: 250 }, GC_TAG = { dx: 34, dy: -10 };
 
@@ -168,9 +158,8 @@ const LIGHT_HOLD = 260;
 // The disk goes a beat after its claim: the PV reclaims it, not the collector.
 const DISK_LAG = 600;
 
-// A deleted claim or disk lights, holds, fades to the terminated shade, and takes its highlight back
-// as the fade ends (S-18): a deleted block cannot stay the thing the step points at. The light is an
-// F.set, not `lights`, because the static path must not show it.
+// A deleted block lights, holds, fades to terminated and takes its highlight back as the fade ends
+// (S-18). The light is an F.set, not `lights`, because the static path must not show it.
 const vanish = (keys, at, plus = 0) => [
   F.set({ on: keys[0], lit: keys, at, plus }),
   ...keys.map(target => F.fade({
@@ -192,8 +181,8 @@ const D_DISKS = ['dDk0', 'dDk1', 'dDk2'];
 
 // Set-delete: StatefulSet web goes at entry, its Pod blinks once the set is gone, and the collector
 // sends once the Pod has faded.
-const STS_GONE = BEAT.lead + FADE.out;                           // 1500
-const POD_GONE = STS_GONE + BEAT.afterPulse + FADE.out;          // 3000
+const STS_GONE = BEAT.lead + FADE.out;
+const POD_GONE = STS_GONE + BEAT.afterPulse + FADE.out;
 
 export const STEPS_SPEC = [
   {
@@ -239,13 +228,11 @@ export const STEPS_SPEC = [
       // ordinal, which lights as it lands the way the mark claims do (an F.set, off the static path).
       F.reveal({ target: 'ownS', delay: BEAT.lead - REVEAL_MS, from: 0, name: 'own' }),
       F.set({ on: 'sDc2', at: 'own', lit: ['sDc2'], sublabels: { sDc2: 'owner: web-2' } }),
-      F.route({ points: POD_LANE, after: 'own', name: 'del' }),
-      F.tag({ text: 'delete', points: POD_LANE, after: 'own', ...POD_TAG }),
+      F.route({ points: POD_LANE, after: 'own', name: 'del', tag: { text: 'delete', ...POD_TAG } }),
       ...removePod('del', ['podLane', 'ownS']),
       // Both cells answer the same event on the same beat: the Retain one by doing nothing at all.
       F.set({ at: 'del', plus: BEAT.afterPulse + FADE.out, wires: { vsR: ROW_S_DOWN.sR } }),
-      F.route({ points: GC_S, at: 'del', plus: BEAT.afterPulse + FADE.out + BEAT.afterHop, name: 'gc' }),
-      F.tag({ text: 'delete', points: GC_S, at: 'del', plus: BEAT.afterPulse + FADE.out + BEAT.afterHop, ...GC_TAG, fn: tagFn }),
+      F.route({ points: GC_S, at: 'del', plus: BEAT.afterPulse + FADE.out + BEAT.afterHop, name: 'gc', tag: { text: 'delete', ...GC_TAG } }),
       ...vanish(['sDc2'], 'gc'),
       ...vanish(['sDk2'], 'gc', DISK_LAG),
       F.set({ at: 'gc', plus: DISK_LAG + LIGHT_HOLD + FADE.out, wires: { vsD: ROW_S_DOWN.sD } }),
@@ -268,8 +255,7 @@ export const STEPS_SPEC = [
     flow: [
       // The controller creates the claim before the Pod, then the Pod, then the new volume is bound.
       F.reveal({ target: 'sDc2', delay: BEAT.lead, from: T, name: 'mint', lights: ['sDc2'] }),
-      F.route({ points: POD_LANE, after: 'mint', name: 'make' }),
-      F.tag({ text: 'create', points: POD_LANE, after: 'mint', ...POD_TAG }),
+      F.route({ points: POD_LANE, after: 'mint', name: 'make', tag: { text: 'create', ...POD_TAG } }),
       // The Pod blinks as the create lands, as it does when the delete lands on scale-down.
       F.pulse({ pod: 'pod', at: 'make' }),
       F.reveal({ target: 'pod', at: 'make', from: OPACITY.pending, name: 'up' }),

@@ -2,46 +2,39 @@ import { P, F, defineCard, ladder, strip, spread, midX, shade, CLU, BEAT, FADE, 
 
 // Design notes for this card: ./CARDS/cluster-taints-tolerations.md
 
-// Layout C with no ladder at all: the chips take a three-across bottom strip, the mid band holds a
-// block. Panel x<=396.55 y<=229.82, evictor top 252: NO NARRATION MAY PASS 313 CHARACTERS.
+// Layout C with no ladder: chips in a three-across bottom strip, the evictor in the mid band.
+// The evictor top at 252 caps narration at 313 characters.
 const M = CLU.M;
-const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
-const CX = midX(CONTENT_L, CONTENT_R);                   // 600, the canvas centre by construction
+const CONTENT_L = M, CONTENT_R = 1200 - M;
+const CX = midX(CONTENT_L, CONTENT_R);
 
-const BOX_W = CLU.BOX_W, BOX_H = CLU.BOX_H;              // 232 / 80
-const TOP_Y = CLU.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;     // 40 / 120
-const API_X = CX - BOX_W / 2, API_R = API_X + BOX_W;     // 484..716, centred on the Node frame
-// Right-aligned to the content edge, so the top row ends on the same vertical as the chip strip
-// and the Node frame below it.
-const SCHED_X = CONTENT_R - BOX_W;                       // 908..1140, the face the top hop leaves
-const TOP_CY = midX(TOP_Y, TOP_BOTTOM);                  // 80, the box centre line, and the lane on it
-const WIRE_X = midX(API_R, SCHED_X);                     // 812, the gap midpoint
-const WIRE_Y = TOP_Y - 14;                               // 26, above the row: the drop owns below it
+const BOX_W = CLU.BOX_W, BOX_H = CLU.BOX_H;
+const TOP_Y = CLU.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;
+const API_X = CX - BOX_W / 2, API_R = API_X + BOX_W;
+// Right-aligned to the content edge, in line with the chip strip and the Node frame.
+const SCHED_X = CONTENT_R - BOX_W;
+const TOP_CY = midX(TOP_Y, TOP_BOTTOM);
+const WIRE_X = midX(API_R, SCHED_X);
+const WIRE_Y = TOP_Y - 14;                               // above the row: the drop owns the band below
 
-// LEFT of the API and below it. 420 is a MEASURED floor: the panel reaches 396.55 at 1100x800 and
-// L-03 puts everything above the panel bottom right of 420, so it is the leftmost x a riser out of
-// the mid band may take. The block is CENTRED on it, so its riser leaves the top face midpoint
-// rather than a corner: a 232 wide box centred on 420 runs 304..536, whose left half sits under
-// the panel column and is legal only because EV_Y 252 is 22.18 below the deepest panel bottom.
+// 420 is the leftmost x a riser out of the mid band may take (L-03). The block is centred on it so
+// its riser leaves the top face midpoint.
 const EV_CX = 420;
-const EV_X = EV_CX - BOX_W / 2;                          // 304..536
-const EV_Y = 252, EV_BOTTOM = EV_Y + BOX_H;              // 252..332, 22.18 under the deepest panel
+const EV_X = EV_CX - BOX_W / 2;
+const EV_Y = 252, EV_BOTTOM = EV_Y + BOX_H;
 
-const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
-const NODE_Y = 372, NODE_H = CLU.NODE.H;                 // 372..524, the family frame
-const POD_W = 300, POD_H = CLU.NODE.POD_H, POD_Y = NODE_Y + CLU.NODE.POD_DY;   // 406..512
+const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;
+const NODE_Y = 372, NODE_H = CLU.NODE.H;
+const POD_W = 300, POD_H = CLU.NODE.POD_H, POD_Y = NODE_Y + CLU.NODE.POD_DY;
 const POD_PAD = 24;
-// Fixed WIDTH, derived gap: three 300-wide Pods inset by POD_PAD leave 66 between them.
-const POD_X = spread({ from: NODE_X + POD_PAD, to: CONTENT_R - POD_PAD, count: 3, w: POD_W }).x;  // 84/450/816
+// Fixed width, derived gap.
+const POD_X = spread({ from: NODE_X + POD_PAD, to: CONTENT_R - POD_PAD, count: 3, w: POD_W }).x;
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
 
-// ONE endpoint on the API bottom face, so it takes the spine: 600 leaves the API bottom midpoint
-// and lands on the Node frame top midpoint, both centres by construction.
-const DROP_X = CX;                                       // 600
-// ONE right angle: up the evictor spine at 420, the only x that clears the panel, to TOP_CY 80,
-// the box centre line the top lane already rides, then into the API LEFT face at 484 on the same
-// midline the Scheduler meets its right face at 716. It crosses nothing: at x 420 it is 64 left
-// of the API and 180 left of the drop, and at y 80 it stands 172 above the evictor.
+// The drop leaves the API bottom midpoint and lands on the Node frame top midpoint.
+const DROP_X = CX;
+// ONE right angle: up the evictor spine at 420, the only x that clears the panel, then into the
+// API left face on the top lane midline.
 const EVICT_REQ = [[EV_CX, EV_Y], [EV_CX, TOP_CY], [API_X, TOP_CY]];
 // ONE lane into the Node band, addressed to the frame rather than to a Pod inside it: a single
 // vertical drop, and which Pod it is about comes from the pulse.
@@ -49,44 +42,38 @@ const NODE_LANE = [[DROP_X, TOP_BOTTOM], [DROP_X, NODE_Y]];
 
 // THREE per row: two across leaves the six chips on three rows and no room under the frame.
 const CHIP_H = CLU.CHIP_H, CHIP_GAP = 14, CHIP_VGAP = 8, CHIP_COLS = 3;
-const CHIPS_Y = NODE_Y + NODE_H + 16;                    // 540, second row ends on 616
+const CHIPS_Y = NODE_Y + NODE_H + 16;
 const CHIP_COL = strip({ from: CONTENT_L, to: CONTENT_R, count: CHIP_COLS, gap: CHIP_GAP });
-const CHIP_W = CHIP_COL.w;                               // 350.67, which is LAYOUT.C.strip.three
+const CHIP_W = CHIP_COL.w;
 const CHIP_ROW = ladder({ y: CHIPS_Y, rowH: CHIP_H, gap: CHIP_VGAP });
 // The strip is read as a GRID: the index wraps across the three columns and steps down every third.
 const CHIP_X = i => CHIP_COL.x(i % CHIP_COLS);
 const CHIP_Y = i => CHIP_ROW(Math.floor(i / CHIP_COLS));
 
-// Centred on the block that does the work, in the 40 unit band under it: the riser band is spoken
-// for by the drop at 600, which any label beside the riser would run into.
-const EV_WIRE_X = EV_CX;                                 // 420
-const EV_WIRE_Y = EV_BOTTOM + 24;                        // 356, glyph box 344.8..359.4
+// Under the evictor: the riser band beside it belongs to the drop at 600.
+const EV_WIRE_X = EV_CX;
+const EV_WIRE_Y = EV_BOTTOM + 24;
 // Right of the drop it names, glyph box centred on the open band between the two it runs between.
-const DROP_WIRE_X = DROP_X + 14;                         // 614
-const DROP_WIRE_Y = 250;                                 // box 238.8..253.4, centre 246.1
-// The taint reads as the frame HEADER. Anchored 23.3 past the NODE-1 label, glyph box
-// 381.8..396.4: 9.8 under the frame top, 9.6 over the Pod row, 123.7 clear of the drop at longest.
-const TAINT_X = NODE_X + 80, TAINT_Y = NODE_Y + 21;      // 140 / 393
+const DROP_WIRE_X = DROP_X + 14;
+const DROP_WIRE_Y = 250;
+// The taint reads as the frame HEADER, just past the NODE-1 label.
+const TAINT_X = NODE_X + 80, TAINT_Y = NODE_Y + 21;
 
-// Bottom: Node-1 with 3 Pods. Only db-1 carries a toleration, and the inner sublabel is the whole
-// contract the card turns on.
+// Only db-1 carries a toleration, and its inner sublabel is the contract the card turns on.
 const PODS = [
   { key: 'podDb',   label: 'Pod db-1',  sub: 'tolerates dedicated', slot: 0 },
   { key: 'podWeb1', label: 'Pod web-1', sub: 'no toleration',       slot: 1 },
   { key: 'podWeb2', label: 'Pod web-2', sub: 'no toleration',       slot: 2, opacity: 0 },
 ];
 
-// The list order IS the append order, so it is the z-order: the top lane and the four wire
-// registers, the six chips, the two lanes, the packet layer, the Node frame and its Pods, blocks last.
+// Append order is z-order: top lane, wires, chips, lanes, packet layer, Node and Pods, blocks last.
 export const SCENE = {
   'aria-label': 'Taints and tolerations: a taint on Node-1 and the tolerations on the Pods it holds, the Scheduler filtering a Pod that tolerates nothing out of the placement decision under NoSchedule and merely scoring it down under PreferNoSchedule, and the taint-eviction-controller deleting the Pods that carry no matching toleration once a NoExecute taint is added, while the Pod that tolerates the key stays bound',
   parts: [
     P.defs(),
-    // ONE top lane, on the box centre line: every step sends the Scheduler to the API and none
-    // names an answer, so a return half would carry nothing on any step.
+    // ONE top lane: every step sends the Scheduler to the API and none names an answer.
     P.arrow({ x1: SCHED_X, y1: TOP_CY, x2: API_R, y2: TOP_CY, dim: true, dashed: true }),
-    // Three registers, one per lane, because no lane may carry a caption for traffic it does not
-    // take (T-22), plus the frame header, which is state rather than traffic.
+    // One register per lane (T-22), plus the frame header, which is state rather than traffic.
     P.wire({ key: 'req', x: WIRE_X, y: WIRE_Y }),
     P.wire({ key: 'evict', x: EV_WIRE_X, y: EV_WIRE_Y }),
     P.wire({ key: 'drop', x: DROP_WIRE_X, y: DROP_WIRE_Y, anchor: 'start' }),
@@ -102,8 +89,7 @@ export const SCENE = {
     P.lane({ points: NODE_LANE, dim: true, dashed: true }),
     P.packets(),
     P.node({ key: 'nodeEl', x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
-    // Bare `g` wrappers with no class of their own: the id is what tells one Pod's shell and inner
-    // box from the next one's, and it is what the fades and the opacity pins address.
+    // Bare `g` wrappers: the id tells one Pod from the next and is what fades and pins address.
     ...PODS.map(d => P.pod({
       key: d.key, id: d.key, innerKey: `${d.key}Box`, opacity: d.opacity,
       x: POD_X(d.slot), y: POD_Y, w: POD_W, h: POD_H, label: d.label, sublabel: '', containers: 0,
@@ -127,7 +113,6 @@ const HDR_NS = 'dedicated=db · NoSchedule';
 const HDR_PNS = 'dedicated=db · PreferNoSchedule';
 const HDR_BOTH = 'dedicated=db · PreferNoSchedule + NoExecute';
 // The three chips that settle on step 2, restated on every step rather than inherited (P-01).
-// tolerChip and opChip never move again, secondsChip is overwritten by the last step's own key.
 const CONTRACT = { tolerChip: 'dedicated · any effect', opChip: 'defaults to Equal, or Exists', secondsChip: 'unset · stays bound' };
 const DYING = OPACITY.terminating, GONE = OPACITY.terminated;
 // Every step writes all three Pod shades. web-2 is not on the Node until it binds.
@@ -141,19 +126,17 @@ export const STEPS_SPEC = [
     opacity: STANDING,
   },
   {
-    // Durations by step type: still steps 2400, one hop 2600, two hops 2800.
     id: 'taint',
     duration: 2600,
     narration: 'A taint is three fields on the Node object: a key, an optional value, and an effect. Node-1 takes dedicated=db:NoSchedule into spec.taints. Nothing on the Node stirs, because NoSchedule is a gate on the way in and says nothing about the Pods already bound here.',
     chips: { taintsChip: NS, tolerChip: 'none', opChip: 'none', effectChip: NS, web2Chip: 'none', secondsChip: 'none' },
     wires: { drop: 'PATCH .../nodes/node-1 · spec.taints', taint: HDR_NS },
-    // S-13: the static block states the END. The taint does not exist until the PATCH lands, so
-    // both chips and the frame header are wound back to what idle left.
+    // S-13: the taint does not exist until the PATCH lands, so the chips and the header rewind.
     rewind: { chips: { taintsChip: 'none', effectChip: 'none' }, wires: { taint: ' ' } },
     opacity: STANDING,
     lit: ['api', 'taintsChip', 'effectChip'],
-    // NO Pod pulses, and that absence is the whole assertion: NoSchedule never reaches a Pod that
-    // is already bound. The write self-initiates on the API, so the ball waits BEAT.lead.
+    // NO Pod pulses, which is the assertion: NoSchedule never reaches an already bound Pod.
+    // The write self-initiates on the API, so the ball waits BEAT.lead.
     flow: [
       F.route({ points: NODE_LANE, delay: BEAT.lead, name: 'patch', lights: ['nodeEl'] }),
       F.set({ at: 'patch', chips: { taintsChip: NS, effectChip: NS }, wires: { taint: HDR_NS } }),
@@ -166,8 +149,7 @@ export const STEPS_SPEC = [
     chips: { taintsChip: NS, ...CONTRACT, effectChip: NS, web2Chip: 'unscheduled' },
     wires: { taint: HDR_NS },
     opacity: STANDING,
-    // Packet-less and Pod-less: the matching rule is read off two objects that are both already on
-    // screen, so the changed chips carry the beat as static highlights (M-27).
+    // Packet-less and Pod-less: the changed chips carry the beat as static highlights (M-27).
     lit: ['tolerChip', 'opChip', 'web2Chip', 'secondsChip'],
   },
   {
@@ -180,8 +162,7 @@ export const STEPS_SPEC = [
     rewind: { chips: { effectChip: NS, web2Chip: 'unscheduled' } },
     opacity: STANDING,
     lit: ['sched', 'effectChip', 'web2Chip'],
-    // NOTHING rides the drop, and that is the step: the verdict is recorded as an Event on the API
-    // and no write reaches the Node at all.
+    // NOTHING rides the drop: the verdict is an Event on the API and no write reaches the Node.
     flow: [
       F.top({ from: SCHED_X, to: API_R, y: TOP_CY, delay: BEAT.lead, name: 'nofit', lights: ['api'] }),
       F.set({ at: 'nofit', chips: { effectChip: 'NoSchedule · gates entry', web2Chip: 'Pending · FailedScheduling' } }),
@@ -193,16 +174,13 @@ export const STEPS_SPEC = [
     narration: 'The taint is rewritten with PreferNoSchedule. The same mismatch is now scored rather than filtered: the plugin marks Node-1 down among the Nodes that fit but does not remove it, so Pod web-2 can still land here. The control plane tries to avoid that and does not guarantee it.',
     chips: { taintsChip: PNS, ...CONTRACT, effectChip: 'PreferNoSchedule · scores', web2Chip: 'bound to Node-1' },
     wires: { req: 'POST .../pods/web-2/binding', drop: 'bound · Node-1 scored down', taint: HDR_PNS },
-    // The rewrite is the PREMISE of the step and stands at entry. Where web-2 ends up is not, so it
-    // turns over when the binding reaches the Node.
+    // The rewrite stands at entry. Where web-2 ends up turns over when the binding lands.
     rewind: { chips: { web2Chip: 'Pending · FailedScheduling' } },
     // Pin final state inline so cancel between steps does not flash to default.
     opacity: { ...STANDING, podWeb2: 1 },
-    // The rewrite is the premise and stands at entry, which is where a chip cue belongs (P-06), so
-    // both taint chips light beside the web-2 chip rather than one of the three going uncued (P-04).
+    // The rewrite is the premise, so both taint chips are cued at entry (P-06, P-04).
     lit: ['sched', 'taintsChip', 'effectChip', 'web2Chip'],
-    // M-16, down-arrow: the binding POST hops to the API, drops to the Node, and Pod web-2
-    // materialises and pulses on the same beat the ball lands.
+    // M-16, down-arrow: Pod web-2 materialises and pulses as the binding lands.
     flow: [
       F.top({ from: SCHED_X, to: API_R, y: TOP_CY, name: 'bind', lights: ['api'] }),
       F.route({ points: NODE_LANE, after: 'bind', name: 'place' }),
@@ -220,11 +198,9 @@ export const STEPS_SPEC = [
     rewind: { chips: { web2Chip: 'bound to Node-1' } },
     // Pin final state. db-1 does NOT sink, which is the whole sentence.
     opacity: { ...STANDING, podWeb1: DYING, podWeb2: DYING },
-    // The second taint is what SENDS the first ball, so it stands at entry and the two chips that
-    // report it light there (P-06), on the same beat the frame header turns over.
+    // The second taint sends the first ball, so its chips are cued at entry (P-06).
     lit: ['evictor', 'taintsChip', 'effectChip', 'web2Chip'],
-    // M-08: both Pods pulse on the arrival and fade from the SAME delay, so neither pulse sits
-    // behind its own fade. Pod db-1 takes neither, because its toleration matches.
+    // M-08: both Pods pulse and fade on the same arrival. Pod db-1 takes neither, its toleration matches.
     flow: [
       F.route({ points: EVICT_REQ, name: 'del', lights: ['api'] }),
       F.route({ points: NODE_LANE, after: 'del', name: 'evict' }),
@@ -241,11 +217,9 @@ export const STEPS_SPEC = [
     narration: 'A NoExecute toleration may carry tolerationSeconds, which holds the Pod that many seconds after the taint lands and then lets the eviction through. Any Pod that sets none of its own is given 300 for the built-in not-ready and unreachable taints, which is the few minutes on the Node Failure and Pod Recovery card.',
     chips: { taintsChip: BOTH, ...CONTRACT, effectChip: 'NoExecute · evicts', web2Chip: 'gone', secondsChip: '300 on built-in taints' },
     wires: { taint: HDR_BOTH },
-    // The two evicted Pods finished terminating during the step before, so they hold the terminated
-    // shade rather than the terminating one the chip has stopped reporting.
+    // The evicted Pods finished terminating during the step before, so they hold the terminated shade.
     opacity: { ...STANDING, podWeb1: GONE, podWeb2: GONE },
-    // Packet-less and Pod-less again (M-27): the field is a property of the toleration, and both
-    // the block that stores it and the block that enforces it are already drawn.
+    // Packet-less and Pod-less again (M-27): the blocks that store and enforce the field are drawn.
     lit: ['api', 'evictor', 'secondsChip', 'web2Chip'],
   },
 ];

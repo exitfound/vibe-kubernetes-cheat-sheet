@@ -69,10 +69,11 @@
   </button>
 
   <header class="header">
+    <h1 class="sr-only">Kubernetes schemes: animated architecture diagrams, step by step</h1>
     <div class="header-inner">
-      <a class="logo" href="/" aria-label="Go to homepage">
+      <a class="logo" href="/">
         <div class="logo-icon">
-          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Scheme network logo">
+          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <defs>
               <linearGradient id="schemeFg" x1="4" y1="6" x2="28" y2="26" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stop-color="#4fe5ff"/>
@@ -124,7 +125,7 @@
     <div class="mobile-stub-icon" aria-hidden="true">
       <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
     </div>
-    <h1 class="mobile-stub-title" id="mobileStubTitle">Schemes are desktop-only for now</h1>
+    <h2 class="mobile-stub-title" id="mobileStubTitle">Schemes are desktop-only for now</h2>
     <p class="mobile-stub-text">The animated diagrams need a wide screen and are not adapted for phones yet. Please open this page on a computer to explore them.</p>
     <div class="mobile-stub-actions">
       <button class="mobile-stub-btn primary" id="mobileStubCopy" type="button">Copy link</button>
@@ -149,6 +150,6 @@
 
   <script type="module" src="js/app.js"></script>
 
-  <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "6857fc54268445e1993933588b29845a"}'></script>
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "6857fc54268445e1993933588b29845a", "spa": false}'></script>
 </body>
 </html>

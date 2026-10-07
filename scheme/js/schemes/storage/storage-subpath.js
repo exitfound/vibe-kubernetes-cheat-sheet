@@ -2,32 +2,30 @@ import { P, F, defineCard, BEAT, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-subpath.md
 
 
-// Kubelet sits centred over the Pod with ConfigMap level with it on the right, both right of x 420
-// above the panel floor. The Pod runs the full width below them and holds the volume: spec.volumes
-// is a Pod field, so every read stays inside the Pod frame and the one lane that reaches the Pod,
-// the Kubelet write, ends on its top face midpoint. Panel extent measured per viewport in the
-// record.
+// Kubelet centred over the Pod with ConfigMap level with it on the right, both right of the panel.
+// The Pod holds the volume (spec.volumes is a Pod field), so every read stays inside the Pod frame
+// and the one lane that reaches the Pod, the Kubelet write, ends on its top face midpoint.
 const MID_X = 600;                                                // the Pod, Kubelet and ..data axis
 const COL_W = 232, BLK_H = 80;                                    // NET.L-01
-const TOP_Y = 140, TOP_MY = TOP_Y + BLK_H / 2;                    // the actor row, 140..220, mid 180
-const KUBE_X = MID_X - COL_W / 2;                                 // Kubelet 484..716
-const CM_X = 860;                                                 // ConfigMap 860..1092, 144 right of Kubelet
+const TOP_Y = 140, TOP_MY = TOP_Y + BLK_H / 2;                    // the actor row
+const KUBE_X = MID_X - COL_W / 2;
+const CM_X = 860;
 
 // One Pod, the volume row across its top, two peer containers under it, and a 2x2 ledger below.
-const POD_X = 100, POD_Y = 282, POD_W = 1000, POD_H = 250;       // bottom 532
-const ROW_Y = 312, ROW_H = 48, ROW_MY = ROW_Y + ROW_H / 2;        // the volume row, 312..360, mid 336
+const POD_X = 100, POD_Y = 282, POD_W = 1000, POD_H = 250;
+const ROW_Y = 312, ROW_H = 48, ROW_MY = ROW_Y + ROW_H / 2;        // the volume row
 const DIR_W = 164, DATA_W = 140;                                  // the two version directories, ..data
 // The row and the containers mirror about MID_X: each directory sits over its container.
 const SIDE_DX = 260;
-const PROXY_CX = MID_X - SIDE_DX, WEB_CX = MID_X + SIDE_DX;      // 340 / 860
+const PROXY_CX = MID_X - SIDE_DX, WEB_CX = MID_X + SIDE_DX;
 const V1_CX = PROXY_CX, V2_CX = WEB_CX;
 const V1_X = V1_CX - DIR_W / 2, V2_X = V2_CX - DIR_W / 2, DATA_X = MID_X - DATA_W / 2;
-const CT_W = 232, CT_H = 80, CT_Y = 416;                          // NET.L-01, 416..496
-const GRID_Y = 548, CHIP_H = 34, ROW_GAP = 12, CHIP_W = 300;     // rows 548 / 594, bottom 628
+const CT_W = 232, CT_H = 80, CT_Y = 416;                          // NET.L-01
+const GRID_Y = 548, CHIP_H = 34, ROW_GAP = 12, CHIP_W = 300;
 
 // Each static wire and its ball share one array. The two reads start on the volume row floor and
 // end on a container top, inside the Pod: the ..data read turns along the gap between the rows.
-const GAP_Y = (ROW_Y + ROW_H + CT_Y) / 2;                         // 388
+const GAP_Y = (ROW_Y + ROW_H + CT_Y) / 2;
 const W_DIR = [[MID_X, ROW_Y + ROW_H], [MID_X, GAP_Y], [WEB_CX, GAP_Y], [WEB_CX, CT_Y]];
 const W_SUB = [[V1_CX, ROW_Y + ROW_H], [PROXY_CX, CT_Y]];
 const W_CM = [[CM_X, TOP_MY], [KUBE_X + COL_W, TOP_MY]];
@@ -35,11 +33,10 @@ const W_WRITE = [[MID_X, TOP_Y + BLK_H], [MID_X, POD_Y]];
 const SYM_V1 = [[DATA_X, ROW_MY], [V1_X + DIR_W, ROW_MY]];
 const SYM_V2 = [[DATA_X + DATA_W, ROW_MY], [V2_X, ROW_MY]];
 
-// Every tagged ball rides LEG_DUR rather than routeDur: the v1 bind and the write legs are 56 and
-// 62 units and sit on the 700ms floor, where the tag retires before it can be read.
+// Every tagged ball rides LEG_DUR: on the 700ms floor of these short legs the tag retires before
+// it can be read.
 const LEG_DUR = 1500;
-// Every tag lives exactly as long as its ball (M-30a) and TRAILS it out of the block it leaves, so
-// each emerges once clear of that block.
+// Every tag trails its ball out of the block it leaves, so each emerges once clear of that block.
 const trailLabel = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0, emergeMode: true });
 // The ConfigMap tag rides over its lane and behind the ball, landing short of the Kubelet right
 // face. The write tag rides right of its drop and lands over the Pod top.
@@ -49,8 +46,8 @@ const WRITE_TAG = { fn: trailLabel, dx: 40, dy: -6, emerge: 500 };
 // lands over the web top. The v1 tag rides right of the short drop between v1 and proxy.
 const DIR_TAG = { fn: trailLabel, dx: 44, dy: -6, emerge: 300 };
 const SUB_TAG = { fn: trailLabel, dx: 38, dy: -6, emerge: 550 };
-// Z-order (bottom -> top): the Pod and everything it holds, the actor blocks, pointers and lanes,
-// the captions, the chip ledger, then the packet layer.
+// Z-order: the Pod and everything it holds, the actor blocks, pointers and lanes, the captions,
+// the chip ledger, then the packet layer.
 export const SCENE = {
   'aria-label': 'subPath mounts: one config volume, two containers in one Pod. The web container mounts the whole volume at a directory, so every read resolves through the ..data symlink. The proxy container mounts only app.conf with subPath, and Kubelet resolves that path to the v1 file when the container starts. When the ConfigMap changes, Kubelet writes a v2 directory, flips ..data and deletes the v1 directory: web now reads v2, and proxy keeps reading the v1 file its bind mount still holds until its container restarts.',
   parts: [
@@ -94,8 +91,8 @@ export const SCENE = {
   },
 };
 
-// STO.S-01 as a field: the v2 directory and both pointers change on the update step, so every one
-// of them is pinned on EVERY step, with every lane at full.
+// STO.S-01: the v2 directory and both pointers change on the update step, so every one of them is
+// pinned on every step, with every lane at full.
 const STAGE = { pod: 1, symV1: 1, symV2: 0, dirV2: 0, wWrite: 1, wCm: 1, wDir: 1, wSub: 1 };
 const FLIPPED = { ...STAGE, symV1: 0, symV2: 1, dirV2: 1 };
 const MOUNTS = { proxyMount: 'subPath app.conf', webMount: 'whole volume' };
@@ -121,9 +118,7 @@ export const STEPS_SPEC = [
     opacity: STAGE,
     lit: ['dataLink', 'dirV1'],
     flow: [
-      F.route({ points: W_DIR, delay: BEAT.lead, dur: LEG_DUR, name: 'read', lights: ['webBox'] }),
-      F.tag({ text: 'app.conf v1', points: W_DIR, delay: BEAT.lead, dur: LEG_DUR, ...DIR_TAG }),
-      F.pulse({ pod: 'pod', at: 'read' }),
+      F.route({ points: W_DIR, delay: BEAT.lead, dur: LEG_DUR, name: 'read', lights: ['webBox'], tag: { text: 'app.conf v1', ...DIR_TAG }, pulse: 'pod' }),
     ],
   },
   {
@@ -135,9 +130,7 @@ export const STEPS_SPEC = [
     opacity: STAGE,
     lit: ['kubelet', 'dirV1'],
     flow: [
-      F.route({ points: W_SUB, delay: BEAT.lead, dur: LEG_DUR, name: 'bind', lights: ['proxyBox'] }),
-      F.tag({ text: 'bind v1', points: W_SUB, delay: BEAT.lead, dur: LEG_DUR, ...SUB_TAG }),
-      F.pulse({ pod: 'pod', at: 'bind' }),
+      F.route({ points: W_SUB, delay: BEAT.lead, dur: LEG_DUR, lights: ['proxyBox'], tag: { text: 'bind v1', ...SUB_TAG }, pulse: 'pod' }),
     ],
   },
   {
@@ -154,10 +147,8 @@ export const STEPS_SPEC = [
     lit: ['cm'],
     // The pointer swap lands one hop after the write arrives, never while the ball is in flight.
     flow: [
-      F.route({ points: W_CM, delay: BEAT.lead, dur: LEG_DUR, name: 'read', lights: ['kubelet'] }),
-      F.tag({ text: 'app.conf v2', points: W_CM, delay: BEAT.lead, dur: LEG_DUR, ...CM_TAG }),
-      F.route({ points: W_WRITE, after: 'read', dur: LEG_DUR, name: 'write', lights: ['dirV2'] }),
-      F.tag({ text: 'write v2', points: W_WRITE, after: 'read', dur: LEG_DUR, ...WRITE_TAG }),
+      F.route({ points: W_CM, delay: BEAT.lead, dur: LEG_DUR, name: 'read', lights: ['kubelet'], tag: { text: 'app.conf v2', ...CM_TAG } }),
+      F.route({ points: W_WRITE, after: 'read', dur: LEG_DUR, name: 'write', lights: ['dirV2'], tag: { text: 'write v2', ...WRITE_TAG } }),
       // The write ends on the Pod top: the v2 directory comes into existence and the Pod blinks
       // as it lands.
       F.fade({ target: 'dirV2', from: 0, to: 1, dur: 400, at: 'write', fill: 'forwards', easing: 'ease-out' }),
@@ -180,9 +171,7 @@ export const STEPS_SPEC = [
     opacity: FLIPPED,
     lit: ['dataLink', 'dirV2'],
     flow: [
-      F.route({ points: W_DIR, delay: BEAT.lead, dur: LEG_DUR, name: 'read', lights: ['webBox'] }),
-      F.tag({ text: 'app.conf v2', points: W_DIR, delay: BEAT.lead, dur: LEG_DUR, ...DIR_TAG }),
-      F.pulse({ pod: 'pod', at: 'read' }),
+      F.route({ points: W_DIR, delay: BEAT.lead, dur: LEG_DUR, name: 'read', lights: ['webBox'], tag: { text: 'app.conf v2', ...DIR_TAG }, pulse: 'pod' }),
     ],
   },
   {
@@ -196,9 +185,7 @@ export const STEPS_SPEC = [
     opacity: FLIPPED,
     lit: ['dirV1'],
     flow: [
-      F.route({ points: W_SUB, delay: BEAT.lead, dur: LEG_DUR, name: 'read', lights: ['proxyBox'] }),
-      F.tag({ text: 'still v1', points: W_SUB, delay: BEAT.lead, dur: LEG_DUR, ...SUB_TAG }),
-      F.pulse({ pod: 'pod', at: 'read' }),
+      F.route({ points: W_SUB, delay: BEAT.lead, dur: LEG_DUR, name: 'read', lights: ['proxyBox'], tag: { text: 'still v1', ...SUB_TAG }, pulse: 'pod' }),
     ],
   },
 ];

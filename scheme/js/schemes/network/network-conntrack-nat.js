@@ -1,53 +1,47 @@
-import { P, F, defineCard, laneY, BEAT, OPACITY } from './network-kit.js';
+import { LANE_DY, P, F, defineCard, laneY, BEAT, OPACITY } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-conntrack-nat.md
 
-
-// Panel right <= 397, bottom <= 255. Every band clears it: the rule ladder starts at x 475, right of
-// the panel at any depth, and the corridor stands at 268, below the deepest reading. netfilter is the
-// hinge, with the COST above it and the MEMORY below, so both bands centre on NF_CX 600 and their
-// stubs are straight verticals. The corridor spans 70..1130 and the chip strip spans the same.
-const NF_W = 232, NF_H = 80;                       // NET.L-01, and the Kubelet height on network-model
+// netfilter is the hinge, with the COST above it and the MEMORY below, so both bands centre on NF_CX
+// and their stubs are straight verticals. The corridor and the chip strip span the same band.
+const NF_W = 232, NF_H = 80;                       // NET.L-01
 const NF_CX = 600;                                 // the spine of the whole card
-const NF_X = NF_CX - NF_W / 2;                     // 484
-const NF_LEFT = NF_X, NF_RIGHT = NF_X + NF_W;      // 484 / 716
+const NF_X = NF_CX - NF_W / 2;
+const NF_LEFT = NF_X, NF_RIGHT = NF_X + NF_W;
 
 const SCHEME_L = 70, SCHEME_R = 1130;              // the corridor and the chip strip share both
 
 const POD_Y = 268, POD_H = 110;                    // both Pod shells stand on one baseline
 const POD_W = 232;
-const CLIENT_X = SCHEME_L, CLIENT_EDGE = CLIENT_X + POD_W;   // 70 / 302
-const CLIENT_CX = CLIENT_X + POD_W / 2;            // 186
-const SERVER_X = SCHEME_R - POD_W, SERVER_CX = SERVER_X + POD_W / 2;   // 898 / 1014
-const POD_BOTTOM = POD_Y + POD_H;                  // 378
+const CLIENT_X = SCHEME_L, CLIENT_EDGE = CLIENT_X + POD_W;
+const CLIENT_CX = CLIENT_X + POD_W / 2;
+const SERVER_X = SCHEME_R - POD_W, SERVER_CX = SERVER_X + POD_W / 2;
+const POD_BOTTOM = POD_Y + POD_H;
 
-const FLOW_Y = POD_Y + POD_H / 2;   // 323: the face midpoint both lanes are mirrored about
-const NF_Y = FLOW_Y - NF_H / 2;     // 287: netfilter is centred on the same line
-const NF_BOTTOM = NF_Y + NF_H;      // 359
-const LANE_DY = 16;                 // half-gap between the request and reply lanes
-const { out: REQ_Y, back: REP_Y } = laneY(FLOW_Y, LANE_DY);   // 307 request, 339 reply
+const FLOW_Y = POD_Y + POD_H / 2;   // the face midpoint both lanes are mirrored about
+const NF_Y = FLOW_Y - NF_H / 2;     // netfilter is centred on the same line
+const NF_BOTTOM = NF_Y + NF_H;
+const { out: REQ_Y, back: REP_Y } = laneY(FLOW_Y, LANE_DY);
 
 // Four cells with even gaps spanning the corridor 1:1, all one width: no value here needs more.
 const CHIP_Y = 566, CHIP_H = 34, CHIP_GAP = 20;
-const CHIP_W = (SCHEME_R - SCHEME_L - 3 * CHIP_GAP) / 4;           // 250
+const CHIP_W = (SCHEME_R - SCHEME_L - 3 * CHIP_GAP) / 4;
 const CHIP_X = [0, 1, 2, 3].map(i => SCHEME_L + i * (CHIP_W + CHIP_GAP));
 
-// The rule ladder takes the strip cell exactly, CHIP_W by CHIP_H, so the rows above netfilter and
-// the readout below it are one family at one size. RULE_Y is set so the stub down to netfilter is
-// the same 73 units as the stub from netfilter down to the entry: the hinge reaches equally far
-// both ways. Right of the panel wall at any depth.
+// The rule ladder takes the strip cell exactly, so the rows above netfilter and the readout below are
+// one family. RULE_Y makes the stub up from netfilter as long as the stub down to the entry.
 const RULE_ROW_H = CHIP_H, RULE_GAP = 5;
-const RULE_BOTTOM = 214, RULE_Y = RULE_BOTTOM - 3 * RULE_ROW_H - 2 * RULE_GAP;   // 102 / 214
-const RULE_W = CHIP_W, RULE_X = NF_CX - RULE_W / 2;   // 250 wide, 475..725
+const RULE_BOTTOM = 214, RULE_Y = RULE_BOTTOM - 3 * RULE_ROW_H - 2 * RULE_GAP;
+const RULE_W = CHIP_W, RULE_X = NF_CX - RULE_W / 2;
 
 // The conntrack entry: wide, below netfilter, two tuple rows read as one record. Wider than a strip
 // cell by design, so a row cannot be mistaken for another chip.
-const ENT_W = 480, ENT_X = NF_CX - ENT_W / 2;      // 360..840
-const ENT_R = ENT_X + ENT_W;                       // 840
-const ENT_ROW_H = 36, ENT_GAP = 8;
-const ORIG_Y = 432, ORIG_CY = ORIG_Y + ENT_ROW_H / 2;              // 432 / 450
-const REPLY_Y = ORIG_Y + ENT_ROW_H + ENT_GAP;                      // 476
-const REPLY_CY = REPLY_Y + ENT_ROW_H / 2;                          // 494
+const ENT_W = 480, ENT_X = NF_CX - ENT_W / 2;
+const ENT_R = ENT_X + ENT_W;
+const ENT_ROW_H = CHIP_H, ENT_GAP = 8;
+const ORIG_Y = 432, ORIG_CY = ORIG_Y + ENT_ROW_H / 2;
+const REPLY_Y = ORIG_Y + ENT_ROW_H + ENT_GAP;
+const REPLY_CY = REPLY_Y + ENT_ROW_H / 2;
 
 // Two lanes per gap: request (top, ->) and reply (bottom, <-), so every ball has a matching arrow.
 const C_REQ = [[CLIENT_EDGE, REQ_Y], [NF_LEFT, REQ_Y]];
@@ -130,12 +124,13 @@ const REPLY_TUPLE = '10.244.2.7:8080 -> 10.244.1.5:34512';
 const BACKEND = '10.244.2.7:8080';
 const TABLE_ONE = '1 of nf_conntrack_max';
 const WALK_READ = 'chain read';
-// Every address RIDES its ball (`NET.T-01`). No `dur` on either the packet or its tag, so both
-// fall to routeDur over the same points and cannot drift apart, and the tag takes `segmentPacket`s
-// linear easing for the same reason (`M-30`).
+// Every address RIDES its ball (NET.T-01).
 const REQ_TAG = 'dst 10.96.0.20:80';
 const NAT_TAG = 'dst 10.244.2.7:8080';
 const RIDE = { easing: 'linear' };
+// A reply rides the LOWER lane, so its tag rides under the ball and outside the pair, off the
+// request lane.
+const RIDE_BACK = { ...RIDE, dy: 18 };
 // The record is blank until the step that writes it, and blank means a space: an empty string would
 // leave the row with no text node for a later write to land in.
 const BLANK = { origRow: ' ', replyRow: ' ' };
@@ -227,11 +222,11 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'server' }),
       F.segment({ from: S_REP[0], to: S_REP[1], delay: BEAT.afterPulse, name: 'h1', lights: ['nf'] }),
-      F.tag({ text: 'src 10.244.2.7:8080', points: S_REP, delay: BEAT.afterPulse, ...RIDE }),
+      F.tag({ text: 'src 10.244.2.7:8080', points: S_REP, delay: BEAT.afterPulse, ...RIDE_BACK }),
       F.set({ chips: { ctChip: 'ESTABLISHED', walkChip: 'none on the reply' }, at: 'h1' }),
       F.light({ targets: ['replyRow', 'ctChip', 'walkChip'], at: 'h1' }),
       F.segment({ from: C_REP[0], to: C_REP[1], after: 'h1', name: 'h2' }),
-      F.tag({ text: 'src 10.96.0.20', points: C_REP, after: 'h1', ...RIDE }),
+      F.tag({ text: 'src 10.96.0.20', points: C_REP, after: 'h1', ...RIDE_BACK }),
       F.pulse({ pod: 'client', at: 'h2' }),
     ],
   },

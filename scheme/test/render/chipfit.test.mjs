@@ -1,46 +1,6 @@
-// chipfit.test.mjs: a value chip's NAME must not collide with its VALUE (P-07). Successor of
-// tools/check-chipfit.mjs: same rule, same MIN_GAP, same pooling over every step.
-//
-//   GAP (P-07)  for every name/value chip on every step, value.x - (name.x + name.width) >= MIN_GAP,
-//               measured with getBBox() on the RENDERED text, in viewBox units.
-//
-// A chip is one rect with the name anchored 12 units from its left edge and the value 12 from its
-// right (`valChip` in lib/scheme-kit.js), so a chip narrower than name + value + 24 plus a readable
-// gap draws the two strings on top of each other and the text stops being text:
-// "spec.unschedulabSehedulingDisabled" is the real artefact that produced the original check.
-// The fix is to shorten the VALUE, not to widen the chip (P-07, STO.L-03).
-//
-// Nothing else in the suite answers this question. render/inline.test.mjs reads the strings and
-// compares them across cards, render/geometry.test.mjs measures blocks: neither asks whether a
-// string FITS. It has to be a rendered measurement for the same reason: the width of a string is a fact
-// about the font, and no amount of reading the source produces it.
-//
-// WHY EVERY STEP. A chip carries different values through the story and only overflows on the step
-// holding its longest one, so a single sample at open would miss most of the catalog. The walk is
-// STATIC (gotoStep), which replays each step under ctx.reduced and lands on the value the step
-// SETTLES on: that is the value the reader has time to read, and it is deterministic between runs,
-// where a played walk is not.
-//
-// FONTS ARE THE WHOLE MEASUREMENT (L-21). The fallback face is about 20 percent narrower than
-// JetBrains Mono, so measuring before the webfont lands flatters every chip on the card and turns
-// this file into a green run that proves nothing. The fixture's openCard waits for networkidle,
-// which is necessary but not sufficient (the stylesheet is attached by an onload handler on a
-// preload link, so the font can still be pending when the network goes quiet). Neither is
-// document.fonts.check(): with the font hosts unreachable the stylesheet never attaches, so there
-// is no @font-face rule to be missing and check() reports every family available, invented ones
-// included. The guard is fixtures/render.mjs fallbackFaces(), which measures a string in the wanted
-// family against the same string in an impossible one, and it ASSERTS. A run without the Google
-// Fonts network is a run that cannot answer the question, and it says so rather than passing.
-//
-// BLIND BY CONSTRUCTION, inherited and deliberate:
-//   - WIRE LABELS are not measured, here or anywhere in the gate (L-19). A caption on a lane can
-//     overrun its neighbour and nothing will notice.
-//   - a chip whose two strings are STACKED (a heading over a sub-line, as in the event slots of
-//     cluster-list-watch-informers) is not a name/value pair and cannot collide horizontally, so pairs
-//     whose vertical centres differ by more than STACK_TOL are excluded.
-//   - ladder rows (.scheme-chain) carry ONE string per chip, so they are excluded outright.
-//   - only the FIRST and LAST text of a chip are compared, as the original did. A chip with three
-//     texts has its middle one unjudged.
+// P-07: a value chip's name and value keep MIN_GAP between them on every step, measured with getBBox
+// on the static walk. A fallback mono face fails the run (L-21). Blind to wire labels (L-19), stacked
+// texts, chain rows, and the middle text of a three-text chip.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -50,62 +10,27 @@ import { FACE_MONO } from '../fixtures/render.mjs';
 import { readSnapshot } from '../fixtures/snapshot.mjs';
 import { STACK_TOL, vpName, VIEWPORTS } from '../tools/walk.mjs';
 
-// The viewport the walk takes this reading at, named rather than retyped.
 const VP = vpName(VIEWPORTS[0]);
 
-// ---------------------------------------------------------------------------------------------
-// The two numbers of the rule, both taken from the original tool and not from any prose about it.
-// ---------------------------------------------------------------------------------------------
-
-// Minimum clear space between the end of the name and the start of the value, in viewBox units.
-// check-chipfit.mjs:17. Not a rendering tolerance: it is the readable gap itself, so 0 would let a
-// value touch its name and still pass.
+// The readable gap itself, not a rendering tolerance, in viewBox units.
 const MIN_GAP = 4;
 
-// Two texts whose vertical centres differ by more than this are STACKED, not a pair.
-// check-chipfit.mjs:35. Same unit, same value, and the coincidence is not meaningful. It is
-// declared in tools/walk.mjs, where the reading that applies it is taken, and imported here:
-// a threshold typed in two places is two thresholds.
+// STACK_TOL is imported from tools/walk.mjs, where it is applied.
 
-// The font the chip strings are actually drawn in: .scheme-chip-text is 11px 'JetBrains Mono'
-// (css/diagrams.css:203-207), which is fixtures/render.mjs FACE_MONO. Measured, not assumed,
-// because the fallback is what makes a false green possible (L-21). Only this face is guarded:
-// every string this file measures is a chip string, and a chip string is mono.
+// Chip strings are drawn in mono only, so only FACE_MONO is guarded.
 const CHIP_FACES = [FACE_MONO];
 
-// ---------------------------------------------------------------------------------------------
-// Control numbers, taken off a green run of the whole catalog, where every chip fits its name
-// and its longest value. FLOORS, not equalities: a run that measures fewer cards, steps or chips
-// than this has scanned a subset, and a subset reporting zero collisions looks exactly like a clean
-// catalog. The card count is additionally pinned to data.js exactly, through census().
-// ---------------------------------------------------------------------------------------------
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+// Floors from a full walk: a subset reporting zero collisions looks clean.
 const EXPECTED_CARDS = floor((await cards()).length);
 const EXPECTED_STEPS = floor(await stepTotal());
-// Cards that DECLARE a chip, counted off the specs: 106 today, the four without one being
-// cluster-object-create-path, cluster-architecture, cluster-cascading-deletion and network-service-types. This is
-// the guard the pair floor below was being asked to be and could not: it is immune to what a card
-// SAYS and falls only when the selector stops matching chips, which is the failure being guarded.
+// Cards declaring a chip: immune to what a card says, falls only when the selector stops matching.
 const EXPECTED_CHIP_CARDS = floor(104);
-// Distinct card+name+value pairs. CONTENT-DEPENDENT, and deliberately carrying headroom: two chips
-// that come to share a value are ONE pair, so an ordinary text repair lowers this number without
-// anything being wrong. Three separate agents tripped it in one session on honest de-duplication
-// while it sat at the measured 1143 with zero margin. A narrowed selector does not cost three
-// pairs, it collapses the count, so the floor is set well under the measurement on purpose.
-const EXPECTED_PAIRS = floor(1080);    // measured 1143 on 2026-08-17
-
-// Runs IN THE PAGE, serialised across the CDP boundary, so it closes over nothing. Returns EVERY
-// name/value pair it measured, not only the failing ones: the passing ones are the coverage census
-// and the tightest-margin report, and a check that only returns findings cannot prove it looked.
+// Distinct card+name+value pairs, with headroom: chips coming to share a value merge into one pair.
+const EXPECTED_PAIRS = floor(1080);
 
 const catalogued = await cards();
 
-// THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` opens each card once for the whole
-// suite and takes this reading with the rest; the probe that used to sit above moved into
-// fixtures/probes.mjs as `chipProbe`, verbatim, and the walk calls it at 1600x1000, which is the
-// viewport these numbers were measured under. getBBox reports viewBox units so the window size is
-// not load-bearing, but it is what they were measured under and nothing about that moved.
+// The probe is chipProbe in fixtures/probes.mjs, run by tools/walk.mjs at 1600x1000.
 const snap = readSnapshot();
 const ids = snap.ids;
 
@@ -119,8 +44,7 @@ const tightest = new Map();      // `${id}|${name}|${value}` -> { id, i, name, v
 
 for (const id of ids) {
   test(id, async () => {
-    walked++;                    // counted before the assertions, so this stays a census of
-                                 // COVERAGE and a broken card is reported once, as itself.
+    walked++;                    // counted before the assertions, so a broken card is reported once, as itself
     const card = snap.cards[id];
 
     const fellBack = card.fellBackMono;
@@ -133,8 +57,7 @@ for (const id of ids) {
     const total = card.steps;
     assert.ok(total > 0, `stepCount is ${total}: no steps to walk`);
 
-    // Pooled over every step, keeping the TIGHTEST reading of each name/value pair: the same chip
-    // is remeasured on every step it survives, and the smallest gap is the one that decides.
+    // Pooled over every step, keeping the tightest gap per pair.
     const mine = new Map();
     for (let i = 0; i < total; i++) {
       const rows = card.byVp[VP][i].chips;
@@ -162,8 +85,7 @@ for (const id of ids) {
 test('every catalogued card was walked, every step and every chip was measured', (t) => {
   const sorted = [...tightest.values()].sort((a, b) => a.gap - b.gap);
   t.diagnostic(`chipfit: ${walked} cards, ${stepped} steps, ${tightest.size} distinct chip pairs measured`);
-  // One line each: a diagnostic is a single TAP comment, so an embedded newline is escaped and the
-  // list becomes unreadable. These five are the chips a longer value will break first.
+  // One line each: a TAP diagnostic escapes embedded newlines.
   t.diagnostic(`tightest 5 chips (MIN_GAP is ${MIN_GAP}):`);
   for (const h of sorted.slice(0, 5)) {
     t.diagnostic(`  ${h.id} "${h.name}" | "${h.value}" gap ${h.gap}`);
@@ -176,9 +98,7 @@ test('every catalogued card was walked, every step and every chip was measured',
   assert.ok(stepped >= EXPECTED_STEPS,
     `measured ${stepped} step(s), expected at least ${EXPECTED_STEPS}. A chip takes its longest ` +
     'value on exactly one step, so a missing step is a chip nobody measured at its widest.');
-  // The precise reading of "the selector still matches chips": how many CARDS handed this walk at
-  // least one pair. A card that declares a chip and contributes none is a card the probe went blind
-  // on, and no amount of editing a value can move this number.
+  // Cards that handed the walk at least one pair: the selector guard.
   const chipCards = new Set([...tightest.values()].map(h => h.id)).size;
   assert.ok(chipCards >= EXPECTED_CHIP_CARDS,
     `measured a chip on ${chipCards} card(s), expected at least ${EXPECTED_CHIP_CARDS}. The specs ` +

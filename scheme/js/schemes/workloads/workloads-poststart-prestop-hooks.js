@@ -3,93 +3,63 @@ import { rect, text, g } from '../../lib/svg.js';
 
 // Design notes for this card: ./CARDS/workloads-poststart-prestop-hooks.md
 
-// An INSTRUMENT, not an actor row over a Node floor. The subject is WHEN the two hook slots sit in
-// one container life and how differently each one behaves, so the picture is a time rail under the
-// pair that acts and the Pod it acts on. The frame around that rail holds no Pod and is not a
-// Node: it is the enclosure the catalog already uses for a region that is not one (`Control
-// plane`, `Storage backend`), and it carries the caption as its label.
+// A time-rail instrument, not an actor row: the frame is a region enclosure, never a Node.
 
-// Panel measured at x<=396.55, y<=254.66, both worst at 1100x800 on the poster frame (1600x1000
-// reads 177.44 and 1280x860 reads 213.92), so the Pod at y=280 stands 25.34 clear of the deepest
-// narration this card can draw, on the 26.55 units of its left edge that stand in the panel column
-// at all.
-
-// The 232 pair of the WL exemplar: the box the corridor leaves is centred on WL.CX (WL.L-07) and
-// the other is right aligned on WL.R. That centred box is the RUNTIME here and not the Kubelet,
-// because the lane into the container leaves the runtime, so the request rides WL.A-01's request
-// lane RIGHT TO LEFT. A direction, not a role swap: REQ_Y still carries the ask.
+// The centred box is the Runtime, not Kubelet, because the lane into the container leaves it, so
+// the request rides REQ_Y right to left.
 const TOP_W = 232;
-const RUN_X = WL.CX - TOP_W / 2;                         // 484..716, Runtime, centred on CX
-const KUB_X = WL.R - TOP_W;                              // 908..1140, Kubelet, right edge on WL.R
-const RUN_R = RUN_X + TOP_W;                             // 716, the face the pair talks across
+const RUN_X = WL.CX - TOP_W / 2;
+const KUB_X = WL.R - TOP_W;
+const RUN_R = RUN_X + TOP_W;
 const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
 const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
-const WIRE_X = midX(RUN_R, KUB_X);                       // 812
-const WIRE_Y = WL.TOP_Y - 12;                            // 28, above the actor row (WL.A-02)
+const WIRE_X = midX(RUN_R, KUB_X);
+const WIRE_Y = WL.TOP_Y - 12;                            // above the actor row (WL.A-02)
 
-// The lane into the container leaves the RUNTIME, not Kubelet: Kubelet is a CRI client and never
-// touches a container, which is half the subject. Both wire labels that ride this say so.
-// It is one straight segment, the exemplar's own corridor: the runtime bottom face midpoint is
-// WL.SPINE_X and so is the Pod top face midpoint, so the jog the old 150 wide pair needed is gone.
+// Kubelet is a CRI client and never touches a container, so the corridor leaves the Runtime.
 const POD_W = 460, POD_H = 100, POD_Y = 280;
-const POD_X = WL.CX - POD_W / 2;                         // 370..830, centred on CX
+const POD_X = WL.CX - POD_W / 2;
 const CONT_W = 300, CONT_X = WL.CX - CONT_W / 2;
 const POD_INNER = { dx: CONT_X - POD_X, dy: 26, w: CONT_W, h: 56 };
 const SPINE = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, POD_Y]];
-// The second wire label, for the corridor rather than the top row: what rides the spine is not what
-// rides the actor lanes, and T-22 lets a label name only the traffic on its own lane. It sits right
-// of the trunk, on the MIDDLE of the corridor and derived from its two ends: the +4 is the ink,
-// which runs baseline-11.2 to baseline+3.4, so the BLOCK centres on the midpoint and not the
-// baseline. At the 250 it carried before it read as a caption on the Pod.
-const VIA_X = WL.SPINE_X + 14, VIA_Y = (WL.TOP_BOTTOM + POD_Y) / 2 + 4;   // 204
+// The corridor label (T-22: a label names only the traffic on its own lane). The +4 centres the
+// ink block, not the baseline, on the corridor midpoint.
+const VIA_X = WL.SPINE_X + 14, VIA_Y = (WL.TOP_BOTTOM + POD_Y) / 2 + 4;
 
-// THE RAIL. It draws ORDER, never DURATION: a bar length says what came first and what overlapped
-// what, and no tick, cap or caption attaches a number to one. The single number the instrument
-// carries is the grace window, because 30s is a value the card actually states, and the frame
-// label says so out loud so no proportion on it reads back as seconds. The two hook slots are
-// therefore drawn at ONE width: unequal bars would claim one handler outran the other.
+// The rail draws ORDER, never DURATION: both hook slots share one width and only the grace window
+// carries a number.
 
-// THE FRAME IS THE INSTRUMENT'S WALL, and every y below hangs off its top rather than off a
-// number of its own. Two rows of bars, an axis and four ticks standing on open canvas gave a
-// reader nothing saying where the instrument began, where it ended or what it was. Full width on
-// WL.L..WL.R so it lines up with the chip strip under it, and 34 clear of that strip.
-const FRAME_X = WL.L, FRAME_W = WL.W;                    // 60..1140
-const FRAME_Y = 404, FRAME_H = 150;                      // 404..554
-const HEAD_Y = FRAME_Y + 18;                             // 422, where node() prints its own label
-const RAIL_L = 150, RAIL_R = 1050;                       // 900 wide, centred on WL.CX, 90 inside
-const SLOT_W = 170;                                      // BOTH hook slots, and they are equal
-const T_CREATE = RAIL_L, T_PS_END = T_CREATE + SLOT_W;   // 150..320, the postStart slot
-const T_DELETE = 700, T_SIGTERM = T_DELETE + SLOT_W;     // 700..870, the preStop slot
-const T_END = RAIL_R;                                    // 1050, the far edge of the window
+// Every y below hangs off the frame top.
+const FRAME_X = WL.L, FRAME_W = WL.W;
+const FRAME_Y = 404;
+const HEAD_Y = FRAME_Y + 18;                             // where node() prints its own label
+const RAIL_L = 150, RAIL_R = 1050;
+const SLOT_W = 170;
+const T_CREATE = RAIL_L, T_PS_END = T_CREATE + SLOT_W;   // the postStart slot
+const T_DELETE = 700, T_SIGTERM = T_DELETE + SLOT_W;     // the preStop slot
+const T_END = RAIL_R;
 const BAR_H = 18, LANE_GAP = 10;
-const HOOK_Y = FRAME_Y + 40;                             // 444..462, the two hook slots
-const PROC_Y = HOOK_Y + BAR_H + LANE_GAP;                // 472..490, PID 1
-const AXIS_Y = PROC_Y + BAR_H + 10;                      // 500, the lifetime rule
-// The ticks hang BELOW the axis. Above it they sat in the 12 units between the bar bottom and the
-// rule, where a bar drawn over that x reads the mark as its own edge and the two ticks inside the
-// window disappeared under the band entirely.
+const HOOK_Y = FRAME_Y + 42;
+const PROC_Y = HOOK_Y + BAR_H + LANE_GAP;                // the PID 1 lane
+const AXIS_Y = PROC_Y + BAR_H + 10;                      // the lifetime rule
+// Ticks hang below the axis, where a bar over the same x cannot swallow them.
 const TICK_H = 10, TICK_W = 2;
-// 32 and not the 26 the rail carried on open canvas: at 26 the tick words ink from 515 and the
-// band's own bottom edge at 516 ruled through their ascenders. Measured at 1100x800, where the
-// glyphs are tallest in viewBox units.
-const TICK_LABEL_Y = AXIS_Y + 32;                        // 532, inking 521..535.7, 18.3 off the wall
-const BAND_TOP = HOOK_Y - 8, BAND_BOT = AXIS_Y + 16;     // 436..516, over both lanes and the ticks
+// 32 so the tick words clear the band bottom edge.
+const TICK_LABEL_Y = AXIS_Y + 32;
+const BAND_TOP = HOOK_Y - 8, BAND_BOT = AXIS_Y + 16;     // over both lanes and the ticks
+// The WL floor: 12 under the tick words, the lowest register in the frame.
+const FRAME_H = TICK_LABEL_Y + 12 - FRAME_Y;
 const CAP_Y = HEAD_Y;                                    // both half captions ride the frame header
-// The start half is NAMED and never boxed, start-anchored clear of the frame label (which inks to
-// 369.6 at 1600x1000) and ending short of the seam at T_DELETE. A second rect here would draw a
-// second bounded window, and the one claim this card makes about the start side is that there is
-// none: two rects of unequal width also invite the duration reading the caption denies.
+// The start half is named, never boxed: a second rect would claim a bounded window the start side
+// does not have.
 const CAP_LEFT_X = 420;
-const LANE_LABEL_X = RAIL_L - 12;                        // 138, right-anchored off the rail
+const LANE_LABEL_X = RAIL_L - 12;
 
-// Chips as a single full-width row of three (WL.L-05: never four, and 350.67 is the measured width
-// the longest value here, `declared (exec)`, sits well inside). `grace remaining` is deliberately
-// gone: the band draws that window, and a value written in a chip AND drawn as a bar is the one
-// way an instrument card contradicts itself.
+// One row of three chips (WL.L-05). No `grace remaining` chip: the band already draws that window.
 const CHIP_N = 3, CHIP_GAP = 14;
 const CHIP_W = (WL.W - CHIP_GAP * (CHIP_N - 1)) / CHIP_N;
 const CHIP_X = (i) => WL.L + i * (CHIP_W + CHIP_GAP);
-const CHIPS_TOP = 588;                                   // 588..622
+const CHIPS_TOP = 588;
 
 const INK = Object.freeze({
   axis: 'rgba(255, 255, 255, 0.16)',
@@ -97,16 +67,12 @@ const INK = Object.freeze({
   slot: 'rgba(91, 184, 255, 0.45)',
   band: 'rgba(91, 184, 255, 0.09)',
   bandEdge: 'rgba(91, 184, 255, 0.28)',
-  // The drain is PID 1 still running under a signal it has been sent, so it is a filled bar at a
-  // lower weight. A dashed outline is this card's word for a slot that has NOT run, and reusing it
-  // here said the app was waiting to start draining rather than draining.
+  // PID 1 draining under a signal: filled at low weight, because dashed means a slot that has not run.
   drain: 'rgba(91, 184, 255, 0.06)',
   drainEdge: 'rgba(91, 184, 255, 0.5)',
 });
 
-// A bar is a naked rect: box() here would be scored as a block by the geometry probe and as a body
-// by CENTRE, and an 18 unit tread is neither. P.raw bypasses the kit binding by construction, and
-// these carry no role at all, so probePaint never walks them, which is what a graduation wants.
+// A naked rect, so the geometry probe never scores a bar as a block, and it carries no role.
 const bar = ({ key, x0, x1, y, fill, stroke, dash }) => P.raw({
   key,
   opacity: 0,
@@ -119,8 +85,7 @@ const bar = ({ key, x0, x1, y, fill, stroke, dash }) => P.raw({
   },
 });
 
-// A tick is its rule AND its word: they appear together or the mark is a decoration (the Timeline
-// family fails exactly there), so one key carries both.
+// A tick is its rule AND its word under one key, so they appear together.
 const tick = ({ key, x, label }) => P.raw({
   key,
   opacity: 0,
@@ -132,9 +97,8 @@ const tick = ({ key, x, label }) => P.raw({
   },
 });
 
-// The list order IS the append order, so it is the z-order: the lanes and their labels first, then
-// the rail from the band upward, then the chips and the packet layer, and the Pod and the two
-// actors last so a ball passes behind them rather than over their labels.
+// Append order is z-order: lanes, rail, chips, packet layer, then the Pod and the actors so a ball
+// passes behind them.
 export const SCENE = {
   'aria-label': 'Container lifecycle hooks on one container timeline: the postStart slot opens on the same tick as the ENTRYPOINT with no ordering guarantee, the preStop slot is run to completion before SIGTERM, and the hook and the drain share one termination grace window',
   parts: [
@@ -144,12 +108,10 @@ export const SCENE = {
     P.lane({ key: 'connector', points: SPINE, dim: true, dashed: true, role: 'cluster' }),
     P.wire({ key: 'req', x: WIRE_X, y: WIRE_Y }),
     P.wire({ key: 'via', x: VIA_X, y: VIA_Y, anchor: 'start' }),
-    // The wall, drawn before everything it holds so every bar, tick and string sits on top of it.
-    // Its label is the caption the rail used to carry as a free tag at (150, 474), which is the
-    // whole point of the frame: the instrument now says what it is at its own top-left corner.
+    // The frame first, so everything it holds sits on top of it.
     P.node({ x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'container lifetime   ·   order, not duration' }),
-    // The band is drawn first of the rail so both lanes sit inside it rather than beside it: that
-    // containment IS the claim that preStop and the drain spend one budget.
+    // Both lanes sit inside the band: that containment IS the claim that preStop and the drain
+    // spend one budget.
     P.raw({
       key: 'graceBand',
       opacity: 0,
@@ -167,8 +129,7 @@ export const SCENE = {
         return r;
       },
     }),
-    // The two slots stand empty from the step that declares them, and each fills later in place.
-    // They are identical rects because the DECLARATION is symmetric: everything that follows is not.
+    // Declared slots stand empty and fill in place later. Identical, because the declaration is symmetric.
     bar({ key: 'psSlot', x0: T_CREATE, x1: T_PS_END, y: HOOK_Y, fill: 'none', stroke: INK.slot, dash: '5 4' }),
     bar({ key: 'preSlot', x0: T_DELETE, x1: T_SIGTERM, y: HOOK_Y, fill: 'none', stroke: INK.slot, dash: '5 4' }),
     bar({ key: 'postStartBar', x0: T_CREATE, x1: T_PS_END, y: HOOK_Y, fill: 'var(--tint-fill)', stroke: 'rgb(var(--tint-base-rgb))' }),
@@ -180,8 +141,7 @@ export const SCENE = {
     tick({ key: 'tickDelete', x: T_DELETE, label: 'delete' }),
     tick({ key: 'tickSigterm', x: T_SIGTERM, label: 'SIGTERM' }),
     tick({ key: 'tickEnd', x: T_END, label: 'grace 0' }),
-    // The band names the WINDOW, never the field: the Pod below already writes
-    // `terminationGracePeriodSeconds: 30`, and that field is an integer of seconds, not `30s`.
+    // Names the window, not the field: the field is an integer of seconds, written on the Pod.
     P.tag({ key: 'bandLabel', x: midX(T_DELETE, T_END), y: CAP_Y, text: 'termination grace window: 30s', opacity: 0 }),
     P.tag({ key: 'startCap', x: CAP_LEFT_X, y: CAP_Y, text: 'no window: postStart has no deadline', anchor: 'start', opacity: 0 }),
     P.tag({ x: LANE_LABEL_X, y: HOOK_Y + BAR_H - 5, text: 'hook slots', anchor: 'end' }),
@@ -195,8 +155,7 @@ export const SCENE = {
     // Everything below is appended AFTER the packet layer, so the ball runs under it.
     P.pod({
       key: 'podGroup', id: 'podGroup', shellKey: 'shell', innerKey: 'containerBox',
-      // The grace period is a POD field (`spec.terminationGracePeriodSeconds`), so it is the POD
-      // sublabel: on the container it stated a field the container API does not carry.
+      // The grace period is a Pod field, so it is the Pod sublabel.
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: 'terminationGracePeriodSeconds: 30', containers: 0,
       // No build-time opacity: every step pins the Pod own value, and the poster frame is `idle`.
       inner: { dx: POD_INNER.dx, dy: POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: '' },
@@ -210,9 +169,7 @@ export const SCENE = {
   },
 };
 
-// The rail in the order the life happens in. Every step pins EVERY entry, so a seek, a step back or
-// a reduced replay can never leave a segment of the timeline behind, and `rewind` is then one call
-// on the group the step is about to draw.
+// Every step pins EVERY rail entry, so a seek or a step back never leaves a segment behind.
 const RAIL_ORDER = [
   ['psSlot', 'preSlot'],                                              // the two declared slots
   ['tickCreate', 'postStartBar', 'entryBar', 'startCap'],             // created
@@ -228,22 +185,16 @@ const railAt = (n) => {
 
 const DECLARED = 'declared (exec)', EXIT0 = 'exit 0', DRAINING = 'Running (draining)';
 
-// Kubelet asks over CRI and the runtime RECEIVES the ask, so it lights on arrival. The ack hangs
-// off whatever landed last, and never before it: an answer that arrives before the thing it
-// answers reports ExecSync complete before the handler has been exec-ed.
-// A self-initiated ask waits BEAT.lead, so the Kubelet the step lit at entry is on screen as the
-// SENDER before its own ball leaves it (M-18). Chained off a return there is nothing to wait for:
-// the box lit itself on that arrival a beat ago.
+// The Runtime lights on receiving the ask. A self-initiated ask waits BEAT.lead so the lit Kubelet
+// reads as the sender first (M-18).
 const ask = (after) => (after
   ? F.top({ from: KUB_X, to: RUN_R, y: REQ_Y, after, name: 'req', lights: ['runtime'] })
   : F.top({ from: KUB_X, to: RUN_R, y: REQ_Y, delay: BEAT.lead, name: 'req', lights: ['runtime'] }));
 // The answer leaves the runtime a beat after the Pod blink that produced it (M-15, up-arrow).
 const ack = (name) => F.segment({ from: [RUN_R, RESP_Y], to: [KUB_X, RESP_Y], delay: BEAT.afterPulse, name, lights: ['kubelet'] });
-// The handler runs INSIDE the container: the ask hops to the runtime, the exec order travels down
-// the corridor, and the Pod pulses on arrival as the handler starts running in it (M-16).
+// The exec travels the corridor and the Pod pulses on arrival as the handler starts in it (M-16).
 const deliver = (name) => [
-  F.route({ points: SPINE, after: 'req', name }),
-  F.pulse({ pod: 'podGroup', at: name }),
+  F.route({ points: SPINE, after: 'req', name, pulse: 'podGroup' }),
 ];
 // A rail segment is drawn by the arrival that earns it, never at step entry.
 const draw = (keys, at) => keys.map((target) => F.reveal({ target, at }));
@@ -258,38 +209,29 @@ export const STEPS_SPEC = [
   },
   {
     id: 'slots',
-    // 364 characters at 3600 reads 9.89 ms per character against a catalog median of 10.07. The
-    // step stands still for 86 percent of that, which is what a declaration beat costs: the two
-    // slots are declared TOGETHER, so staggering their reveal to buy motion would draw an order
-    // between them that the spec does not have.
+    // Both slots are declared together, so their reveal is not staggered.
     duration: 3600,
     narration: 'A container may declare two lifecycle handlers of its own. The lifecycle.postStart field is bound to the moment the container is created, and lifecycle.preStop to the moment it is asked to stop. Each handler is one of exec, a command run inside the container, httpGet, a request Kubelet issues against the Pod IP by default, or sleep, a fixed pause. Neither slot has run yet.',
     chips: { postStartChip: DECLARED, preStopChip: DECLARED, stateChip: 'Waiting' },
     wires: { req: ' ', via: ' ' },
     opacity: { ...railAt(1), podGroup: OPACITY.pending },
-    // Declaration only, so nothing travels the lanes and the two named chips carry the beat as a
-    // static outline: M-27 rules out the block flash, since flashChips animates brightness and
-    // M-01 keeps that on Pods.
+    // Declaration only: a static outline on the chips, no flash (M-27, M-01).
     lit: ['postStartChip', 'preStopChip'],
     rewind: { opacity: railAt(0) },
     flow: draw(['psSlot', 'preSlot'], 0),
   },
   {
     id: 'start',
-    // 4000 and not 3600: BEAT.lead pushed the span to 3200, and 400ms of hold is not a payoff
-    // frame. The pace stays where this card's other steps sit, 12.78 ms per character.
     duration: 4000,
     narration: 'The runtime creates the container and starts the ENTRYPOINT as PID 1. Kubelet fires postStart on that same moment, so the handler and the entrypoint run at once with no guarantee about which of them starts or finishes first. A handler that assumes the entrypoint is already listening is a race you wrote yourself.',
     chips: { preStopChip: DECLARED, stateChip: 'Waiting' },
     chipsCued: { postStartChip: 'running (exec)' },
     wires: { req: 'CRI StartContainer · ExecSync postStart', via: 'ENTRYPOINT starts, postStart runs beside it' },
     opacity: { ...railAt(2), podGroup: 1 },
-    // Kubelet ACTS FIRST here and receives nothing, so it is lit at entry: R3 exempts a source
-    // that sends no later than it receives, and a ball leaving a dark box has no sender.
+    // Kubelet acts first and receives nothing, so it is lit at entry (R3).
     lit: ['kubelet'],
     rewind: { chips: { postStartChip: DECLARED }, opacity: railAt(1) },
-    // The two bars are drawn by ONE arrival, so they open on one tick and nothing between them
-    // draws an order: that absence is the whole claim the step makes.
+    // One arrival draws both bars, so nothing between them draws an order.
     flow: [
       ask(),
       ...deliver('exec'),
@@ -306,12 +248,10 @@ export const STEPS_SPEC = [
     chipsCued: { postStartChip: EXIT0, stateChip: 'Running' },
     wires: { req: 'CRI ExecSync · postStart · exit 0', via: ' ' },
     opacity: { ...railAt(3), podGroup: 1 },
-    // The RUNTIME is the sender on this step and receives nothing, so it carries the entry cue and
-    // stands lit for the 800 of BEAT.afterPulse before its answer leaves. Kubelet lights on arrival.
+    // The Runtime sends and receives nothing here, so it carries the entry cue.
     lit: ['runtime'],
     rewind: { chips: { postStartChip: 'running (exec)', stateChip: 'Waiting' }, opacity: railAt(2) },
-    // The handler finishes INSIDE the container, so the Pod blinks first and the result leaves on
-    // BEAT.afterPulse (M-15, up-arrow). Both readouts turn over when that answer lands, not before.
+    // The handler finishes inside the container: the Pod blinks first, the result leaves on BEAT.afterPulse (M-15).
     flow: [
       F.pulse({ pod: 'podGroup' }),
       ack('ack'),
@@ -321,8 +261,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'delete',
-    // 4200 for the same reason `start` reads 4000: BEAT.lead is 800 of the span, and the hold that
-    // is left has to be long enough to look at.
     duration: 4200,
     narration: 'A delete opens the termination grace window. Kubelet runs preStop and waits until it returns or the window runs out: the signal comes after this handler, where the ENTRYPOINT never waited for postStart. PID 1 is still running and has had nothing delivered to it. Whatever preStop spends comes out of the same window the stop itself has to finish in.',
     chips: { postStartChip: EXIT0, stateChip: 'Running' },
@@ -340,34 +278,27 @@ export const STEPS_SPEC = [
   },
   {
     id: 'stop',
-    // Three hops in one step (the return, the stop request, the signal) put the span at 4044, so
-    // this is the card's longest step by construction (M-34). 4500 leaves 456ms between the SIGTERM
-    // landing and the auto-advance, where 4200 left 156 and made the payoff frame the one nobody
-    // gets to look at.
+    // Three hops make this the longest step by construction (M-34).
     duration: 4500,
     narration: 'The handler returns, and only then does Kubelet ask the runtime for StopContainer, which delivers SIGTERM to PID 1, unless the image defines a different STOPSIGNAL. The signal lands where the hook left off, so a slow handler leaves the app less of the window to drain in. Graceful Pod Shutdown owns the rest of that window and the SIGKILL if anything is still alive at zero.',
     chips: { postStartChip: EXIT0 },
-    // The signal does not end the container: `Terminated` carries an exit code and a finishedAt, and
-    // the drain the card draws is PID 1 still executing, so the state stays Running through it.
+    // SIGTERM does not end the container: PID 1 is still draining, so the state stays Running.
     chipsCued: { preStopChip: EXIT0, stateChip: DRAINING },
     wires: { req: 'preStop returned · CRI StopContainer', via: 'SIGTERM to PID 1' },
-    // The runtime opens lit because it sends the return, and it sends at 800 against a receive at
-    // 1600, which is the order R3 exempts. Kubelet stays dark and lights on that return landing,
-    // which is also what makes it the sender of the StopContainer that follows.
+    // The Runtime sends the return before it receives anything (R3). Kubelet lights on that return,
+    // which makes it the sender of StopContainer.
     lit: ['runtime'],
     // Final state pinned on the static path too, so a cancel between steps does not flash to default.
     opacity: { ...railAt(5), podGroup: OPACITY.terminating },
     rewind: { chips: { preStopChip: 'running (sync)', stateChip: 'Running' }, opacity: railAt(4) },
-    // The hook returns first and the request for the signal cannot leave before it: that ORDER is
-    // the mechanism, and the SIGTERM tick lands on the right edge of the bar the hook just filled.
+    // The request for the signal cannot leave before the hook returns: that order is the mechanism.
     flow: [
       F.pulse({ pod: 'podGroup' }),
       ack('ret'),
       ...draw(['preStopExitTag'], 'ret'),
       F.set({ at: 'ret', chipsCued: { preStopChip: EXIT0 } }),
       ask('ret'),
-      F.route({ points: SPINE, after: 'req', name: 'sig' }),
-      F.pulse({ pod: 'podGroup', at: 'sig' }),
+      F.route({ points: SPINE, after: 'req', name: 'sig', pulse: 'podGroup' }),
       ...draw(['tickSigterm', 'drainBar', 'tickEnd'], 'sig'),
       F.set({ at: 'sig', chipsCued: { stateChip: DRAINING } }),
       F.fade({ target: 'podGroup', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'sig', fill: 'both', easing: 'ease-in' }),

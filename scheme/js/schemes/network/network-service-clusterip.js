@@ -1,40 +1,38 @@
-import { P, F, defineCard, laneY, routeDur, BEAT, OPACITY, makeRidingLabel } from './network-kit.js';
+import { LANE_DY, P, F, defineCard, laneY, routeDur, BEAT, OPACITY } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-service-clusterip.md
 
-// The three extents the rest of the category copies. Every block on this card is derived from CX,
-// SCHEME_L and SCHEME_R, so moving one moves the client, the centre column, the backend column
-// and both fan buses together. The chip strip does NOT follow: its four widths are sized to their
-// own longest values, so re-run `render/chipfit.test.mjs` after any change here.
+// Every block derives from CX, SCHEME_L and SCHEME_R. The chip strip does not: its widths fit
+// their own longest values, so re-run `render/chipfit.test.mjs` after any change here.
 const CX = 600;                     // canvas centre: the control column and the chip strip sit on it
 const SCHEME_L = 60, SCHEME_R = 1140; // content edges, mirrored about CX
 
 const FLOW_Y = 340;                 // center line: client, dataplane and the two fans are symmetric about it
-const LANE_DY = 12;                 // half-gap between the two client <-> dataplane lanes
-const { out: FWD_Y, back: RET_Y } = laneY(FLOW_Y, LANE_DY);   // 328 out, 352 back
+const { out: FWD_Y, back: RET_Y } = laneY(FLOW_Y, LANE_DY);
 const CLIENT_X = SCHEME_L, CLIENT_W = 190, CLIENT_H = 120;
-const CLIENT_EDGE = CLIENT_X + CLIENT_W;  // 250: right edge of the client Pod shell, where both client lanes meet it
+const CLIENT_EDGE = CLIENT_X + CLIENT_W;  // right edge of the client Pod shell, where both client lanes meet it
 const COL_W = 232;                  // NET.L-01 actor width, shared by the three column boxes
-const COL_LEFT = CX - COL_W / 2;    // 484
-const COL_RIGHT = CX + COL_W / 2;   // 716
-const DP_H = 80;                    // the kubelet block of network-model, on the flow line, carrying the fan pairs
-const DP_TOP = FLOW_Y - DP_H / 2;   // 300
-const CTL_H = 80;                   // API server and kube-proxy, the two boxes no packet reaches, same 232 x 80
+const COL_LEFT = CX - COL_W / 2;
+const COL_RIGHT = CX + COL_W / 2;
+const DP_H = 80;                    // on the flow line, carrying the fan pairs
+const DP_TOP = FLOW_Y - DP_H / 2;
+const CTL_H = 80;                   // API server and kube-proxy, the two boxes no packet reaches
 const REL_GAP = 44;                 // kube-proxy to dataplane: a relation, nothing rides it
 const WATCH_GAP = 56;               // API server to kube-proxy: the watch lane, on routeDur's 700ms floor
-const KP_Y = DP_TOP - REL_GAP - CTL_H;      // 176
-const API_Y = KP_Y - WATCH_GAP - CTL_H;     // 40
+const KP_Y = DP_TOP - REL_GAP - CTL_H;
+const API_Y = KP_Y - WATCH_GAP - CTL_H;
 const POD_W = 210, POD_H = 114;
-const POD_LEFT = SCHEME_R - POD_W;  // 930: backend column, flush with the right content edge
+const POD_LEFT = SCHEME_R - POD_W;  // backend column, flush with the right content edge
 const POD_OFFSET = 150;             // each backend centre is this far above/below FLOW_Y (mirror pair)
-const { out: PODX_CY, back: PODY_CY } = laneY(FLOW_Y, POD_OFFSET);   // 190 top, 490 bottom
-const PODX_Y = PODX_CY - POD_H / 2; // 133
-const PODY_Y = PODY_CY - POD_H / 2; // 433
+const { out: PODX_CY, back: PODY_CY } = laneY(FLOW_Y, POD_OFFSET);
+const PODX_Y = PODX_CY - POD_H / 2;
+const PODY_Y = PODY_CY - POD_H / 2;
 const POD_INNER = { dx: 20, dy: 34, h: 52 };
 const FAN_DY = 12;                  // fan attaches +/-FAN_DY from a Pod centre at its left edge
-const FAN_OUT_X = COL_RIGHT + 40, FAN_IN_X = COL_RIGHT + 70; // forward (out) and return (in) vertical buses
-// Dataplane right-edge attach points, two mirrored pairs about FLOW_Y: the forward legs sit 18 out
-// (322 / 358), the return legs 6 out (334 / 346), so podX takes the upper of each pair.
+// Forward (out) and return (in) vertical buses: one out and back pair, 2 x LANE_DY apart.
+const FAN_OUT_X = COL_RIGHT + 40, FAN_IN_X = FAN_OUT_X + 2 * LANE_DY;
+// Dataplane right-edge attach points, two mirrored pairs about FLOW_Y: forward legs outside,
+// return legs inside, so podX takes the upper of each pair.
 const { out: KPX_FWD_Y, back: KPY_FWD_Y } = laneY(FLOW_Y, 18);
 const { out: KPX_RET_Y, back: KPY_RET_Y } = laneY(FLOW_Y, 6);
 
@@ -52,19 +50,17 @@ const FAN_FWD_Y = [[COL_RIGHT, KPY_FWD_Y], [FAN_OUT_X, KPY_FWD_Y], [FAN_OUT_X, P
 const FAN_RET_Y = [[POD_LEFT, PODY_CY - FAN_DY], [FAN_IN_X, PODY_CY - FAN_DY], [FAN_IN_X, KPY_RET_Y], [COL_RIGHT, KPY_RET_Y]];
 const WATCH = [[CX, API_Y + CTL_H], [CX, KP_Y]];
 
-// The 10% glide on the traffic balls. `render/motion.test.mjs` allows it because the card is named in
-// its `PACING` map, a ceiling of 8, so the watch ball rides plain routeDur and stays off that count.
+// The 10% glide on the traffic balls, allowed by this card's PACING entry in render/motion.test.mjs.
 const SLOWMO = 1.1;
 const slowDur = (points) => Math.round(routeDur(points) * SLOWMO);
 
-// Every tag fades in with its ball, so each stands where no block is when the ball leaves. Tag ink
-// spans baseline-10..baseline+2, and each dy below parks that ink 4 clear of the nearest block face.
-const tag = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
-const WATCH_TAG = { dx: 174, dy: -4 };          // left end 8 right of the column face at 716
-const TAG_OUT = { dy: FLOW_Y - CLIENT_H / 2 - FWD_Y - 6 };      // -54: above the client Pod top
-const TAG_BACK = { dy: FLOW_Y + CLIENT_H / 2 - RET_Y + 14 };    // 62: below the client Pod bottom
-const TAG_FAN = { dx: 92, dy: PODX_Y - PODX_CY + FAN_DY - 6 };  // -51: right of both buses, above podX
-const TAG_FAN_Y = { dx: 92, dy: -TAG_FAN.dy + 8 };              // 59: the podY mirror, below it
+// Every tag fades in with its ball, so each stands where no block is when the ball leaves, its
+// ink 4 clear of the nearest block face.
+const WATCH_TAG = { dx: 174, dy: -4 };          // left end just right of the column face
+const TAG_OUT = { dy: FLOW_Y - CLIENT_H / 2 - FWD_Y - 6 };      // above the client Pod top
+const TAG_BACK = { dy: FLOW_Y + CLIENT_H / 2 - RET_Y + 14 };    // below the client Pod bottom
+const TAG_FAN = { dx: 92, dy: PODX_Y - PODX_CY + FAN_DY - 6 };  // right of both buses, above podX
+const TAG_FAN_Y = { dx: 92, dy: -TAG_FAN.dy + 8 };              // the podY mirror, below it
 const TAG_FAN_BACK = { dx: 48, dy: 59 }, TAG_FAN_BACK_Y = { dx: 48, dy: -51 };   // below podX, above podY
 
 const backend = (key, y, ip) => P.pod({
@@ -146,8 +142,7 @@ export const STEPS_SPEC = [
     // The API server acts first, so it is lit and its ball leaves at BEAT.lead. The write has no
     // ball: the dataplane and the DNAT chip light together one beat after kube-proxy receives.
     flow: [
-      F.segment({ from: WATCH[0], to: WATCH[1], delay: BEAT.lead, name: 'watch' }),
-      F.tag({ fn: tag, text: 'Service + slices', points: WATCH, delay: BEAT.lead, easing: 'linear', ...WATCH_TAG }),
+      F.segment({ from: WATCH[0], to: WATCH[1], delay: BEAT.lead, name: 'watch', tag: { text: 'Service + slices', ...WATCH_TAG } }),
       F.light({ targets: ['kproxy'], at: 'watch' }),
       F.set({ after: 'watch', chips: { dnatChip: RULES } }),
       F.light({ targets: ['dp', 'dnatChip'], after: 'watch' }),
@@ -166,8 +161,7 @@ export const STEPS_SPEC = [
     // and is caught at the dataplane, which lights on arrival. The ClusterIP dst rides with the ball.
     flow: [
       F.pulse({ pod: 'client' }),
-      F.segment({ from: LANE_FWD[0], to: LANE_FWD[1], delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), name: 'send' }),
-      F.tag({ fn: tag, text: 'dst 10.96.0.20:80', points: LANE_FWD, delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), easing: 'linear', ...TAG_OUT }),
+      F.segment({ from: LANE_FWD[0], to: LANE_FWD[1], delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), name: 'send', tag: { text: 'dst 10.96.0.20:80', ...TAG_OUT } }),
       F.light({ targets: ['dp'], at: 'send' }),
     ],
   },
@@ -182,15 +176,12 @@ export const STEPS_SPEC = [
     // Down-arrow on a rewrite: the packet EMERGES from the dataplane, because the DNAT happened inside
     // the box one BEAT.lead after it lights (M-18), and rides the forward fan to the Pod, which pulses.
     flow: [
-      F.route({ points: FAN_FWD_X, delay: BEAT.lead, dur: slowDur(FAN_FWD_X), name: 'give' }),
-      F.tag({ fn: tag, text: 'dst 10.244.2.7:8080', points: FAN_FWD_X, delay: BEAT.lead, dur: slowDur(FAN_FWD_X), ...TAG_FAN }),
-      F.pulse({ pod: 'podX', at: 'give' }),
+      F.route({ points: FAN_FWD_X, delay: BEAT.lead, dur: slowDur(FAN_FWD_X), name: 'give', tag: { text: 'dst 10.244.2.7:8080', ...TAG_FAN }, pulse: 'podX' }),
     ],
   },
   {
     id: 'reply',
-    // Two-hop round trip at SLOWMO: the motion runs 3430ms, so this floor gives a 370ms settle after
-    // the reply lands, matching the dwell of the single-hop steps instead of snapping straight on.
+    // Two-hop round trip: the floor leaves the settle of the single-hop steps after the reply lands.
     duration: 3800,
     narration: 'The Pod replies from its own IP, and conntrack in the same Node dataplane reverses the translation so the source reads 10.96.0.20 again. The client only ever sees the ClusterIP it dialed, never the Pod address that served it.',
     chips: { dnatChip: '-> 10.244.2.7:8080', ctChip: 'reverse NAT', backChip: '10.244.2.7', vipChip: VIP },
@@ -200,18 +191,15 @@ export const STEPS_SPEC = [
     rewind: { chips: { ctChip: 'flow pinned' } },
     flow: [
       F.pulse({ pod: 'podX' }),
-      F.route({ points: FAN_RET_X, delay: BEAT.afterPulse, dur: slowDur(FAN_RET_X), name: 'h1' }),
-      F.tag({ fn: tag, text: 'src 10.244.2.7', points: FAN_RET_X, delay: BEAT.afterPulse, dur: slowDur(FAN_RET_X), ...TAG_FAN_BACK }),
+      F.route({ points: FAN_RET_X, delay: BEAT.afterPulse, dur: slowDur(FAN_RET_X), name: 'h1', tag: { text: 'src 10.244.2.7', ...TAG_FAN_BACK } }),
       F.set({ at: 'h1', chips: { ctChip: 'reverse NAT' } }),
       F.light({ targets: ['dp', 'ctChip'], at: 'h1' }),
-      F.segment({ from: LANE_RET[0], to: LANE_RET[1], after: 'h1', dur: slowDur(LANE_RET), name: 'h2' }),
-      F.tag({ fn: tag, text: 'src 10.96.0.20', points: LANE_RET, after: 'h1', dur: slowDur(LANE_RET), easing: 'linear', ...TAG_BACK }),
-      F.pulse({ pod: 'client', at: 'h2' }),
+      F.segment({ from: LANE_RET[0], to: LANE_RET[1], after: 'h1', dur: slowDur(LANE_RET), name: 'h2', tag: { text: 'src 10.96.0.20', ...TAG_BACK }, pulse: 'client' }),
     ],
   },
   {
     id: 'balance',
-    // Same two-hop round trip as reply (3460ms of motion): match the settle so it is not rushed.
+    // Same two-hop settle as reply.
     duration: 3800,
     narration: 'A second connection to the ClusterIP is a new flow, and with no session affinity the kernel may pick the other backend. It DNATs this one to 10.244.3.9 and conntrack pins it there, while the first flow stays on 10.244.2.7. Each connection keeps its own Pod.',
     chips: { dnatChip: '-> 10.244.3.9:8080', ctChip: 'two flows', backChip: '10.244.3.9', vipChip: VIP },
@@ -224,18 +212,15 @@ export const STEPS_SPEC = [
     // arriving, exactly as it does on the send step, and only then picks the second backend.
     flow: [
       F.pulse({ pod: 'client' }),
-      F.segment({ from: LANE_FWD[0], to: LANE_FWD[1], delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), name: 'send' }),
-      F.tag({ fn: tag, text: 'dst 10.96.0.20:80', points: LANE_FWD, delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), easing: 'linear', ...TAG_OUT }),
+      F.segment({ from: LANE_FWD[0], to: LANE_FWD[1], delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), name: 'send', tag: { text: 'dst 10.96.0.20:80', ...TAG_OUT } }),
       F.set({ at: 'send', chips: { dnatChip: '-> 10.244.3.9:8080', ctChip: 'two flows', backChip: '10.244.3.9' } }),
       F.light({ targets: ['dp', 'dnatChip', 'ctChip', 'backChip'], at: 'send' }),
-      F.route({ points: FAN_FWD_Y, after: 'send', dur: slowDur(FAN_FWD_Y), name: 'give' }),
-      F.tag({ fn: tag, text: 'dst 10.244.3.9:8080', points: FAN_FWD_Y, after: 'send', dur: slowDur(FAN_FWD_Y), ...TAG_FAN_Y }),
-      F.pulse({ pod: 'podY', at: 'give' }),
+      F.route({ points: FAN_FWD_Y, after: 'send', dur: slowDur(FAN_FWD_Y), name: 'give', tag: { text: 'dst 10.244.3.9:8080', ...TAG_FAN_Y }, pulse: 'podY' }),
     ],
   },
   {
     id: 'balance-reply',
-    // Same two-hop round trip (3430ms of motion): match the settle so the final step does not snap.
+    // Same two-hop settle as reply.
     duration: 3800,
     narration: 'The second Pod replies from 10.244.3.9, and conntrack reverses this flow the same way, rewriting the source back to 10.96.0.20 before the reply reaches the client. Two Pods served two connections, and the client only ever saw one ClusterIP.',
     chips: { dnatChip: '-> 10.244.3.9:8080', ctChip: 'reverse NAT', backChip: '10.244.3.9', vipChip: VIP },
@@ -244,13 +229,10 @@ export const STEPS_SPEC = [
     rewind: { chips: { ctChip: 'two flows' } },
     flow: [
       F.pulse({ pod: 'podY' }),
-      F.route({ points: FAN_RET_Y, delay: BEAT.afterPulse, dur: slowDur(FAN_RET_Y), name: 'h1' }),
-      F.tag({ fn: tag, text: 'src 10.244.3.9', points: FAN_RET_Y, delay: BEAT.afterPulse, dur: slowDur(FAN_RET_Y), ...TAG_FAN_BACK_Y }),
+      F.route({ points: FAN_RET_Y, delay: BEAT.afterPulse, dur: slowDur(FAN_RET_Y), name: 'h1', tag: { text: 'src 10.244.3.9', ...TAG_FAN_BACK_Y } }),
       F.set({ at: 'h1', chips: { ctChip: 'reverse NAT' } }),
       F.light({ targets: ['dp', 'ctChip'], at: 'h1' }),
-      F.segment({ from: LANE_RET[0], to: LANE_RET[1], after: 'h1', dur: slowDur(LANE_RET), name: 'h2' }),
-      F.tag({ fn: tag, text: 'src 10.96.0.20', points: LANE_RET, after: 'h1', dur: slowDur(LANE_RET), easing: 'linear', ...TAG_BACK }),
-      F.pulse({ pod: 'client', at: 'h2' }),
+      F.segment({ from: LANE_RET[0], to: LANE_RET[1], after: 'h1', dur: slowDur(LANE_RET), name: 'h2', tag: { text: 'src 10.96.0.20', ...TAG_BACK }, pulse: 'client' }),
     ],
   },
 ];

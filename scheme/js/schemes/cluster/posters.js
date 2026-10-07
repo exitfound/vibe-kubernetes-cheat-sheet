@@ -2,8 +2,7 @@
 // The cluster posters, keyed by card id: the still frame each card shows on the grid.
 
 export const POSTERS = {
-  // Hub-and-spoke. The ring carries a heavier stroke (2 against 1.4) and the brighter fill: this
-  // poster weights by LINE, not by accent bar.
+  // Hub-and-spoke, weighted by line rather than accent bar: the ring carries the heavier stroke and brighter fill.
   'cluster-architecture': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <circle cx="160" cy="90" r="22" fill="rgba(255,255,255,0.10)" stroke-width="2"/>
@@ -19,9 +18,6 @@ export const POSTERS = {
     <circle cx="160" cy="90" r="3.5" fill="currentColor"/>
   `,
 
-  // The break drawn as a WALL rather than a strike: the Node frame stands right with its fields in,
-  // the Pod stands left, and the one heavy upright between them is the accent and the not-ready
-  // taint. Upright and not lying down, because a horizontal bar under a Pod reads as a shelf.
   // Ghost zone to solid: a dashed empty block nothing knows about, one dashed leg, and the Node
   // object written in at full weight, its newest field row carrying the accent.
   'cluster-node-registration': `
@@ -76,8 +72,7 @@ export const POSTERS = {
     </g>
   `,
 
-  // Five stages head to tail into one closed ring. Reconcile is the THIRD block, so the accent
-  // belongs there: nothing checks a poster against its own comment.
+  // Five stages head to tail into one closed ring, the accent on the third block, Reconcile.
   'cluster-kubelet-reconcile-loop': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20"  y="20"  width="76" height="50" rx="8" fill="rgba(255,255,255,0.04)"/>
@@ -325,8 +320,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // A cascade of fading: the owner is already gone, and the three dependents fade 0.9 / 0.4 / 0.12
-  // left to right, so the row reads as a wave of deletion passing along it.
   // The object stands solid inside a dashed deletion stamp, and the list beside it is what holds it:
   // two rows struck, the middle one live and carrying the accent the leg points at.
   'cluster-cascading-deletion': `
@@ -363,7 +356,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Three etcd cylinders: leader (left, bright entry) replicates to two followers via dashed arrows.
   // Three replicas holding a log. The leader is the heavier cylinder and its newest entry is the one
   // accent, the third member is one entry short, and the bracket under the left pair is the quorum.
   'cluster-etcd-raft': `

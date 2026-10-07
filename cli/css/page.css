@@ -1,0 +1,134 @@
+/* Static command section pages at /cli/section/<id>/, written by tools/pages/build.mjs: the section's
+   commands with the same cards and highlighting as /cli/, and copy on click. Loaded after
+   styles.css, which supplies the chrome, the tokens and every card and command style. */
+
+.page-cli { max-width: 1600px; }
+.page-sections { max-width: 880px; margin: 0 auto; padding: 26px 20px 64px; }
+.page-cli .section { content-visibility: visible; }
+.page-cli .section-title { font-size: 26px; }
+.page-cli h2.card-title { margin: 0; }
+.page-cli code.cmd-code { display: block; }
+.page-cli .cmd-item { padding-right: 46px; }
+.page-cli .page-lede { max-width: 860px; margin-top: 4px; }
+
+/* The header has no search on a static page, so its one action keeps to the right on every width. */
+.static-page .header-actions { margin-left: auto; }
+
+/* The two index pages, /scheme/card/ and /cli/section/: every page of its kind, grouped. */
+.page-index-group { margin: 0 0 30px; }
+.page-index-group h2 { margin: 0 0 10px; font-size: 21px; color: var(--text-bright); }
+.page-index-group h3 { margin: 14px 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); }
+.page-index-group ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.page-index-group a {
+  display: inline-block;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-nav);
+  font-size: 14px;
+  text-decoration: none;
+}
+.page-index-group a:hover { color: var(--accent); border-color: var(--accent-border); }
+
+/* ===== SHARED BY BOTH STATIC PAGE KINDS (a copy lives in the other app's page.css) ===== */
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+  font-size: 13.5px;
+}
+.crumbs li + li::before {
+  content: '\203A';
+  margin-right: 6px;
+  color: var(--text-muted);
+}
+.crumbs a { color: var(--text-nav); text-decoration: none; }
+.crumbs a:hover { color: var(--accent); }
+
+.page-lede {
+  margin: 0 0 18px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-card-desc);
+}
+.page-lede a { color: var(--accent); }
+
+.page-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 0 0 26px;
+}
+.page-play-note { font-size: 13px; color: var(--text-dim); }
+.page-open {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 16px;
+  border: 1px solid var(--accent-border);
+  border-radius: 9px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.page-open:hover { background: rgba(221, 202, 250, 0.16); border-color: var(--accent); }
+
+.page-pager {
+  display: flex;
+  gap: 12px;
+  margin: 8px 0 30px;
+}
+.page-pager > * { flex: 1 1 0; }
+.page-pager a {
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-bright);
+  font-size: 14.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.page-pager a[rel="next"] { text-align: right; }
+.page-pager a:hover { border-color: var(--accent-border); background: var(--accent-glow); }
+.page-pager small {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.page-related h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: var(--text-bright);
+}
+.page-related ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.page-related a {
+  display: inline-block;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-nav);
+  font-size: 14px;
+  text-decoration: none;
+}
+.page-related a:hover { color: var(--accent); border-color: var(--accent-border); }
+
+@media (max-width: 680px) {
+  .page-pager { flex-direction: column; }
+  .page-pager a[rel="next"] { text-align: left; }
+}

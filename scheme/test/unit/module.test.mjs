@@ -1,36 +1,5 @@
-// module.test.mjs: what a card module owes, asserted by IMPORTING it. It carries R-kitparity, the
-// four-way kit comparison S-22 names as the source of truth, and the part of the S- block of
-// ../../CANON.md that is readable without a browser: S-02 (runtime half), S-08b, S-21, S-22, S-23,
-// S-28. It also holds L-08a, the one canon row about two categories agreeing with each other,
-// because the two objects it is about are kit exports and this is the file that compares kits.
-//
-// R-modulepath (D-02) and the folder contract (S-20, D-03) are asserted in unit/catalog.test.mjs
-// alone, never here. The note at the foot of this file says which test owns what, and why putting a
-// second copy back would be a loss rather than more coverage.
-//
-// Everything here runs in bare Node in well under a second, which is only possible because
-// lib/motion.js guards its window.matchMedia probe (see ../fixtures/module.mjs). Before that guard
-// every card threw at module load and every one of these facts would have needed a browser.
-//
-// ===========================================================================================
-// WHAT THIS FILE DELIBERATELY DOES NOT TRY TO SEE
-// ===========================================================================================
-// A LEGACY card exports exactly one symbol, `init`, and its step list is an ARGUMENT to makeInit,
-// so the step `id`, `duration`, `narration` and the diagram `aria-label` live inside a closure and
-// are statically unreachable. They are read by RENDER (window.__schemeCtl._timeline.steps). A
-// MIGRATED card exports SCENE and STEPS_SPEC as data and those facts come off the namespace, but
-// reading them is the job of the spec tests, not of this file: here the two forms are only counted.
-// Do NOT add a regex over a card body to fake any of it: source scraping is the mechanism this
-// refactor is retiring, and a scraper that stops matching goes quiet rather than red.
-//
-// The one regex over card source that stays is the IMPORT header. An import statement is structure,
-// not prose: it is the module graph written down, it cannot be expressed as data by any refactor,
-// and a specifier that stops being found makes the card fail its "imports its own kit" assertion
-// rather than passing silently.
-//
-// Not here because they need a rendered card: the shape of `Scene`, the `resetStep` prologue, the
-// reduced-motion split, z-order, viewBox. Not here because they are body-text scans and belong to a
-// source-text test: BANNED-SYMBOL, RIPPLE-OPT, R-rawpulse, R-skeleton, R-opacity.
+// What a card module owes, by importing it: R-kitparity, S-02, S-08b, S-21, S-22, S-23, S-28 and L-08a.
+// Only the import header is read as source text. D-02, S-20 and D-03 live in unit/catalog.test.mjs.
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
@@ -41,10 +10,7 @@ import {
 } from '../fixtures/catalog.mjs';
 import { CARD_FORMS, cardForm, exportSurface, importAll, importKit, importLib } from '../fixtures/module.mjs';
 
-// ---------------------------------------------------------------------------------------------
-// Gathered once. importAll() carries the census guard, so a run that resolved fewer than the whole
-// catalog throws HERE, before a single assertion has had the chance to pass over a short list.
-// ---------------------------------------------------------------------------------------------
+// importAll() carries the census guard.
 const catalogued = await cards();
 const CARD_COUNT = catalogued.length;
 const CATS = await categories();
@@ -58,16 +24,13 @@ for (const c of CATS) kits.set(c, await importKit(c));
 const sources = new Map();
 for (const c of catalogued) sources.set(c.id, await readFile(c.path, 'utf8'));
 
-// A static import statement, with its clause and its specifier. Written to span newlines, because a
-// clause may be wrapped, and anchored to line start so a specifier quoted inside a `//` or ` * `
-// comment cannot be read as an import.
+// Spans newlines, anchored to line start so an import quoted in a comment is not read.
 const IMPORT_RE = /(?:^|\n)[ \t]*import\s+(?:([^;]*?)\s+from\s+)?(['"])([^'"]+)\2\s*;/g;
 
 const importsOf = (src) =>
   [...src.matchAll(IMPORT_RE)].map(m => ({ clause: (m[1] || '').trim(), spec: m[3] }));
 
-// The names a clause binds. Every card today uses the named form only, so a default or namespace
-// import (no braces) is reported rather than skipped.
+// A default or namespace import is reported rather than skipped.
 function boundNames(clause) {
   const braced = clause.match(/\{([\s\S]*)\}/);
   if (!braced) return null;
@@ -77,7 +40,6 @@ function boundNames(clause) {
 const listing = (items, cap = 8) =>
   items.slice(0, cap).join('\n  ') + (items.length > cap ? `\n  ... and ${items.length - cap} more` : '');
 
-// ---------------------------------------------------------------------------------------------
 describe('card module surface', () => {
   test(`the whole catalog imports in bare Node (${CARD_COUNT} cards)`, (t) => {
     assert.ok(CARD_COUNT > 0, 'the catalog is empty: data.js resolved to no cards at all');
@@ -85,14 +47,7 @@ describe('card module surface', () => {
     t.diagnostic(`${modules.size} card modules imported, no browser, nothing stubbed`);
   });
 
-  // S-02: there is ONE legal surface, the migrated one. This is a set EQUALITY per card, never a
-  // containment: a card that grew one stray export would satisfy "contains init" and read as
-  // conforming.
-  //
-  // LEGACY IS STILL NAMED, and that is the whole reason CARD_FORMS keeps two entries. A regression
-  // has to be told apart from a typo: `init` alone is a card that went back to the hand-written
-  // form, and `[init, SCENE]` is a card someone broke halfway. Both fail, with different messages.
-  // The counter stays printed because a run that walked fewer cards must not read as a clean one.
+  // S-02: set equality per card. Legacy stays named so a regression reads differently from a half-broken card.
   test('every card is on the one legal export form, and a legacy surface is a regression', (t) => {
     const findings = [];
     const tally = new Map(Object.keys(CARD_FORMS).map(f => [f, 0]));
@@ -112,9 +67,7 @@ describe('card module surface', () => {
           'S-02 admits ONE form: SCENE, STEPS_SPEC and init from defineCard');
         continue;
       }
-      // The whole reason the surface grew: SCENE and STEPS_SPEC are DATA a test reads with no
-      // browser. A card exporting the right three names with a builder function behind one of them
-      // would pass the surface check and leave the spec tests nothing to read.
+      // A builder function behind SCENE or STEPS_SPEC would pass the surface check with nothing to read.
       const scene = ns.SCENE;
       if (scene === null || typeof scene !== 'object' || Array.isArray(scene)) {
         findings.push(`${id}  SCENE is ${Array.isArray(scene) ? 'an array' : typeof scene}, expected a plain object`);
@@ -130,8 +83,7 @@ describe('card module surface', () => {
     census('export surface', walked, CARD_COUNT);
     assert.equal(findings.length, 0,
       `${findings.length} of ${walked} card(s) are off the one legal export form:\n  ${listing(findings)}`);
-    // Sums to the catalog or the counter is not a measure of anything: a card counted in neither
-    // form, or in two, would leave a plausible-looking pair of numbers that adds up short.
+    // Sums to the catalog, so a card in neither form cannot hide.
     const counted = [...tally.values()].reduce((a, b) => a + b, 0);
     assert.equal(counted, CARD_COUNT,
       `the migration counter accounts for ${counted} card(s), the catalog lists ${CARD_COUNT}`);
@@ -140,11 +92,7 @@ describe('card module surface', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
-// The controller contract. `init` is not written by a card: makeInit returns it, so its signature
-// and the object it returns are one fact for every card, provable by identity of source text rather
-// than by matching the call site with a regex.
-// ---------------------------------------------------------------------------------------------
+// makeInit returns `init`, so its signature and result are one fact for every card.
 class ProbeScene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
   build() {}
@@ -153,9 +101,7 @@ class ProbeScene {
 const probeInit = schemeKit.makeInit(ProbeScene, [{ id: 'idle', duration: 1000, enter() {} }], { posterFirst: true });
 const controller = probeInit({ replaceChildren() {} }, {});
 
-// What app.js reaches for on the object init returns, read off js/app.js rather than off a document.
-// `call` records HOW it reaches: a member app.js only touches behind `x.member && x.member()` may
-// go missing without breaking the page, one it calls flat may not.
+// Read off js/app.js. `call` records whether app.js guards the member or calls it flat.
 const APP_CONTROLLER_MEMBERS = {
   setSpeed:    { type: 'function', call: 'unconditional' },
   setLoop:     { type: 'function', call: 'unconditional' },
@@ -203,8 +149,7 @@ describe('the init contract', () => {
       `${Object.keys(controller).length} on the controller in all`);
   });
 
-  // The other direction, and the one that rots: app.js growing a call to a member the kit never
-  // returns is a TypeError on a user click that nothing else in the suite would reach.
+  // app.js calling a member the kit never returns is a TypeError on a user click.
   test('app.js reaches for no controller member the kit does not return', async (t) => {
     const src = await readFile(join(ROOT, 'js', 'app.js'), 'utf8');
     const found = new Set([...src.matchAll(/\b(?:ctrl|activeController)\s*(?:\?\.)?\.\s*([A-Za-z_$][\w$]*)/g)].map(m => m[1]));
@@ -220,13 +165,8 @@ describe('the init contract', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
-// R-kitparity / S-22 / S-23. The four kits re-export one list and the SIZE of that list is written
-// down nowhere on purpose: comparing the kits to each other is the source of truth. So this reads
-// the four namespaces and compares them, and the number below is computed, never asserted against a
-// constant. A name is counted as re-exported when the kit and scheme-kit hold the SAME binding,
-// which is what an ES re-export gives and what a locally redefined lookalike would not.
-// ---------------------------------------------------------------------------------------------
+// R-kitparity / S-22 / S-23: the kits are compared with each other, the list size is never a constant.
+// Re-exported means the same binding as scheme-kit, which a local lookalike is not.
 const sharedOf = (kitNs) => new Set(
   Object.keys(kitNs).filter(n => n in schemeKit && kitNs[n] === schemeKit[n]));
 
@@ -250,16 +190,8 @@ describe('kit parity', () => {
     }
     assert.equal(findings.length, 0, `${findings.length} kit(s) have drifted:\n  ${listing(findings)}`);
 
-    // A set of four empty sets agrees with itself, so parity alone is not a live rule. These two
-    // anchors are what stop an emptied kit from reading as green.
-    //
-    // The second anchor names `defineCard`, which every card imports from its kit.
-    // It is deliberately not makeInit: nothing imports makeInit, it is called from defineCardWith
-    // inside lib/, and the parse of every card's import header gives it zero importers, so an anchor on
-    // it would turn red for the wrong reason the day the kit surface drops it. It is read off the
-    // kit NAMESPACE rather than off the shared set on purpose: defineCard is each kit's OWN
-    // binding, built from defineCardWith with that category's role and tint, so it is by
-    // construction not a scheme-kit re-export.
+    // Four empty sets agree, so two anchors are required. `defineCard` is read off the kit namespace
+    // because it is each kit's own binding, not a re-export.
     assert.ok(refNames.size > 0, `${ref}-kit.js re-exports nothing from scheme-kit.js`);
     for (const cat of CATS) {
       assert.equal(typeof kits.get(cat).defineCard, 'function',
@@ -269,9 +201,7 @@ describe('kit parity', () => {
     t.diagnostic(`shared kit surface: ${refNames.size} names, identical across ${shared.size} kits`);
   });
 
-  // S-08b. What each kit adds on top is its tint and the two pulses bound to it, and those must NOT
-  // be scheme-kit bindings: a kit whose pulsePod came straight from scheme-kit would pulse in the
-  // workloads blue whatever its category.
+  // S-08b: a pulsePod straight from scheme-kit would pulse in workloads blue for every category.
   test('each kit binds its own tint and its two tinted pulses', (t) => {
     const findings = [];
     for (const cat of CATS) {
@@ -295,8 +225,7 @@ describe('kit parity', () => {
     t.diagnostic(CATS.map(c => `${c}: +${ownOf(c).length} own (${ownOf(c).join(' ')})`).join(' | '));
   });
 
-  // Ties the parity list to real use. Without this, the shared list could shrink to whatever is
-  // left after a bad edit and stay perfectly parallel across all four while cards starve.
+  // Ties the shared list to real use, so it cannot shrink in parallel across all four kits.
   test('every name a card imports from its kit is on that kit, and the shared ones are on all four', (t) => {
     const [, refNames] = [...shared.entries()][0];
     const findings = [];
@@ -324,19 +253,10 @@ describe('kit parity', () => {
     t.diagnostic(`${usedShared.size} of the ${refNames.size} shared names are imported by at least one card`);
   });
 
-  // L-08a. Two categories carry a two-column X grammar and read their columns out of their kit's
-  // LAYOUT rather than typing them. The canon says the two grammar objects agree where they
-  // overlap, and that a divergence between them would be a DEFECT rather than a choice, which is
-  // exactly the kind of sentence that holds until nobody is looking. Nothing guarded it before.
-  //
-  // ONLY THE OVERLAP IS A RULE. A key one object has and the other does not is the difference
-  // between the two grammars (cluster frames its rows in a Node, workloads does not), so those are
-  // printed as diagnostics and never asserted. Storage's STO is a different object, overlapping on
-  // two keys, and networking has no such grammar at all: neither belongs in this comparison.
+  // L-08a: where the cluster and workloads X grammars overlap they must agree. Non-shared keys are printed only.
   const X_GRAMMARS = [['cluster', 'CLU'], ['workloads', 'WL']];
 
-  // Leaf paths of a plain object: `COL_L.x` rather than `COL_L`, so a nested pair that differs in
-  // one field lands as one finding naming that field instead of an opaque object mismatch.
+  // Leaf paths, so a nested difference names the field.
   const leaves = (obj, prefix = '', out = new Map()) => {
     for (const [k, v] of Object.entries(obj)) {
       const at = prefix ? `${prefix}.${k}` : k;
@@ -388,11 +308,7 @@ describe('kit parity', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
-// S-21. A card imports its own kit and nothing past it. This is the boundary that makes a kit worth
-// having: the moment a card reaches into lib/timeline.js or lib/scheme-kit.js directly, the kit
-// stops being the thing that documents what a category may paint with.
-// ---------------------------------------------------------------------------------------------
+// S-21: a card imports its own kit and nothing past it.
 describe('the import boundary', () => {
   test(`each of the ${CARD_COUNT} cards imports its own kit and nothing past it`, (t) => {
     const findings = [];
@@ -421,9 +337,7 @@ describe('the import boundary', () => {
     t.diagnostic([...specCount.entries()].sort((a, b) => b[1] - a[1]).map(([s, n]) => `${s} x${n}`).join(', '));
   });
 
-  // The second sentence of S-21: lib/ holds only what every category shares. A lib module reaching
-  // back into one category folder would invert the dependency and make that lib module category
-  // specific without saying so.
+  // lib/ holds only what every category shares.
   test('no module under js/lib/ imports from js/schemes/', async (t) => {
     const dir = join(ROOT, 'js', 'lib');
     const files = (await readdir(dir)).filter(n => n.endsWith('.js')).sort();
@@ -439,12 +353,7 @@ describe('the import boundary', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
-// S-28, and the property 0.4b of the refactor plan bought by guarding motion.js. A lib module that
-// touches window or document at module load takes the whole unit level of this suite down with it,
-// because scheme-kit.js and every card import through lib/. Keeping it true is cheaper than
-// rediscovering it: the failure mode is a ReferenceError at import, not a wrong picture.
-// ---------------------------------------------------------------------------------------------
+// S-28: a lib module touching window or document at load breaks every unit test with a ReferenceError.
 const LIB_REQUIRED = [
   'inspector.js', 'motion.js', 'primitives.js', 'scheme-kit.js',
   'sidebar.js', 'svg.js', 'timeline.js', 'tokens.js',
@@ -452,8 +361,7 @@ const LIB_REQUIRED = [
 
 test('every module under js/lib/ imports in bare Node, with no browser global at module load', async (t) => {
   const files = (await readdir(join(ROOT, 'js', 'lib'))).filter(n => n.endsWith('.js')).sort();
-  // A floor, not a ceiling: the declarative layer adds modules here and must be walked too, but a
-  // walk that lost one of these has stopped covering what it covers today.
+  // A floor: new modules are walked too.
   const absent = LIB_REQUIRED.filter(n => !files.includes(n));
   assert.equal(absent.length, 0, `js/lib/ is missing ${absent.length} module(s) this test covers: ${absent.join(', ')}`);
 
@@ -470,22 +378,3 @@ test('every module under js/lib/ imports in bare Node, with no browser global at
     `${findings.length} of ${files.length} module(s) under js/lib/ do not import outside a browser:\n  ${listing(findings)}`);
   t.diagnostic(`${files.length} modules under js/lib/, all import clean (${LIB_REQUIRED.length} of them required by name)`);
 });
-
-// ---------------------------------------------------------------------------------------------
-// R-modulepath USED TO LIVE HERE, as two tests, and it has gone to unit/catalog.test.mjs, which is
-// where the module PATH belongs: this file's own header says the path is not its subject, and the
-// catalog file was already asking all three questions alongside it.
-//
-//   the id prefix            -> catalog.test.mjs `D-02`. Stricter: it also asserts the derived
-//                               `rel` path, which the copy here never read.
-//   a stray `module` field   -> catalog.test.mjs `D-01`, twice over: a deepEqual on the whole key
-//                               set of an entry, and an explicit `s.module === undefined`.
-//   the folder contract      -> catalog.test.mjs `D-03`. Stricter: a deepEqual of the folder
-//                               listing against the manifest, so a card CLAIMED but missing is
-//                               reported as well as a file on disk that nothing claims.
-//
-// Both files walked the same population (`cards()` is a projection of `schemes()`), so the
-// inclusion is total in all three cases and no coverage was traded for the smaller number. Do not
-// put them back: a second copy of a rule is a second thing to update, and the copy that goes stale
-// is the one nobody is reading.
-// ---------------------------------------------------------------------------------------------

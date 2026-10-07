@@ -1,26 +1,7 @@
 #!/usr/bin/env node
-// section.mjs: one section of the catalog as data, no browser. Every card in MANIFEST ORDER, which
-// is the order the grid renders and the order a reader meets them in, with the size of its prose,
-// the size of its animation, the pages it cites and its five-band layer signature.
-//
-//   node .claude/skills/section-review/tools/section.mjs <category>/<section>
-//   node .claude/skills/section-review/tools/section.mjs <category>        every section of it
-//   node .claude/skills/section-review/tools/section.mjs --list            the 15 section keys
-//     --json      the same data as one object, for diffing two runs
-//     --markers   name the markers that fired, not just how many
-//
-// Runs from anywhere: it imports scheme/test/fixtures/catalog.mjs, which reaches only node
-// builtins, so there is no playwright and no node_modules to be in the right directory for.
-//
-// WHY THIS EXISTS. The catalog carries no level, no depth and no prerequisite: `D-01` fixes the
-// SCHEMES entry at eight keys and the test enforces the set. Every question this skill asks is
-// therefore answered from prose, and answering it by reading 37 cards from memory is how a review
-// becomes an opinion. This prints the evidence first so the rating has something to disagree with.
-//
-// WHAT IT IS BLIND TO, and the list is not short. It cannot see whether a card is any GOOD, whether
-// its picture matches its words (`card-facts`), whether the section teaches in a sane order, or
-// whether a missing topic matters. The signature is a word count over a fixed vocabulary and a card
-// can be deep without using a deep word: see bands.mjs. Read this as the map, never the verdict.
+// section.mjs: one section as data in manifest order: prose size, animation size, cited pages and the five-band layer signature.
+// usage: node .claude/skills/section-review/tools/section.mjs <category>[/<section>] | --list [--json] [--markers]
+// The signature is a word count over a fixed vocabulary (bands.mjs): read it as the map, never the verdict.
 import { schemes, subcategories, ROOT } from '../../../../scheme/test/fixtures/catalog.mjs';
 import { sentences } from '../../../../scheme/test/fixtures/prose.mjs';
 import { BANDS, BAND_KEYS, walkStrings, signature, centre, bar, sourcePath } from './bands.mjs';
@@ -63,10 +44,8 @@ if (sec && !SUBS[cat].some(s => s.key === sec)) {
 
 const wanted = sec ? SUBS[cat].filter(s => s.key === sec) : SUBS[cat];
 
-// One card read. `desc` is catalog prose the reader sees on the grid; narration is what the card
-// says while it plays; drawn is every other string in the scene and the steps, which is where the
-// component names live. The signature runs over all three, because a card whose only mention of the
-// Kubelet is a block label is still a Kubelet card.
+// One card read: desc, narration and every drawn string all feed the signature, because a card whose
+// only mention of the Kubelet is a block label is still a Kubelet card.
 async function read(entry, pos) {
   const rel = join('js', 'schemes', entry.category, `${entry.id}.js`);
   const ns = await import(pathToFileURL(join(ROOT, rel)).href);

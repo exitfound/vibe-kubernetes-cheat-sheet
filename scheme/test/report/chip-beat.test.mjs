@@ -1,139 +1,6 @@
-// chip-beat.test.mjs: P-03 read off the DATA. "A chip must not run ahead of the motion that
-// produces its value." Nothing in the harness has ever asked that question. ../report/arrival.test.mjs
-// carries the only rule about a chip and a packet in one step, and R2 asks the OPPOSITE half of it:
-// "this value CHANGED and nothing is pointing at it", which is about the CUE. The question P-03 is
-// made of is about the BEAT: "this value is already on screen, and the arrival that earns it has not
-// happened yet". A card can satisfy R2 perfectly, with the changed chip lit at entry, and still show
-// the answer a second and a half before the ball that carries it arrives. That is the class a manual
-// read of the whole catalogue found about 25 times in all four categories, and it is the class this
-// file counts.
-//
-// It needs no browser. A route's flight time is geometry (routeDur over its points) and a step's
-// chip values are fields, so both halves of the question are in the spec.
-//
-// ===========================================================================================
-// WHY THIS IS A REPORT WITH A SEVERITY AXIS AND NOT A VERDICT
-// ===========================================================================================
-// Because the canon deliberately says the naive form of this is LEGAL. P-06: "Value chips are
-// deliberately OUT of the arrival rule: they light at step ENTRY with the text change, while boxes,
-// pods and cylinders light on ARRIVAL. Two different cues for two different kinds of object." So a
-// chip whose text turns over at step entry is by itself correct, and the question that separates a
-// defect from the ordinary case is whether the arrival in that step is what EARNS the value. No
-// field on a step declares that. It is a reading of the picture and of the narration, and no walk
-// over the data can do it.
-//
-// So the file prints a QUEUE ORDERED BY HOW BAD THE CASE LOOKS, and a person rules on it. The order
-// is the lead: how many milliseconds the value sits on screen before the first packet of that step
-// lands anywhere. A chip that turns over 2971ms before anything arrives is a different animal from
-// one 700ms ahead, and only the reader can say which of them is wrong.
-//
-// WHERE THE FORMS ARE COMPUTED, AND WHY NOT HERE. The walk, the four form definitions, the census
-// floor and the carried table are all in ../fixtures/chip-beat.mjs, because FORM-E has since been
-// promoted and ../unit/chip-beat-e.test.mjs asks the same question as a VERDICT. Two copies of "what
-// a FORM-E record is" would let the gate and this report describe two different catalogues while
-// both stayed green. This file owns the PRINTING and nothing else; that fixture's header carries the
-// argument for its own address.
-//
-// FOUR FORMS, NARROWING. The two printed queues are the two CANON.md P-03 cites: FORM-B here, as
-// `report:chip-beat/FORM-B`, and FORM-E in the gate, as `test:chip-beat-e/FORM-E`. All four are
-// counted on every run so the shape of the population is visible; only the two named ones are
-// printed in full.
-//
-//   FORM-A       step i > 0, the flow carries a packet, the chip's ENTRY value (chips + chipsCued
-//                + rewind) differs from the previous step's SETTLED value, and no F.set with a
-//                positive delay turns that key over in this step. The naive form.
-//   FORM-B       FORM-A, and the step names that chip in `lit`, so the CARD ITSELF declares the
-//                value to be the news of this step. Printed in full, ranked by lead. A row a human
-//                has read and kept is filed in ../fixtures/carried.mjs under axis FORM-B and prints
-//                marked CARRIED with its reason, out of the lead bands and out of the by-card tally
-//                but never out of the total. A record that is ALSO FORM-E is never carried here:
-//                section 3 is the narrower reading of the same record and owns it.
-//   FORM-B-LEAD  FORM-B with a first arrival at or past LEAD_CUT_MS.
-//   FORM-E       FORM-B, and ANOTHER chip on the SAME step IS turned over on a beat (an F.set with
-//                a delay). The card knows the technique and applies it to a neighbour, so this is
-//                the strongest reading the data can give: both sides of the comparison stand on one
-//                step of one card. P-04 names exactly this shape and calls it worse than doing
-//                neither. Printed as its own queue.
-//
-// Every population above is COUNTED ON EVERY RUN and printed in section 1, with the FORM-B lead
-// bands in section 2: no size is typed here, because a repair is supposed to move all four.
-//
-// The ~25 findings a human read lie between FORM-E and FORM-B-LEAD, and no form reproduces them
-// exactly. That is expected rather than a defect of the forms: what the human was reading is
-// whether the arrival EARNS the value, and P-06 is the reason no field says so.
-//
-// ===========================================================================================
-// WHY THREE OF THE FOUR ARE STILL report/, AND WHY FORM-E IS NOT
-// ===========================================================================================
-// The cycle is written in ../report/arrival.test.mjs and this project has now run it three times:
-// report-only, then a human triage of the queue, then promotion into the mandatory set. FORM-E
-// reached the end of it. Its queue was read card by card, every finding carried with a written
-// reason, none left to work, and on that day it left this file for ../unit/chip-beat-e.test.mjs,
-// where a new one goes red. This file still COUNTS it and still prints the carried table, because
-// the queue is the record of that triage and the reasons are the only place the argument for each
-// one is written down.
-//
-// The other three stay here, and their size is the argument: FORM-A and FORM-B run to hundreds of
-// records over most of the catalogue, so either of them promoted would redden the gate against work
-// nobody has scheduled, and the gate would stop being usable. Section 4's path divergence is open
-// beside them and is the same case. Section 1 prints all three live.
-//
-// WHAT FAILS HERE: the census, and nothing else. A report that walked less than the catalog prints
-// few findings and looks exactly like a clean catalog: a walk one step short drops that step
-// silently and nothing in the output looks wrong, which is why the floor below is
-// asserted rather than printed. Fewer than the recorded cards or steps is an assertion failure,
-// not a note. The SHAPE of the carried
-// table (a reason on every entry, three fields in every key) is asserted in the gate file,
-// ../unit/chip-beat-e.test.mjs, where a table that has gone soft can go red.
-//
-// ===========================================================================================
-// THE TRAP: P-03 HAS TWO CORRECT FORMS, AND ONE OF THEM OPENS A SECOND HOLE
-// ===========================================================================================
-// Both of these are correct P-03 and they are not the same edit:
-//
-//   the REWIND form   states the END value in `chips` and winds it BACK with `rewind`, then an
-//                     F.set turns it over on the beat. cluster-etcd-raft `quorum-lost` (r1: Leader,
-//                     at 1500ms) and workloads-daemonset `place` (currentChip 3) are both on it.
-//   the F.set form    states the START value in `chips` and raises it with an F.set alone.
-//
-// The difference matters to a fixer, because the STATIC path reads `chips` and never runs the flow.
-// So with the rewind form both paths end on the same text, and with the F.set form the static path
-// (prev, reset, and prefers-reduced-motion) ends on the value the step STARTED from while the
-// animated path ends on the new one. NOTHING in the harness sees that. render/reduced.test.mjs
-// compares four axes, OPACITY-OWN, OPACITY-INHERITED, WIRE-TEXT and HIGHLIGHT, and a chip's VALUE
-// TEXT is on none of them: its text list is wire labels only (`WIRE_SEL = '.scheme-label'`, line
-// 113 of that file). The count today is printed in section 4 below, and only there.
-//
-// So: FIXING A FINDING FROM THIS QUEUE WITH AN F.set ALONE CLOSES P-03 AND OPENS THAT ONE. Either
-// use the rewind form, which is invisible to it, or write the end value into `chips` as well and
-// wind it back, so the static path lands where the animated path lands.
-//
-// ===========================================================================================
-// WHAT THIS FILE IS BLIND TO
-// ===========================================================================================
-//   - WHETHER THE ARRIVAL EARNS THE VALUE. The whole subject, and it is judged by the SHAPE OF THE
-//     DATA: a packet in the flow, a value that moved, a `lit` naming the chip. Whether that packet
-//     is the thing that produces that number is a reading of the picture. This is why FORM-B is a
-//     queue and not a finding list.
-//   - `enter(s, ctx)`. 42 of the 665 steps carry one and their bodies are functions, not data. A
-//     chip an escape writes reads here as whatever the fields said, so a step can be reported for a
-//     value it does not actually show, or stay silent about one it does.
-//   - THE ARITHMETIC IS COMPUTED FROM `flow`, NOT MEASURED OFF A FRAME. It is ../fixtures/spec.mjs
-//     `timelineOf`, the same reader unit/spec-steps.test.mjs times a step's duration with: it
-//     ignores the ripple, the packet fades and the pulse tails, and it cannot see anything a paused
-//     animation would have deferred. Deliberately so. A frozen frame is blind to a deferred F.set
-//     (a paused animation never fires onfinish), and propping this reading up with a frame would
-//     make it weaker, not stronger.
-//   - A CUE THAT IS NOT A HIGHLIGHT. P-05a: on four cards the cue is a Pod pulse or a helper walking
-//     a listing row by row. FORM-B asks only whether the step names the chip in `lit`, so a card
-//     cueing a chip any other way stays down in FORM-A and is never printed.
-//   - WHICH packet earns which chip. The lead is measured to the FIRST arrival of the step, whatever
-//     it carries. A step whose first ball is unrelated to the chip reads as less severe than it is.
-//   - `anim` and `tag` are not counted as packets. A ball drawn through F.anim, and a label riding a
-//     ball, are not the route/segment/top verbs this file looks for.
-//   - Everything R2 is blind to about the CUE, which is the other half of the same rule and not this
-//     file's subject. What this file does NOT inherit from R2 is its positional weakness: chips are
-//     paired here by REF KEY, so adding or removing a chip cannot silently pair two different ones.
+// P-03 off the data, as a queue ranked by lead (ms a chip value shows before the step's first arrival):
+// FORM-A, FORM-B (the chip is in `lit`), FORM-B-LEAD, FORM-E (gated in ../unit/chip-beat-e.test.mjs).
+// Fails only on the census. Cannot tell whether the arrival earns the value (P-06), nor read enter().
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -142,17 +9,12 @@ import { carriedBlock, shapeProblems } from '../fixtures/carried.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
 import { chipBeat } from '../fixtures/chip-beat.mjs';
 
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_CARDS = (await cards()).length;
 const EXPECTED_STEPS = await stepTotal();
 
-
-// The bands the queue is summarised in. Chosen off the measured distribution, not in advance: the
-// population starts at 700ms because that is the shortest flight in the catalog.
+// The population starts at 700ms, the shortest flight in the catalog.
 const LEAD_BANDS = [[0, 700], [700, 1000], [1000, 1500], [1500, 2200], [2200, Infinity]];
 
-// The walk itself, and every number this file prints, come from the fixture. See the header.
 const FORMS = await chipBeat();
 
 const pad = (n) => String(n).padStart(4);
@@ -203,9 +65,7 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
     out.push('   by card:');
     for (const [id, n] of [...byCard.entries()].sort((a, b) => b[1] - a[1])) out.push(`   ${pad(n)}  ${id}`);
   }
-  // A carried FORM-B row is out of the bands and out of the by-card tally above, and printed here
-  // with the reason instead. An E record is never counted here: FORM-E is the narrower reading of
-  // the same record and section 3 owns it.
+  // A record that is also FORM-E is owned by section 3, never carried here.
   for (const l of carriedBlock('FORM-B', bHeld.map(r => ({ key: r.carryKey, why: r.bWhy })), bStale)) out.push(l);
 
   out.push('');
@@ -230,8 +90,7 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
   out.push('   wire text and highlight, and a chip VALUE is on none of them. Repair a FORM-B or FORM-E finding');
   out.push('   with the rewind form, or write the end value into `chips` too: see the header.');
 
-  // The store's own shape, printed rather than asserted: a suppression with no reason or naming no
-  // catalogued card is a broken RULING, and this file fails on the census alone.
+  // Printed rather than asserted: this file fails on the census alone.
   const ids = new Set((await cards()).map(c => c.id));
   const broken = ['FORM-B', 'FORM-E'].flatMap(a => shapeProblems(a, ids));
   if (broken.length) {
@@ -248,12 +107,7 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
   out.push('===== end of report =====');
   console.log(out.join('\n'));
 
-  // -------------------------------------------------------------------------------------------
-  // The assertions, and not one of them is about a card. A FORM-A or FORM-B finding is a statement
-  // about a card and its acceptance belongs to a person; a walk that covered less than the catalog
-  // is not a measurement at all. FORM-E is the one form that IS a verdict now, and it is asserted in
-  // ../unit/chip-beat-e.test.mjs, on the same records, off the same fixture.
-  // -------------------------------------------------------------------------------------------
+  // The census assertions. FORM-E is asserted in ../unit/chip-beat-e.test.mjs.
   assert.ok(walked >= EXPECTED_CARDS,
     `walked ${walked} card(s), the catalog had ${EXPECTED_CARDS} when this report was written. ` +
     'A report over a subset prints few findings and looks exactly like a clean catalog.');

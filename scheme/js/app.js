@@ -1,7 +1,7 @@
 // Grid, filtering, poster rendering, dialog lifecycle, hash routing and the shared chrome. With
 // lib/motion.js, one of only two modules allowed to touch a browser global at module load.
 import { SCHEMES, CATEGORIES, CATEGORY_LABEL, CATEGORY_ICONS, CATEGORY_TAGLINE, SUBCATEGORIES } from './data.js';
-import { POSTERS } from './posters.js';
+import { renderPoster } from './lib/poster.js';
 import { reducedMotion, onReducedMotionChange } from './lib/motion.js';
 import { setupSidebar } from './lib/sidebar.js';
 import { setupKeysHelp, isSlash, isLetter } from './lib/keys.js';
@@ -89,8 +89,8 @@ function fallbackCopy(text, callback) {
   document.body.removeChild(ta);
 }
 
-// KNOWN DUPLICATION, kept on purpose: this, `fallbackCopy`, `closeAllDropdowns` and the four icons,
-// ~240 lines in THREE copies (here, cli/js/app.js, root index.html). Sharing them couples the paths.
+// KNOWN DUPLICATION, kept on purpose: this, `fallbackCopy`, `closeAllDropdowns` and the icons also
+// live in cli/js/app.js and root index.html. Sharing them would couple the paths.
 function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
   const container = document.getElementById('headerActions');
   if (!container) return;
@@ -111,7 +111,7 @@ function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
       </a>`).join('');
     html += `
       <div class="action-wrap">
-        <button class="action-btn" aria-expanded="false" aria-haspopup="true">
+        <button class="action-btn" aria-label="Contacts" aria-expanded="false" aria-haspopup="true">
           ${CONTACT_ICON}<span class="action-btn-label">Contacts</span>
         </button>
         <div class="action-dropdown" role="menu">${links}</div>
@@ -120,8 +120,10 @@ function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
 
   if (SPONSOR && SPONSOR.enabled) {
     const donate = `
-      <a class="dropdown-link" href="${escapeHtml(SPONSOR.donate.href)}" target="_blank" rel="noopener" role="menuitem">
-        ${SPONSOR.donate.icon} ${escapeHtml(SPONSOR.donate.label)}
+      <a class="dropdown-copy-row dropdown-donate" href="${escapeHtml(SPONSOR.donate.href)}" target="_blank" rel="noopener" role="menuitem" aria-label="${escapeHtml(SPONSOR.donate.label)}">
+        <span class="dropdown-coin">${escapeHtml(SPONSOR.donate.coin)}<span class="dropdown-net">${escapeHtml(SPONSOR.donate.net)}</span></span>
+        <span class="dropdown-addr">${escapeHtml(SPONSOR.donate.addr)}</span>
+        <span class="dropdown-go">${SPONSOR.donate.icon}</span>
       </a>`;
     const wallets = SPONSOR.wallets.map(w => `
       <div class="dropdown-copy-row">
@@ -131,7 +133,7 @@ function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
       </div>`).join('');
     html += `
       <div class="action-wrap">
-        <button class="action-btn" aria-expanded="false" aria-haspopup="true">
+        <button class="action-btn" aria-label="Sponsor" aria-expanded="false" aria-haspopup="true">
           ${SPONSOR_ICON}<span class="action-btn-label">Sponsor</span>
         </button>
         <div class="action-dropdown" role="menu">
@@ -239,20 +241,9 @@ let searchQuery = '';
 let activeController = null;
 let activeDialogScheme = null;
 
-// The hash carries TWO things, and this is the whole routing contract:
-//   #at=<key>&q=<search>                the state the grid is in: a section, a search, or both
-//   #scheme=<id>&step=<n>&at=<key>&q=<search>   a card, plus the grid state behind it
-// A key is a category key or a subcategory key, unambiguous because D-07 asserts no subcategory
-// key is shared between categories. `at=` is one parameter with one meaning in both forms, and it
-// carries the filter THROUGH a card, so closing the dialog lands back in the section the card was
-// opened from and reloading a deep link rebuilds that section rather than the whole catalog.
-//
-// WHY THE KEY IS NAMED RATHER THAN BARE, which is how /cli/ writes its own sections: the two
-// sub-apps share one hash namespace at the root, where the hub forwards `#...` to one of them. The
-// bare namespace belongs to /cli/ by being the default target, so /scheme/ has to prefix what it
-// writes or the hub cannot tell a section of one from a section of the other without carrying a
-// copy of this catalog's keys. A bare key is still READ (`parseHash`), so a hand-written or older
-// `#csi-mount-path` still resolves.
+// Routing: `#at=<key>&q=<search>` is grid state, `#scheme=<id>&step=<n>&at=..&q=..` a card plus the grid
+// behind it (keys stay unambiguous by D-07). The key is NAMED because the hub forwards bare hashes to
+// /cli/, but a bare key is still read, so an older `#csi-mount-path` resolves.
 const FILTER_KEYS = new Map();
 for (const c of CATEGORIES) {
   if (c.key === 'all') continue;
@@ -280,15 +271,12 @@ function gridHash() {
   return parts.length ? `#${parts.join('&')}` : '';
 }
 
-// Every write is a replaceState: the grid filter is a view, not a place, and it never fires
-// hashchange, so `apply` below cannot be re-entered by our own writes.
-// The section root shows without its trailing slash (/scheme). Any state kept in the hash goes back
-// to /scheme/#..., the form a shared link should carry. A bare /scheme reaching the server is
-// redirected to /scheme/ and lands here again. The path is always written in full: a bare '#...'
-// would resolve against /scheme and drop the slash.
+// Every write is a replaceState, which never fires hashchange, so `apply` cannot be re-entered. The
+// path is written in full with its trailing slash: a bare '#...' would resolve against /scheme and
+// drop it, and a slashless address costs a redirect and splits analytics in two.
 function writeHash(hash) {
-  const base = location.pathname.replace(/\/$/, '');
-  const target = hash ? `${base}/${location.search}${hash}` : base + location.search;
+  const base = location.pathname.replace(/\/?$/, '/');
+  const target = base + location.search + (hash || '');
   if (location.pathname + location.search + location.hash !== target) history.replaceState(null, '', target);
 }
 
@@ -300,17 +288,14 @@ function schemeHash(id, stepIdx) {
   return hash;
 }
 
-// `html` carries scroll-behavior: smooth, and `behavior: 'auto'` DEFERS to that CSS rather than
-// overriding it: measured, a filter change glided for half a second through the length of the old
-// grid before settling. `instant` is the only value that overrules the stylesheet.
+// `html` carries scroll-behavior: smooth, and `behavior: 'auto'` DEFERS to it. `instant` is the only
+// value that overrules the stylesheet.
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
-// Returns whether anything moved, so a caller can decide to reset the scroll only when it did.
-// The search-side twin of applyFilter, and the only writer of the two search values. It owns the
-// input element too: a query restored from the hash has to appear in the box, or the grid is
-// filtered by something the reader cannot see and cannot clear.
+// The search-side twin of applyFilter and the only writer of the two search values. Returns whether
+// anything moved. It owns the input too: a query restored from the hash must appear in the box.
 function applySearch(text, { render = true } = {}) {
   const next = text || '';
   const query = next.trim().toLowerCase();
@@ -396,7 +381,7 @@ function setupSearch() {
   const clear = document.getElementById('searchClear');
   let timer = null;
   // A search narrows the grid the same way a section does, so it lands the reader at the top of the
-  // result and in a URL that survives a reload. Debounced at 80ms, which is what D-15 states.
+  // result and in a URL that survives a reload. Debounced per D-15.
   const commit = () => {
     if (!applySearch(input.value)) return;
     writeHash(gridHash());
@@ -520,10 +505,10 @@ function filteredSchemes() {
 
 function renderCard(s) {
   return `
-    <article class="card" data-id="${escapeHtml(s.id)}" data-cat="${escapeHtml(s.category)}" tabindex="0" role="button" aria-label="${escapeHtml(s.title)}"${isCompact() ? ` title="${escapeHtml(s.desc)}"` : ''}>
+    <article class="card" data-id="${escapeHtml(s.id)}" data-cat="${escapeHtml(s.category)}"${isCompact() ? ` title="${escapeHtml(s.desc)}"` : ''}>
       <div class="card-poster">${renderPoster(s)}${fresh.isNew(s.id) ? '<span class="new-pill card-new" title="New since your last visit">NEW</span>' : ''}</div>
       <div class="card-body">
-        <div class="card-title">${escapeHtml(s.title)}</div>
+        <div class="card-title"><a class="card-link" href="/scheme/card/${escapeHtml(s.id)}/">${escapeHtml(s.title)}</a></div>
         <div class="card-desc">${escapeHtml(s.desc)}</div>
         <div class="card-meta">
           <span class="card-cat">${escapeHtml(CATEGORY_LABEL[s.category] || s.category)}</span>
@@ -607,10 +592,8 @@ function setReportLink(dialog, stepLabel = '', stepIdx = 0) {
   dialog.querySelector('.dialog-report').href = reportUrl(activeDialogScheme, stepLabel, stepIdx);
 }
 
-// Fullscreen goes on the PAGE, not on the dialog: Chrome refuses requestFullscreen() on a <dialog>
-// ("Dialog elements are invalid"). The modal stays on top of the fullscreen page, and
-// `dialog.is-fullscreen` (css/styles.css) stretches its panel to the whole screen. Flipping to the
-// next card stays fullscreen because the dialog is reused.
+// Fullscreen goes on the PAGE, not on the dialog: Chrome refuses requestFullscreen() on a <dialog>.
+// `dialog.is-fullscreen` stretches the panel, and a flip stays fullscreen because the dialog is reused.
 function toggleFullscreen() {
   if (!document.querySelector('dialog.scheme-dialog') || !document.fullscreenEnabled) return;
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
@@ -664,7 +647,7 @@ function renderSection(unit) {
 }
 
 // The grid is built as UNITS (a category, or a subcategory inside one) and not as a flat list, so a
-// header carries its own count and tagline and the four manifests keep one category's own order.
+// header carries its own count and tagline and the manifests keep one category's own order.
 function buildUnits(list) {
   const order = CATEGORIES.filter(c => c.key !== 'all').map(c => c.key);
   const units = [];
@@ -764,11 +747,16 @@ function renderGrid() {
         toggleStar(card.dataset.id);
         return;
       }
+      // The title is a real link to the card's static page (/scheme/card/<id>/), which is what crawlers
+      // follow. A plain click still opens the dialog. A modified click is left to the browser, so
+      // Ctrl/Cmd+click opens the page in a new tab.
+      if (e.target.closest('.card-link') && (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey)) return;
+      e.preventDefault();
       openScheme(card.dataset.id);
     });
-    card.addEventListener('keydown', (e) => {
-      if (e.target !== card) return;
-      if (e.key === 'Enter' || e.key === ' ') {
+    // The link is the card's one focus stop: Enter clicks it, and Space opens the card too.
+    card.querySelector('.card-link').addEventListener('keydown', (e) => {
+      if (e.key === ' ') {
         e.preventDefault();
         openScheme(card.dataset.id);
       }
@@ -776,47 +764,9 @@ function renderGrid() {
   });
 }
 
-// The gradient wash behind each grid thumbnail. All four are the exact `--<cat>-color` from
-// tokens.css: ONE colour per category, named once there, read everywhere else (CANON.md C-22).
-const POSTER_COLORS = {
-  network:   '#4fe5ff',
-  storage:   '#5eca94',
-  workloads: '#5bb8ff',
-  cluster:   '#7d86ff',
-};
-
-const FALLBACK_POSTER = `
-  <g stroke="currentColor" stroke-width="1.4" fill="none" opacity="0.9">
-    <rect x="48"  y="58" width="74" height="64" rx="8"/>
-    <rect x="198" y="58" width="74" height="64" rx="8"/>
-    <line x1="122" y1="90" x2="198" y2="90" stroke-dasharray="4 4"/>
-  </g>
-  <circle cx="160" cy="90" r="5" fill="currentColor" opacity="0.95"/>
-`;
-
-function renderPoster(scheme) {
-  const color = POSTER_COLORS[scheme.category] || '#e0cdff';
-  const gid = 'pg-' + scheme.id;
-  const fg = POSTERS[scheme.id] || FALLBACK_POSTER;
-  return `
-    <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      <defs>
-        <linearGradient id="${escapeHtml(gid)}" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="${color}" stop-opacity="0.22"/>
-          <stop offset="1" stop-color="${color}" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <rect x="0" y="0" width="320" height="180" fill="url(#${escapeHtml(gid)})"/>
-      <g style="color:${color}">${fg}</g>
-    </svg>
-  `;
-}
-
-// The dialog lifecycle, and why a card module is lazy-imported: 108 modules are never all in
-// memory. A live controller is torn down first, or its animations land on the next dialog's canvas.
-// An open dialog is REUSED for the next card rather than closed and rebuilt: the shell, the backdrop
-// and the inspector stay, only the card-specific parts are rewritten, so flipping between cards
-// never flashes the page behind.
+// Card modules are lazy-imported, never all in memory. A live controller is torn down first, or its
+// animations land on the next canvas. An open dialog is REUSED for the next card (shell, backdrop and
+// inspector stay), so a flip never flashes the page behind.
 async function openScheme(id, initialStep = null, { dir = 0 } = {}) {
   const scheme = SCHEMES.find(s => s.id === id);
   if (!scheme || MOBILE_STUB.matches) return;
@@ -884,8 +834,8 @@ async function openScheme(id, initialStep = null, { dir = 0 } = {}) {
     ctrl.gotoStep(0);
     if (!reducedMotion()) {
       const dwell = ctrl.posterFirst ? 1000 : 500;
-      // Cancellable dwell when the controller supports it (any manual interaction or
-      // closing the dialog stops it); fall back to a plain timer for older cards.
+      // A cancellable dwell, stopped by any manual interaction or by closing the dialog, with a
+      // plain timer as the fallback.
       if (ctrl.autoPlay) {
         ctrl.autoPlay(dwell);
       } else {
@@ -909,9 +859,8 @@ function teardownController() {
 }
 
 // ── Flipping between cards ────────────────────────────────────
-// The order is the grid the reader came from: a section, a search or the starred view flips inside
-// itself. A card opened from outside that view (a deep link, a stale filter) flips through the
-// whole catalog instead, so the arrows never strand it. Both ends wrap.
+// A flip stays inside the grid view the reader came from. A card opened from outside it flips
+// through the whole catalog, so the arrows never strand it. Both ends wrap.
 function navList() {
   const view = buildUnits(filteredSchemes()).flatMap(u => u.schemes);
   if (activeDialogScheme && view.some(s => s.id === activeDialogScheme.id)) return view;
@@ -1113,8 +1062,7 @@ function fillDialog(dlg, scheme) {
   const section = dlg.querySelector('.dialog-section');
   section.textContent = sub ? sub.label : '';
   section.hidden = !sub;
-  // Every source, not just the first: 70 cards carry 2 and 10 carry 3 or 4, so rendering
-  // sources[0] alone put 91 of the 194 gathered links out of reach of the interface.
+  // Every source, not just the first.
   const srcs = scheme.sources || [];
   const source = dlg.querySelector('.ctl-source');
   source.innerHTML = srcs.length
@@ -1153,7 +1101,7 @@ function updateNarration(dialog, idx, step, total, meta) {
   const activeDot   = onPoster ? 0 : (posterFirst ? idx - 1 : idx);
   const narration   = onPoster ? ((meta && meta.posterText) || '') : (step ? (step.narration || '') : '');
 
-  if (overlay) overlay.classList.remove('is-poster');  // text is always present now
+  if (overlay) overlay.classList.remove('is-poster');  // the text is always present
   if (!step && !onPoster) {
     stepEl.textContent = '';
     textEl.textContent = '';
@@ -1250,10 +1198,9 @@ function parseHash() {
   return out;
 }
 
-// A RELOAD is the reader asking for the card again, not asking to be dropped back where they were:
-// the step in the hash records how far the animation got, and restoring it lands them on a frozen
-// middle frame of something they were watching play. A link, a bookmark or a back is a different
-// intent and keeps its step. `navigation.type` is what tells the two apart.
+// A RELOAD restarts the card: the hashed step only records how far the animation got, and restoring
+// it lands on a frozen middle frame. A link, a bookmark or a back keeps its step, and
+// `navigation.type` tells the two apart.
 function isReload() {
   try {
     const nav = performance.getEntriesByType('navigation')[0];
@@ -1272,7 +1219,7 @@ function setupHashRouting() {
     // navigation of its own and means what it says.
     const step = first && reloaded ? null : parsed.step;
     first = false;
-    // Grid state arriving through the hash (a shared link, an edited URL) rebuilds the grid; init
+    // Grid state arriving through the hash (a shared link, an edited URL) rebuilds the grid. Init
     // has already applied the first one, so this is a no-op on the opening call. Both halves are
     // applied before either renders, or a hash carrying a section AND a search renders twice.
     const filterMoved = applyFilter(parsed.filter, { render: false });
@@ -1300,9 +1247,8 @@ function setupHashRouting() {
   apply();
 }
 
-// The scroll-to-top button, wired exactly as cli/js/app.js wires its own: the same 300px threshold
-// and the same smooth glide, which is the one place the CSS smooth scroll is wanted rather than
-// fought (D-16 owns the filter reset, which is instant on purpose).
+// The scroll-to-top button, wired as cli/js/app.js wires its own. Its smooth glide is wanted, unlike
+// the instant filter reset (D-16).
 const SCROLL_THRESHOLD = 300;
 
 function setupScrollTop() {

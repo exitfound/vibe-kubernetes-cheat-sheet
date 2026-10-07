@@ -1,58 +1,51 @@
-import { P, F, defineCard, BEAT, makeRidingLabel } from './storage-kit.js';
+import { P, F, defineCard, BEAT } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-downward-api-volume.md
 
 
-// Two listings level with each other across one writer: the Pod object on the left, Kubelet in the
-// middle, the labels file on the right, each file line level with the label it comes from. The
-// running Pod stands over Kubelet on the canvas centre. Panel extent measured in the record.
+// Two listings level with each other across one writer: the Pod object, Kubelet, the labels file,
+// each file line level with the label it comes from.
 const CX = 600;
 const COL_W = 232;                                                // NET.L-01, every column
-const OBJ_X = 100, MID_X = CX - COL_W / 2, FILE_X = 1200 - OBJ_X - COL_W;   // 100 / 484 / 868
-const OBJ_R = OBJ_X + COL_W, MID_R = MID_X + COL_W;               // 332 / 716
-const OBJ_CX = OBJ_X + COL_W / 2, FILE_CX = FILE_X + COL_W / 2;   // 216 / 984
+const OBJ_X = 100, MID_X = CX - COL_W / 2, FILE_X = 1200 - OBJ_X - COL_W;
+const OBJ_R = OBJ_X + COL_W, MID_R = MID_X + COL_W;
+const OBJ_CX = OBJ_X + COL_W / 2, FILE_CX = FILE_X + COL_W / 2;
 
-// The two listings: a header line, then four row slots, inset inside a frame of one height. The
-// inset is wider than the 16 a ball is judged AT a block by, so a lane on the frame face is the frame's.
+// A header line, then four row slots inset in a frame. The inset is wider than the 16 a ball is
+// judged AT a block by, so a lane on the frame face is the frame's.
 const LIST_Y = 262;                                               // the object frame top clears the panel
 const HEAD_H = 32, INSET = 18, ROW_H = 44, ROW_GAP = 10;
-const ROW_W = COL_W - 2 * INSET;                                  // 196
+const ROW_W = COL_W - 2 * INSET;
 const rowY = (i) => LIST_Y + HEAD_H + i * (ROW_H + ROW_GAP);
-const LIST_H = HEAD_H + 4 * ROW_H + 3 * ROW_GAP + INSET;          // 256
+const LIST_H = HEAD_H + 4 * ROW_H + 3 * ROW_GAP + INSET;
 const MID_Y = LIST_Y + LIST_H / 2;                                // the two frames and Kubelet share it
-const HEAD_Y = LIST_Y + 21;                                       // the header baseline
+const HEAD_Y = LIST_Y + 21;
 // Keys in name order, the order the writer sorts them into (FormatMap in pkg/fieldpath).
 const CLUSTER = 0, RACK = 1, ZONE = 2, NODE = 3;
 
 const BOX_H = 80;
 const KUBE_Y = MID_Y - BOX_H / 2;
-// The running Pod over Kubelet on the centre line, 232 by 104 with a 192 by 44 app box (NET.L-01).
+// The running Pod over Kubelet on the centre line (NET.L-01).
 const POD_Y = 60, POD_H = 104, POD_B = POD_Y + POD_H, POD_MY = POD_Y + POD_H / 2;
 
 // The three copies of the zone, stacked under Kubelet in the middle column.
 const CHIP_H = 34, CHIP_GAP = 12, CHIPS_Y = KUBE_Y + BOX_H + 24;
 const chipY = (i) => CHIPS_Y + i * (CHIP_H + CHIP_GAP);
 
-// Each static wire and its ball share one array.
 const W_GET = [[OBJ_R, MID_Y], [MID_X, MID_Y]];
 const W_WRITE = [[MID_R, MID_Y], [FILE_X, MID_Y]];
 const W_ENV = [[CX, KUBE_Y], [CX, POD_B]];
 const W_READ = [[FILE_CX, LIST_Y], [FILE_CX, POD_MY], [MID_R, POD_MY]];
 
-// Every ball rides routeDur, and every tag lives exactly as long as its ball (M-30a).
-const riding = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
-// The two horizontal legs run between blocks taller than the lane gap, so both tags ride above the
-// Kubelet top: the get tag trails right of its ball, the write tag leads left of it.
-const GET_TAG = { fn: riding, dx: 40, dy: -50 };
-const WRITE_TAG = { fn: riding, dx: -40, dy: -50 };
-// The env leg climbs between two 232 wide blocks on its own axis, so the tag rides beside them,
-// its left end 8 right of the column face at 716 (94.4 wide at 1280x860).
-const ENV_TAG = { fn: riding, dx: 172, dy: 0 };
-const READ_TAG = { fn: riding, dx: 50, dy: -20 };
+// Both horizontal legs run between blocks taller than the lane gap, so their tags ride above Kubelet.
+const GET_TAG = { dx: 40, dy: -50 };
+const WRITE_TAG = { dx: -40, dy: -50 };
+// The env leg climbs between two blocks on its own axis, so its tag rides beside them.
+const ENV_TAG = { dx: 172, dy: 0 };
+const READ_TAG = { dx: 50, dy: -20 };
 
 const row = (key, x, i, label, opacity) => P.box({ key, x: x + INSET, y: rowY(i), w: ROW_W, h: ROW_H, label, opacity });
 
-// Z-order (bottom -> top): the two frames and their rows, the Pod, Kubelet, the lanes, the
-// headers, the chips, then the packet layer.
+// Z-order: the two frames and their rows, the Pod, Kubelet, the lanes, headers, chips, packets.
 export const SCENE = {
   'aria-label': 'Downward API volume: Pod api-0 carries the labels cluster, rack and zone. Kubelet on Node-1 gets the Pod object and, before the container starts, writes a downwardAPI volume whose labels file holds the whole labels map, one key="value" line per label. It then starts the container with ZONE and NODE_NAME as environment variables, resolved once. When the zone label changes to west, Kubelet rewrites the labels file and the app reads west, while ZONE in the environment still says east until the container restarts. Fields such as spec.nodeName, status.podIP, status.hostIP and spec.serviceAccountName reach a container only as env, the whole labels or annotations map only as a file, and a single key either way.',
   parts: [
@@ -90,8 +83,7 @@ export const SCENE = {
   },
 };
 
-// STO.S-01 as a field: the file frame, its rows, its header and both of its lanes are born together
-// on the write (STO.S-02, A-14), and the empty-slot caption only on the last step.
+// The file frame, rows, header and both lanes are born together on the write (STO.S-02, A-14).
 const stage = (o) => ({
   fileBox: 0, fileHead: 0, fCluster: 0, fRack: 0, fZone: 0, fNone: 0, wWrite: 0, wRead: 0, ...o,
 });
@@ -130,8 +122,7 @@ export const STEPS_SPEC = [
     opacity: NO_FILE,
     lit: ['objBox'],
     flow: [
-      F.route({ points: W_GET, delay: BEAT.lead, name: 'get', lights: ['kubelet'] }),
-      F.tag({ text: 'Pod api-0', points: W_GET, delay: BEAT.lead, ...GET_TAG }),
+      F.route({ points: W_GET, delay: BEAT.lead, name: 'get', lights: ['kubelet'], tag: { text: 'Pod api-0', ...GET_TAG } }),
     ],
   },
   {
@@ -149,9 +140,7 @@ export const STEPS_SPEC = [
       F.fade({ ...SHOW('fileBox') }),
       F.fade({ ...SHOW('fileHead') }),
       F.fade({ ...SHOW('wWrite') }),
-      F.route({ points: W_WRITE, delay: BEAT.lead, name: 'write', lights: ['fileBox'] }),
-      F.tag({ text: 'labels file', points: W_WRITE, delay: BEAT.lead, ...WRITE_TAG }),
-      // The lines exist once the write lands, and the read lane with them.
+      F.route({ points: W_WRITE, delay: BEAT.lead, name: 'write', lights: ['fileBox'], tag: { text: 'labels file', ...WRITE_TAG } }),
       F.fade({ ...SHOW('fCluster'), at: 'write' }),
       F.fade({ ...SHOW('fRack'), at: 'write' }),
       F.fade({ ...SHOW('fZone'), at: 'write' }),
@@ -171,9 +160,7 @@ export const STEPS_SPEC = [
     rewind: { chips: C_FILE, sublabels: APP_IDLE },
     lit: ['kubelet'],
     flow: [
-      F.route({ points: W_ENV, delay: BEAT.lead, name: 'env' }),
-      F.tag({ text: 'ZONE, NODE_NAME', points: W_ENV, delay: BEAT.lead, ...ENV_TAG }),
-      F.pulse({ pod: 'pod', at: 'env' }),
+      F.route({ points: W_ENV, delay: BEAT.lead, name: 'env', tag: { text: 'ZONE, NODE_NAME', ...ENV_TAG }, pulse: 'pod' }),
       F.set({ at: 'env', chips: C_ENV, sublabels: APP_ENV }),
       F.light({ targets: ['envChip'], at: 'env' }),
     ],
@@ -188,8 +175,7 @@ export const STEPS_SPEC = [
     opacity: FILE,
     lit: ['objBox', 'oZone', 'objChip'],
     flow: [
-      F.route({ points: W_GET, delay: BEAT.lead, name: 'get', lights: ['kubelet'] }),
-      F.tag({ text: 'zone: west', points: W_GET, delay: BEAT.lead, ...GET_TAG }),
+      F.route({ points: W_GET, delay: BEAT.lead, name: 'get', lights: ['kubelet'], tag: { text: 'zone: west', ...GET_TAG } }),
     ],
   },
   {
@@ -203,13 +189,10 @@ export const STEPS_SPEC = [
     rewind: { chips: C_RELABEL, labels: L_RELABEL },
     lit: ['kubelet'],
     flow: [
-      F.route({ points: W_WRITE, delay: BEAT.lead, name: 'write', lights: ['fileBox', 'fZone'] }),
-      F.tag({ text: 'zone="west"', points: W_WRITE, delay: BEAT.lead, ...WRITE_TAG }),
+      F.route({ points: W_WRITE, delay: BEAT.lead, name: 'write', lights: ['fileBox', 'fZone'], tag: { text: 'zone="west"', ...WRITE_TAG } }),
       F.set({ at: 'write', chips: C_REWRITE, labels: L_WEST }),
       F.light({ targets: ['fileChip'], at: 'write' }),
-      F.route({ points: W_READ, after: 'write', plus: 400, name: 'read' }),
-      F.tag({ text: 'zone="west"', points: W_READ, after: 'write', plus: 400, ...READ_TAG }),
-      F.pulse({ pod: 'pod', at: 'read' }),
+      F.route({ points: W_READ, after: 'write', plus: 400, tag: { text: 'zone="west"', ...READ_TAG }, pulse: 'pod' }),
     ],
   },
   {

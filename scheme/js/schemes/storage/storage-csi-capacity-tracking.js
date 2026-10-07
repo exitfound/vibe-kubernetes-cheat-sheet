@@ -1,39 +1,38 @@
-import { P, F, defineCard, BEAT, FADE, OPACITY, chipStrip, makeRidingLabel } from './storage-kit.js';
+import { P, F, defineCard, BEAT, FADE, OPACITY, chipStrip } from './storage-kit.js';
 import { g, rect } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS/storage-csi-capacity-tracking.md
-
 
 // Two Nodes along the top, right of the panel wall, and along the bottom the pipeline the card is
 // about: the Scheduler reads, the API server holds the capacity objects, the CSI controller writes.
 const BOX_W = 232, BOX_H = 80;                                               // NET.L-01
 const POD_W = 232, POD_H = 104, APP_W = 192, APP_H = 44, APP_DY = 26;
 
-const NODE_Y = 36, NODE_HEAD = 27, NODE_W = 350, NODE_GAP = 30;
-const NODE_X = [430, 430 + NODE_W + NODE_GAP];                               // 430 / 810, right edge 1160
-const NODE_CX = NODE_X.map(x => x + NODE_W / 2);                             // 605 / 985
-const POD_Y = NODE_Y + NODE_HEAD;                                            // 63
-const POOL_W = 168, POOL_H = 84, POOL_Y = POD_Y + POD_H + 16;                // 183
-// A 40 foot, so a tag riding 14 over a ball landing on the frame floor stays inside, off that edge.
-const NODE_FOOT = 40, NODE_H = POOL_Y + POOL_H + NODE_FOOT - NODE_Y;          // 271, bottom 307
+// The catalog 34 label band over the Pod. The floor is this card's exception, see NODE_FOOT.
+const NODE_Y = 29, NODE_HEAD = 34, NODE_W = 350, NODE_GAP = 30;
+const NODE_X = [430, 430 + NODE_W + NODE_GAP];
+const NODE_CX = NODE_X.map(x => x + NODE_W / 2);
+const POD_Y = NODE_Y + NODE_HEAD;
+const POOL_W = 168, POOL_H = 84, POOL_Y = POD_Y + POD_H + 16;
+// Deliberate 40 foot, not the catalog 12: a tag over a ball landing on the frame floor stays inside.
+const NODE_FOOT = 40, NODE_H = POOL_Y + POOL_H + NODE_FOOT - NODE_Y;
 const NODE_BOTTOM = NODE_Y + NODE_H;
 
 // The bottom row sits under the deepest panel reading, so the Scheduler may start at x 60.
-const ROW_Y = 400, ROW_MY = ROW_Y + BOX_H / 2;                               // 440
-const SCHED_X = 60, SCHED_CX = SCHED_X + BOX_W / 2;                          // 176
-const LANE_DX = 12;                                    // the two lanes into one Node face, +-12 (L-12)
-const CTRL_CX = NODE_CX[1] + LANE_DX, CTRL_X = CTRL_CX - BOX_W / 2;          // 997 / 881
+const ROW_Y = 400, ROW_MY = ROW_Y + BOX_H / 2;
+const SCHED_X = 60, SCHED_CX = SCHED_X + BOX_W / 2;
+const LANE_DX = 12;                                    // the two lanes into one Node face (L-12)
+const CTRL_CX = NODE_CX[1] + LANE_DX, CTRL_X = CTRL_CX - BOX_W / 2;
 
-// The API server frame between them holds one gauge row per CSIStorageCapacity object, scaled at
-// 6 units per Gi, with the claim drawn as a threshold across both.
-const API_X = 360, API_W = 460, API_Y = 364, API_H = 152;                    // mid y 440 = ROW_MY
-const GAUGE_X = 450, GI = 6, GAUGE_W = 50 * GI, BAR_H = 16;                  // track 450..750
+// One gauge row per CSIStorageCapacity object at 6 units per Gi, the claim drawn as a threshold
+// across both. The frame is symmetric about ROW_MY, where the write and the read meet its faces.
+const API_X = 360, API_W = 460, API_Y = 370, API_H = 140;
+const GAUGE_X = 450, GI = 6, GAUGE_W = 50 * GI, BAR_H = 16;
 const ROW1_Y = 414, ROW2_Y = 450;
-const REQ_X = GAUGE_X + 20 * GI;                                             // 570, the 20Gi claim
+const REQ_X = GAUGE_X + 20 * GI;                                             // the 20Gi claim
 const CHIPS = chipStrip(), CHIPS_Y = 560;
 
-// Two corridors under the Node row, each far enough under the frame floor (307) that a tag riding 14
-// over its ball clears that edge. The Scheduler run is centred in the Node-to-API gap.
-const CTRL_RUN_Y = 336, SCHED_RUN_Y = (NODE_BOTTOM + API_Y) / 2;             // 335.5
+// Two corridors under the Node row, deep enough that a tag over its ball clears the frame floor.
+const CTRL_RUN_Y = 336, SCHED_RUN_Y = (NODE_BOTTOM + API_Y) / 2;
 const W_SEL = NODE_CX.map(cx => [[SCHED_CX, ROW_Y], [SCHED_CX, SCHED_RUN_Y], [cx - LANE_DX, SCHED_RUN_Y], [cx - LANE_DX, NODE_BOTTOM]]);
 const W_CV = [
   [[CTRL_CX, ROW_Y], [CTRL_CX, CTRL_RUN_Y], [NODE_CX[0] + LANE_DX, CTRL_RUN_Y], [NODE_CX[0] + LANE_DX, NODE_BOTTOM]],
@@ -126,8 +125,6 @@ const stage = ({ lanes = [], ledger = 0, req = 0, podA = 0, podB = 0, n1 = 1, vo
   reqLine: req, reqTag: req, podA, podB, node1: n1, pool1: n1, volLink: vol,
 });
 
-// A tag lives exactly as long as its ball (M-30a), readable from departure.
-const rideTag = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
 const fadeIn = (target, at, to) => F.fade({ target, from: 0, to, dur: FADE.in, at, fill: 'both', easing: 'ease-out' });
 const dimAt = (target, at) => F.fade({ target, from: 1, to: OPACITY.notready, dur: FADE.in, at, fill: 'both', easing: 'ease-out' });
 
@@ -149,8 +146,7 @@ export const STEPS_SPEC = [
     rewind: { chips: { selChip: 'none', resChip: 'unscheduled' } },
     // The choice travels from the Scheduler into Node-1, and the Pod appears there, waiting.
     flow: [
-      F.route({ points: W_SEL[0], delay: BEAT.lead, name: 'sel' }),
-      F.tag({ text: 'selected-node: node-1', points: W_SEL[0], delay: BEAT.lead, fn: rideTag }),
+      F.route({ points: W_SEL[0], delay: BEAT.lead, name: 'sel', tag: { text: 'selected-node: node-1' } }),
       fadeIn('podA', 'sel', OPACITY.pending),
       F.set({ at: 'sel', chipsCued: { selChip: 'node-1', resChip: 'waiting for volume' } }),
     ],
@@ -165,8 +161,7 @@ export const STEPS_SPEC = [
     lit: ['ctrl'],
     rewind: { opacity: { podA: OPACITY.pending }, chips: { selChip: 'node-1', resChip: 'waiting for volume' } },
     flow: [
-      F.route({ points: W_CV[0], delay: BEAT.lead, name: 'cv' }),
-      F.tag({ text: 'CreateVolume 20Gi', points: W_CV[0], delay: BEAT.lead, fn: rideTag }),
+      F.route({ points: W_CV[0], delay: BEAT.lead, name: 'cv', tag: { text: 'CreateVolume 20Gi' } }),
       F.light({ targets: ['pool1'], at: 'cv' }),
       // The Pod never ran, so the dim pulse with an opacity lift, or the blink is invisible. Then the
       // selected Node is dropped and the Pod leaves Node-1, pulse first (M-08).
@@ -197,8 +192,7 @@ export const STEPS_SPEC = [
     chipsCued: chips('Pending', 'none', '2 published', 'node-1 filtered out'),
     opacity: stage({ lanes: ['read'], ledger: 1, req: 1, n1: OPACITY.notready }),
     rewind: { opacity: stage({ lanes: ['read'], ledger: 1 }), chips: { resChip: 'rescheduling' } },
-    // The claim line comes up first, the read carries both rows to the Scheduler, and Node-1 with
-    // its row dims on that arrival.
+    // The claim line comes up first, the read carries both rows to the Scheduler, and Node-1 dims on arrival.
     flow: [
       fadeIn('reqLine', 0, 1),
       fadeIn('reqTag', 0, 1),
@@ -219,16 +213,13 @@ export const STEPS_SPEC = [
       opacity: { podB: 0, cv2: 0, volLink: 0 },
       chips: { podChip: 'Pending', selChip: 'none', resChip: 'node-1 filtered out' },
     },
-    // Scheduler into Node-2 first, then the controller provisions there, and the Pod starts on that
-    // second arrival (down-arrow: ball first, pulse on landing).
+    // Scheduler into Node-2, then the controller provisions there and the Pod starts on that arrival.
     flow: [
-      F.route({ points: W_SEL[1], delay: BEAT.lead, name: 'sel' }),
-      F.tag({ text: 'selected-node: node-2', points: W_SEL[1], delay: BEAT.lead, fn: rideTag }),
+      F.route({ points: W_SEL[1], delay: BEAT.lead, name: 'sel', tag: { text: 'selected-node: node-2' } }),
       fadeIn('podB', 'sel', OPACITY.pending),
       F.set({ at: 'sel', chipsCued: { selChip: 'node-2' } }),
       fadeIn('cv2', 'sel', 1),
-      F.route({ points: W_CV[1], at: 'sel', plus: BEAT.lead, name: 'cv' }),
-      F.tag({ text: 'CreateVolume 20Gi', points: W_CV[1], at: 'sel', plus: BEAT.lead, fn: rideTag }),
+      F.route({ points: W_CV[1], at: 'sel', plus: BEAT.lead, name: 'cv', tag: { text: 'CreateVolume 20Gi' } }),
       F.light({ targets: ['pool2'], at: 'cv' }),
       F.fade({ target: 'podB', from: OPACITY.pending, to: 1, dur: FADE.in, at: 'cv', fill: 'forwards', easing: 'ease-out' }),
       F.pulse({ pod: 'podB', at: 'cv' }),

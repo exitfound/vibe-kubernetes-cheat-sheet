@@ -1,27 +1,7 @@
 #!/usr/bin/env node
-// motion.mjs: every animation a card really runs, per step, as DATA.
-//
-//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/motion.mjs <card-id>
-//     [--viewport=1600x1000] [--base=http://localhost:8888] [--all]   --all: chrome animations too
-//
-// WHY THIS EXISTS, and it is the hole that shipped a defect. The other three probes all read a
-// STATE and none of them reads MOTION: frames.mjs freezes, settled-dump.mjs reads the frame AFTER
-// the motion has ended, buildframe.mjs reads the frame BEFORE step 0. So a card could pulse a
-// block for 600ms on three steps running and every probe, plus the whole gate, came back clean.
-//
-// Two things it does that no test file may:
-//   1. It PLAYS the card in real time. `gotoStep`, prev and reset all replay with `ctx.reduced`,
-//      and `flashChips` (and anything else guarded) returns immediately on that path, so a
-//      reduced-path reader is blind to it BY CONSTRUCTION.
-//   2. It leaves CSS transitions LIVE. `test/fixtures/render.mjs` initPage() freezes them on
-//      purpose so static reads are final, which means no render test can ever see a WAAPI
-//      animation and a CSS transition land on the same element.
-//
-// The FLAGS column is the point. A `filter: brightness(...)` track is what this codebase calls a
-// PULSE (`M-04`), and `M-01` says only Pods pulse, so a brightness track on anything that is not
-// a Pod is printed as SUSPECT. It is not automatically a defect: `M-27` sanctions `F.flash`, and
-// the two canon rows disagree. Read the target, then decide, and write the decision into the
-// card's record either way.
+// motion.mjs: every animation a card really runs, per step, as data, played in real time with CSS transitions left live.
+// usage: cd scheme/test && node ../../.claude/skills/card-review/tools/motion.mjs <card-id> [--viewport=1600x1000] [--base=URL] [--all]
+// A brightness track is a pulse (`M-04`) and only Pods pulse (`M-01`), so one on a non-Pod is flagged SUSPECT.
 import {
   launch, openCard, DEFAULT_BASE, DIAGRAM,
 } from '../../../../scheme/test/fixtures/render.mjs';
@@ -48,9 +28,7 @@ await openCard(page, id, base);
 await page.evaluate(() => document.fonts.ready);
 
 const rows = await page.evaluate(async ({ sel, all }) => {
-  // Re-query the svg on every sample: reset() rebuilds the scene through host.replaceChildren(),
-  // so a reference captured before the playthrough is detached and contains() then answers false
-  // for every target on the card.
+  // Re-query the svg on every sample: reset() rebuilds the scene, so an earlier reference is detached.
   const diagram = () => document.querySelector(sel);
   const label = (el) => {
     const cls = (el.getAttribute && el.getAttribute('class')) || el.tagName;
@@ -64,8 +42,7 @@ const rows = await page.evaluate(async ({ sel, all }) => {
   ctl.play();
 
   const seen = new Set(), out = [];
-  // Walk the whole card at real speed. Every step holds for its own `duration`, so the wall clock
-  // is the sum plus slack; the loop simply samples until the last step has had its hold.
+  // Walk the whole card at real speed, sampling until the last step has had its hold.
   const deadline = performance.now() + 4000 + total * 3500;
   while (performance.now() < deadline) {
     const m = (document.querySelector('.narration-overlay') || {}).textContent || '';
@@ -85,9 +62,8 @@ const rows = await page.evaluate(async ({ sel, all }) => {
       seen.add(key);
       out.push({
         step, target: label(eff.target), props, dur: t.duration, delay: t.delay,
-        // A Pod is a wrapper `g` with NO class holding a `.scheme-pod` shell plus inner boxes, and
-        // `pulsePod` attaches a track to the descendants too (`M-03`), so closest('.scheme-pod')
-        // alone reports every inner box of every Pod as a bare box. Ask the wrapper instead.
+        // A Pod is an unclassed wrapper `g` around a `.scheme-pod` shell plus inner boxes, and pulsePod tracks
+        // the descendants too (`M-03`), so ask the wrapper rather than closest('.scheme-pod').
         isPod: !!(eff.target.closest('.scheme-pod') || eff.target.querySelector('.scheme-pod')
           || (eff.target.parentElement && eff.target.parentElement.querySelector(':scope > .scheme-pod'))),
         vals: kf.map(k => props.map(p => k[p]).join('/')).join(' -> ').slice(0, 78),
@@ -121,5 +97,38 @@ if (suspect.length) {
   console.log('two rows disagree: read each target and record the decision in the card note either way.');
 } else {
   console.log('No brightness/filter track outside a Pod. An empty-keyframe track is lightBoxAt (M-28).');
+}
+// ARRIVALS: tracks starting on the millisecond a packet begins its fade are the receiver's cue. A Pod pulse
+// or lightBoxAt is a cue, a frame or lane fade is not. Compare rows across steps (`P-04`).
+const arrivals = [];
+const near = (a, b) => Math.abs(a - b) <= 20;
+for (const step of [...new Set(rows.map(r => r.step))]) {
+  const inStep = rows.filter(r => r.step === step);
+  const lands = [...new Set(inStep
+    .filter(r => /^scheme-packet/.test(r.target) && r.props.includes('opacity') && /^1 -> 0/.test(r.vals))
+    .map(r => r.delay))];
+  for (const at of lands) {
+    const react = inStep.filter(r => near(r.delay, at) && !/^scheme-(packet|ripple)/.test(r.target));
+    const pulse = react.filter(r => r.isPod && r.props.some(p => /filter/i.test(p)));
+    const light = react.filter(r => !r.props.length && !/^diagram/.test(r.target));
+    const fades = react.filter(r => !r.isPod && r.props.includes('opacity'));
+    // A deferred write (an F.set turnover, a wire) is an empty track on the svg root itself.
+    const writes = react.filter(r => !r.props.length && /^diagram/.test(r.target));
+    const verdict = pulse.length || light.length ? 'cued'
+      : fades.length ? 'FADE-ONLY' : writes.length ? 'WRITE-ONLY' : 'NO CUE';
+    arrivals.push({ step, at, verdict, pulse: pulse.length, light: light.length,
+      fades: fades.map(r => r.target.split(' ')[0]) });
+  }
+}
+console.log('\nARRIVALS: what reacts on the millisecond a ball lands');
+for (const a of arrivals) {
+  console.log(`  step ${a.step}  d${String(a.at).padEnd(6)} ${a.verdict.padEnd(10)} pulses ${a.pulse}  lights ${a.light}` +
+    (a.fades.length ? `  fades ${a.fades.join(', ')}` : ''));
+}
+const uncued = arrivals.filter(a => a.verdict !== 'cued');
+if (uncued.length) {
+  console.log(`${uncued.length} arrival(s) with no Pod pulse and no light. FADE-ONLY is the shipped defect`);
+  console.log('above. WRITE-ONLY (only a chip or wire turns over) and NO CUE are a queue to READ, not a');
+  console.log('verdict: open the frame at the arrival and compare it with the card\'s other arrivals.');
 }
 console.log('\nA seek CANNOT show any of this, and neither can a settled frame. This is the only reader.');

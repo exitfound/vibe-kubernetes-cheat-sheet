@@ -1,102 +1,6 @@
-// arrival.test.mjs: the arrival grammar, measured. Successor of tools/check-arrival.mjs, which was
-// written, run, and NEVER PUT IN THE GATE. Its chain is defined in tools/package.json and this check
-// is not in it, so nothing has ever run it on a schedule and nothing has ever depended on its exit
-// code. That history is the whole reason this file lives under report/ and not under render/.
-//
-//   R3  a block that RECEIVES a packet this step must not already be lit when the step opens. It has
-//       to gain .highlight on arrival, which is what lightBoxAt(el, ctx, pkt.arrivalMs) is for. A
-//       block lit from the start says "this is the thing" before the thing has happened, and the
-//       ball then lands on something already announced.
-//       Blocks that ACT FIRST are exempt: the origin of a round trip sends at delay 0 and its answer
-//       comes home later, so it is legitimately lit before the ball it receives. A MID-CHAIN block is
-//       the opposite shape: it receives hop one and only then sends hop two, so it must open dark.
-//   R4  THE MIRROR OF R3, and the rule R3 alone let through for a year: a block a ball DEPARTS
-//       from has to be cued before it departs, or the ball leaves a dark box and the step has no
-//       sender. Two cues satisfy it and no third: `lit` at step entry, which is the shape for a
-//       block that acts first, or an EARLIER arrival in the same step that lit it as a receiver,
-//       which is the shape for a mid-chain block. R3 and R4 are one grammar read from both ends,
-//       and a block can satisfy both at once: it opens dark, lights on hop one, and sends hop two.
-//   R2  a value chip whose value CHANGED since the previous step must carry .highlight this step.
-//       Otherwise the number turns over with nothing pointing at it, on the one step that is about it.
-//
-// Value chips are deliberately OUT of R3 and that is an authored decision, not an omission: a chip
-// lights at step entry WITH its text change (setChip does both in one call), while boxes, pods and
-// cylinders light on arrival. Two different cues for two different kinds of object.
-//
-// ALL FOUR AXES CARRY RULINGS, and none of them hides one. A finding somebody has read and decided
-// to keep is filed in ../fixtures/carried.mjs against its axis, and this file then prints it marked
-// CARRIED with the reason attached and counts it apart from the rows still to work. Two guards come
-// with that store and both print here: a ruling with no reason or naming no catalogued card is
-// reported as BROKEN, and a ruling that matches no finding on this walk is reported as stale,
-// because a rule that stopped firing means the card moved under the ruling.
-//
-// WHY THIS FILE NEVER FAILS ON A FINDING. Every rule here finds things today, and every one of them is a
-// statement about a CARD, not about the harness. The project already runs the cycle "report-only,
-// then triage, then promote into the mandatory set" (the ENFORCED sets in check-canon.mjs:78 and
-// check-reduced.mjs:25 are the same idea). Promoting either rule before its findings have been read
-// would turn one measurement into a red gate for work nobody has scheduled. So the findings print
-// and the run stays green.
-//
-// WHAT DOES FAIL HERE, and it is the only thing that does: the CENSUS. A report that scanned nothing
-// prints no findings and looks exactly like a clean catalog. Fewer cards or steps than the catalog
-// holds is therefore an assertion failure, not a note. The lesson was paid for once: the first run
-// of a report test came back one step short and nothing about the output looked wrong.
-//
-// TWO HARNESS LIMITS THIS FILE IS BUILT AROUND.
-//
-// 1. A PAUSED ANIMATION NEVER FIRES onfinish (stage 2.3a). enterStep pauses every animation of the
-//    step, so nothing a card defers to a completion handler has run when the probe reads the DOM.
-//    For R3 that is not a defect of the reading, it is its SUBJECT: the rule asks what the step looks
-//    like AT ENTRY, before any arrival has landed, and lightBoxAt is exactly such a deferred handler,
-//    so a block that lights correctly on arrival reads as dark here and reads as dark for the right
-//    reason. The frozen probe is the correct instrument for R3 and would be the wrong one for any
-//    rule about the END of a step.
-//    FOR R2 IT CHANGES THE ANSWER, and the original had no way to know. A frozen t=0 sample sees
-//    neither a value a card writes mid-step nor a cue it lands mid-step, and BOTH halves of R2 are
-//    then read off the wrong frame. storage-fsgroup-ownership is the worked example, and its
-//    CARDS.md section describes the intended behaviour in as many words ("a row lights by taking
-//    .highlight as the ball crosses it"): on its chown step the listing still reads root:root at
-//    t=0 and turns over row by row as the ball passes, each row taking .highlight and keeping it.
-//    Frozen, the change is therefore invisible in the step that makes it and shows up in the NEXT
-//    step, where the cue has legitimately already been shown and cleared. The tool reported three
-//    findings against a card doing exactly what its record says.
-//    So every step is sampled TWICE: frozen at entry, and again on the STATIC path, where gotoStep
-//    replays it with ctx.reduced so every deferred branch runs at once, which is the settled end
-//    state a real playthrough reaches. That gives two readings of one rule:
-//      R2-ENTRY  the tool's own comparison, entry against entry. Reproduced verbatim so its number
-//                is checkable, and each finding is additionally labelled with whether a cue lands
-//                later in that same step.
-//      R2-STEP   settled against settled, which is what the rule actually asks. This is the queue,
-//                and the rulings a human has read and kept live in ../fixtures/carried.mjs, keyed
-//                `<card id> <step index> <chip name>`, with the reason on each. All seven carried
-//                today are one class: the chip's TEXT changed while the FACT it reports did not.
-//                Anything outside that table is work.
-//    They disagree, and the disagreement is the point: a rule can be reported faithfully and still
-//    be reading the wrong frame.
-//
-// 2. THE PROBE CAN CATCH A STEP WITH NO DIAGRAM. Scene.build() empties the host and
-//    appends a fresh <svg.diagram>, so a probe landing in that window sees nothing at all. The
-//    original wrote `if (!data) continue;` and would have undercounted silently. Here the sample
-//    re-waits on the selector and probes once more, and a step that still has no diagram is counted
-//    and named.
-//
-// WHAT THE RULES ARE BLIND TO, both inherited:
-//   - a packet the kit never stamped with arrivalMs has no arrival to defer to, so R3 cannot judge it
-//     either way. The count is printed: it is the size of the rule's remaining blind spot.
-//   - R4 READS THE SAME FROZEN FRAME, so the only cue it can SEE at entry is a static one. A card
-//     that lights its sender through `F.light` at a delay, rather than through `lit` or through an
-//     arrival, reads as dark here and is reported. That is a false positive with a real question
-//     inside it, because a cue landing at the same beat as the departure is not a cue the reader
-//     gets to register first (M-18 is the same argument in the time domain), so the row is worth
-//     printing and worth a ruling rather than a filter.
-//   - R4 JUDGES BOXES AND CYLINDERS, NEVER PODS. A Pod announces itself by pulsing (M-01) and a
-//     pulse is invisible in a frame frozen at t=0, so every Pod sending a ball would report. The
-//     count of balls skipped for it is printed.
-//   - a ball whose start point sits on no block at all (it leaves a chip, a raw rect or open
-//     canvas) has no sender to judge. Counted and printed, never reported.
-//   - R2 compares chips POSITIONALLY, by index and name. A step that adds or removes a chip shifts
-//     every key after it and the comparison silently pairs different chips. The same positional
-//     weakness stage 2.3c records for reduced.test.mjs, and the same fix will serve both.
+// The arrival grammar, reported: R3 a receiving block opens dark, R4 a sending block is cued before it
+// departs, R2-ENTRY and R2-STEP a changed chip is lit (entry against entry, settled against settled).
+// Fails only on the census. Frozen at t=0, so R4 misreads an F.light cue and never judges Pods.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -106,37 +10,19 @@ import { stepTotal } from '../fixtures/module.mjs';
 import { readSnapshot } from '../fixtures/snapshot.mjs';
 import { HIT_TOL, vpName, VIEWPORTS } from '../tools/walk.mjs';
 
-// The viewport the walk takes both readings at, named rather than retyped.
 const VP = vpName(VIEWPORTS[0]);
 
-// The recorded walk. Assertions, not notes: see the header.
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_CARDS = (await cards()).length;
 const EXPECTED_STEPS = await stepTotal();
 
-// How far off a block's bbox a route endpoint may land and still count as arriving at it, from
-// check-arrival.mjs:28. Lanes stop on a FACE rather than in the middle of a block, and a lane pair is
-// offset by LANE_DY (12) around the flow line, so a hit test with no tolerance would miss both.
-// HIT_TOL is declared in tools/walk.mjs, beside the pass that applies it, and imported above:
-// a tolerance typed in two places is two tolerances.
+// HIT_TOL is imported from tools/walk.mjs, where it is applied.
 
-
-// Is point p on or inside block b, within tol?
 const near = (b, p, tol) =>
   p[0] >= b.x - tol && p[0] <= b.x + b.w + tol && p[1] >= b.y - tol && p[1] <= b.y + b.h + tol;
 
 const catalogued = await cards();
 
-// The three axes of this file that carry rulings, keyed `<card id> <step index> <chip name>` for the
-// two R2 axes and `<card id> <step index> <block label>` for R3. THE ENTRIES LIVE IN
-// ../fixtures/carried.mjs, the one store for a report finding somebody has ruled on and kept, and
-// these are its axis views. `R2_STEP_CARRIED` keeps its name because CANON.md P-09a cites it.
-//
-// All seven R2-STEP rulings are ONE class: the chip TEXT changed while the FACT it reports did not,
-// so a cue would announce a change that did not happen. R2-ENTRY is a different class, almost
-// entirely the frozen-sampling artefact this file documents in its own header. Anything outside
-// either table is the queue to work.
+// Carried rulings per axis, stored in ../fixtures/carried.mjs. `R2_STEP_CARRIED` keeps its name because CANON.md P-09a cites it.
 const R2_STEP_CARRIED = carriedMap('R2-STEP');
 const R2_ENTRY_CARRIED = carriedMap('R2-ENTRY');
 const R3_CARRIED = carriedMap('R3');
@@ -150,11 +36,7 @@ test('arrival grammar across every step (report only, census is the one assertio
   let entryPairs = 0, entryChanged = 0, stepPairs = 0, stepChanged = 0, deferredCue = 0;
 
   try {
-    // THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` takes both readings of every step at
-    // 1600x1000, the viewport this file set: the PLAYED one at t=0 in its played pass, and the
-    // SETTLED one in its static pass, where gotoStep replays with ctx.reduced so every deferred
-    // branch has already run. The probe moved to fixtures/probes.mjs as `arrivalProbe`, verbatim,
-    // and the one-retry `sample()` is part of both passes.
+    // The played reading at t=0 and the settled one from the static pass, both from tools/walk.mjs at 1600x1000.
     const snap = readSnapshot();
     const ids = snap.ids;
 
@@ -182,8 +64,7 @@ test('arrival grammar across every step (report only, census is the one assertio
 
           if (i > 0) {
             for (const pkt of data.packets) {
-              // No stamp means no arrival to defer to, so R3 cannot judge this ball either way.
-              // Counted rather than assumed innocent: the number is the size of the blind spot.
+              // No arrivalMs stamp means no arrival to defer to: counted as the blind spot's size.
               if (!pkt.arrivalMs) { unstamped++; continue; }
               judged++;
               const actsFirst = (b) => data.packets.some(q => near(b, q.from, HIT_TOL) && q.delay <= pkt.delay);
@@ -193,8 +74,7 @@ test('arrival grammar across every step (report only, census is the one assertio
                 if (!b.hl) continue;             // dark at entry, lights on arrival: correct
                 const key = `${id}|${i}|${b.label}|${b.x.toFixed(0)},${b.y.toFixed(0)}`;
                 if (r3.some(l => l.key === key)) continue;
-                // The CARRY key drops the coordinates the de-dup key needs: a ruling must survive a
-                // block moving a few units, and the label plus the step already pin one row.
+                // No coordinates in the carry key, so a ruling survives a block moving a few units.
                 const carry = carryKey(id, [String(i), b.label]);
                 r3.push({
                   key, id, carryKey: carry, why: R3_CARRIED.get(carry),
@@ -203,9 +83,7 @@ test('arrival grammar across every step (report only, census is the one assertio
                 if (!R3_CARRIED.has(carry)) r3ByCard.set(id, (r3ByCard.get(id) || 0) + 1);
               }
 
-              // R4, the same ball read from its other end. `lit` at entry is `b.hl` here, and an
-              // earlier arrival is a ball of THIS step that landed on b no later than this one
-              // left: that is the mid-chain shape, where the box lit as a receiver and sends on.
+              // R4: lit at entry, or lit by an earlier arrival of this step (the mid-chain shape).
               const litEarlier = (b) => data.packets.some(q =>
                 near(b, q.to, HIT_TOL) && q.arrivalMs != null && q.arrivalMs <= pkt.delay);
               for (const b of data.blocks) {
@@ -227,8 +105,7 @@ test('arrival grammar across every step (report only, census is the one assertio
             }
           }
 
-          // R2-ENTRY: the original's exact reading, two frozen samples compared at t=0. Kept
-          // verbatim so its number can be checked against the tool it replaces.
+          // Two frozen entry samples compared at t=0.
           if (prevEntry) {
             for (const c of data.chips) {
               const was = prevEntry.find(p => p.key === c.key);
@@ -251,12 +128,7 @@ test('arrival grammar across every step (report only, census is the one assertio
             }
           }
 
-          // R2-STEP: the same rule read off the SETTLED state of each step instead of its entry.
-          // This is the axis that answers the canon question, and the two disagree by construction:
-          // a card that turns a value over MID-step (storage-fsgroup-ownership walks a listing row by
-          // row) writes the new value during step i, so a frozen entry sample first sees it at step
-          // i+1, where the cue has legitimately already been shown and cleared. R2-ENTRY reports that
-          // as a bare finding against the wrong step. R2-STEP does not, and it is the queue to work.
+          // Settled against settled: a value turned over mid-step shows one step late on R2-ENTRY, not here.
           if (prevSettled && settled) {
             for (const c of settled) {
               const was = prevSettled.find(p => p.key === c.key);
@@ -306,8 +178,7 @@ test('arrival grammar across every step (report only, census is the one assertio
     out.push(`  REPORT INCOMPLETE: expected at least ${EXPECTED_CARDS} cards and ${EXPECTED_STEPS} steps, ` +
       'every number below undercounts');
   }
-  // Every axis below prints the same two-tier shape: the rows still to work, then the rows a person
-  // read and kept, marked CARRIED with the reason. The two counts are never added together.
+  // Rows still to work, then carried rows with reasons. The counts are never summed.
   out.push('');
   const r3open = r3.filter(f => !f.why), r3held = r3.filter(f => f.why);
   out.push(`R3  lit before the ball lands: ${r3.length} finding(s), ` +
@@ -361,8 +232,7 @@ test('arrival grammar across every step (report only, census is the one assertio
   for (const l of carriedBlock('R2-STEP', held.map(f => ({ key: f.key, why: f.why, line: f.line })),
     staleKeys('R2-STEP', r2step.map(f => f.key)), '    ')) out.push(l);
 
-  // The store's own shape, printed rather than asserted: a suppression with no reason or naming no
-  // catalogued card is a broken RULING, and this file fails on the census alone.
+  // Printed rather than asserted: this file fails on the census alone.
   const ids = new Set(catalogued.map(c => c.id));
   const broken = ['R3', 'R4', 'R2-ENTRY', 'R2-STEP'].flatMap(a => shapeProblems(a, ids));
   if (broken.length) {
@@ -378,15 +248,7 @@ test('arrival grammar across every step (report only, census is the one assertio
   out.push('===== end of report =====');
   console.log(out.join('\n'));
 
-  // The one assertion. Everything above is a measurement whose acceptance belongs to a person; a
-  // walk that covered less than the catalog is not a measurement at all.
-  //
-  // NOT ASKED under SCHEME_IDS, and skipped rather than failed. The statement it makes is true
-  // either way, and it is the reason the SUBSET banner above exists: a filtered run of this file
-  // proves nothing catalog-wide. But an intentionally narrowed run is not a broken one, and the
-  // rest of the suite says so with `floor()` and `FULL_ONLY` instead of a red line. A red line on
-  // the CHEAP path is worse than useless: it is what sends a reader back to the six-minute run to
-  // find out whether anything is actually wrong.
+  // Skipped, not failed, under SCHEME_IDS: a narrowed run is not a broken one.
   if (!SUBSET) {
     assert.ok(walked >= EXPECTED_CARDS,
       `walked ${walked} card(s), the catalog had ${EXPECTED_CARDS} when this report was written. ` +

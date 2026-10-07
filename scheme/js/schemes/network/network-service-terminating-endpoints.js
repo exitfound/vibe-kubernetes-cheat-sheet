@@ -3,39 +3,37 @@ import { g, rect, line } from '../../lib/svg.js';
 
 // Design notes for this card: ./CARDS/network-service-terminating-endpoints.md
 
-
-// Narration panel at 1100x800: right <= 396.5, bottom 180.1 on every step but `gone` (155.3).
-// The client is the one block left of 420 above the slice frame, and it opens at y=245.
+// The client is the one block left of 420 above the slice frame, opening under the panel.
 const SCHEME_L = 60, SCHEME_R = 1140;
 const FLOW_Y = 300;                         // the traffic line: client, dataplane and web-c on it
 
 // The client stands centred over the slice frame, so the two read as one left column.
 const SLICE_W = 320;
 const CLIENT_W = 190, CLIENT_H = 110;
-const CLIENT_X = SCHEME_L + (SLICE_W - CLIENT_W) / 2;   // 125, centre 220 like the slice
-const CLIENT_EDGE = CLIENT_X + CLIENT_W;    // 315
+const CLIENT_X = SCHEME_L + (SLICE_W - CLIENT_W) / 2;   // centred like the slice
+const CLIENT_EDGE = CLIENT_X + CLIENT_W;
 
 // NET.L-01: the dataplane and kube-proxy are 232x80 and share one column, kube-proxy UNDER it.
 const COL_L = 470, COL_W = 232, ACTOR_H = 80;
-const COL_R = COL_L + COL_W;                // 702: the fan leaves this face
-const COL_CX = COL_L + COL_W / 2;           // 586: the relation runs on it
-const DP_H = ACTOR_H, DP_TOP = FLOW_Y - DP_H / 2;   // 260..340
+const COL_R = COL_L + COL_W;                // the fan leaves this face
+const COL_CX = COL_L + COL_W / 2;           // the relation runs on it
+const DP_H = ACTOR_H, DP_TOP = FLOW_Y - DP_H / 2;
 
 // The slice frame: a title, one endpoint header, then its three conditions as a chip column.
 const SLICE_Y = 380, SLICE_PAD = 14;
-const SLICE_R = SCHEME_L + SLICE_W;         // 380: the face the watch lane leaves
+const SLICE_R = SCHEME_L + SLICE_W;         // the face the watch lane leaves
 const TITLE_Y = SLICE_Y + 22, HDR_Y = SLICE_Y + 40;
 const COND_H = 34;
-const condY = ladder({ y: SLICE_Y + 52, rowH: COND_H, gap: 6 });   // 432 / 472 / 512
-const SLICE_H = 52 + 3 * COND_H + 2 * 6 + 12;                    // 178, bottom 558
-const SLICE_CY = SLICE_Y + SLICE_H / 2;     // 469
+const condY = ladder({ y: SLICE_Y + 52, rowH: COND_H, gap: 6 });
+const SLICE_H = 52 + 3 * COND_H + 2 * 6 + 12;
+const SLICE_CY = SLICE_Y + SLICE_H / 2;
 
-const KP_H = ACTOR_H, KP_Y = SLICE_CY - KP_H / 2;   // 429..509, centred on the frame face midpoint
+const KP_H = ACTOR_H, KP_Y = SLICE_CY - KP_H / 2;   // centred on the frame face midpoint
 const WATCH = [[SLICE_R, SLICE_CY], [COL_L, SLICE_CY]];
 
 // Backends: one column of three on a 170 pitch, web-c on the flow line so its leg is straight.
 const POD_L = 930, POD_W = SCHEME_R - POD_L, POD_H = 100, POD_PITCH = 170;
-const PODA_CY = FLOW_Y - POD_PITCH, PODC_CY = FLOW_Y, PODD_CY = FLOW_Y + POD_PITCH;   // 130 / 300 / 470
+const PODA_CY = FLOW_Y - POD_PITCH, PODC_CY = FLOW_Y, PODD_CY = FLOW_Y + POD_PITCH;
 const BUS_X = 816;                          // midway between the dataplane face and the Pod column
 const LEG_DY = 26;                          // web-a and web-d legs leave the face 26 off the flow line
 const LANE = [[CLIENT_EDGE, FLOW_Y], [COL_L, FLOW_Y]];
@@ -43,9 +41,9 @@ const FAN_A = [[COL_R, FLOW_Y - LEG_DY], [BUS_X, FLOW_Y - LEG_DY], [BUS_X, PODA_
 const FAN_C = [[COL_R, FLOW_Y], [POD_L, FLOW_Y]];
 const FAN_D = [[COL_R, FLOW_Y + LEG_DY], [BUS_X, FLOW_Y + LEG_DY], [BUS_X, PODD_CY], [POD_L, PODD_CY]];
 
-// The grace clock: 30 seconds across the full content width, so one second is 36 units.
+// The grace clock: 30 seconds across the full content width.
 const SEC = (SCHEME_R - SCHEME_L) / 30;
-const tx = (s) => SCHEME_L + s * SEC;       // 0s 60, 5s 240, 14s 564, 30s 1140
+const tx = (s) => SCHEME_L + s * SEC;
 const PRESTOP_S = 5, EXIT_S = 14;
 const TRACK_Y = 600, TRACK_H = 8;
 const RULER_CAPTION_Y = 584, TICK_LABEL_Y = 630;
@@ -79,13 +77,13 @@ function graceRuler() {
   return grp;
 }
 
-// Every tag is lit by its ball's departure. The bus-leg tags ride clear of the dataplane and 25.5 left
-// of the x 816 trunk. The straight leg has no such room (record MOTION), so its tag inks no text.
-const ridingLabel = makeRidingLabel({ role: 'network', dy: -8, outMs: 170, hold: 0 });
+// The bus-leg tags ride clear of the dataplane and left of the trunk. The straight leg has no such
+// room, so its tag inks no text.
+const ridingLabel = makeRidingLabel({ role: 'network', dy: -8 });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
-const TAG_STRAIGHT = { dx: -24 };                // web-c leg: 8.6 clear of the dataplane label, 7.2 of the app box
-const TAG_BUS = { dx: -50, dy: -22 };            // web-a leg: 5.5 above the dataplane top as the ball leaves
-const TAG_DOWN = { dx: -50, dy: 30 };            // web-d leg: 6.2 under the dataplane, and under the trunk corner
+const TAG_STRAIGHT = { dx: -24 };                // web-c leg
+const TAG_BUS = { dx: -50, dy: -22 };            // web-a leg
+const TAG_DOWN = { dx: -50, dy: 30 };            // web-d leg, under the trunk corner
 
 const POD_INNER = { dx: 20, dy: 30, w: POD_W - 40, h: 44, label: 'app', sublabel: 'eth0' };
 const backend = (key, cy, label, sublabel) => P.pod({
@@ -101,7 +99,7 @@ export const SCENE = {
     P.box({ key: 'dp', x: COL_L, y: DP_TOP, w: COL_W, h: DP_H, label: 'Node dataplane', sublabel: 'Service rules · conntrack' }),
     P.box({ key: 'kproxy', x: COL_L, y: KP_Y, w: COL_W, h: KP_H, label: 'kube-proxy', sublabel: 'reads the slice · writes rules' }),
     P.box({ key: 'slice', x: SCHEME_L, y: SLICE_Y, w: SLICE_W, h: SLICE_H }),
-    P.tag({ x: SCHEME_L + SLICE_W / 2, y: TITLE_Y, text: 'EndpointSlice web-x9f2', cls: 'scheme-box-label' }),
+    P.tag({ x: SCHEME_L + SLICE_W / 2, y: TITLE_Y, text: 'EndpointSlice web-x9f2k', cls: 'scheme-box-label' }),
     P.wire({ key: 'epHdr', x: SCHEME_L + SLICE_W / 2, y: HDR_Y }),
     P.pod({
       key: 'client', innerKey: 'clientBox', x: CLIENT_X, y: FLOW_Y - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H,

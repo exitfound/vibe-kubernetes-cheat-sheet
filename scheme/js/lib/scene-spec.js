@@ -131,7 +131,7 @@ function buildOne(part, refs) {
   return el;
 }
 
-// One camera, one ordered walk. The aria-label is all that varies between the 108 roots.
+// One camera, one ordered walk. The aria-label is all that varies between roots.
 export function buildScene(host, SCENE) {
   host.replaceChildren();
   const refs = { wires: {} };
@@ -152,7 +152,7 @@ export function makeScene(SCENE) {
 }
 
 // The prologue every enter() opens with. `keys` and `pods` are written out in SCENE, never
-// inferred: inferring pods adds a clearPodHighlight that wipes four inline styles (R5).
+// inferred: inferring pods adds a clearPodHighlight that wipes inline styles.
 export function makeResetStep(SCENE) {
   const { keys = [], pods = [], extra = null } = SCENE.reset || {};
   return function resetStep(s) {

@@ -1,45 +1,9 @@
-// hash.test.mjs: D-16, the hash contract, driven in a real browser. The URL is the only state this
-// app keeps between page loads, and every half of it is asserted here: the section, the search, the
-// card, the step, and the scroll offset each of those leaves behind.
-//
-// WHY THIS FILE EXISTS. The grid filter was not in the URL AT ALL for the first four months of this
-// sub-app: choosing a section and reloading dropped the reader back into the full catalog, and 1147
-// green tests said nothing, because every other walk here opens a card by its hash and reads the
-// PICTURE. Nothing looked at the address bar. The defect was reported by the person using the site.
-// That is the failure class this file is against, and it is the reason the axes below are about the
-// URL and the scroll offset rather than about anything drawn.
-//
-// WHAT IT DRIVES, AND WHY NONE OF IT IS HARDCODED. The section, the card and the search term are
-// DERIVED from the catalog: the first category that declares subcategories, its first subcategory,
-// and the first card filed under it. A renamed section key would otherwise leave this file green
-// against a URL nobody can reach any more.
-//
-// TWO PAGES, AND THE REASON IS THE STYLESHEET. `css/styles.css` turns `scroll-behavior` back to
-// `auto` under `prefers-reduced-motion`, so a reduced-motion page cannot tell an instant scroll
-// reset from the smooth glide D-16 exists to forbid: the scroll axes MUST run with motion on. The
-// card-restart axis wants the opposite, because with motion on a card auto-plays about a second
-// after it opens (D-14) and the step in the hash then moves under the assertion. So the grid axes
-// take `page`, and the two card axes take `still`, which is reduced.
-//
-// AND WHY THE SCROLL IS PUT THERE WITH `behavior: 'instant'` AND THEN ASSERTED. `scroll-behavior:
-// smooth` in the stylesheet applies to the test's own `window.scrollTo(0, 3000)` exactly as it
-// applies to the app's: measured, the page was still at y=0 a few milliseconds later, so a walk that
-// scrolls and immediately clicks is asserting that a reset moved a page which had never left the
-// top. Both scroll axes below passed on a deliberately broken build for that reason. Every setup
-// scroll is therefore instant AND checked before the axis reads anything.
-//
-// AND WHY THE SCROLL IS READ IMMEDIATELY. A smooth glide reaches the top in about half a second, so
-// a walk that settles before reading passes on exactly the defect it is watching for. Every scroll
-// read below happens as soon as the write that should have reset it is observable, never after a
-// wait.
+// D-16, the hash contract in a real browser: section, search, card, step, and the scroll offset each
+// leaves behind. Section, card and query are derived from the catalog. Scroll axes run with motion on
+// (reduced motion disables smooth scroll), card axes reduced (no auto-play moving the step).
 
-// WHAT IT CATCHES, MEASURED. Seven single-edit regressions were applied to js/app.js and the walk
-// re-run against each. Every one of them goes red, on the axis that owns it: instant scroll back to
-// `auto` (1, 3), scrollRestoration back to `auto` (2), a section click that stops writing the hash
-// (1), the reload restart removed (9), `q=` dropped from the hash (3, 4, 7), the filter no longer
-// restored on load (2, 3), and a card hash that stops carrying the grid state (7). The matrix is
-// recorded because a URL walk is easy to write so that it passes on everything: two of these
-// mutations survived the first version of this file.
+// Setup scrolls are instant and verified, and scroll is read immediately after the write, never after a
+// settle: either mistake passes on the exact defect being watched.
 
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -57,24 +21,20 @@ const SECTION = CARDS.filter(c => c.category === CAT && c.subcategory === SUB);
 assert.ok(SECTION.length > 0, `${CAT}/${SUB} is declared and empty: nothing to filter to`);
 const CARD = SECTION[0];
 
-// A term the section really matches, so the search axes narrow the grid instead of emptying it.
+// A term the section really matches, so the grid narrows instead of emptying.
 const QUERY = CARD.title.split(' ')[0].toLowerCase();
-// And one that exercises the encoding: an `&` would be read back as a second parameter and a `#`
-// would end the fragment, if `q=` were written raw.
+// `&` and `#` would break a raw `q=`.
 const ODD_QUERY = 'a&b#c';
 
 const browser = await launch();
 after(() => browser.close());
 
-// Motion ON, for the scroll axes (see the header).
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 const page = await context.newPage();
 
-// Reduced, for the two card axes: no auto-play, so the step in the hash stays where it was put.
 const stillContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
 const still = await stillContext.newPage();
 
-// Everything the contract can be wrong about, in one read.
 const state = (p) => p.evaluate(() => ({
   hash: location.hash,
   y: Math.round(window.scrollY),
@@ -85,8 +45,7 @@ const state = (p) => p.evaluate(() => ({
   dialog: !!document.querySelector('dialog.scheme-dialog'),
 }));
 
-// Put the page at an offset and PROVE it got there: see the header for the walk this vacuity guard
-// was written against.
+// Prove the page got there, or the reset axes are vacuous.
 async function scrollDown(p, top) {
   await p.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), top);
   const at = await p.evaluate(() => Math.round(window.scrollY));
@@ -101,7 +60,7 @@ async function openGrid(p, hash = '') {
   await p.waitForSelector('article.card', { timeout: SELECTOR_TIMEOUT_MS });
 }
 
-// The section, reached the way a reader reaches it: two clicks, from the bottom of a long grid.
+// Two clicks from the bottom of a long grid, as a reader does it.
 async function selectSection(p) {
   await p.click(`.cat-btn[data-cat="${CAT}"]`);
   await scrollDown(p, 3000);
@@ -170,7 +129,7 @@ test('D-16 a query carrying & and # survives the round trip', async () => {
 });
 
 test('D-16 a bare key still reads and is rewritten to the named form', async () => {
-  // The form /cli/ writes, and the one /scheme/ wrote before the hub had to tell the two apart.
+  // The bare form /cli/ writes.
   await openGrid(page, `#${SUB}`);
   const s = await state(page);
   assert.equal(s.sub, SUB, 'a bare section key no longer resolves: every older link is dead');
@@ -201,13 +160,7 @@ test('D-16 an open card carries the grid state, and closing it lands back on tha
   assert.equal(closed.sub, SUB, 'the grid behind the card was not holding the section');
 });
 
-// ---------------------------------------------------------------------------------------------
-// The two card axes, on the reduced page: nothing auto-plays, so a step that moves moved because
-// the router moved it.
-// ---------------------------------------------------------------------------------------------
-
-// The step count is read off the narration rather than assumed: a card with two steps cannot
-// demonstrate a restart, and hardcoding a number here would break on the next card edit.
+// Read off the narration: a two-step card cannot demonstrate a restart.
 async function openCardAt(hash) {
   await still.goto(`${SCHEME}${hash}`, { waitUntil: 'domcontentloaded' });
   await still.waitForSelector('dialog.scheme-dialog .narration-step', { timeout: SELECTOR_TIMEOUT_MS });

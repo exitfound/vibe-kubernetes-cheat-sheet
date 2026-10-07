@@ -206,6 +206,16 @@ body.sidebar-collapsed .side-expand { display: grid; }
   }
 }
 
+/* Text for screen readers and crawlers only: the page's h1, which the visible logo already says. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 /* ===== HEADER ===== */
 .header {
   position: sticky;
@@ -372,6 +382,10 @@ body.sidebar-collapsed .side-expand { display: grid; }
 
 .dropdown-copy-row:hover { background: rgba(255, 255, 255, 0.04); }
 
+/* The Donate link wears a wallet row's shape, with an open-in-new-tab mark where a wallet has its copy button. */
+.dropdown-donate { text-decoration: none; }
+.dropdown-donate:hover .dropdown-addr { color: var(--text-bright); }
+
 .dropdown-coin {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
@@ -404,7 +418,8 @@ body.sidebar-collapsed .side-expand { display: grid; }
   min-width: 0;
 }
 
-.dropdown-copy-btn {
+.dropdown-copy-btn,
+.dropdown-go {
   flex-shrink: 0;
   width: 26px;
   height: 26px;
@@ -420,7 +435,8 @@ body.sidebar-collapsed .side-expand { display: grid; }
   line-height: 0;
 }
 
-.dropdown-copy-btn:hover {
+.dropdown-copy-btn:hover,
+.dropdown-donate:hover .dropdown-go {
   color: var(--accent);
   border-color: var(--accent-border);
   background: var(--accent-glow);
@@ -831,6 +847,12 @@ body.sidebar-collapsed .side-expand { display: grid; }
   color: var(--text-bright);
   letter-spacing: -0.01em;
 }
+/* The card title is a link to the card's static page (js/app.js renderCard): it reads as the title,
+   and its focus ring is drawn around the whole card. */
+.card-link { color: inherit; text-decoration: none; }
+.card-link:focus-visible { outline: none; }
+.card:has(.card-link:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .card-desc {
   font-size: 13px;
   color: var(--text-card-desc);
@@ -870,7 +892,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 }
 
 /* Compact view: poster, then one row of title and star. The description becomes the card's
-   hover tooltip, and the tags go, so about twice as many cards fit on a screen. */
+   hover tooltip, and the tags go, so three to five times as many cards fit on a screen. */
 .view-compact .cards-grid {
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 14px;

@@ -1,61 +1,24 @@
-// module.mjs: import a card's module, its kit, or a lib module in bare Node. No browser, no shim.
-//
-// This works because lib/motion.js guards its window.matchMedia probe with `typeof window`. Before
-// that guard every card threw `ReferenceError: window is not defined` at module
-// load, through scheme-kit.js -> motion.js, and only data.js, posters.js, tokens.js, svg.js and
-// primitives.js imported cleanly. Verified again here: every card imports, nothing is stubbed.
-//
-// ===========================================================================================
-// WHAT YOU CAN GET FROM A CARD MODULE, and it depends on which of two forms the card is in
-// ===========================================================================================
-// The export surface of a card has exactly TWO legal forms. Which one a card is in IS its migration
-// state, so the SPLIT between them is the migration counter and unit/module.test.mjs prints it on
-// every run. There is no third form and no half of one.
-//
-//   legacy    ['init']
-//       The step list is an ARGUMENT to makeInit:
-//           export const init = makeInit(Scene, STEPS, { posterFirst: true });
-//       so the step `id`, `narration`, `duration`, `enter` and the diagram's `aria-label` all live
-//       inside that closure and are STATICALLY UNREACHABLE. Do not go looking for them here, and do
-//       not add a regex over the source to fake it: that is the mechanism this refactor is retiring.
-//       They are read by RENDER instead, off `window.__schemeCtl._timeline.steps`
-//       (fixtures/render.mjs, stepMeta()).
-//
-//   migrated  ['SCENE', 'STEPS_SPEC', 'init']
-//       The scene and the steps are plain module-level DATA, so the same facts come off the
-//       namespace in bare Node with no browser and no scraping. That is the whole point of the
-//       declarative layer, and it is why the surface had to stop being one frozen name.
-//
-// What IS statically readable in both forms: everything in the catalog (id, title, category,
-// subcategory, desc, k8sVersion, sources) via fixtures/catalog.mjs, because it lives in cards.js,
-// not in the closure.
+// Imports a card, its kit or a lib module in bare Node, no browser and no stubs (lib/motion.js guards
+// window). A card's export surface is migrated ['SCENE', 'STEPS_SPEC', 'init'] or legacy ['init'],
+// whose steps are sealed in makeInit's closure and readable only by render.
 
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import { ROOT, cards, census } from './catalog.mjs';
 
-// The two legal export surfaces of a card, written down as an expectation rather than discovered
-// from what the catalog happens to hold. A card outside both has changed its contract, and the
-// point of naming the forms is that it says so out loud instead of quietly widening one of them.
-// `LEGACY_EXPORTS` is the DETECTOR `S-02` keeps alive: a regression has to be named to be
-// reported. Neither is exported, because naming a form and publishing a symbol are different
-// things and no file outside this one reads either: `CARD_FORMS` below is the surface.
+// Expected surfaces, written down. LEGACY_EXPORTS is the detector S-02 keeps alive.
 const LEGACY_EXPORTS = Object.freeze(['init']);
 const MIGRATED_EXPORTS = Object.freeze(['SCENE', 'STEPS_SPEC', 'init']);
 
-// form name -> its surface as one sorted, comma-joined string, which is the shape a comparison
-// needs. Order here is the order the migration counter reports in.
+// Sorted and comma-joined, in the order the migration counter reports.
 export const CARD_FORMS = Object.freeze({
   migrated: [...MIGRATED_EXPORTS].sort().join(', '),
   legacy: [...LEGACY_EXPORTS].sort().join(', '),
 });
 
-// What a namespace actually exports, in the same shape CARD_FORMS holds.
 export const exportSurface = (ns) => Object.keys(ns).sort().join(', ');
 
-// Which form a card module is in, or null for anything else. EXACT set equality, never containment:
-// a legacy card that grew one extra export would satisfy "contains init" and report as migrated,
-// which is the one answer a migration counter must never give.
+// Exact set equality: a legacy card that grew one extra export must not read as migrated.
 export function cardForm(ns) {
   const got = exportSurface(ns);
   return Object.keys(CARD_FORMS).find(f => CARD_FORMS[f] === got) || null;
@@ -63,7 +26,6 @@ export function cardForm(ns) {
 
 const importAt = (...seg) => import(pathToFileURL(join(ROOT, ...seg)).href);
 
-// One card's module namespace. Takes an id or a card record from catalog.mjs.
 async function importCard(card) {
   const rec = typeof card === 'string'
     ? (await cards()).find(c => c.id === card)
@@ -72,40 +34,23 @@ async function importCard(card) {
   return importAt(rec.rel);
 }
 
-// id -> module namespace for the whole catalog, with the census guard applied. An importer that
-// silently walked half the catalog would report half the findings and pass.
+// With the census guard applied.
 export async function importAll() {
   const list = await cards();
-  // Concurrent rather than sequential: ten of the thirteen unit files pay this walk, each in its
-  // own forked process, and the work is I/O against 123 files that do not depend on each other.
-  // The Map is built from the settled list rather than filled inside the loop, so the ORDER is the
-  // catalog's whatever order the imports resolve in: a walker that reported findings in resolution
-  // order would print a different list on every run.
+  // Concurrent, with the Map built from the settled list so the order is the catalog's.
   const mods = await Promise.all(list.map(c => importCard(c)));
   const out = new Map(list.map((c, i) => [c.id, mods[i]]));
   census('importAll', out.size, list.length);
   return out;
 }
 
-// A category's kit module (`js/schemes/<cat>/<cat>-kit.js`). The four kits re-export one shared
-// block, and comparing them to each other is the only source of truth for its size.
+// The four kits re-export one block. Comparing them is the only source of truth for its size.
 export const importKit = (category) => importAt('js', 'schemes', category, `${category}-kit.js`);
 
-// A shared module under js/lib/, by basename: importLib('tokens.js').
 export const importLib = (name) => importAt('js', 'lib', name);
 
-// The catalog's step count, summed off the declared specs, for every walk that judges itself
-// against a step total. It lives HERE rather than beside `CATALOG_BASELINE` in catalog.mjs because
-// counting steps means importing every card, and catalog.mjs is the layer that must not: it is
-// imported by fixtures/render.mjs, which has no use for a module namespace per card.
-//
-// Memoised, and deliberately a FUNCTION rather than a top-level constant, so a file that imports
-// this module for `importLib` alone does not pay for the whole catalog.
-//
-// WHAT IT CANNOT SEE. A card in the legacy form carries no STEPS_SPEC and contributes 0, so a card
-// that regressed would LOWER the total instead of failing here. That is not this function's job to
-// catch: `unit/module.test.mjs` fails on the export surface (`S-02`) before any floor built on this
-// number is reached, and `unit/spec-steps.test.mjs` holds the sum against `CATALOG_BASELINE.steps`.
+// Summed off declared specs, memoised, and kept out of catalog.mjs, which must not import cards.
+// A legacy card would lower it rather than fail here: S-02 in unit/module.test.mjs catches that first.
 let stepTotalMemo = null;
 export async function stepTotal() {
   if (stepTotalMemo === null) {

@@ -2,65 +2,63 @@ import { P, F, defineCard, BEAT, FADE, chipStrip, routeDur, setBoxLabel, makeRid
 import { rect } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS/storage-volume-attach-limits.md
 
-// The panel wall. CONTENT_W 400 then puts CONTENT_CX exactly on 600, forced by the chip strip, which
-// at 976 units is far wider than any tier above it and therefore sets the visual centre. The node row
-// is the one tier allowed outside CONTENT_W, because it sits below the panel floor.
+// The panel wall. CONTENT_CX lands on 600, set by the chip strip, the widest tier. The node row is
+// the one tier allowed outside CONTENT_W, because it sits below the panel floor.
 const LEFT_X = 400;
 const CONTENT_W = 400;
-const CONTENT_CX = LEFT_X + CONTENT_W / 2;               // 600
+const CONTENT_CX = LEFT_X + CONTENT_W / 2;
 
-// ---- Vertical stack, chained off one origin so the whole card centres by moving one number ----
-// The Scheduler and CSINode are the catalog actor block and the Pod the catalog Pod (NET.L-01):
-// 232 by 80, and 232 by 104 around a 192 by 44 box.
+// A vertical stack chained off one origin, so the whole card centres by moving one number.
 const BLOCK_W = 232, BLOCK_H = 80;
-const POD_H = 104, SCHED_H = BLOCK_H, CSI_H = BLOCK_H, NODE_H = 140, CHIP_H = 32;
+const POD_H = 104, SCHED_H = BLOCK_H, CSI_H = BLOCK_H, NODE_H = 140, CHIP_H = 34;
 const G_POD_SCHED = 46, G_SCHED_CSI = 50, G_CSI_NODE = 48, G_NODE_CHIPS = 24;
 
 const STACK_H = POD_H + G_POD_SCHED + SCHED_H + G_SCHED_CSI + CSI_H + G_CSI_NODE + NODE_H + G_NODE_CHIPS + CHIP_H;
-const STACK_TOP = (640 - STACK_H) / 2;                   // 18, and the bottom margin matches it
+const STACK_TOP = (640 - STACK_H) / 2;                   // the bottom margin matches it
 
 const POD_W = BLOCK_W;
-const POD_X = CONTENT_CX - POD_W / 2;                    // 484
-const POD_Y = STACK_TOP;                                 // 18
-const POD_BOTTOM = POD_Y + POD_H;                        // 122
+const POD_X = CONTENT_CX - POD_W / 2;
+const POD_Y = STACK_TOP;
+const POD_BOTTOM = POD_Y + POD_H;
 
-const PVC_W = 192, PVC_DY = 26, PVC_H = 44;              // the catalog app box, 26 under the Pod label
+const PVC_W = 192, PVC_DY = 26, PVC_H = 44;              // the catalog app box
 
 // One width for the Scheduler and the CSINode box below it, so they read as one column.
 const SCHED_W = BLOCK_W;
-const SCHED_X = CONTENT_CX - SCHED_W / 2;                // 484, aligned with CSI_X
-const SCHED_Y = POD_BOTTOM + G_POD_SCHED;                // 168
-const SCHED_BOTTOM = SCHED_Y + SCHED_H;                  // 248
+const SCHED_X = CONTENT_CX - SCHED_W / 2;                // aligned with CSI_X
+const SCHED_Y = POD_BOTTOM + G_POD_SCHED;
+const SCHED_BOTTOM = SCHED_Y + SCHED_H;
 
 const CSI_W = BLOCK_W;
-const CSI_X = CONTENT_CX - CSI_W / 2;                    // 484..716
-const CSI_Y = SCHED_BOTTOM + G_SCHED_CSI;                // 298
-const CSI_TOP = CSI_Y, CSI_BOTTOM = CSI_Y + CSI_H;       // 298 / 378
-const CSI_MID_Y = CSI_Y + CSI_H / 2;                     // 338, where the two side entries land
-const CSI_LEFT = CSI_X, CSI_RIGHT = CSI_X + CSI_W;       // 484 / 716
+const CSI_X = CONTENT_CX - CSI_W / 2;
+const CSI_Y = SCHED_BOTTOM + G_SCHED_CSI;
+const CSI_TOP = CSI_Y, CSI_BOTTOM = CSI_Y + CSI_H;
+const CSI_MID_Y = CSI_Y + CSI_H / 2;                     // where the two side entries land
+const CSI_LEFT = CSI_X, CSI_RIGHT = CSI_X + CSI_W;
 
 const NODE_W = 220, NODE_GAP = 30;
-const NODES_W = NODE_W * 3 + NODE_GAP * 2;               // 720
-const NODES_X0 = CONTENT_CX - NODES_W / 2;               // 240
-const NODE_Y = CSI_BOTTOM + G_CSI_NODE;                  // 426
-const NODE_X = [0, 1, 2].map(i => NODES_X0 + i * (NODE_W + NODE_GAP)); // 240 / 490 / 740
-const NODE_CX = NODE_X.map(x => x + NODE_W / 2);         // 350 / 600 / 850, centred on 600
+const NODES_W = NODE_W * 3 + NODE_GAP * 2;
+const NODES_X0 = CONTENT_CX - NODES_W / 2;
+const NODE_Y = CSI_BOTTOM + G_CSI_NODE;
+const NODE_X = [0, 1, 2].map(i => NODES_X0 + i * (NODE_W + NODE_GAP));
+const NODE_CX = NODE_X.map(x => x + NODE_W / 2);         // centred on CONTENT_CX
 
-const LANE_X = NODE_CX;                                  // 350 / 600 / 850
+const LANE_X = NODE_CX;
 
 const SLOT_N = 8, SLOT_COLS = 4, SLOT_W = 26, SLOT_HGT = 26, SLOT_GAP = 10;
-const SLOT_ROW_W = SLOT_COLS * SLOT_W + (SLOT_COLS - 1) * SLOT_GAP;    // 134
-const SLOT_X0 = (NODE_W - SLOT_ROW_W) / 2;               // 43
-const SLOT_Y0 = 38;                                      // two rows, 38..64 and 74..100
-const CNT_X = 24, CNT_Y = 102, CNT_W = NODE_W - 48, CNT_H = 30;        // 172 wide, bottom 132, 8 clear
+const SLOT_ROW_W = SLOT_COLS * SLOT_W + (SLOT_COLS - 1) * SLOT_GAP;
+const SLOT_X0 = (NODE_W - SLOT_ROW_W) / 2;
+// The catalog frame padding: slots 34 under the frame top, the counter 12 over its floor.
+const SLOT_Y0 = 34;
+const CNT_X = 24, CNT_Y = 98, CNT_W = NODE_W - 48, CNT_H = 30;
 
-// Sized against allocatable.count + `8 per node` at 186, leaving ~22 units between the halves.
+// Sized against `allocatable.count` and `8 per node`.
 const CHIP_W = 232, CHIP_GAP = 16, CHIP_COUNT = 4;
-// Fix the width and the gap, derive the 976 unit span, centre it on CONTENT_CX: 112..1088.
 const CHIPS = chipStrip({ cx: CONTENT_CX, w: CHIP_W, gap: CHIP_GAP, count: CHIP_COUNT });
-const CHIPS_Y = NODE_Y + NODE_H + G_NODE_CHIPS;          // 590
+const CHIPS_Y = NODE_Y + NODE_H + G_NODE_CHIPS;
 
-const LANE_DX = 40;
+// The request and the answer are an out/back pair, the catalog 24 apart about the spine.
+const LANE_DX = 12;
 const W_POD_SCHED = [[CONTENT_CX - LANE_DX, POD_BOTTOM], [CONTENT_CX - LANE_DX, SCHED_Y]];
 const W_SCHED_POD = [[CONTENT_CX + LANE_DX, SCHED_Y], [CONTENT_CX + LANE_DX, POD_BOTTOM]];
 
@@ -74,17 +72,16 @@ const W_NODE_CSI = [
 
 const REPORT_DUR = Math.max(...W_NODE_CSI.map(routeDur));
 
-// The outer report lanes end on the CSINode side faces, so a centred tag straddles them for 400 ms.
-// Each outer tag steps 16 further out, the middle one enters the floor and takes CAP_TAG_DY instead.
+// The outer report lanes end on the CSINode side faces, so each outer tag steps further out.
 const CAP_TAG_DX = [-16, 0, 16];
-// The middle lane ends on the CSINode floor, dead over `allocatable.count: 8`. Below the ball it parks
-// 14 clear of that floor, and 22 rather than 16 because at 16 the ball prints on the line.
+// The middle lane ends on the CSINode floor: its tag parks below the ball, clear of the floor and the ball.
 const CAP_TAG_DY = [-14, 22, -14];
 
-// The read lane is 50 long between two boxes, so the tag starts inside the Scheduler and on its
-// sublabel. It fades in only once the ball is clear of that floor: 22 of the 50 units, 300 ms.
+// The read lane tag starts inside the Scheduler, so it fades in once the ball clears that floor.
 const emergeTag = makeRidingLabel({ role: 'storage', emergeMode: true });
 const READ_TAG_EMERGE = 300;
+// The answer tag rides OUTSIDE its pair, right of the answer lane, or it crosses the request lane.
+const ANS_TAG_DX = 85;
 
 const SLOT_FILL = Object.freeze({
   free: 'rgba(255, 255, 255, 0.04)',
@@ -129,8 +126,6 @@ const reportLane = (points) => P.lane({ points, dashed: true, dim: true });
 
 const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 
-// Z-order: the three node frames with their gauges, then the counters, then the two decision-tier
-// blocks and the Pod, then the lanes, then the chip strip, then the packet layer.
 export const SCENE = {
   'aria-label': 'Node volume attach limits: every Node has a hard ceiling on how many volumes one CSI driver may have attached at once, reported by the node plugin as max_volumes_per_node, written into CSINode as allocatable.count and read by the Scheduler filter NodeVolumeLimits. With all three Nodes at eight of eight, Pod web-0 asks for one slot and stays Pending, and a slot frees when a detach completes and its VolumeAttachment is gone, not when a Pod dies.',
   parts: [
@@ -212,12 +207,12 @@ const gauge = (counts) => ({
   enter: (s) => setSlots(s, counts),
 });
 
-// `seq` counts across ALL THREE nodes: a delay computed from the node index and its own starting
-// count double-counts node-1 and runs past the step. FILL_END is the instant the last slot lands.
+// `seq` counts across ALL THREE nodes: a delay from the node index and its own start double-counts.
+// FILL_END is the instant the last slot lands.
 const FILL_FROM = [2, 1, 1];
 const FILL_GAP = 90, FILL_MS = 220;
-const FILL_N = FILL_FROM.reduce((n, from) => n + (SLOT_N - from), 0);  // 20 slots to light
-const FILL_END = FILL_GAP * (FILL_N - 1) + FILL_MS;                    // 1930
+const FILL_N = FILL_FROM.reduce((n, from) => n + (SLOT_N - from), 0);
+const FILL_END = FILL_GAP * (FILL_N - 1) + FILL_MS;
 
 // The slots carry no ref key, so no opacity field and no F.fade reaches them. F.run at delay 0 calls
 // its body inline and registers no timer, so the twenty fades are created right here.
@@ -232,8 +227,8 @@ const fillSlots = (s, ctx) => {
   });
 };
 
-// The slot is retaken at 1600 plus a 400 fade, and THAT instant is when web-0 is placed: the Pod
-// blink and every value the placement earns hang off this one number.
+// The slot is retaken and THAT instant is when web-0 is placed: the Pod blink and every value the
+// placement earns hang off this one number.
 const PLACE_MS = 2000;
 
 // Same escape, plus each fade's COMPLETION rewrites the counter text and `unlight` is the only
@@ -264,12 +259,10 @@ export const STEPS_SPEC = [
     chipsCued: chips('4 of 24', 'not created', 'nothing'),
     ...stage(),
     ...gauge([2, 1, 1]),
-    // ONE duration for all three report balls so they land together, and the riding tag takes the
-    // same one or it drifts off its ball. No Pod acts, so they leave after BEAT.lead with no pulse.
+    // ONE duration for all three report balls so they land together. No Pod acts, so no pulse.
     flow: [
       ...W_NODE_CSI.flatMap((points, i) => [
-        F.route({ points, delay: BEAT.lead, dur: REPORT_DUR, name: `rep${i}` }),
-        F.tag({ text: 'cap 8', points, delay: BEAT.lead, dur: REPORT_DUR, dx: CAP_TAG_DX[i], dy: CAP_TAG_DY[i] }),
+        F.route({ points, delay: BEAT.lead, dur: REPORT_DUR, name: `rep${i}`, tag: { text: 'cap 8', dx: CAP_TAG_DX[i], dy: CAP_TAG_DY[i] } }),
       ]),
       F.light({ targets: ['csinode'], at: 'rep2' }),
     ],
@@ -284,8 +277,7 @@ export const STEPS_SPEC = [
     ...stage(),
     ...gauge([8, 8, 8]),
     lit: ['cnt0', 'cnt1', 'cnt2'],
-    // The chip holds the count the previous step left and turns over when the LAST slot lands: its
-    // final reading at entry would count slots that are still filling for two more seconds.
+    // The chip turns over when the LAST slot lands, not at entry while slots are still filling.
     rewind: { chips: { attChip: '4 of 24' } },
     flow: [
       F.run({ fn: fillSlots }),
@@ -338,11 +330,9 @@ export const STEPS_SPEC = [
     ...gauge([8, 8, 8]),
     lit: ['sched'],
     // Down-arrow ordering: the ball goes first, the Pod blinks on arrival. The tag rides BELOW the
-    // ball because pod() puts the sublabel 8 units above the shell bottom, where the default -14 prints.
+    // ball, clear of the Pod sublabel.
     flow: [
-      F.route({ points: W_SCHED_POD, delay: BEAT.lead, name: 'ans' }),
-      F.tag({ text: 'exceed max volume count', points: W_SCHED_POD, delay: BEAT.lead, dy: 22 }),
-      F.pulse({ pod: 'podNew', at: 'ans' }),
+      F.route({ points: W_SCHED_POD, delay: BEAT.lead, tag: { text: 'exceed max volume count', dx: ANS_TAG_DX, dy: 22 }, pulse: 'podNew' }),
     ],
   },
   {

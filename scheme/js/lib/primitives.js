@@ -19,8 +19,7 @@ export function arrowDefs() {
 export function box({ x = 0, y = 0, w = 100, h = 60, rx = 6, label = '', sublabel = '', cls = '', role = '' } = {}) {
   const group = g({ class: ('scheme-box ' + cls).trim(), 'data-role': role || null, transform: `translate(${x},${y})` });
   group.appendChild(rect({ class: 'scheme-box-rect', x: 0, y: 0, width: w, height: h, rx, ry: rx }));
-  // Optically centred, measured rather than eyeballed: the ink of a label+sublabel pair sat 1.22
-  // units below the box centre and a lone label 0.67, at EVERY height from 38.75 to 81.38 (2026-08-04).
+  // Optically centred on the measured ink, not the font box, and the offsets hold at every height.
   if (label) {
     const ly = sublabel ? h / 2 - 3.22 : h / 2 + 4.33;
     group.appendChild(text({ class: 'scheme-box-label', x: w / 2, y: ly, 'text-anchor': 'middle' }, [label]));
@@ -31,7 +30,7 @@ export function box({ x = 0, y = 0, w = 100, h = 60, rx = 6, label = '', sublabe
   return group;
 }
 
-export function pod({ x, y, w = 92, h = 60, label = 'Pod', sublabel = '', containers = 1, role = 'workloads' } = {}) {
+function pod({ x, y, w = 92, h = 60, label = 'Pod', sublabel = '', containers = 1, role = 'workloads' } = {}) {
   const group = g({ class: 'scheme-pod', 'data-role': role, transform: `translate(${x},${y})` });
   group.appendChild(rect({ class: 'scheme-pod-rect', x: 0, y: 0, width: w, height: h, rx: 8, ry: 8 }));
   group.appendChild(text({ class: 'scheme-pod-label', x: w / 2, y: 16, 'text-anchor': 'middle' }, [label]));
@@ -49,7 +48,7 @@ export function pod({ x, y, w = 92, h = 60, label = 'Pod', sublabel = '', contai
 
 // A Pod drawn as a SHELL, and what a card calls instead of a bare pod() (CANON.md M-03). The washed
 // fill stays INLINE: as a class it loses to the .scheme-pod-rect rules on some cards and not others.
-export const POD_SHELL_FILL = 'rgba(255, 255, 255, 0.03)';
+const POD_SHELL_FILL = 'rgba(255, 255, 255, 0.03)';
 
 export function podShell(opts) {
   const group = pod(opts);
@@ -170,11 +169,4 @@ export function animateAlong(packetEl, points, options = {}) {
     return { offset: Math.min(1, acc / total), transform: `translate(${p[0]}px, ${p[1]}px)` };
   });
   return packetEl.animate(keyframes, { duration, iterations, easing, fill, delay });
-}
-
-export function fadeIn(elNode, options = {}) {
-  return elNode.animate(
-    [{ opacity: 0 }, { opacity: 1 }],
-    { duration: options.duration || 400, fill: 'forwards', easing: 'ease-out' },
-  );
 }

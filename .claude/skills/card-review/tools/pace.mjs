@@ -1,28 +1,7 @@
 #!/usr/bin/env node
-// pace.mjs: how FAST every ball on a card actually moves, ranked against the catalog.
-//
-//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/pace.mjs <card-id>
-//
-// WHY THIS EXISTS. Nothing else in the tree converts a path LENGTH into a SPEED. `timing.mjs`
-// measures span against duration and reading load, `render/duration.test.mjs` enforces
-// `span <= duration` (`M-19`), and `render/motion.test.mjs` checks that a route took no explicit
-// `dur` (`M-12`). All three are satisfied by a ball crawling 56 units over 700ms at 0.080 units
-// per ms, which is 5.6 times slower than the `PKT_SPEED` canon of 0.45 and reads on screen as a
-// dot that will not move. `M-13` names the cause in one line and no probe ever prints it: below
-// about 315 units `routeDur` clamps to the 700ms `PKT_DUR_MIN` floor, so the SHORTER the lane the
-// slower the ball, and moving a lane closer is a pacing change nothing reports.
-//
-// WHAT IT IS FOR, and it is not a finding generator. A slow ball is almost never the card's own
-// doing, so the only useful output is the COMPARISON: this card's balls beside the catalog median,
-// beside the other cards running the same length, and beside the count of balls the floor already
-// holds. Read the SIBLINGS column before filing anything. If other cards run the identical hop the
-// answer is `M-13` and a catalog-wide decision, not an explicit `dur` here (`M-12` allows one, with
-// a justification at the call site, and it makes this card faster than its own neighbours).
-//
-// WHAT IT IS BLIND TO. It reads the SPEC, not the browser: a card whose flow is built inside a
-// `step.motion` or an `F.run` escape hides its balls from this reader entirely, and `motion.mjs` is
-// what sees those. It cannot judge whether a ball should exist at all (`A-01`, `M-10`), only how
-// fast the one that does is going.
+// pace.mjs: how fast every ball on a card moves (units per ms), ranked against the catalog and same-length siblings.
+// usage: cd scheme/test && node ../../.claude/skills/card-review/tools/pace.mjs <card-id>
+// Short lanes clamp to PKT_DUR_MIN and crawl (`M-13`), so read the siblings column first. Blind to motion inside step.motion or F.run.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -36,8 +15,7 @@ if (!id) { console.error('Usage: node pace.mjs <card-id>'); process.exit(1); }
 const CANON_SPEED = 0.45;                 // PKT_SPEED, lib/scheme-kit.js
 const kit = { BEAT, routeDur, REVEAL_MS };
 
-// Every ball in the catalog, as { card, step, name, len, dur, speed, explicit }. `top` is included
-// because topPacket's fixed HOP_MS is the same 700 and lands in the same trap.
+// Every ball in the catalog. `top` is included because topPacket's fixed HOP_MS hits the same floor.
 const rows = [];
 for (const cat of readdirSync(`${SCHEME}js/schemes`)) {
   const dir = join(`${SCHEME}js/schemes`, cat);

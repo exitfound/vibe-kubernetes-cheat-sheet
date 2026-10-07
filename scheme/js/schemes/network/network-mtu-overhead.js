@@ -1,65 +1,58 @@
-import { P, F, defineCard, laneY, strip, shade, BEAT, OPACITY, REVEAL_MS } from './network-kit.js';
+import { LANE_DY, P, F, defineCard, laneY, strip, shade, BEAT, OPACITY, REVEAL_MS } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-mtu-overhead.md
 
-// A BUDGET IN BYTES, drawn to scale. U is the only scale on the card and every width in the three
-// measure rows is a product of it, so the drawing and the arithmetic cannot disagree. 0.72 is what
-// puts 1500 bytes exactly across the content width, which is also the chip strip span (L-13).
+// A BUDGET IN BYTES, drawn to scale. Every width in the three measure rows is a product of U, so the
+// drawing and the arithmetic cannot disagree.
 const U = 0.72;                                  // viewBox units per byte
 const bw = (bytes) => bytes * U;
-const CONTENT_L = 60, CONTENT_R = CONTENT_L + bw(1500);   // 60 / 1140
+const CONTENT_L = 60, CONTENT_R = CONTENT_L + bw(1500);
 
 // The three measure rows, each read from CONTENT_L on the WIRE. Row 1 is the local link, row 2 is
 // what a wrapped frame is made of, row 3 is what the step actually puts on that link.
 const TRACK_H = 38;
-// 238 is measured against this card's own panel, which reads 244.54 at 1100x800 on `clamp`
-// (`OVERLAY_IDS=network-mtu-overhead node --test report/overlay.test.mjs`). The rows open at x=60,
-// left of the x=420 L-03 guards, so that one reading covers the top 6.54 units of row 1's left end.
-const LINK_Y = 238;                              // 238..276
-const FRAME_Y = 284;                             // 284..322
-const HDR_R = CONTENT_L + bw(50);                // 96: the VXLAN over IPv4 outer header
-const PATH_X = CONTENT_L + bw(1400);             // 1068: what the tunnel leg carries
-// The baseline, not the ink: the string inks about 11 units above it and 3.7 below, so 386 clears
-// row 2's floor at 322 by 2.8 at worst and leaves 8.3 over row 3, reading as row 2's own label.
+// LINK_Y clears this card's own panel (L-03).
+const LINK_Y = 238;
+const FRAME_Y = 284;
+const HDR_R = CONTENT_L + bw(50);                // the VXLAN over IPv4 outer header
+const PATH_X = CONTENT_L + bw(1400);             // what the tunnel leg carries
+// A baseline, not ink: placed so the caption reads as row 2's own label.
 const CAP_Y = 336;
-const SENT_Y = 348, SENT_H = 18;                 // 348..366
+const SENT_Y = 348, SENT_H = 18;
 const GAP_Y = 230;                               // the path-limit label, above row 1
 
 // The Node, the two boxes inside it and the two ends of the path. The NIC keeps the same 18 the Pod
 // has, so the frame wall is the Node BORDER and not a box face: every ball departs from it and
 // lands on it, and NET.A-02 holds with no wire crossing an edge.
-const NODE_X = CONTENT_L, NODE_Y = 382, NODE_W = 478, NODE_H = 148;   // 60..538, 382..530
-// 110 rather than a shorter Pod because `pod()` prints the sublabel at h - 8: at 90 that baseline
-// lands on the inner box floor and the address is struck through. 110 leaves the address 16 units
-// under the inner box and 8 above the shell.
-const POD_W = 200, POD_H = 110, POD_Y = 410;     // 410..520
-const PODA_X = NODE_X + 18;                      // 78..278, 18 in from the frame wall
+const NODE_X = CONTENT_L, NODE_W = 478;
+// 110 tall so the sublabel `pod()` prints at h - 8 clears the inner box.
+const POD_W = 200, POD_H = 110, POD_Y = 410;
+// The frame holds the Pod on the catalog padding.
+const NODE_Y = POD_Y - 34, NODE_H = 34 + POD_H + 12;
+const PODA_X = NODE_X + 18;                      // 18 in from the frame wall
 const IN_GAP = 42;                               // Pod A to the NIC, the one gap inside the frame
-const NIC_W = 200, NIC_X = PODA_X + POD_W + IN_GAP;   // 320..520, 18 in from the border
-const NODE_R = NODE_X + NODE_W;                  // 538: 18 + 200 + 42 + 200 + 18
-const BOX_H = 62, BOX_Y = 434;                   // 434..496, centred on FLOW_Y
+const NIC_W = 200, NIC_X = PODA_X + POD_W + IN_GAP;   // 18 in from the border
+const NODE_R = NODE_X + NODE_W;
+const BOX_H = 62, BOX_Y = 434;                   // centred on FLOW_Y
 const HOP_W = 200;
-const PODB_X = CONTENT_R - POD_W;                // 940..1140
-// Derived rather than typed so the two legs cannot drift apart: the hop stands midway between the
-// Node border and Pod B, which leaves 101 units each side.
-const HOP_X = NODE_R + (PODB_X - NODE_R - HOP_W) / 2, HOP_R = HOP_X + HOP_W;   // 639..839
+const PODB_X = CONTENT_R - POD_W;
+// Derived so the two legs cannot drift apart: the hop stands midway between the Node border and Pod B.
+const HOP_X = NODE_R + (PODB_X - NODE_R - HOP_W) / 2, HOP_R = HOP_X + HOP_W;
 const POD_INNER = { dx: 20, dy: 30, w: POD_W - 40, h: 56, label: 'app', sublabel: 'eth0' };
 
 const FLOW_Y = 465;                              // the Pod centres and the two box centres
-const LANE_DY = 12;
-const { out: FWD_Y, back: RET_Y } = laneY(FLOW_Y, LANE_DY);   // 453 out, 477 back
+const { out: FWD_Y, back: RET_Y } = laneY(FLOW_Y, LANE_DY);
 const OUT_A = [[NODE_R, FWD_Y], [HOP_X, FWD_Y]];
 const OUT_B = [[HOP_R, FWD_Y], [PODB_X, FWD_Y]];
 const BACK_B = [[PODB_X, RET_Y], [HOP_R, RET_Y]];
 const BACK_A = [[HOP_X, RET_Y], [NODE_R, RET_Y]];
 // Pod A and the NIC are joined and nothing ever travels between them: the veth hop belongs to
 // `network-pod-ip-and-veth`, so this is recession at 0.45 rather than a route (NET.A-04).
-const VETH = [[PODA_X + POD_W, FLOW_Y], [NIC_X, FLOW_Y]];   // 278..320
+const VETH = [[PODA_X + POD_W, FLOW_Y], [NIC_X, FLOW_Y]];
 
-// Four equal chips spanning the same outer verticals as the three measure rows, so the strip and
-// the picture share both edges. 1080 less three 20s over 4.
+// Four equal chips spanning the outer verticals of the measure rows, so strip and picture share both edges.
 const CHIP_Y = 547, CHIP_H = 34;
-const CHIPS = strip({ from: CONTENT_L, to: CONTENT_R, count: 4, gap: 20 });   // w 255
+const CHIPS = strip({ from: CONTENT_L, to: CONTENT_R, count: 4, gap: 20 });
 
 // A piece laid OVER another row carries strokes only, so the fill underneath is never doubled.
 const clearFill = (el) => { const r = el.querySelector('.scheme-box-rect'); if (r) r.style.fill = 'transparent'; };
@@ -81,20 +74,15 @@ export const SCENE = {
     sent('sentPing', 134),
     sent('sentFull', 1500),
     sent('sentClamp', 1400),
-    // The last 100 bytes of the link, which the tunnel leg does not carry. It is laid OVER all three
-    // rows rather than given a row of its own, because it is a ceiling and not a quantity: whatever
-    // ends to the right of its left edge is what the hop refuses, on whichever row it was drawn.
-    // It therefore comes AFTER all three rows in this list: painted before them, the soft fill of
-    // `trackInner` and of a sent bar washes its two verticals out exactly where they cross a row,
-    // which reads as a stripe lit at two different strengths on one line.
+    // The last 100 bytes of the link, laid OVER all three rows because it is a ceiling, not a quantity.
+    // It comes AFTER the rows in this list, or their soft fill washes out its verticals where they cross.
     P.box({ key: 'pathGap', x: PATH_X, y: LINK_Y, w: CONTENT_R - PATH_X, h: SENT_Y + SENT_H - LINK_Y, rx: 0, opacity: 0, tune: clearFill }),
     P.node({ key: 'node1', x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
     P.pod({
       key: 'podA', innerKey: 'podABox', x: PODA_X, y: POD_Y, w: POD_W, h: POD_H,
       label: 'Pod A', sublabel: '10.244.1.5', inner: POD_INNER,
     }),
-    // The NIC is infrastructure: it lights and never pulses (NET.S-01). Its mtu is the number the
-    // card spends five steps saying is not the one that matters.
+    // The NIC is infrastructure: it lights and never pulses (NET.S-01).
     P.box({ key: 'nic', x: NIC_X, y: BOX_Y, w: NIC_W, h: BOX_H, label: 'Node NIC', sublabel: 'mtu 1500' }),
     P.box({ key: 'hop', x: HOP_X, y: BOX_Y, w: HOP_W, h: BOX_H, label: 'Underlay hop', sublabel: 'VPN leg to Node-2' }),
     P.pod({
@@ -158,9 +146,8 @@ export const STEPS_SPEC = [
     wires: { hdr: HDR_CAP },
     opacity: { ...CARVED, ...REACHED },
     lit: ['trackHdr', 'trackInner'],
-    // The caption is the static end state, so `rewind` holds it blank while the row it names is
-    // still fading in and an F.set writes it once the header is fully there. Written statically
-    // alone it stands over an empty band for the length of the reveal.
+    // The caption is the static end state, so `rewind` holds it blank while its row fades in and an
+    // F.set writes it once the header is fully there.
     rewind: { wires: { hdr: '' } },
     // The carve is the whole beat: the header first, then what is left, one landing apart.
     flow: [
@@ -198,11 +185,9 @@ export const STEPS_SPEC = [
       F.pulse({ pod: 'podA' }),
       F.reveal({ target: 'sentPing', delay: BEAT.afterPulse }),
       F.segment({ from: OUT_A[0], to: OUT_A[1], delay: BEAT.afterPulse, name: 'o1', lights: ['hop'] }),
-      F.segment({ from: OUT_B[0], to: OUT_B[1], after: 'o1', name: 'o2' }),
-      F.pulse({ pod: 'podB', at: 'o2' }),
+      F.segment({ from: OUT_B[0], to: OUT_B[1], after: 'o1', name: 'o2', pulse: 'podB' }),
       F.segment({ from: BACK_B[0], to: BACK_B[1], after: 'o2', name: 'b1', lights: ['hop'] }),
-      F.segment({ from: BACK_A[0], to: BACK_A[1], after: 'b1', name: 'b2', lights: ['nic'] }),
-      F.pulse({ pod: 'podA', at: 'b2' }),
+      F.segment({ from: BACK_A[0], to: BACK_A[1], after: 'b1', lights: ['nic'], pulse: 'podA' }),
     ],
   },
   {
@@ -214,10 +199,8 @@ export const STEPS_SPEC = [
     opacity: { ...OVER, ...UNREACHED },
     lit: ['nic', 'pathGap', 'sentFull', 'wireChip'],
     reducedLit: ['podABox'],
-    // The ICMP is addressed to the SOURCE OF THE DATAGRAM the hop refused, and that datagram is the
-    // wrapped one, whose source is the Node. So the reply lands on the NIC and Pod A never pulses.
-    // `gap` joins the rewind for the reason the carve step states: the caption is the static end
-    // state and the band it names is still fading in for REVEAL_MS.
+    // The ICMP goes to the source of the refused datagram, the wrapped one from the Node, so the reply
+    // lands on the NIC and Pod A never pulses. `gap` joins the rewind as on the carve step.
     rewind: { chips: { icmpChip: 'none', pmtuChip: '1500' }, wires: { gap: '' } },
     flow: [
       F.reveal({ target: 'pathGap' }),
@@ -261,8 +244,7 @@ export const STEPS_SPEC = [
       F.pulse({ pod: 'podA', delay: BEAT.lead }),
       F.reveal({ target: 'sentClamp', delay: BEAT.lead + BEAT.afterPulse }),
       F.segment({ from: OUT_A[0], to: OUT_A[1], delay: BEAT.lead + BEAT.afterPulse, name: 'o1', lights: ['hop'] }),
-      F.segment({ from: OUT_B[0], to: OUT_B[1], after: 'o1', name: 'o2' }),
-      F.pulse({ pod: 'podB', at: 'o2' }),
+      F.segment({ from: OUT_B[0], to: OUT_B[1], after: 'o1', name: 'o2', pulse: 'podB' }),
     ],
   },
 ];

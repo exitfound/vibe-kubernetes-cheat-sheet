@@ -1,34 +1,7 @@
 #!/usr/bin/env node
-// settled-dump.mjs: what the viewer is LOOKING AT once a step has finished playing. Each step is
-// played in REAL TIME with nothing frozen, then the settled frame is read as text, the sorted
-// highlight set and the sorted opacity set.
-//   node tools/settled-dump.mjs <id> [step] [--base=URL]
-//   node tools/settled-dump.mjs --all --out=DIR [--base=URL]
-//
-// WHY IT EXISTS. A probe that FREEZES a card cannot see a DEFERRED callback at all. `at()` and
-// `lightBoxAt()` schedule their work as the onfinish of an empty 1ms animation, and a paused
-// animation never fires onfinish, so a frozen probe records a timer's TARGET and DELAY and never
-// records WHAT the callback wrote. Measured consequence: writing `rows: [i]` where the card means
-// `rows: upTo(i)` leaves a frozen dump byte-identical and still changes the picture, the ladder
-// rows walking one at a time instead of accumulating. That is what this plays out instead.
-//
-// WHAT IT SEES. The settled frame only: label and chip text, which elements ended up carrying
-// .highlight, and which ended up at what opacity.
-//
-// WHAT IT IS BLIND TO. Everything in flight, and everything before the first step. A ball's path,
-// a tag's delay, an easing curve, an arrowhead marker, an SVG attribute that is not opacity, and
-// the aria-label are all outside it. `tools/buildframe.mjs` is the one that reads the frame BEFORE
-// step 0, and the `render/` suite is what holds the picture to the rules.
-//
-// NAMES, AND WHY A DIFF CAN BE LOUD FOR NOTHING. An element is named by the ref key the card gives
-// it, so RENAMING a ref (an array split into scalars, a key respelled) reddens every line that
-// element appears on without the picture moving. Compare the values before believing the names.
-//
-// DETERMINISM. Nothing is paused and nothing is seeked, so the settling wait is the whole
-// correctness argument: SETTLE_MS is added on top of the step's own logical span to cover the 0.3s
-// CSS transition in diagrams.css, which is what makes a raw pixel comparison of the same tree
-// disagree with itself by tens of thousands of pixels. Prove the wait is enough the only way there
-// is: two runs against an unchanged tree must be byte-identical.
+// The settled frame of each step played in real time, nothing frozen, so deferred onfinish callbacks
+// are seen: text, highlights and opacities by ref name. node tools/settled-dump.mjs <id> [step] |
+// --all --out=DIR [--base=URL]. Two runs on an unchanged tree must be byte-identical.
 
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -58,15 +31,10 @@ if (dumpAll && !outDir) {
   process.exit(1);
 }
 
-// On top of the step's own span: 300ms is the transition in diagrams.css, the rest is slack.
+// On top of the step's span: the 300ms CSS transition in diagrams.css plus slack.
 const SETTLE_MS = 350;
 
-// Play one step for real: no withTimer, so nothing auto-advances, and no pause, so every deferred
-// onfinish actually fires. Step 0 is the poster and has no play path.
-//
-// NOT `fixtures/render.enterStep`, and the difference is the whole point of this file: that one
-// freezes every animation on the diagram the instant the step opens, and a paused animation never
-// fires an onfinish, so it can never see what a deferred callback wrote.
+// No withTimer and no pause, so every deferred onfinish fires. Not render.enterStep, which freezes.
 const playStep = (page, idx) => page.evaluate((i) => {
   const c = window.__schemeCtl;
   if (!c) return false;
@@ -78,15 +46,7 @@ const playStep = (page, idx) => page.evaluate((i) => {
   return true;
 }, idx);
 
-// The step's logical length is read WHILE it plays, through `fixtures/render.stepSpan`. That
-// arithmetic lives in the fixture and nowhere else, this file keeps no copy of it: stepSpan only
-// reads getComputedTiming() off every animation on the diagram, and the pausing lives in seekStep()
-// and enterStep(), neither of which this file calls, so it is safe to call from the playing path.
-// `playStep` is a real divergence and stays.
-
-// Is anything on the diagram still moving? A finite animation that has finished reports 'finished',
-// so only live work answers true. An INFINITE one (the marching dash) is excluded by construction:
-// it never finishes and would spin the wait loop to its cap on every step of that card.
+// Finished animations report 'finished'. Infinite ones (the marching dash) are excluded or the wait would spin to its cap.
 const stillRunning = (page) => page.evaluate((sel) => {
   const svg = document.querySelector(sel);
   if (!svg) return false;
@@ -104,8 +64,7 @@ const readSettled = (page, idx) => page.evaluate(({ sel, i }) => {
   const tl = window.__schemeCtl && window.__schemeCtl._timeline;
   const refs = (tl && tl.scene && tl.scene.refs) || null;
 
-  // Element -> the name the card calls it: the ref key where there is one, the document path and
-  // class where there is not, so a reader holds one vocabulary rather than a position.
+  // The ref key where there is one, else document path and class.
   const nameOf = new Map();
   const claim = (el, key) => { if (el && el.nodeType === 1 && !nameOf.has(el)) nameOf.set(el, key); };
   if (refs) {
@@ -127,16 +86,14 @@ const readSettled = (page, idx) => page.evaluate(({ sel, i }) => {
   const idOf = (el) => nameOf.get(el)
     || `@${pathOf(el)}.${(el.getAttribute('class') || '').split(/\s+/).filter(c => c && c !== 'highlight')[0] || el.tagName}`;
 
-  // Every glyph on screen, in document order. Document order rather than sorted: a label that moves
-  // from one block to another is a real change and sorting would hide it.
+  // Document order, not sorted: a label moving between blocks is a real change.
   const texts = [...svg.querySelectorAll('text')]
     .filter(t => (t.textContent || '').trim() !== '')
     .map(t => `${idOf(t.parentNode && t.parentNode.nodeType === 1 ? t.parentNode : t)}: ${t.textContent}`);
 
   const highlights = [...svg.querySelectorAll('.highlight')].map(idOf).sort();
 
-  // Anything not fully opaque, by NAME rather than by position, so a reordered scene does not read
-  // as an opacity change. Rounded to 3 places: a fill-forwards fade lands on a float.
+  // By name, so a reordered scene is not an opacity change. 3 places: a fade lands on a float.
   const opacity = [];
   for (const el of svg.querySelectorAll('*')) {
     const v = parseFloat(getComputedStyle(el).opacity);
@@ -174,10 +131,7 @@ async function dumpCard(ctx, id, only) {
     for (const idx of targets) {
       const ran = await playStep(page, idx);
       if (!ran) degraded = true;
-      // The span is re-read after every wait, because a DEFERRED callback can schedule work that
-      // did not exist when the step opened, which is the whole population this tool watches. One
-      // reading caught a 560ms arrival ripple mid-decay and made two runs of an unchanged tree
-      // disagree at the third decimal. Bounded, because a marching dash never finishes.
+      // Re-read after every wait, since a deferred callback can schedule new work. Bounded for the marching dash.
       for (let round = 0; round < 8; round++) {
         const span = await stepSpan(page);
         await page.waitForTimeout(span + SETTLE_MS);
@@ -200,7 +154,7 @@ async function dumpCard(ctx, id, only) {
 
 (async () => {
   const browser = await launch();
-  // no-preference explicitly: this tool is the ANIMATED path played out to its end.
+  // This tool plays the animated path out to its end.
   const ctx = await browser.newContext({ reducedMotion: 'no-preference', viewport: { width: 1400, height: 900 } });
   await ctx.addInitScript(initPage, 'expose');
 
@@ -209,7 +163,7 @@ async function dumpCard(ctx, id, only) {
     const ids = await discoverIds(probe, baseUrl);
     await probe.close();
     if (!ids.length) { console.error(`No cards discovered. base=${baseUrl}`); await browser.close(); process.exit(2); }
-    // Wipe first, sentinel last, so a run that dies partway cannot be diffed as if it were whole.
+    // Wipe first, sentinel last, so a partial run cannot be diffed as whole.
     await rm(outDir, { recursive: true, force: true });
     await mkdir(outDir, { recursive: true });
 

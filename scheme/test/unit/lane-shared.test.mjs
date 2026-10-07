@@ -1,37 +1,6 @@
-// lane-shared.test.mjs: the two halves of the lane rules whose queues reached zero, promoted out of
-// ../report/lane-traffic.test.mjs on 2026-08-17.
-//
-// The cycle this project runs, written in ../report/arrival.test.mjs and now run five times:
-// report-only, then a human triage of the queue, then promotion. Both queues below were triaged card
-// by card and are empty, so a NEW one goes red here instead of waiting for somebody to read a report.
-//
-//   A02-SHARED  (A-02)  a ball rides the array that DREW its wire, not an equal copy of it. 56 routes
-//                       on 6 cards were copies until they were shared; the queue is 0.
-//   A05-CARRIED (A-05)  a drawn lane with a marker and no rider claims traffic that does not exist.
-//                       9 such lanes remain and every one carries a written ruling; the queue is 0.
-//
-// ===========================================================================================
-// WHY THIS IS SAFE TO ASSERT AND THE REST OF THAT FILE IS NOT
-// ===========================================================================================
-// The report prints six A-02 tiers and only ONE of them was ever a defect. SHARED is the rule
-// satisfied literally. ASSEMBLED (27) is a composite route over several drawn legs and cannot BE one
-// array, so it is outside what the rule can ask for. OTHER-PART (4) equals an arrow or a relation
-// rather than a lane. UNDRAWN (3) is on a card whose geometry is built inside a `part.raw`, which a
-// reader of parts-as-data cannot see, and the report prints that escape count beside each one so a
-// person can weigh it. Asserting any of those would redden the gate against cards that are right.
-//
-// The same applies to the F.segment tier the report also prints: a segment is two points and so is an
-// `arrow`, so the question is a different one and the file says so out loud.
-//
-// ===========================================================================================
-// WHAT THIS FILE IS BLIND TO
-// ===========================================================================================
-//   - A LANE OR A ROUTE BUILT INSIDE AN ESCAPE. `part.raw` hands the layer a function; a path drawn
-//     there is invisible here, which is exactly the UNDRAWN caveat above.
-//   - WHETHER SHARING IS HONEST. Two arrays can be shared and both wrong: this asks for identity, not
-//     for the geometry being right. `report/geometry-soft.test.mjs` and the frame own that.
-//   - THE ARROWHEAD ITSELF. A-05's repair is `relationPath`, not deleting the line, and whether a
-//     given lane should lose its marker is a picture judgement. This only asks that somebody ruled.
+// A02-SHARED (A-02): a ball rides the array that drew its wire, not an equal copy.
+// A05-CARRIED (A-05): a lane with a marker and no rider carries a written ruling.
+// Blind to lanes and routes built inside part.raw, and to whether shared geometry is right.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -44,12 +13,10 @@ import {
 const catalogued = await cards();
 const modules = await importAll();
 
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_CARDS = catalogued.length;
 const EXPECTED_STEPS = await stepTotal();
 
-// One walk, both questions, so the two assertions can never disagree about which catalogue they read.
+// One walk for both questions, so they cannot read different catalogues.
 function walk() {
   const copied = [];
   const dead = [];
@@ -67,8 +34,7 @@ function walk() {
       if (tierOf(r.pts, card) === 'COPIED') copied.push({ card: c.id, step: r.step, pts: r.pts });
     }
 
-    // A-05, read exactly as the report reads it: a lane is RIDDEN when a route or a segment carries
-    // the same array or an equal one, and TRAVERSED when a longer ball covers every one of its legs.
+    // Ridden when a route or segment carries the same or an equal array, traversed when a longer ball covers every leg.
     const paths = [...card.routes, ...card.segments];
     const ident = new Set(paths.map(p => p.pts));
     const equal = new Set(paths.map(p => key(p.pts)));
@@ -119,8 +85,7 @@ test('A05-CARRIED: every drawn lane with an arrowhead and no rider carries a wri
     'it, then either repair the card or add the ruling to A05_CARRIED in fixtures/lane-traffic.mjs ' +
     'with the reason, quoting the card record.');
 
-  // A ruling that matches no finding is a lie the table tells: the lane was repaired and the reason
-  // still claims it. Loud on purpose, and the fix is one line.
+  // A ruling that matches no finding means the lane was repaired under it.
   const live = new Set(W.dead.map(d => `${d.card} ${key(d.pts)}`));
   const stale = [...A05_CARRIED.keys()].filter(k => !live.has(k));
   assert.deepEqual(stale, [],

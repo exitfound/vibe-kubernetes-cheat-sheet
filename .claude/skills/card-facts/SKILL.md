@@ -7,36 +7,24 @@ description: Fact-check one scheme card against the Kubernetes documentation and
 
 Truth only. One card, every user-visible string, three questions:
 
-- **A. Is the prose true** against the Kubernetes documentation, the API reference and the version
-  the card claims to describe?
-- **B. Does the animation say the same thing as the text**, step by step, in the same order, with
-  the same direction and the same actors?
+- **A. Is the prose true** against the Kubernetes docs, the API reference and the card's version?
+- **B. Does the animation say what the text says**, step by step: order, direction, actors?
 - **C. Is every drawn value valid**: a real field path, a real call, a legal name, a plausible
-  quantity, spelled the same way here as everywhere else?
-
-What each skill owns, so nothing is checked twice:
+  quantity, spelled the same way everywhere?
 
 | Question | Owner |
 |---|---|
-| is a sentence TRUE, does the picture agree with it, is a chip or label valid, is an absolute qualified (`T-19`), does the `aria-label` promise what is drawn | here |
-| geometry, panel occlusion, timing and reading load, state and reset, wire placement, dead code, the dialog controls | `card-review` |
-| the grid poster: its concept, its composition, its record note | `card-poster` |
-| the `CONTENT` block of the card record, plus `cards.js` desc, `k8sVersion` and `sources` | here |
-| every other markdown that describes the card | `card-review` |
+| truth of a sentence, picture against sentence, validity of a chip or label, qualified absolutes (`T-19`), the `aria-label` | here |
+| the `CONTENT` block of the record, plus `cards.js` `desc`, `k8sVersion`, `sources` | here |
+| geometry, occlusion, timing, state, wires, dead code, dialog controls, the rest of the record | `card-review` |
+| the poster and its note | `card-poster` |
 
-If a fix found here needs a new drawn element, a lane moved or a label re-placed, say so and hand it
-to `card-review` rather than reshaping the card inside a fact check.
+A fix that needs a new drawn element, a moved lane or a re-placed label goes to `card-review`.
 
-**Ground rule: verify, never recall.** A model's memory of a Kubernetes default is exactly the kind
-of claim this skill exists to catch. Every version-sensitive statement gets a fetched source or the
-verdict `UNVERIFIED`. Saying "I could not check this" is a result. Guessing is a defect.
-
----
+**Verify, never recall.** Every version-sensitive statement gets a fetched source or the verdict
+`UNVERIFIED`. "I could not check this" is a result. Guessing is a defect.
 
 ## 0. Inputs
-
-`claims.mjs` resolves its imports relative to itself and runs from any directory, including the repo
-root. `node --test` and `npm run` need `scheme/test/`.
 
 ```bash
 python3 -m http.server 8888 --bind 0.0.0.0      # from the repo root, if nothing is serving
@@ -46,33 +34,22 @@ node ../../.claude/skills/card-facts/tools/claims.mjs <card-id> --tokens   # jus
 node tools/settled-dump.mjs <card-id>                                      # the settled state, as data
 ```
 
-Read alongside it, and the first three arrive in ONE run rather than three:
-
 ```bash
-node .claude/skills/_shared/tools/ctx.mjs <card-id>
+cd "$(git rev-parse --show-toplevel)" && node .claude/skills/_shared/tools/ctx.mjs <card-id>
 ```
 
-- the card source, for what each step declares: `ctx.mjs` section 3, line-numbered and whole.
-- the catalog entry (`title`, `desc`, `k8sVersion`, `sources`): `ctx.mjs` section 1.
-- the record, whose `CONTENT` block already holds the claims a previous pass checked and the
-  wording those checks forced: `ctx.mjs` section 2. Do not re-litigate a settled wording without a
-  source that overturns it.
-- `scheme/CANON.md`, the `T-` group: the terminology and prose rules the fixes must land inside.
-  `cd scheme/test && node tools/canon.mjs --block=T` prints it, and `--check=review` narrows it to
-  the rows the prose test cannot see.
-
----
+`ctx.mjs` gives the source (section 3), the catalog entry (section 1) and the record (section 2),
+whose `CONTENT` block holds the wordings a previous pass forced. Do not re-litigate one without a
+source that overturns it. The prose rules are the `T-` block:
+`cd scheme/test && node tools/canon.mjs --block=T`.
 
 ## 1. Build the claim inventory
 
-`claims.mjs` prints, per step, the narration and every string on the canvas (labels, sublabels,
-chips, wire text, chains, captions), plus the `aria-label`, plus a token table of the things that go
-stale: field paths, API kinds, calls, quantities, bare numbers, states, maturity words, versions.
+`claims.mjs` prints per step the narration and every canvas string, the `aria-label`, and a token
+table of what goes stale: field paths, kinds, calls, quantities, numbers, states, maturity words,
+versions. Number the claims. A card is checked when every line has a verdict.
 
-A claim is any sentence or fragment that could be false. Number them. The inventory is the work
-list, and a card is only checked when every line of it has a verdict.
-
-Keep the `--json` inventory from BEFORE any edit:
+Keep the inventory from before any edit:
 
 ```bash
 node ../../.claude/skills/card-facts/tools/claims.mjs <card-id> --json > /tmp/claims-before.json
@@ -81,242 +58,124 @@ node ../../.claude/skills/card-facts/tools/claims.mjs <card-id> --json > /tmp/cl
 diff <(jq -S . /tmp/claims-before.json) <(jq -S . /tmp/claims-after.json)
 ```
 
-The diff is the proof of what a prose edit actually changed on the canvas, which is exactly what a
-bulk edit over prose hides (`T-31`): a sentence you did not mean to touch shows up in that diff.
+The diff proves what a prose edit changed on the canvas (`T-31`).
 
-One thing the inventory cannot show you, so add it by hand:
+Add by hand what the card does NOT say: a missing qualifier, a sentence true of the ordinary path
+stated as the mechanism.
 
-- **What the card does NOT say.** A missing qualifier is the most common defect in this repository:
-  a sentence true of the ordinary path, stated as the mechanism.
+**The `desc`** is in the inventory under the marker `desc`, checked with a narration's weight:
 
-**The `desc` is in the inventory and in the token table, under the marker `desc` rather than a step
-number**, and it is fact-checked with the same weight as a narration. Three things make it different
-from every other string on the card, and all three are yours:
-
-- **It is the only card prose a dialog reader never sees.** It shows under the poster on the grid and
-  in search, and nowhere else. So a term the card DRAWS but explains only in the `desc` is not
-  explained at all: check every chip name, block label and value against the narrations, not against
-  the `desc`.
-- **It is hard-bounded**: 400 to 470 characters (`D-04`) and 2 to 4 sentences (`D-05`), both red in
-  `unit/catalog.test.mjs`. `claims.mjs` prints the two live numbers beside it so a qualifier is
-  costed before you write it. Many cards sit within a few characters of the ceiling.
-- **Which means the band is where `T-20` gets broken.** If a fix needs a clause and the clause does
-  not fit, something else in the sentence gives way: never the clause. Cutting a condition to fit a
-  band leaves a true sentence standing as a false absolute, which is the defect the fix was for.
-
----
+- A dialog reader never sees it. A term the card draws but explains only in the `desc` is not
+  explained.
+- It is bounded (`D-04`, `D-05`). `claims.mjs` prints its live length and sentence count.
+- A clause a fix needs never gives way to the band: something else in the sentence does (`T-20`).
 
 ## 2. Rank before you fetch
 
-You cannot fetch a source for all of it, so spend the budget where claims break. In order:
-
-1. **Numbers and defaults**: timeouts, thresholds, grace periods, backoff, quorum sizes, limits,
-   ports. These change between releases and are the easiest to state from memory and get wrong.
-2. **Version-sensitive statements**: anything about a feature gate, a maturity level, a default that
-   flipped, an API version, a deprecation or a removal.
+1. **Numbers and defaults**: timeouts, thresholds, grace periods, backoff, quorum, limits, ports.
+2. **Version-sensitive statements**: feature gates, maturity, flipped defaults, API versions,
+   deprecations, removals.
 3. **Field paths and API shapes**: `spec.nodeName`, `status.conditions`, subresources, verbs.
-4. **Absolutes** (`T-19`): `only`, `never`, `always`, `every`, `all`, `nothing`. Each one needs its
-   counter-case named out loud, then either a qualifier or an exception in the same breath.
-5. **Ownership claims**: which component does a thing. "The Kubelet does X" when the controller
-   manager does it is the defect a reader cannot recover from.
-6. **Everything else**: descriptive prose that has no moving parts.
-
----
+4. **Absolutes** (`T-19`): `only`, `never`, `always`, `every`, `all`, `nothing`. Name the
+   counter-case, then qualify or except it.
+5. **Ownership**: which component does a thing.
+6. **Everything else.**
 
 ## 3. Verify against sources
 
 Order of authority:
 
-1. The pages the card itself cites in `cards.js` `sources`. Open them first: if the card cites a
-   page that no longer says what the card says, that is a finding on its own.
-2. `https://kubernetes.io/docs/` concepts and tasks for behaviour.
-3. The API reference for field names, types, defaults and subresources:
-   `https://kubernetes.io/docs/reference/kubernetes-api/`.
-4. `kubectl` reference for command shape and output, CRI, CSI and Gateway API specs for their own
-   surfaces, KEPs for gate status and graduation targets.
-5. Upstream source (`kubernetes/kubernetes`) only when the docs are silent, and say so in the
-   finding, because source behaviour can be an implementation detail rather than a contract.
+1. The pages the card cites in `sources`. A cited page that no longer says it is a finding.
+2. `https://kubernetes.io/docs/` concepts and tasks.
+3. The API reference: `https://kubernetes.io/docs/reference/kubernetes-api/`.
+4. `kubectl` reference, CRI, CSI and Gateway API specs, KEPs for gate status.
+5. Upstream source only when the docs are silent, and say so.
 
-Rules:
-
-- Quote the sentence you are relying on, with its URL, in the finding. A verdict with no quote is an
-  opinion.
-- Target the version the card claims. `k8sVersion` in `cards.js` is the card's own answer, and the
-  site as a whole targets a current release. A claim true in an older release and false now is a
-  finding even if nothing else changed.
-- If the doc hedges, the card may not un-hedge it. Take the doc's own qualifier.
-- Offline or blocked: mark the claim `UNVERIFIED (no network)` and continue. The internal
-  consistency pass below needs no network and finds more than half of everything anyway.
-
----
+- Quote the sentence you rely on, with its URL. A verdict with no quote is an opinion.
+- Target the card's `k8sVersion`. True in an older release and false now is a finding.
+- If the doc hedges, the card keeps the hedge.
+- Load-bearing claims get the raw page read directly, never a summary of it.
+- Offline: `UNVERIFIED (no network)`, and continue with the offline half.
 
 ## 4. Prose against the animation
 
-For each step, put the sentence and the frame side by side and ask:
+Per step, sentence beside frame:
 
-- **Existence.** Every actor the sentence names is on the canvas, or the sentence says why it is
-  not drawn (this catalog accepts a narrated actor with no block, and the record says so).
-- **Direction.** Every ball travels the way the verb points. A sentence that says the Kubelet CALLS
-  the runtime must not be drawn as an arrow from the runtime.
-- **Attribution.** The thing that lights when a ball lands is the thing the sentence credits.
-- **Order.** `then`, `after`, `first`, `next` in the prose match the order of the beats, and match
-  the step order of the card.
-- **State.** A claim about a value ("commitIndex is still 8", "the Pod has no nodeName yet") matches
-  the chip on screen at that moment. `tools/settled-dump.mjs` prints the settled text and the
-  highlight set as data, which is the cheapest way to compare all steps at once.
-- **Silence.** Anything lit, pulsing or moving that the sentence never mentions is either a defect
-  or a deliberate choice that belongs in the record.
-- **The counterfactual** (`T-35`): if a step plays an alternative path, the canvas has to say so
-  with a caption. A reader looking at the frame without the panel must not see a state that never
-  happened.
+- **Existence.** Every named actor is drawn, or the narration says why not.
+- **Direction.** Every ball travels the way the verb points.
+- **Attribution.** What lights on arrival is what the sentence credits.
+- **Order.** `then`, `after`, `first`, `next` match the beats and the step order.
+- **State.** A claimed value matches the chip on screen. `settled-dump.mjs` compares all steps.
+- **Silence.** Anything lit or moving the sentence never mentions is a defect or a `DEVIATES` line.
+- **Counterfactual** (`T-35`): an alternative path carries a caption on the canvas.
 
-The `aria-label` gets the same treatment: it is the card for a reader who cannot see it, and it
-often promises a part or a relationship the steps do not draw.
-
----
+The `aria-label` gets the same treatment.
 
 ## 5. Values: chips, labels, sublabels, wires
 
-Every drawn value is a claim with a narrow definition of correct:
-
-- **Object names** follow RFC 1123: lowercase alphanumeric and dashes. `PV-x73a` states a name the
-  API would reject.
-- **Type plus name grammar** (`T-11a`): `PVC data-claim`, `Pod web-0`, `PV x73a`. Never glued with a
-  hyphen. A YAML field quoted in a tag takes the bare name (`volumeName: x73a`).
-- **Quantities** use the units the API uses: `100m`, `128Mi`, `1Gi`, seconds as `30s`. Mixed units
-  inside one card, or `100M` where the API means `Mi`, are findings.
-- **Field paths** are case-exact and real: `spec.nodeName`, `status.podIP`,
-  `spec.template.spec.containers`. Check them against the API reference, not against a memory of
-  the YAML.
-- **Calls** are spelled as the interface spells them: `RunPodSandbox`, `NodePublishVolume`,
-  `AppendEntries`.
-- **Addresses** stay inside documentation ranges and are consistent across the card: a Pod IP in one
-  step and a different subnet for the same Pod in the next is a defect the token table surfaces.
-- **Consistency**: the token table lists the steps each token appears on. Two spellings of one thing
-  inside a card, or a spelling that disagrees with the sibling card owning that mechanism, is a
-  finding even when both spellings are individually legal.
-
----
+- **Object names** follow RFC 1123: lowercase alphanumerics and dashes.
+- **Type plus name** (`T-11a`): `PVC data-claim`, `Pod web-0`. A quoted YAML field takes the bare
+  name (`volumeName: x73a`).
+- **Quantities** in API units: `100m`, `128Mi`, `1Gi`, `30s`.
+- **Field paths** case-exact and real, checked against the API reference.
+- **Calls** spelled as the interface spells them: `RunPodSandbox`, `NodePublishVolume`.
+- **Addresses** inside documentation ranges, consistent across steps.
+- **Consistency**: two spellings of one thing, or one disagreeing with the owning sibling, is a
+  finding.
 
 ## 6. Siblings
 
-Any mechanism this card touches that another card owns: open that card and reconcile them. Quote
-both sentences in the finding. **Which cards those are is already printed**: `ctx.mjs` section 6
-resolves every sibling the desc, the aria-label, a narration or the record names, by id and by
-title, and lists the `... card` phrases it could not resolve for you to read by hand. In this project, cross-reading cards that one reviewer had already
-closed turned up 31 real defects across 87 cards, and most were a card disagreeing with a sibling,
-with its own other steps, or with its own labels.
+Any mechanism another card owns: open it and reconcile, quoting both sentences. `ctx.mjs` section 6
+lists the siblings by id and title, plus the `... card` phrases it could not resolve. Read those by
+hand.
 
----
-
-## 7. Report
-
-One table, one row per claim:
+## 7. Report and fix
 
 | # | claim (quoted) | where | verdict | source | fix |
 |---|---|---|---|---|---|
 
-Verdicts: `TRUE`, `FALSE`, `MISLEADING` (true words, false impression), `STALE` (was true),
-`UNVERIFIED`. Rank the findings by what a reader would carry away wrong, not by how easy the fix is.
+Verdicts: `TRUE`, `FALSE`, `MISLEADING` (true words, false impression), `STALE`, `UNVERIFIED`. Rank
+by what a reader would carry away wrong.
 
-Then propose wording. Fix rules:
+Fix rules:
 
-- Take the doc's own qualifier rather than inventing one.
-- Never repair a fact by making the sentence vague. A card that says less than it knows is a
-  different defect.
-- Do not add a claim the picture cannot support. If the fix needs a new drawn element, say so and
-  leave it to `card-review`.
-- Respect the prose mechanics: no apostrophes in the single-quoted drawn strings, no semicolons in
-  narration, no em-dashes, and the character budget the card's geometry imposes.
+- Take the doc's own qualifier.
+- Never repair a fact by making the sentence vague.
+- Add no claim the picture cannot support.
+- No apostrophes in single-quoted drawn strings, no semicolons, no dashes (`T-01`, `T-03`, `T-04`),
+  and the character budget the geometry imposes.
 
-Apply only what the user approves, and once approved, three project rituals come with a prose edit:
+Apply only what the user approves. On an existing card read `_shared/card-edit.md` before the first
+rewording. The write hook `check-js.sh` can hard-fail an edit with an apostrophe in a narration:
+the message comes back as tool feedback.
 
-- **The write hook can hard-fail the edit.** `.claude/hooks/check-js.sh` re-parses a
-  `scheme/js/**/*.js` file as an ES module after every Edit or Write and exits 2 when it stops
-  parsing, which is almost always an apostrophe that landed in a single-quoted narration. It comes
-  back as tool feedback, not as a test failure, so it is easy to scroll past.
-- **A narration is served content**, so rebuild the local container after the edits:
-  `docker rm -f kube-cheatsheet && docker build -t kube-cheatsheet . && docker run -d --name kube-cheatsheet -p 8080:80 kube-cheatsheet`
-- **Never commit unless the user asks.** Finish, report, and leave the tree uncommitted.
-
-After any prose edit the loop is `npm run test:unit` (1.4s) plus
-`SCHEME_IDS=<card-id> npm run test:render` (7s, this card only, floors off), and it is the WHOLE
-check this skill owes, not a fast approximation of one. What this skill edits is prose: a narration,
-a wire string, a chip label, an aria-label, a `desc`. Every catalog-wide rule over prose lives in
-`unit/**` and runs unfiltered there whatever `SCHEME_IDS` says: the `desc` band and sentence count
-(`D-04`, `D-05`), the term case and reword rules (`T-06`, `T-07`), the apostrophe and semicolon bans
-(`T-01`, `T-03`) and the dash sweep (`T-04`, `T-05`). Everything left that a prose edit can move is
-drawn on THIS card and is what the filtered render walk reads. The three minutes the unfiltered gate
-adds buy verdicts about other people's cards.
-
-Re-read the changed sentences in the rendered panel, because a bulk edit over prose leaves the
-linters green and the meaning broken (`T-31`).
-
----
+After a prose edit the loop is `npm run test:unit` plus `SCHEME_IDS=<card-id> npm run test:render`,
+and that is the whole check this skill owes: every catalog-wide prose rule lives in `unit/**`.
+Re-read the changed sentences in the rendered panel (`T-31`).
 
 ## 8. Update the records
 
-Whatever you edited here, the LAST step is the count sweep in
-`.claude/skills/_shared/card-verify.md` section 4, "sweep the counts, do not judge them". A reworded
-`desc` or narration moves a character count, and a count is a claim about the tree that can go stale
-in a file you never opened. Run it and report its verdicts. When the edit lands on a card that
-already exists, `_shared/card-edit.md` is read BEFORE the first rewording: it carries the ruling
-check and the blast radius a prose change sets off.
+1. **The `CONTENT` block** of `scheme/js/schemes/<category>/CARDS/<card-id>.md`, at most 6 lines:
+   first the sources (doc page names and versions), then only the wordings a fact forced or ruled
+   out, one short clause each. No long quotations, no history. A rejected wording is a present-tense
+   constraint: `"X" is ruled out: the page says Y`. The release in `k8sVersion` dates the claims,
+   never a calendar date (`S-48`). Write a KEP as `KEP 2000`: an uppercase word, a dash and a
+   number reads as a rule id, and `unit/docs.test.mjs` D1 fails on it.
+2. **`cards.js`**: `desc` if it carried the defect, `k8sVersion` if the release changed, `sources`
+   if a page no longer supports the card. After a `desc` edit run `npm run test:unit` (`D-04`,
+   `D-05`) and read the whole `desc` again (`T-31`).
 
-The fact check owns two places, and it is not finished until both are true:
-
-1. **The `CONTENT` block** of the `## <card-id>` section in
-   `scheme/js/schemes/<category>/CARDS.md`, or `CARDS/<card-id>.md` where the category has split
-   it. Its vocabulary definition is exactly this: a technical
-   claim checked against the reference, and the wording it forced. For each claim you changed or
-   deliberately kept, one entry: the wording that ships, the wording that was rejected, and the
-   reason. That is what stops the next pass from "simplifying" a qualifier back out.
-2. **`cards.js`**: `desc` if the description carried the same defect, `k8sVersion` if the card now
-   describes a different release, and `sources` if a cited page no longer supports the card or a
-   better one exists. After ANY `desc` edit re-run `cd scheme/test && npm run test:unit`: `D-04` and
-   `D-05` are red, the band is narrow, and a qualifier that pushes past 470 is a real edit to make
-   elsewhere in the sentence and never a reason to drop the qualifier (`T-20`). Then READ the new
-   `desc` whole (`T-31`): it is 2 to 4 sentences, so a reworded opening breaks the grammar of the
-   rest more often than in a narration.
-
-If a check changed nothing, still record the claims you verified, in one line. A claim verified once
-and not written down is a claim that gets re-verified every time.
-
-**Date the EVIDENCE, never the edit** (`S-48`). A record states what IS, so `checked on 2026-08-23`
-and `used to say X` are both banned, and a rejected wording is written as a constraint in the
-present tense: `X is rejected because <the quote>`. What a claim decays against is the RELEASE, so
-the release is what dates it, and `k8sVersion` in `cards.js` already carries that number. Say the
-claims were read against it rather than stamping a calendar date the canon will make you delete.
+If nothing changed, the `CONTENT` block still names the sources it was checked against.
 
 Leave `CANON.md`, the category `CLAUDE.md`, `scheme/CLAUDE.md` and `README.md` alone unless a
-terminology RULE changed, in which case it is a rulebook edit and belongs to a separate decision.
+terminology rule changed, which is a separate decision.
 
-Then:
-
-```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run test:unit      # docs.test.mjs: the record still parses and its anchors hold
-```
-
----
+Then `card-verify.md` sections 4 and 6: the count check, the container rebuild, no commit.
 
 ## 9. Deliverable
 
-- what was checked: number of claims, how many fetched, how many unverified and why
+- claims checked, how many fetched, how many unverified and why
 - the verdict table
 - the wording that changed, before and after
-- what the record now says
+- what the `CONTENT` block now says
 - what stays open
-
----
-
-## Appendix: claims that have actually been wrong here
-
-- A component credited with work another component does.
-- A number stated as the mechanism when it is a default that a field overrides.
-- An optional component drawn as core, or a core one labelled optional.
-- A sentence true of the ordinary path, written as an absolute, after a qualifier was trimmed to fit
-  a character budget: 29 of those in one session.
-- A repeated word or a broken sentence opening left by a bulk edit over prose.
-- A chip value that contradicts the narration of the same step.
-- A label naming a call the card does not draw.
-- A page cited in `sources` that no longer contains the statement it was cited for.

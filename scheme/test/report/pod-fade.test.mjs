@@ -1,64 +1,6 @@
-// pod-fade.test.mjs: the half of M-08 that no machine has ever asked about.
-//
-// M-08 reads "A Pod that FADES OUT in a step must PULSE FIRST: pulse delay `<=` fade delay. Fading a
-// Pod while it is still blinking reads as two events at once." The check that owns it,
-// render/opacity.test.mjs ORDER, enforces the SECOND sentence and cannot reach the first: its loop
-// opens with
-//
-//     const mine = pulses.filter(...); if (!mine.length) continue;
-//
-// so a Pod that fades with NO pulse anywhere in the step is skipped in silence. ORDER is right to be
-// written that way, because it is an ORDERING rule and there is nothing to order against. What was
-// missing is anybody counting the population it steps over. This file counts it.
-//
-// ===========================================================================================
-// WHY A REPORT AND NOT AN ASSERTION
-// ===========================================================================================
-// Because the absolute reading of M-08 is FALSE about this catalogue, and measuring says so. SIX
-// steps fade a Pod with no pulse, and every one of the six is right. A step that pulses at 0 with
-// its fade at BEAT.afterPulse is not in this population at all: that is the shape
-// storage-multi-attach-error detach carries, and storage-generic-ephemeral-volume gc and
-// storage-volumeattachment detach carry it too, which is why none of the three is listed below.
-// The five that stand:
-//
-//   workloads-replicaset  orphan        the Pod loses its owner and keeps running. A blink here reads
-//                                       as a create, which is the defect the adoption step was
-//                                       repaired for.
-//   cluster-cascading-deletion  purge          a SECOND fade on a Pod that already pulsed earlier in the
-//                                       card, so the beat is spent.
-//   storage-volume-detach-on-node-loss  forcedetach
-//                                       measured permanent: the Pod is already at 0.25 and blinked on
-//                                       the previous step, whose own comment is that a pulse and a
-//                                       fade must not read as one event. A blink at 0.25 needs
-//                                       pulsePodDim, whose opacity lift reads as the Pod coming back.
-//
-// So the honest rule is not "always pulse", it is "a Pod that fades with no pulse owes a reason", and
-// a reason is prose. This file therefore prints the population and lets a person rule, which is the
-// cycle written in ./arrival.test.mjs and run four times in this project: report-only, then a human
-// triage, then promotion. Promotion here means an allowlist keyed to the CARDS.md note that justifies
-// each entry, exactly as ../fixtures/chip-beat.mjs E_CARRIED does for FORM-E.
-//
-// ===========================================================================================
-// WHAT THIS FILE IS BLIND TO
-// ===========================================================================================
-//   - A FADE INSIDE AN ESCAPE. `step.enter` and `F.run` are function bodies, so a fade written with
-//     el.animate() inside one is invisible here. 42 enter and 13 F.run sites exist; none of them
-//     animates a pod opacity today, and P-11 is the rule that keeps it that way.
-//   - A FADE BY `opacity:` RATHER THAN BY `F.fade`. A step that simply PINS a Pod lower than the step
-//     before it produces no fade track at all: the picture snaps. That is a different class, it is
-//     what report/palette-steps.test.mjs sees as a shade change, and this file does not judge it.
-//   - WHETHER THE PULSE, WHERE THERE IS ONE, IS EARLY ENOUGH. That is ORDER's question and ORDER
-//     answers it. This file deliberately reports only the empty case, so the two never disagree.
-//   - A `pulsePodDim` LIFT. A dim Pod's blink carries an opacity track of its own (M-07), and this
-//     file counts a `pulse` verb, not tracks, so it cannot confuse the two.
-//
-// ===========================================================================================
-// WHAT FAILS HERE
-// ===========================================================================================
-// The census, and nothing else. A walk that read fewer cards or steps than the catalogue prints few
-// findings and looks exactly like a clean catalogue: a walk one step short drops that step silently
-// and nothing in the output looks wrong, which is why the floor below is asserted
-// rather than printed.
+// M-08's first half: a Pod that fades out in a step with no pulse at all, which ORDER in
+// render/opacity.test.mjs skips. Reported with RULED reasons, never asserted. Fails only on the census
+// and on a stale ruling. Blind to fades inside escapes and to fades by `opacity:` pins.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -66,20 +8,10 @@ import { cards } from '../fixtures/catalog.mjs';
 import { importAll, stepTotal } from '../fixtures/module.mjs';
 import { walkParts } from '../fixtures/spec.mjs';
 
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_CARDS = (await cards()).length;
 const EXPECTED_STEPS = await stepTotal();
 
-// The verdicts written down so far. A key here is NOT a pass: this file
-// asserts nothing about them. It prints them beside the finding so the next reader inherits the
-// argument instead of re-deriving it, and so a NEW finding stands out from the six known ones.
-//
-// A verdict that says a pulse IS missing is a WORK ITEM, not a resting entry, and it lives here only
-// until the pulse is put in. Once it is, the step stops fading unbeaten, the walk stops producing the
-// key, and the ruling has to go or the stale-ruling assert below reddens: a repaired step whose
-// reason is still on file is how a table starts lying. A step that has been given its pulse is out
-// of this population, and nothing about it belongs in this map any more.
+// Rulings printed beside their finding, never a pass. A ruling the walk no longer produces fails.
 const RULED = new Map([
   ['workloads-statefulset-update-strategy partition slot0',
     'CORRECT. Nothing happens to this Pod. The two slots are the maxUnavailable WINDOW rather than ' +
@@ -118,7 +50,7 @@ const RULED = new Map([
     'CORRECT. A failed readiness probe signals nobody the card draws, so there is no beat for web-2 to answer. The fade is the cause the lookup then shows as a smaller answer.'],
   ['network-headless-service new-ip w0',
     'CORRECT. The Pod is deleted, so nothing is left to blink, and a pulse would claim the old Pod answered something. The reveal that follows is the recreated web-0.'],
-  ['storage-csi-attach-mount unwind podA',
+  ['storage-attach-mount-chain unwind podA',
     'CORRECT. The Pod is deleted, so nothing is left to blink, and the teardown that follows is the ' +
     'node plugin unpublishing its bind mount, which the Pod no longer answers. The beat is the fade itself.'],
   ['cluster-node-restart reboot podWeb',
@@ -136,7 +68,7 @@ const RULED = new Map([
   ['storage-ephemeral-storage-eviction replace podA',
     'CORRECT. A second fade on a Pod that already pulsed on the previous step, where the evict ' +
     'ball reached it, so the beat is spent. web-a leaves the slot for web-b, which pulses as it lands.'],
-  ['storage-volume-detach-on-node-loss forcedetach oldPod',
+  ['storage-detach-on-node-failure forcedetach oldPod',
     'CORRECT, and measured permanent. The Pod is already at 0.25 and blinked on the previous step, ' +
     'whose comment is that a pulse and a fade must not read as one event. A blink at 0.25 needs ' +
     'pulsePodDim, whose opacity lift reads as the Pod coming back to life.'],
@@ -153,8 +85,7 @@ test('M-08 second half: a Pod that fades with no pulse in the same step', (t) =>
     const ns = modules.get(c.id);
     if (!ns || !ns.SCENE || !Array.isArray(ns.STEPS_SPEC)) continue;
     walked++;
-    // Pod refs, off the SCENE. A fade names a ref and the verb cannot say what kind of thing it is,
-    // so the part kind is the only honest source for "this is a Pod".
+    // The part kind is the only honest source for "this is a Pod".
     const pods = new Set();
     walkParts(ns.SCENE.parts, (p) => { if (p && p.kind === 'pod' && p.key) pods.add(p.key); });
 
@@ -167,8 +98,7 @@ test('M-08 second half: a Pod that fades with no pulse in the same step', (t) =>
         if (e.verb === 'pulse' && e.p.pod) pulsed.add(e.p.pod);
         if (e.verb !== 'fade' || !pods.has(e.p.target)) continue;
         fades++;
-        // A RISE is not a fade-out. `from` defaults to 1 in runFlow, so an absent `from` with a `to`
-        // below 1 is a fade and an absent `from` with `to: 1` is a reveal.
+        // `from` defaults to 1, so `to` below 1 is a fade and `to: 1` a reveal.
         const from = e.p.from === undefined ? 1 : e.p.from;
         if ((e.p.to ?? 1) < from) down.set(e.p.target, { from, to: e.p.to });
       }
@@ -200,8 +130,7 @@ test('M-08 second half: a Pod that fades with no pulse in the same step', (t) =>
   out.push('');
   for (const line of out) t.diagnostic(line);
 
-  // Stale ruling: a key we carry that the walk no longer produces. Loud, because a repaired step
-  // whose reason is still on file is how a table starts lying.
+  // A repaired step whose reason is still on file is how a table starts lying.
   const live = new Set(rows.map(r => `${r.card} ${r.step} ${r.key}`));
   const stale = [...RULED.keys()].filter(k => !live.has(k));
   assert.deepEqual(stale, [],

@@ -1,34 +1,31 @@
-import { P, F, defineCard, BEAT, STO, makeRidingLabel } from './storage-kit.js';
+import { P, F, defineCard, BEAT, STO } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-recursive-readonly.md
 
-
-// Two columns, one per tree level: the directory itself on the left, the submount under it on the
-// right. The container view of the tree is the upper row, the host tree the Node frame below it,
-// column for column. Every block is the catalog size (NET.L-01), 232 by 80. The tree centres on 630,
-// so the left drop and its tag stay right of the panel column and the ladder (CENTRE holds to 40).
+// Two columns, one per tree level: the directory left, its submount right. The container view is the
+// upper row, the host tree the Node frame below it. The tree centres on 630 to stay clear of the panel.
 const BOX_W = 232, BOX_H = 80;
 const TREE_CX = 630;
-const TOP_CX = TREE_CX - 160, SUB_CX = TREE_CX + 160;              // the two tree columns, 470 / 790
-const TOP_X = TOP_CX - BOX_W / 2, SUB_X = SUB_CX - BOX_W / 2;      // 354 / 674
+const TOP_CX = TREE_CX - 160, SUB_CX = TREE_CX + 160;              // the two tree columns
+const TOP_X = TOP_CX - BOX_W / 2, SUB_X = SUB_CX - BOX_W / 2;
 
-// The catalog Pod, 232 by 104 around a 192 by 44 app box 26 under its label, centred between the
-// two columns so each write lane has 44 units of run before it turns.
-const POD_W = 232, POD_H = 104, POD_Y = 40;
-const POD_X = TREE_CX - POD_W / 2;                                 // 514..746
-const POD_MY = POD_Y + POD_H / 2;                                  // 92
+// The catalog Pod (NET.L-01), centred between the two columns so each write lane runs before it turns.
+const POD_W = 232, POD_H = 104, POD_Y = 56;
+const POD_X = TREE_CX - POD_W / 2;
+const POD_MY = POD_Y + POD_H / 2;
 const APP_W = 192, APP_H = 44, APP_DY = 26;
-const VIEW_Y = 272, VIEW_B = VIEW_Y + BOX_H;                       // 272..352, under the panel floor
+const VIEW_Y = 288, VIEW_B = VIEW_Y + BOX_H;                       // under the panel floor
 
-// The Node frame under the views, the host tree on the same two columns, 24 of padding each side.
-const NODE_X = TOP_X - 24, NODE_Y = 408, NODE_W = SUB_X + BOX_W + 24 - NODE_X, NODE_H = 150;  // 330..930
-const HOST_Y = 448, HOST_MY = HOST_Y + BOX_H / 2;                  // 448..528
+// The Node frame holds the host tree on the same two columns, 24 of padding each side, the catalog 34
+// label band and 12 floor.
+const NODE_X = TOP_X - 24, NODE_Y = 424, NODE_W = SUB_X + BOX_W + 24 - NODE_X, NODE_H = 34 + BOX_H + 12;
+const HOST_Y = NODE_Y + 34, HOST_MY = HOST_Y + BOX_H / 2;
 
-// The requirements ladder under the panel on the left, its rows the chip height. The two chips
-// stand beside the Pod whose spec and status they are, mirrored to the ladder about 600.
-const LADDER_X = 40, LADDER_Y = 330, LADDER_W = 256, ROW_GAP = 8;  // rows down to 532, caption inks 252
-const CHIP_X = 1200 - LADDER_X - STO.CHIP_W;                       // 928..1160
-const SPEC_Y = POD_MY - 6 - STO.CHIP_H, STATUS_Y = POD_MY + 6;     // 52 / 98, centred on the Pod
-const BRANCH_Y = NODE_Y + NODE_H + 28;                             // 586, step 5 counterfactual (T-35)
+// The requirements ladder under the panel on the left. The two chips stand beside the Pod whose spec
+// and status they are, mirrored to the ladder about 600.
+const LADDER_X = 40, LADDER_Y = 346, LADDER_W = 256, ROW_GAP = 8;
+const CHIP_X = 1200 - LADDER_X - STO.CHIP_W;
+const SPEC_Y = POD_MY - 6 - STO.CHIP_H, STATUS_Y = POD_MY + 6;     // centred on the Pod
+const BRANCH_Y = NODE_Y + NODE_H + 28;                             // step 5 counterfactual (T-35)
 
 // Each static wire and its ball share one array. The Pod sends by its side faces, so both write
 // lanes are a mirrored L into the top face of their view. The drops end on the Node frame face (A-21).
@@ -38,12 +35,11 @@ const W_DOWN = [[SUB_CX, VIEW_B], [SUB_CX, NODE_Y]];
 const BIND = [[TOP_CX, VIEW_B], [TOP_CX, NODE_Y]];
 const UNDER = [[TOP_X + BOX_W, HOST_MY], [SUB_X, HOST_MY]];
 
-// A tagged write rides LEG_DUR, not routeDur: both write lanes are 224 units. The tag trails above
-// the ball on the side of the vertical run away from the Pod, so it stops over the view roof (M-30a).
+// A tagged write rides LEG_DUR, not routeDur. The tag trails on the side away from the Pod, so it stops
+// over the view roof.
 const LEG_DUR = 1500;
-const sideLabel = makeRidingLabel({ role: 'storage', inMs: 200, outMs: 200, hold: 0 });
-const TOP_TAG = { fn: sideLabel, dx: -30, dy: -14 };
-const SUB_TAG = { fn: sideLabel, dx: 30, dy: -14 };
+const TOP_TAG = { dx: -30, dy: -14 };
+const SUB_TAG = { dx: 30, dy: -14 };
 
 // Z-order (bottom -> top): the Node frame, the Pod, the views and the host boxes, the relations
 // and lanes, the captions, the ladder, the chips, then the packet layer.
@@ -139,8 +135,7 @@ export const STEPS_SPEC = [
     chain: -1,
     flow: [
       F.pulse({ pod: 'pod' }),
-      F.route({ points: W_TOP, delay: BEAT.afterPulse, dur: LEG_DUR, name: 'write', lights: ['viewTop'] }),
-      F.tag({ text: 'write a', points: W_TOP, delay: BEAT.afterPulse, dur: LEG_DUR, ...TOP_TAG }),
+      F.route({ points: W_TOP, delay: BEAT.afterPulse, dur: LEG_DUR, name: 'write', lights: ['viewTop'], tag: { text: 'write a', ...TOP_TAG } }),
       F.set({ at: 'write', sublabels: { viewTop: 'write refused' } }),
     ],
   },
@@ -155,8 +150,7 @@ export const STEPS_SPEC = [
     chain: -1,
     flow: [
       F.pulse({ pod: 'pod' }),
-      F.route({ points: W_SUB, delay: BEAT.afterPulse, dur: LEG_DUR, name: 'write', lights: ['viewSub'] }),
-      F.tag({ text: 'write x', points: W_SUB, delay: BEAT.afterPulse, dur: LEG_DUR, ...SUB_TAG }),
+      F.route({ points: W_SUB, delay: BEAT.afterPulse, dur: LEG_DUR, name: 'write', lights: ['viewSub'], tag: { text: 'write x', ...SUB_TAG } }),
       F.set({ at: 'write', sublabels: { viewSub: 'write accepted' } }),
       F.route({ points: W_DOWN, after: 'write', name: 'land', lights: ['hostTmp'] }),
       F.set({ at: 'land', sublabels: { hostTmp: 'x written here' } }),
@@ -175,8 +169,7 @@ export const STEPS_SPEC = [
       F.pulse({ pod: 'pod' }),
       F.set({ delay: BEAT.afterPulse, name: 'start', chips: ON, chain: 'all' }),
       F.light({ targets: ['specChip', 'statusChip'], at: 'start' }),
-      F.route({ points: W_SUB, delay: WRITE_AT, dur: LEG_DUR, name: 'write', lights: ['viewSub'] }),
-      F.tag({ text: 'write x', points: W_SUB, delay: WRITE_AT, dur: LEG_DUR, ...SUB_TAG }),
+      F.route({ points: W_SUB, delay: WRITE_AT, dur: LEG_DUR, name: 'write', lights: ['viewSub'], tag: { text: 'write x', ...SUB_TAG } }),
       F.set({ at: 'write', sublabels: { viewSub: 'write refused' } }),
     ],
   },
@@ -194,8 +187,7 @@ export const STEPS_SPEC = [
       F.pulse({ pod: 'pod' }),
       F.set({ delay: BEAT.afterPulse, name: 'start', chips: FELL_BACK, chain: [0, 1] }),
       F.light({ targets: ['specChip', 'statusChip'], at: 'start' }),
-      F.route({ points: W_SUB, delay: WRITE_AT, dur: LEG_DUR, name: 'write', lights: ['viewSub'] }),
-      F.tag({ text: 'write x', points: W_SUB, delay: WRITE_AT, dur: LEG_DUR, ...SUB_TAG }),
+      F.route({ points: W_SUB, delay: WRITE_AT, dur: LEG_DUR, name: 'write', lights: ['viewSub'], tag: { text: 'write x', ...SUB_TAG } }),
       F.set({ at: 'write', sublabels: { viewSub: 'write accepted' } }),
       F.route({ points: W_DOWN, after: 'write', name: 'land', lights: ['hostTmp'] }),
       F.set({ at: 'land', sublabels: { hostTmp: 'x written here' } }),

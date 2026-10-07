@@ -1,15 +1,7 @@
 #!/usr/bin/env node
-// extents.mjs: every drawn string of a card MEASURED in viewBox units, per step, with the panel
-// rectangle beside it. Character-count arithmetic (6.89 units per mono character) is an estimate
-// and has been wrong by 5 units on a string that then sat 1.8 from a box wall: measure instead.
-//
-//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/extents.mjs <card-id>
-//     [--step=N]  one step only, default every step
-//     [--viewport=1600x1000]
-//     [--base=http://localhost:8888]
-//
-// Reads: x1..x2 and y1..y2 of each <text>, its width, and whether its box intersects the narration
-// panel (which is what OCCLUDED cannot report for a text, because that rule scores BLOCKS).
+// extents.mjs: every drawn string of a card measured in viewBox units per step, with overlap against the narration panel.
+// usage: cd scheme/test && node ../../.claude/skills/card-review/tools/extents.mjs <card-id> [--step=N] [--viewport=1600x1000] [--base=URL]
+// Measure rather than count characters: the per-character estimate drifts by several units.
 import {
   launch, initPage, openCard, enterStep, stepCount, DEFAULT_BASE, DIAGRAM,
 } from '../../../../scheme/test/fixtures/render.mjs';
@@ -28,16 +20,13 @@ await ctx.addInitScript(initPage, 'expose');
 const page = await ctx.newPage();
 await openCard(page, id, (flags.base || DEFAULT_BASE).replace(/\/$/, ''));
 await page.evaluate(() => window.__schemeCtl?.pause?.());
-// Fonts first. A text measured before the webfont lands is measured in the fallback face, and the
-// same string then reads 173.6 units on one run and 159.5 on the next.
+// Fonts first: a text measured before the webfont lands is measured in the fallback face.
 await page.evaluate(() => document.fonts.ready.then(() => true));
 
 const read = () => page.evaluate((sel) => {
   const svg = document.querySelector(sel);
-  // getScreenCTM, NOT viewBox.width / rect.width. `preserveAspectRatio` letterboxes the diagram
-  // inside its box on any viewport whose aspect differs from the viewBox, and the naive ratio then
-  // reports a string tens of units from where it is: measured, it put a right-aligned frame label
-  // back on the left corner at 1100x800. The matrix is the only reading that survives a resize.
+  // getScreenCTM, not viewBox.width / rect.width: preserveAspectRatio letterboxes the diagram on any
+  // viewport whose aspect differs, and the matrix is the only reading that survives a resize.
   const inv = svg.getScreenCTM().inverse();
   const at = (x, y) => { const p = svg.createSVGPoint(); p.x = x; p.y = y; return p.matrixTransform(inv); };
   const toVB = (b) => {

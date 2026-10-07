@@ -26,7 +26,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'storage-volume-data-homes',
+    id: 'storage-where-volume-data-lives',
     title: 'Where Volume Data Lives',
     category: 'storage',
     subcategory: 'volume-foundations',
@@ -130,7 +130,7 @@ export const CARDS = [
     title: 'Image Volumes',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'How do you hand a Pod a large model or toolset from an OCI registry without baking it into the app image? An image volume names an OCI image or artifact by reference, and Kubelet resolves it at Pod startup by its pullPolicy, pulling it like a container image with the same pull credentials before any container starts. It is mounted read-only as one directory at the mountPath. A recreated Pod resolves it again, but IfNotPresent pulls it only if the Node lacks it.',
+    desc: 'How do you hand a Pod a model or toolset without baking it into the app image? An image volume names an OCI image or artifact, and at Pod startup Kubelet asks the container runtime to resolve it by its pullPolicy: it is pulled like a container image, with the same pull credentials, before any container starts. It is mounted read-only as one directory at the mountPath. A recreated Pod resolves it again, but IfNotPresent pulls it only if the Node lacks it.',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -232,7 +232,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'storage-volume-mode',
+    id: 'storage-filesystem-vs-block',
     title: 'Filesystem vs Block',
     category: 'storage',
     subcategory: 'volumes-claims',
@@ -245,7 +245,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'storage-topology-aware-provisioning',
+    id: 'storage-volume-binding-mode',
     title: 'Immediate vs WaitForFirstConsumer',
     category: 'storage',
     subcategory: 'volumes-claims',
@@ -370,7 +370,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'storage-csi-attach-mount',
+    id: 'storage-attach-mount-chain',
     title: 'Attach and Mount Chain',
     category: 'storage',
     subcategory: 'csi-mount-path',
@@ -398,11 +398,11 @@ export const CARDS = [
     ],
   },
   {
-    id: 'storage-mount-path-chain',
+    id: 'storage-mount-propagation',
     title: 'Mount Namespaces and Propagation',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'How does a mount made inside the CSI node plugin container reach the host and then the app? Each container has its own mount namespace, and the plugin sets mountPropagation Bidirectional on its Kubelet directory mounts, so every mount it makes there is repeated in the host list, where a bind mount is the same files at a second path. The app container gets its own bind at /data, private by default, so later host mounts do not reach it.',
+    desc: 'How does a mount made inside the CSI node plugin container reach the host and then the app? Each container has its own mount namespace, and the plugin volumeMounts set mountPropagation Bidirectional on the Kubelet directories, so every mount it makes there is repeated in the host list, where a bind mount is the same files at a second path. The app container gets its own bind at /data, private by default, so later host mounts do not reach it.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -466,7 +466,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'storage-volume-detach-on-node-loss',
+    id: 'storage-detach-on-node-failure',
     title: 'Detach on Node Failure',
     category: 'storage',
     subcategory: 'csi-mount-path',

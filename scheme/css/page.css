@@ -1,0 +1,267 @@
+/* Static scheme card pages at /scheme/card/<id>/, written by tools/pages/build.mjs: the card's title,
+   description, poster, every step's narration and its sources as a plain readable article, linking
+   into the app to play the animation. Loaded after styles.css, which supplies the chrome and tokens. */
+
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 26px 20px 64px;
+}
+.page-article[data-cat="cluster"]   { --cat-color: var(--cluster-color);   --cat-glow: var(--cluster-glow);   --cat-border: var(--cluster-border); }
+.page-article[data-cat="workloads"] { --cat-color: var(--workloads-color); --cat-glow: var(--workloads-glow); --cat-border: var(--workloads-border); }
+.page-article[data-cat="network"]   { --cat-color: var(--network-color);   --cat-glow: var(--network-glow);   --cat-border: var(--network-border); }
+.page-article[data-cat="storage"]   { --cat-color: var(--storage-color);   --cat-glow: var(--storage-glow);   --cat-border: var(--storage-border); }
+
+.page-tags {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.page-cat {
+  padding: 3px 8px;
+  border: 1px solid var(--cat-border);
+  border-radius: 4px;
+  background: var(--cat-glow);
+  color: var(--cat-color);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.page-version {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.page-head h1 {
+  margin: 0 0 12px;
+  font-size: 34px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--text-bright);
+}
+.page-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 10px;
+  background: var(--cat-color);
+  color: #120f22;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: filter 0.15s, transform 0.15s;
+}
+.page-play:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+.page-poster {
+  margin: 0 0 34px;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(12, 8, 28, 0.85);
+}
+.page-poster svg { display: block; width: 100%; height: 100%; }
+
+.page-steps h2,
+.page-sources h2 {
+  margin: 0 0 14px;
+  font-size: 21px;
+  color: var(--text-bright);
+}
+.page-steps ol {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 34px;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.page-steps li {
+  position: relative;
+  padding: 14px 16px 14px 56px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  counter-increment: step;
+}
+.page-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--cat-border);
+  border-radius: 50%;
+  background: var(--cat-glow);
+  color: var(--cat-color);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+.page-steps p {
+  margin: 0 0 6px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.page-step-play {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+.page-step-play:hover { color: var(--cat-color); }
+
+.page-sources ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 34px;
+  padding: 0;
+  list-style: none;
+}
+.page-sources a {
+  display: inline-block;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-nav);
+  font-size: 14px;
+  text-decoration: none;
+}
+.page-sources a:hover { color: var(--accent); border-color: var(--accent-border); }
+
+@media (max-width: 680px) {
+  .page { padding: 20px 14px 48px; }
+  .page-head h1 { font-size: 27px; }
+  .page-steps li { padding-left: 50px; }
+  .page-steps li::before { left: 12px; }
+}
+
+/* The header has no search on a static page, so its one action keeps to the right on every width. */
+.static-page .header-actions { margin-left: auto; }
+
+/* The two index pages, /scheme/card/ and /cli/section/: every page of its kind, grouped. */
+.page-index-group { margin: 0 0 30px; }
+.page-index-group h2 { margin: 0 0 10px; font-size: 21px; color: var(--text-bright); }
+.page-index-group h3 { margin: 14px 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); }
+.page-index-group ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.page-index-group a {
+  display: inline-block;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-nav);
+  font-size: 14px;
+  text-decoration: none;
+}
+.page-index-group a:hover { color: var(--accent); border-color: var(--accent-border); }
+
+/* ===== SHARED BY BOTH STATIC PAGE KINDS (a copy lives in the other app's page.css) ===== */
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+  font-size: 13.5px;
+}
+.crumbs li + li::before {
+  content: '\203A';
+  margin-right: 6px;
+  color: var(--text-muted);
+}
+.crumbs a { color: var(--text-nav); text-decoration: none; }
+.crumbs a:hover { color: var(--accent); }
+
+.page-lede {
+  margin: 0 0 18px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-card-desc);
+}
+.page-lede a { color: var(--accent); }
+
+.page-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 0 0 26px;
+}
+.page-play-note { font-size: 13px; color: var(--text-dim); }
+.page-open {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 16px;
+  border: 1px solid var(--accent-border);
+  border-radius: 9px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.page-open:hover { background: rgba(221, 202, 250, 0.16); border-color: var(--accent); }
+
+.page-pager {
+  display: flex;
+  gap: 12px;
+  margin: 8px 0 30px;
+}
+.page-pager > * { flex: 1 1 0; }
+.page-pager a {
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-bright);
+  font-size: 14.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.page-pager a[rel="next"] { text-align: right; }
+.page-pager a:hover { border-color: var(--accent-border); background: var(--accent-glow); }
+.page-pager small {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.page-related h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: var(--text-bright);
+}
+.page-related ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.page-related a {
+  display: inline-block;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-nav);
+  font-size: 14px;
+  text-decoration: none;
+}
+.page-related a:hover { color: var(--accent); border-color: var(--accent-border); }
+
+@media (max-width: 680px) {
+  .page-pager { flex-direction: column; }
+  .page-pager a[rel="next"] { text-align: left; }
+}

@@ -1,53 +1,48 @@
-import { P, F, defineCard, laneY, makeRidingLabel, BEAT } from './network-kit.js';
+import { LANE_DY, P, F, defineCard, laneY, BEAT } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-dns-records.md
 
-
-// Panel right <= 397, bottom <= 330, so the query row and the FQDN band both hang below it and only
-// the record ladder, far right of 397, sits beside the panel. Content and chip strip both span this
-// band, which is what centres the bbox on 600, and the FQDN band is the only block that reaches
-// CONTENT_R, so narrowing it moves the measured centre while every other tier stays put.
+// The query row and the FQDN band hang below the panel, only the record ladder sits beside it. The
+// FQDN band is the only block reaching CONTENT_R, so narrowing it moves the measured centre off 600.
 const CONTENT_L = 80, CONTENT_R = 1120;
 
 const FLOW_Y = 400;                       // client + CoreDNS centre line
 const CLIENT_X = CONTENT_L, CLIENT_W = 210, CLIENT_H = 130;
-const CLIENT_EDGE = CLIENT_X + CLIENT_W;  // 290: client Pod shell right edge
-const CD_W = 230, CD_H = 96;
+const CLIENT_EDGE = CLIENT_X + CLIENT_W;  // client Pod shell right edge
+const CD_W = 232, CD_H = 80;              // NET.L-01
 const CD_LEFT = 420, CD_RIGHT = CD_LEFT + CD_W;   // CoreDNS box left/right edges
 
 // The record ladder owns the free top-right band, so the four answers climb into it.
-const PANEL_X = 710, PANEL_W = 410;       // record ladder: 710..1120
+const PANEL_X = 710, PANEL_W = 410;       // record ladder
 const ROWS_Y = 56, ROW_H = 54, ROW_GAP = 8;
-const ROWS = [0, 1, 2, 3].map(i => ROWS_Y + i * (ROW_H + ROW_GAP) + ROW_H / 2);   // 83 145 207 269
+const ROWS = [0, 1, 2, 3].map(i => ROWS_Y + i * (ROW_H + ROW_GAP) + ROW_H / 2);
 const FAN_X = 680;                        // vertical bus the four answer wires branch on
 // The client leg is a PAIR, question out above the flow line and answer home below it: every record
 // step says the CLIENT gets the record, and the ladder is a display, not an arrival.
-const LANE_DY = 12;
-const { out: Q_OUT_Y, back: Q_BACK_Y } = laneY(FLOW_Y, LANE_DY);   // 388 out, 412 back
+const { out: Q_OUT_Y, back: Q_BACK_Y } = laneY(FLOW_Y, LANE_DY);
 const QUERY = [[CLIENT_EDGE, Q_OUT_Y], [CD_LEFT, Q_OUT_Y]];
 const REPLY = [[CD_LEFT, Q_BACK_Y], [CLIENT_EDGE, Q_BACK_Y]];
 const ANS = ROWS.map(cy => [[CD_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, cy], [PANEL_X, cy]]);
-// Where the query GOES rides its ball. The 98 unit tag is wider than the 130 unit gap allows in the
-// face band, so it leads the ball above both block tops and retires on arrival. Record: LANES.
-const Q_TAG = { fn: makeRidingLabel({ role: 'network', outMs: 170, hold: 0 }), text: 'to 10.96.0.10:53', dx: 53, dy: -40, easing: 'linear' };
-// A tagged leg rides 1200, not the 700 floor its 130 units would clamp to, so the tag reads the whole way.
+// Where the query GOES rides its ball, leading it above both block tops: the gap is too narrow for
+// the tag in the face band.
+const Q_TAG = { text: 'to 10.96.0.10:53', dx: 53, dy: -40, easing: 'linear' };
+// A tagged leg rides LEG_DUR, not the 700 floor, so the tag reads the whole way.
 const LEG_DUR = 1200;
 
-// The first segment is CD_W wide and starts on CD_LEFT, so the service name sits exactly under the
-// resolver that answers it. The second absorbs the 7 units that frees, and the fourth still lands on
+// The first segment sits exactly under the resolver that answers it, and the fourth lands on
 // CONTENT_R, which keeps the content bbox on 600 without a frame.
 const SEG_GAP = 6;
 const SEG_Y = 490, SEG_H = 64;
 const SEGS = [
   { key: 'seg1', x: CD_LEFT, w: CD_W },
-  { key: 'seg2', x: CD_RIGHT + SEG_GAP, w: 184 },
+  { key: 'seg2', x: CD_RIGHT + SEG_GAP, w: 182 },
   { key: 'seg3', x: 846, w: 116 },
   { key: 'seg4', x: 968, w: 152 },
 ];
 
 const CHIP_Y = 578, CHIP_H = 34;
 const Q_CHIP_W = 660;                     // the question chip carries the longest SRV name
-const ANS_CHIP_W = 250, ANS_CHIP_X = CONTENT_R - ANS_CHIP_W;   // 870
+const ANS_CHIP_W = 250, ANS_CHIP_X = CONTENT_R - ANS_CHIP_W;
 // The third segment is called `subdomain`, not `kind`: in Kubernetes `kind` already means the object
 // kind (Pod, Service), whereas svc and pod here are the two DNS subdomains under the cluster domain.
 const NAME_SVC      = [['web', 'service'], ['default', 'namespace'], ['svc', 'subdomain'], ['cluster.local', 'cluster domain']];
@@ -120,8 +115,7 @@ const lookup = (rowIdx, ans) => [
   F.set({ chain: rowIdx, chips: { ansChip: ans }, on: 'coredns', at: 'ans' }),
   // The record lights in the ladder, and THEN the same answer goes home: the client is what gets the
   // record, and the ladder is a display rather than an arrival.
-  F.segment({ from: REPLY[0], to: REPLY[1], after: 'ans', name: 'reply' }),
-  F.pulse({ pod: 'client', at: 'reply' }),
+  F.segment({ from: REPLY[0], to: REPLY[1], after: 'ans', pulse: 'client' }),
 ];
 
 // A record step ends with its row lit and the count answered, which is what the static path shows at
@@ -158,8 +152,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'a-record',
-    // Motion: the query out, the record up into the ladder, then the answer home to the
-    // client and its arrival pulse, ending at ~4640.
     duration: 4900,
     narration: 'Ask for the name itself and you get an A record, or AAAA on IPv6, pointing at the Service ClusterIP, 10.96.0.20. This is the common case: a name in, the stable virtual IP out, which kube-proxy then load-balances to a Pod. The address answered is the web Service, not the kube-dns ClusterIP the question was sent to.',
     chips: { qChip: 'web.default.svc.cluster.local  IN A', ansChip: ONE_REC },
@@ -169,8 +161,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'srv-record',
-    // Motion: the query out, the record up into the ladder, then the answer home to the
-    // client and its arrival pulse, ending at ~4500.
     duration: 4900,
     narration: 'A named port also publishes an SRV record. The name grows a prefix, _http._tcp, naming the port and the protocol, and the answer carries the port number and the target host. It lets a client discover which port a Service exposes without that port number being hard-coded in the client.',
     chips: { qChip: '_http._tcp.web.default.svc.cluster.local  IN SRV', ansChip: ONE_REC },
@@ -180,8 +170,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'headless-record',
-    // Motion: the query out, the record up into the ladder, then the answer home to the
-    // client and its arrival pulse, ending at ~4500.
     duration: 4900,
     narration: 'If the Service is headless, the name does not change at all: the client asks exactly what it asked for the A record. What changes is the answer, one A record per ready Pod instead of a single virtual IP, here three of them, and the client chooses an endpoint itself.',
     chips: { qChip: 'web.default.svc.cluster.local  IN A', ansChip: THREE_REC },
@@ -191,9 +179,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'pod-record',
-    // Motion: the query out, the record up into the ladder, then the answer home to the
-    // client and its arrival pulse, ending at ~4500. The longest narration on the card pays
-    // for the rest of the hold.
     duration: 5000,
     narration: 'Finally a Pod has a record of its own, a form that predates the DNS spec, and here the name changes twice: the Pod IP written with dashes takes the place of the Service, and the subdomain flips from svc to pod. CoreDNS only serves it when the kubernetes plugin has pods enabled, which kubeadm sets to insecure by default, and in that mode it answers from the name without checking that such a Pod exists. A stable way to reach one specific replica is a StatefulSet Pod hostname under a headless Service.',
     chips: { qChip: '10-244-2-7.default.pod.cluster.local  IN A', ansChip: ONE_REC },

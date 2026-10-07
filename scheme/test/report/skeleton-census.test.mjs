@@ -1,103 +1,6 @@
-// skeleton-census.test.mjs: R-skeleton's CENSUS, report only. The mandatory half of
-// R-skeleton, R-viewbox and the source half of R-opacity live in ../unit/skeleton.test.mjs; this file
-// holds the counting, the cross-check that the counting is honest, and the queue of skeleton facts
-// that are not blocking yet.
-//
-// ===========================================================================================
-// WHAT SECTION 1 COUNTS, AND WHY A CENSUS OF THE LEGACY FORM IS STILL RUN
-// ===========================================================================================
-// A card is generated from data, so the hand-written skeleton has no home in the tree: `class Scene`,
-// `constructor(host)`, `reset() { this.build(); }`, the `makeInit` export, `function resetStep(s)`
-// and `function clearHL(s)` all read 0 over every card. Section 1 runs those six patterns anyway, and
-// the zero is what they are FOR: they are a LEGACY-FORM TRIPWIRE, and any non-zero is a card that
-// has gone back to writing its own skeleton by hand. Section 2 prints the same measure per category,
-// so the tripwire names the category it fired in. Nothing below fails on a finding.
-//
-// A PATTERN WITH A BRACE IN IT CANNOT COUNT A STEP, and the `enter() bodies` row is the standing
-// demonstration. A step is an object in an array, so nothing looking for `enter(s) {` reaches one:
-// that row reads 17, and those 17 are the `step.enter` escapes written in method shorthand rather
-// than any count of steps. Section 3 reads the real step count off the data.
-//
-// WHAT FEEDS THE ONE ASSERTION, because it is NOT those six patterns. The cross-check at the bottom
-// takes specMigrated off the EXPORT SURFACE (cardForm over the module namespace) and sourceMigrated
-// off the SOURCE with /^export const init = defineCard\(/m, and requires the two to agree and both
-// to add up to the catalog. Both readings are of the CURRENT form, so the assertion stands with
-// every legacy pattern deleted and no number in this file rests on one.
-//
-// ===========================================================================================
-// THE QUEUE: skeleton facts that are measured here and NOT enforced anywhere
-// ===========================================================================================
-// Q1  reset.keys and reset.pods naming a ref NOTHING creates: neither a part `key:` nor a
-//     `refs.x =` inside an escape body. What counts as creating one is settled below, in WHAT
-//     COUNTS AS CREATING A REF, and an escape-created name counts: reading part keys alone files 12
-//     escape-created refs on four cards as findings, and every one of them is false. A queue made
-//     of false findings stops being read, and a real typo drowns in it.
-// Q2  CLOSED, and the slot is kept so Q3 to Q5 keep their numbers. The rule and the code agree:
-//     S-11 puts reset.extra LAST and makeResetStep (js/lib/scene-spec.js) runs packetLayer,
-//     clearHighlights, clearWires, extra in that order. NO card in the catalog declares a
-//     reset.extra, so that ordering is a guarantee held against the next one rather than against a
-//     live site, and section 4 below is where the count is read rather than asserted here.
-// Q3  S-12 ("no card declares clearHL(s)") has NO successor as a statement about data, and none is
-//     invented in the unit file. A migrated card writes no prologue, so there is nothing to fold;
-//     `clearHL` is on no kit, so no card could import one. The only remaining form of the rule is the
-//     source count printed below, and it is 0 over every card.
-// Q4  D-14's `posterFirst: true` is an ARGUMENT to defineCard, so it lives inside a closure and is
-//     unreadable from the module namespace: no reading of the export surface can reach it. Counted
-//     here from source, on every card, because that is the only place it is visible without a browser.
-// Q5  Section 4 counts the escape set {reset.extra, part.tune, part.raw, step.enter, step.motion,
-//     F.run fn} over the whole catalog and prints how many cards are clean of all six. Read it
-//     against the per-category hook tables in the four folder contracts: `tune` and `raw` are
-//     escapes too, and a reading that counts only the obvious ones calls more cards clean than are.
-//
-// ===========================================================================================
-// WHAT COUNTS AS CREATING A REF, which is the whole of what Q1 stands on
-// ===========================================================================================
-// Two sources, and both are read:
-//   - a part's `key:`, plus a pod's shellKey / innerKey and the packets layer, off the data
-//   - a LITERAL `refs.x =` or `refs['x'] =` inside an escape body, read out of fn.toString()
-// NEITHER reader is invented here and neither is copied: both are `refUniverse` in
-// ../fixtures/spec.mjs, which ../unit/spec-steps.test.mjs and ../unit/spec-scene.test.mjs resolve
-// their names against too. One regex, one recursive collect over the whole SCENE and STEPS_SPEC
-// object rather than a hand-listed set of hook fields, and one answer to what a ref IS. A drift
-// between the three files would surface as a disagreement about which cards are broken, which is
-// why the reader has one home. Q1 was the reason it had to: the two unit files would go red over a
-// reset key naming something nothing creates, and this queue, which exists for exactly that, would
-// print 0 if its own set were the wider one.
-//
-// WHAT IS NOT A REF, and why the exclusion changes no number: a pod's `id` and a packets layer's
-// `id` create nothing. Both are the DOM id of a wrapper `g`, never filed in refs. Measured on this
-// catalog: 67 pod parts carry an id and every one repeats a name already filed as a ref, 0 packets
-// parts carry one, so counting them would widen the set by nothing and Q1 stays 0. What excluding
-// them stops is a real typo hiding behind a coincidence with an element id.
-//
-// MEASURED, and printed as section 4b on every run so it cannot go stale here: of the six escape
-// kinds this file counts, only `part.tune` and the factories on `part.raw` assign a ref at all.
-// reset.extra, step.enter, step.motion and F.run assign none. All six are scanned anyway, because
-// collectFns takes the object and not a list of field names, and an `unattributed` row appears the
-// day a ref arrives from a function no kind branch names.
-//
-// ===========================================================================================
-// WHAT THIS FILE IS BLIND TO
-// ===========================================================================================
-//   - A ref built through a COMPUTED key, `refs[k] = ...`. Unreadable by construction, which is why
-//     schemes/network/CLAUDE.md forbids one; the tree holds none, and one would read as a Q1 typo.
-//   - A ref a HELPER assigns. fn.toString() ends at the escape's own body, so an escape that calls
-//     out to a module-level builder taking `refs` hides that builder's assignments.
-//   - WHEN a ref appears. A ref a step escape creates is counted as created even though reset runs
-//     first, the same widening as above. No step escape assigns one today.
-//   - What an escape builds beyond a ref. A P.raw make(refs) and a tune(el, refs) draw elements;
-//     those elements are counted nowhere, only the names they are filed under.
-//   - A card written in any form but data. Sections 3 to 5 read SCENE and STEPS_SPEC, so such a
-//     card would be counted nowhere. Every card in the catalog is migrated and none is legacy, which is what puts
-//     the whole tree in reach, and the cross-check at the bottom is what keeps that claim honest.
-//   - Whether any of this draws correctly. Every number here is about declarations.
-//
-// A LOCAL COMMENT BLANKER, and why it is not in ../fixtures/. The patterns must not match text
-// inside a comment, and fixtures/prose.mjs carries no stripper. This one stays local because it has
-// ONE caller, unlike the escape reader above, and it blanks whole comment LINES only. That is sound for these patterns:
-// every one of them is anchored to column 0 or column 2 of a code line, so an inline trailing comment
-// cannot produce a match and a full-line comment is removed. If this census ever grows a pattern that
-// is not line-anchored, a real stripper belongs in fixtures/prose.mjs first.
+// R-skeleton census, report only (the gate is ../unit/skeleton.test.mjs). Legacy-form patterns are a
+// tripwire that must read 0. The queue: Q1 reset keys naming no ref, Q3 S-12, Q4 D-14 posterFirst, Q5 escapes.
+// Patterns are line-anchored, so blanking whole comment lines is a sound strip.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -112,15 +15,13 @@ const CATS = await categories();
 const modules = await importAll();
 const { OPACITY } = await importLib('tokens.js');
 
-// The six hand-written-skeleton patterns. Each reads 0 on a declarative catalog, and 0 is their
-// resting value: a non-zero is a card that has gone back to writing its own skeleton.
+// Zero is their resting value: a non-zero is a card writing its own skeleton again.
 const LEGACY_FORM = new Set([
   'class Scene', 'constructor(host)', 'reset() { this.build(); }', 'makeInit export',
   'function resetStep(s)', 'function clearHL(s)',
 ]);
 
-// Exact rather than loose, every one anchored to a whole line: a card that slipped back reads as a
-// count, and a card that merely mentions the words in passing does not.
+// Anchored to whole lines, so a mention in passing does not count.
 const SOURCE_PATTERNS = {
   'class Scene': /^class Scene \{$/gm,
   'constructor(host)': /^  constructor\(host[^)]*\) \{/gm,
@@ -128,7 +29,6 @@ const SOURCE_PATTERNS = {
   'makeInit export': /^export const init = makeInit\(Scene, STEPS, \{ posterFirst: true \}\);$/gm,
   'function resetStep(s)': /^function resetStep\(s\) \{/gm,
   'function clearHL(s)': /^function clearHL\(s\) \{/gm,
-  // The three shapes the declarative form writes instead.
   'defineCard export': /^export const init = defineCard\(SCENE, STEPS_SPEC, \{ posterFirst: true \}\);$/gm,
   'export const SCENE': /^export const SCENE = \{$/gm,
   'export const STEPS_SPEC': /^export const STEPS_SPEC = \[$/gm,
@@ -137,8 +37,7 @@ const SOURCE_PATTERNS = {
 const blankCommentLines = (src) =>
   src.split('\n').map(l => (/^\s*(\/\/|\*|\/\*)/.test(l) ? '' : l)).join('\n');
 
-// Bracket matching rather than a fixed shape, so a body that opens with something other than
-// resetStep(s) is counted and reported rather than missed.
+// Bracket matching, so a body not opening with resetStep(s) is counted rather than missed.
 function enterBodies(code) {
   const out = [];
   for (const m of code.matchAll(/enter\(s(?:,\s*ctx)?\)\s*\{/g)) {
@@ -154,8 +53,7 @@ function enterBodies(code) {
   return out;
 }
 
-// Parts, groups flattened, off the shared walk. A HOLE in the list is collected rather than skipped:
-// a null part draws nothing and is a finding, not a shorter run.
+// A null part is collected as a finding, not skipped.
 function flatParts(scene) {
   const out = [], nulls = [];
   walkParts(scene.parts, (part, at) => (part ? out.push({ part, at }) : nulls.push(at)));
@@ -169,9 +67,6 @@ const histLine = (m) => [...m.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b
 test('skeleton census: the declared spec form, with the legacy skeleton as a tripwire (report only)', async (t) => {
   const lines = [];
 
-  // -------------------------------------------------------------------------------------------
-  // 1. The source form: the legacy tripwire, plus the three shapes the declarative form writes.
-  // -------------------------------------------------------------------------------------------
   const srcTotals = Object.fromEntries(Object.keys(SOURCE_PATTERNS).map(k => [k, 0]));
   const perCat = new Map(CATS.map(c => [c, { cards: 0, lines: 0, scene: 0, define: 0, reduced: 0, role: 0 }]));
   let enters = 0, prologues = 0, posterFirst = 0;
@@ -216,9 +111,6 @@ test('skeleton census: the declared spec form, with the legacy skeleton as a tri
   lines.push(`   above reads ${enters} escape bodies rather than steps, and section 3 reads`);
   lines.push('   those off the data.');
 
-  // -------------------------------------------------------------------------------------------
-  // 2. Per category. All four are migrated, so this is a shape census and not a burn-down.
-  // -------------------------------------------------------------------------------------------
   lines.push('');
   lines.push('2. PER CATEGORY, the same source measures split by category');
   lines.push('   category    cards  src lines  class Scene  defineCard  if (ctx.reduced)  role: \'..\'');
@@ -231,17 +123,13 @@ test('skeleton census: the declared spec form, with the legacy skeleton as a tri
   lines.push('   a card that slipped back to the legacy form. The role column is NOT one of those: the');
   lines.push('   kit binds a role and writing one at a call site is an override (C-02), not a leftover.');
 
-  // -------------------------------------------------------------------------------------------
-  // 3. The new census: the spec form.
-  // -------------------------------------------------------------------------------------------
   const kinds = new Map(), stepFields = new Map(), verbs = new Map(), shades = new Map(), step0 = new Map();
   const hooks = new Map([
     ['SCENE.reset.extra', 0], ['part.tune', 0], ['part.raw', 0],
     ['step.enter', 0], ['step.motion', 0], ['F.run fn', 0],
   ]);
   const softFields = new Map([['step.rewind', 0], ['step.reducedLit', 0]]);
-  // Refs created by an escape rather than by a key, per escape kind. `unattributed` is the row that
-  // fires when a ref arrives from a function none of the six branches below reaches.
+  // `unattributed` fires when a ref comes from a function none of the six branches reaches.
   const escapeRefs = new Map([...hooks.keys(), 'unattributed'].map(k => [k, 0]));
   const escapeRefCards = new Map();
   const hookCards = new Map();
@@ -262,8 +150,7 @@ test('skeleton census: the declared spec form, with the legacy skeleton as a tri
     allParts += out.length;
     nullParts += nulls.length;
 
-    // Every ref a static reader can see, off the shared universe: declared keys plus escape-assigned
-    // names, wires excluded because they land in refs.wires and clearHighlights reads refs.
+    // Wires excluded: they land in refs.wires, and clearHighlights reads refs.
     const refKeys = refNames(scene, ns.STEPS_SPEC);
     const escRefs = new Map();
     const noteEscape = (kind, fn) => {
@@ -282,7 +169,7 @@ test('skeleton census: the declared spec form, with the legacy skeleton as a tri
       if (typeof p.tune === 'function') { bump(hooks, 'part.tune'); mark(c.id, 'tune'); noteEscape('part.tune', p.tune); }
       if (part.kind === 'raw') {
         bump(hooks, 'part.raw'); mark(c.id, 'raw');
-        // A raw part carries make and may carry tune, so both factories are read, not just make.
+        // A raw part carries make and may carry tune.
         for (const v of Object.values(p)) if (typeof v === 'function') noteEscape('part.raw', v);
       }
       if (p.opacity !== undefined) bump(shades, String(p.opacity));
@@ -310,8 +197,7 @@ test('skeleton census: the declared spec form, with the legacy skeleton as a tri
       }
     }
 
-    // The safety net over the same two objects: a function the six branches missed still gets read,
-    // and the name it assigns is filed as `unattributed` rather than reported as a typo.
+    // The safety net: a missed function is still read and its ref filed as `unattributed`.
     const wide = [];
     collectFns(scene, wide);
     collectFns(ns.STEPS_SPEC, wide);
@@ -373,12 +259,7 @@ test('skeleton census: the declared spec form, with the legacy skeleton as a tri
   lines.push('===== end of report =====');
   console.log(lines.join('\n'));
 
-  // -------------------------------------------------------------------------------------------
-  // THE ONE ASSERTION, and it is a cross-check rather than a threshold. A census that scanned a
-  // subset prints small numbers and looks exactly like a young migration, so the count derived from
-  // the EXPORT SURFACE and the count derived from the SOURCE have to agree, and both have to add up
-  // to the catalog. Two independent readings of the same fact: if either walk goes short, they part.
-  // -------------------------------------------------------------------------------------------
+  // The one assertion: the export-surface count and the source count must agree and sum to the catalog.
   assert.equal(specMigrated + specLegacy, CARD_COUNT,
     `the spec walk saw ${specMigrated + specLegacy} card(s), data.js lists ${CARD_COUNT}`);
   assert.equal(sourceMigrated + sourceLegacy, CARD_COUNT,

@@ -1,74 +1,6 @@
-// chip-unwritten.test.mjs: the chip NO step writes, which is the hole in P-01 that P-01 cannot see.
-//
-// P-01 is "every step states EVERY chip, not only the ones it narrates", and unit/spec-steps.test.mjs
-// enforces it by comparing one step's chip key set against the other steps of the same card. That
-// comparison is the reason the rule is closed and also the reason this class is invisible: a chip
-// missing from ALL the sets agrees with every other set perfectly. The card declares the chip in
-// SCENE, the reader sees it on screen for the whole card, and nothing anywhere ever writes it.
-//
-// It needs no browser. A chip is a `chip` part with a key, and a write is a key in `chips`,
-// `chipsCued`, `rewind` or an `F.set`, all of them fields.
-//
-// ===========================================================================================
-// WHY THIS IS A QUEUE AND NOT A VERDICT, WHICH IS THE WHOLE POINT OF THE FILE
-// ===========================================================================================
-// A chip nobody writes is NOT automatically wrong, and the catalog says so out loud: every one of
-// the findings below carries a build-time `value` in its own part, so what stands on screen is a
-// real string and not the blank ' ' a placeholder chip is built with. A chip whose value is a
-// CONSTANT of the diagram (a nameserver every step agrees on, a NodePort range fixed by the API
-// server) is legitimately stated once, at build, and never restated.
-//
-// So the file prints the value each one carries and lets a person rule. What it separates out is the
-// form where the card contradicts itself:
-//
-//   LIT-NOT-WRITTEN   at least one step names the chip in `lit`, in `reducedLit`, in a `lights` list
-//                     or as an F.light target, and NO step writes it. The step is pointing at a
-//                     value as the news of that step, and the value it points at is whatever the
-//                     scene was built with. That is the sharp queue.
-//   SILENT            nothing writes it and nothing points at it. A standing caption that happens to
-//                     be drawn as a chip. Printed as its own tier because the reading is different:
-//                     nobody is claiming anything about it, so the question is only whether a chip
-//                     is the right part kind for it.
-//
-// The sharp form, as the D1 inventory named it: a chip that several steps highlight, that none
-// writes, so the highlight is the cue for a value that never changes.
-//
-// ===========================================================================================
-// WHY report/ AND NOT unit/
-// ===========================================================================================
-// The cycle is written in ./arrival.test.mjs and this project has run it three times: report-only,
-// then a human triage of the queue, then promotion into the mandatory set. Eighteen findings on six
-// cards, every one of them possibly correct by the constant-chip reading above, is not a thing to
-// redden the gate with before anybody has read one. Nothing here fails on a finding.
-//
-// WHAT DOES FAIL: the census, and the shape of the carried table. A report that walked less than the
-// catalog prints few findings and looks exactly like a clean catalog, which is the lesson of stage
-// once, when the first run of a report test came back one step short and nothing in the output
-// looked wrong. Fewer cards or steps than the catalog holds is an assertion failure, not a note.
-//
-// ===========================================================================================
-// WHAT THIS FILE IS BLIND TO
-// ===========================================================================================
-//   - A WRITE INSIDE AN ESCAPE. `step.enter` (42 sites) and `F.run` (13) are function bodies, and
-//     `setVal(s.refs.x, ...)` inside one is a write this reader does not see, so such a chip would
-//     be reported here as unwritten. P-11 bans exactly that ("a value a step writes belongs in a
-//     writer FIELD, never in the `enter` escape"), which is why the finding is worth printing rather
-//     than guarding against: if one of these turns out to be written by an escape, the finding is a
-//     P-11 finding instead of this one. Checked by hand on the 18 reported today: none of them is
-//     mentioned anywhere in its card outside the part declaration, the reset keys and the `lit`
-//     lists, so no escape writes any of them.
-//   - A CHIP AN ESCAPE CREATES. `part.raw` can build an element and file it under a ref (10 cards
-//     assign a ref from a hook). Such a chip is not a `chip` part and is not in the population at
-//     all, so it can never be reported, however dead it is.
-//   - WHETHER THE VALUE IS TRUE. A constant chip stating something the card later contradicts reads
-//     as perfectly quiet here. That is a human reading of the picture, and the reason the two forms
-//     are printed with their values attached.
-//   - `chain` ROWS AND `wire` LABELS. Only the `chip` part kind is counted. A chain row nobody
-//     activates and a wire label nobody sets are the same class one part kind over, and neither is
-//     this file's subject.
-//   - WHETHER THE HIGHLIGHT IS DESERVED. LIT-NOT-WRITTEN asks only that some step points at the
-//     chip. Whether pointing at an unchanging value is right on THAT step is P-03 and R2, and
-//     ./chip-beat.test.mjs and ./arrival.test.mjs own those.
+// The chip no step writes, the P-01 hole: LIT-NOT-WRITTEN (a step points at it) and SILENT (a caption
+// drawn as a chip), reported with each chip's build-time value. Fails only on the census and table shape.
+// Blind to writes inside escapes (P-11), chips built by escapes, chain rows and wire labels.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -77,17 +9,6 @@ import { carriedBlock, shapeProblems, staleKeys } from '../fixtures/carried.mjs'
 import { importAll, stepTotal } from '../fixtures/module.mjs';
 import { walkParts } from '../fixtures/spec.mjs';
 
-// The recorded walk. Assertions, not notes: see the header.
-
-// -------------------------------------------------------------------------------------------
-// Findings a human has READ and decided to carry, keyed `<card id> <chip key>`, with the reason on
-// each. EMPTY ON PURPOSE, and that is the statement this table makes: not one of the eighteen has
-// been read by a person yet, so everything outside the table is work by definition, and a reason
-// lands in the table only after someone has looked at the card. Same shape and same discipline as
-// R2_STEP_CARRIED in ./arrival.test.mjs: an entry here is a decision with a measurement behind it,
-// never a way to quiet the queue.
-// -------------------------------------------------------------------------------------------
-
 const catalogued = await cards();
 const modules = await importAll();
 
@@ -95,19 +16,12 @@ const pad = (n) => String(n).padStart(4);
 const fmt = ([a, b]) => `${a} chip(s) / ${b} card(s)`;
 const countsOf = (rows) => [rows.length, new Set(rows.map(r => r.card)).size];
 
-// Every key any step writes: the static block, the rewind the animated path adds, and every F.set
-// in the flow. The same four places ../fixtures/spec.mjs resolves a chip through, asked as a set of
-// NAMES rather than of values, because the question here is whether a writer exists at all.
-// The walk and the carried table live in ../fixtures/chip-unwritten.mjs, shared with the gate
-// file that asserts the queue. See that file's header for why.
+// The walk and the carried table live in ../fixtures/chip-unwritten.mjs.
 import { writtenKeys, cuedKeys } from '../fixtures/chip-unwritten.mjs';
 import { CHIP_CARRIED } from '../fixtures/chip-unwritten.mjs';
 
-// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
-// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_CARDS = (await cards()).length;
 const EXPECTED_STEPS = await stepTotal();
-
 
 test('a chip no step writes (report only, census is the assertion)', (t) => {
   const litNotWritten = [], silent = [];
@@ -194,7 +108,6 @@ test('a chip no step writes (report only, census is the assertion)', (t) => {
       'and no step lights it either');
   }
 
-  // One shape for a carried row across every report file: ../fixtures/carried.mjs owns it.
   if (held.length) out.push('');
   const stale = staleKeys('LIT-NOT-WRITTEN', all.map(r => r.carryKey));
   for (const l of carriedBlock('LIT-NOT-WRITTEN', held.map(r => ({ key: r.carryKey, why: r.why })), stale)) out.push(l);
@@ -208,11 +121,7 @@ test('a chip no step writes (report only, census is the assertion)', (t) => {
   out.push('===== end of report =====');
   console.log(out.join('\n'));
 
-  // -------------------------------------------------------------------------------------------
-  // The assertions, and none of them is about a card. A finding here is a statement about a card
-  // and its acceptance belongs to a person; a walk that covered less than the catalog is not a
-  // measurement at all, and a carried entry with no reason is a queue quietly getting shorter.
-  // -------------------------------------------------------------------------------------------
+  // The census and the carried table's shape.
   assert.ok(walked >= EXPECTED_CARDS,
     `walked ${walked} card(s), the catalog had ${EXPECTED_CARDS} when this report was written. ` +
     'A report over a subset prints few findings and looks exactly like a clean catalog.');

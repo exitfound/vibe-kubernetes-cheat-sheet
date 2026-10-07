@@ -1,42 +1,40 @@
-import { P, F, defineCard, laneY, midX, shade, makeRidingLabel, BEAT, OPACITY } from './network-kit.js';
+import { LANE_DY, P, F, defineCard, laneY, midX, shade, BEAT, OPACITY } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-ingress-routing.md
 
-
 // Four columns: the controller Service left, the controller Pod under its Ingress, and the backend
 // Pods on the right with each Service hung OFF its Pod as a lookup rather than standing in the path.
-const LB_X = 40, LB_W = 232, LB_H = 76;           // NET.L-01
-const LB_RIGHT = LB_X + LB_W;                     // 272
-const CTRL_W = 232, CTRL_H = 114;                 // the standard Pod shell, same as both backends
-const RULE_W = 320;                               // the longest rule row inks under it at 1100x800
+const LB_X = 40, LB_W = 232, LB_H = 80;           // NET.L-01
+const LB_RIGHT = LB_X + LB_W;
+const CTRL_W = 232, CTRL_H = 114;                 // this card's Pod shell, same as both backends
+const RULE_W = 320;                               // the longest rule row inks under it
 const RULE_X = 420;                               // L-03: the first x clear of the panel column
-const RULE_CX = RULE_X + RULE_W / 2;              // 580
-const CTRL_X = RULE_CX - CTRL_W / 2;              // 464: the controller stands centred under its rules
-const CTRL_RIGHT = CTRL_X + CTRL_W;               // 696
+const RULE_CX = RULE_X + RULE_W / 2;
+const CTRL_X = RULE_CX - CTRL_W / 2;              // the controller stands centred under its rules
+const CTRL_RIGHT = CTRL_X + CTRL_W;
 const POD_W = 232, POD_H = 114;
-const POD_X = 1160 - POD_W;                       // 928, mirrors LB_X about x=600
-const POD_CX = POD_X + POD_W / 2;                 // 1044
-const FAN_X = midX(CTRL_RIGHT, POD_X);            // 812, the bus both branches split on
+const POD_X = 1160 - POD_W;                       // mirrors LB_X about x=600
+const POD_CX = POD_X + POD_W / 2;
+const FAN_X = midX(CTRL_RIGHT, POD_X);            // the bus both branches split on
 
 // The Ingress document: a caption, then one tls row and two rule rows.
-const RULE_H = 36, RULE_GAP = 6;
+const RULE_H = 34, RULE_GAP = 6;
 const RULE_Y = 62;
 const ruleY = (i) => RULE_Y + i * (RULE_H + RULE_GAP);
-const RULE_BOTTOM = ruleY(2) + RULE_H;            // 182
+const RULE_BOTTOM = ruleY(2) + RULE_H;
 
 // The request pair runs on FLOW_Y, the branches sit ROW_DY off it, and each Service hangs SVC_GAP
 // beyond its own Pod, above web and below api, so no lane ever meets a Service.
-const FLOW_Y = 356;
-const LANE_DY = 12;
-const { out: REQ_Y, back: BACK_Y } = laneY(FLOW_Y, LANE_DY);   // 344 request, 368 answer
-const ROW_DY = 78;
-const { out: WEB_Y, back: API_Y } = laneY(FLOW_Y, ROW_DY);     // 278 web, 434 api
-const CTRL_TOP = FLOW_Y - CTRL_H / 2;             // 299
-const SVC_H = 56, SVC_GAP = 24;
-const WEB_POD_TOP = WEB_Y - POD_H / 2;            // 221
-const API_POD_BOTTOM = API_Y + POD_H / 2;         // 491
-const SVC_WEB_Y = WEB_POD_TOP - SVC_GAP - SVC_H;  // 141
-const SVC_API_Y = API_POD_BOTTOM + SVC_GAP;       // 515
+const FLOW_Y = 344;
+const { out: REQ_Y, back: BACK_Y } = laneY(FLOW_Y, LANE_DY);   // request, answer
+const ROW_DY = 70;
+const { out: WEB_Y, back: API_Y } = laneY(FLOW_Y, ROW_DY);     // web, api
+const CTRL_TOP = FLOW_Y - CTRL_H / 2;
+const SVC_H = 80, SVC_GAP = 24;                   // NET.L-01
+const WEB_POD_TOP = WEB_Y - POD_H / 2;
+const API_POD_BOTTOM = API_Y + POD_H / 2;
+const SVC_WEB_Y = WEB_POD_TOP - SVC_GAP - SVC_H;
+const SVC_API_Y = API_POD_BOTTOM + SVC_GAP;
 const CHIP_Y = 592, CHIP_H = 34;
 
 // Each static wire and the packet that rides it share the same points array.
@@ -115,15 +113,12 @@ const SPEC = { tlsRow: '-> Secret shop-tls', ruleA: '-> Service web:80', ruleB: 
 const TERMINATED = 'shop-tls, terminated';
 const SERVED_WEB = `Pod ${WEB_IP}`, SERVED_API = `Pod ${API_IP}`, SERVED_404 = 'controller, 404';
 
-// A branch is 310 units, which the 700ms floor runs at 0.44 u/ms, so a tagged ball rides BRANCH_DUR
-// near the catalog median instead (M-12, PACING in motion.test).
-const BRANCH_DUR = 1500;
-// The Pod IP rides the ball from departure (NET.T-01), TAG_DX right of it so it clears the controller
-// frame, and dissolves with the ball on arrival (M-30a). It rides on the side AWAY from the lane it
-// turns into: below on the web branch, above on the api one.
+// A tagged ball rides LEG_DUR near the catalog median so its tag is readable (M-12, PACING in motion.test).
+const LEG_DUR = 1500;
+// The Pod IP rides the ball (NET.T-01), TAG_DX right of it to clear the controller frame, on the side
+// AWAY from the lane it turns into.
 const TAG_DX = 54, TAG_DY_WEB = 18, TAG_DY_API = -14;
-const ridingLabel = makeRidingLabel({ role: 'network', inMs: 200, outMs: 200, hold: 0 });
-const tag = (p) => F.tag({ fn: ridingLabel, dur: BRANCH_DUR, dx: TAG_DX, ...p });
+const tag = (p) => F.tag({ dur: LEG_DUR, dx: TAG_DX, ...p });
 // The lookup lights the Service while the controller is still pulsing, before the ball leaves.
 const LOOKUP_MS = 400;
 
@@ -162,7 +157,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'match-web',
-    // Motion: pulse 800, the branch at BRANCH_DUR, the Pod pulse 900, so 3200 of motion.
     duration: 4400,
     narration: 'Now it reads the Host header, shop.io, and the path, /. Only the / rule matches. The controller does not hand the request to the Service ClusterIP: it reads the Ready endpoints of Service web from its EndpointSlice and proxies straight to Pod IP 10.244.1.5.',
     chips: { hostChip: 'shop.io', pathChip: '/', tlsChip: TERMINATED, servedChip: SERVED_WEB, ...SPEC },
@@ -173,7 +167,7 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'ctrl' }),
       F.light({ targets: ['svcWeb'], delay: LOOKUP_MS }),
-      F.route({ points: TO_WEB, delay: BEAT.afterPulse, dur: BRANCH_DUR, name: 'toPod', lights: ['servedChip'] }),
+      F.route({ points: TO_WEB, delay: BEAT.afterPulse, dur: LEG_DUR, name: 'toPod', lights: ['servedChip'] }),
       tag({ text: `to ${WEB_IP}`, points: TO_WEB, delay: BEAT.afterPulse, dy: TAG_DY_WEB }),
       F.set({ at: 'toPod', chips: { servedChip: SERVED_WEB } }),
       F.pulse({ pod: 'podWeb', at: 'toPod' }),
@@ -181,7 +175,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'match-api',
-    // Motion: the request 700, pulse 800, the branch at BRANCH_DUR, the Pod pulse 900, so 3900 of motion.
     duration: 5200,
     narration: 'A second HTTPS request asks for shop.io/api. Both rules match it, because Prefix / matches every path, and the Ingress spec gives precedence to the longest matching path, so /api wins. The controller reads the endpoints of Service api and proxies straight to Pod IP 10.244.2.7.',
     wires: { req: 'HTTPS shop.io/api' },
@@ -195,7 +188,7 @@ export const STEPS_SPEC = [
       F.set({ at: 'inb', chips: { pathChip: '/api' } }),
       F.pulse({ pod: 'ctrl', at: 'inb' }),
       F.light({ targets: ['svcApi'], at: 'inb', plus: LOOKUP_MS }),
-      F.route({ points: TO_API, at: 'inb', plus: BEAT.afterPulse, dur: BRANCH_DUR, name: 'toPod', lights: ['servedChip'] }),
+      F.route({ points: TO_API, at: 'inb', plus: BEAT.afterPulse, dur: LEG_DUR, name: 'toPod', lights: ['servedChip'] }),
       tag({ text: `to ${API_IP}`, points: TO_API, at: 'inb', plus: BEAT.afterPulse, dy: TAG_DY_API }),
       F.set({ at: 'toPod', chips: { servedChip: SERVED_API } }),
       F.pulse({ pod: 'podApi', at: 'toPod' }),
@@ -203,7 +196,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'no-match',
-    // Motion: the request 700, pulse 800, the answer 700, so 2200 of motion.
     duration: 3400,
     narration: 'A plain HTTP request for other.io/ arrives. No Ingress of this class names that host and Ingress shop sets no defaultBackend, so the Ingress API leaves the answer to the controller. This one hands it to its own default backend, which answers 404, and neither Service is looked up.',
     wires: { req: 'HTTP other.io/', back: 'HTTP 404' },

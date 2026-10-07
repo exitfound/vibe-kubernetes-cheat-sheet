@@ -2,27 +2,24 @@ import { P, F, defineCard, makeRidingLabel, BEAT, OPACITY } from './network-kit.
 
 // Design notes for this card: ./CARDS/network-ebpf-dataplane.md
 
-
-// The composition spans CONTENT_L..CONTENT_R so it centres on 600. Panel right <= 397, bottom <= 205,
-// and every block sits clear of it. The client Pod holds the left margin and the backend column the
-// right, so the three chips are one even row across the span. Stopping the backend at 1030 instead
-// leaves the whole card 50 units left of centre.
+// The composition spans CONTENT_L..CONTENT_R so it centres on 600, clear of the panel. The client Pod
+// holds the left margin and the backend column the right, so the three chips are one even row.
 const CONTENT_L = 70, CONTENT_R = 1130;
 const FLOW_Y = 312;                    // client <-> eBPF program lane
 const CLIENT_X = CONTENT_L, CLIENT_W = 200;
-const CLIENT_RIGHT = CLIENT_X + CLIENT_W;   // 270
+const CLIENT_RIGHT = CLIENT_X + CLIENT_W;
 const HOOK_X = 440, HOOK_W = 232;      // eBPF program box, the catalog actor width
-const HOOK_H = 80;                     // and the catalog actor height, matching `network-model` Kubelet
-const HOOK_Y = FLOW_Y - HOOK_H / 2;    // 272: the box stays centred on the lane it answers
-const HOOK_RIGHT = HOOK_X + HOOK_W;    // 672: fan origin
+const HOOK_H = 80;                     // the catalog actor height
+const HOOK_Y = FLOW_Y - HOOK_H / 2;    // the box stays centred on the lane it answers
+const HOOK_RIGHT = HOOK_X + HOOK_W;    // fan origin
 const POD_W = 210, POD_H = 114;
-const POD_X = CONTENT_R - POD_W;       // 920: backend Pod left edge
-const FAN_X = (HOOK_RIGHT + POD_X) / 2;// 796: fan turn, exactly midway between the program and the Pods
+const POD_X = CONTENT_R - POD_W;       // backend Pod left edge
+const FAN_X = (HOOK_RIGHT + POD_X) / 2;// fan turn, midway between the program and the Pods
 const PODX_Y = 182;                    // chosen backend centre (symmetric about FLOW_Y)
 const PODY_Y = 442;                    // alternative backend centre (symmetric about FLOW_Y)
 const MAP_Y = 120, MAP_H = 80;         // BPF maps box, directly above the program, same actor size
-const LOOKUP_X = HOOK_X + HOOK_W / 2;  // 556: the map-lookup link, on the shared centre line
-const DELIVER_DUR = 1200;              // slowed so the riding src-IP tag stays readable
+const LOOKUP_X = HOOK_X + HOOK_W / 2;  // the map-lookup link, on the shared centre line
+const LEG_DUR = 1200;              // slowed so the riding src-IP tag stays readable
 const CLIENT_IP = 'src 10.244.1.5';
 
 // eBPF program -> chosen / alternative backend, each as one right-angle path (right, up/down, right).
@@ -36,14 +33,14 @@ const LOOKUP = [[LOOKUP_X - LOOKUP_DX, HOOK_Y], [LOOKUP_X - LOOKUP_DX, MAP_Y + M
 const LOOKUP_BACK = [[LOOKUP_X + LOOKUP_DX, MAP_Y + MAP_H], [LOOKUP_X + LOOKUP_DX, HOOK_Y]];  // the answer
 
 const CHIP_Y = 548, CHIP_H = 34, CHIP_GAP = 20;
-const CHIP_W = (CONTENT_R - CONTENT_L - 2 * CHIP_GAP) / 3;   // 340
-const CHIP_X1 = CONTENT_L;                                   // 70
-const CHIP_X2 = CHIP_X1 + CHIP_W + CHIP_GAP;                 // 430
-const CHIP_X3 = CHIP_X2 + CHIP_W + CHIP_GAP;                 // 790, ends on CONTENT_R
+const CHIP_W = (CONTENT_R - CONTENT_L - 2 * CHIP_GAP) / 3;
+const CHIP_X1 = CONTENT_L;
+const CHIP_X2 = CHIP_X1 + CHIP_W + CHIP_GAP;
+const CHIP_X3 = CHIP_X2 + CHIP_W + CHIP_GAP;                 // ends on CONTENT_R
 
-// The tag that rides a ball on this card, built once here and handed to F.tag as `fn`: hold 260
-// keeps the client source IP readable after the ball lands, which is the no-NAT claim of that step.
-const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
+// The client source IP rides all the way into the Pod, the no-NAT claim of that step. Its ball leaves
+// at t=0, where a route ball does not fade in, so the tag shows at once (inMs 0).
+const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 0 });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
 // The list order IS the append order, which is the z-order: map + program + client + pods, then
@@ -54,8 +51,8 @@ export const SCENE = {
     P.defs(),
     P.box({ key: 'bpfmap', x: HOOK_X, y: MAP_Y, w: HOOK_W, h: MAP_H, label: 'BPF maps', sublabel: 'service + endpoints' }),
     P.box({ key: 'hook', x: HOOK_X, y: HOOK_Y, w: HOOK_W, h: HOOK_H, label: 'eBPF program', sublabel: 'socket hook' }),
-    // The socket dials the Service ClusterIP (10.96.0.20), not a Pod: shown here against the client own
-    // Pod IP on the shell, so the two address kinds read side by side. Fits the 160-wide inner box.
+    // The socket dials the Service ClusterIP, not a Pod: shown against the client Pod IP on the shell, so
+    // the two address kinds read side by side.
     P.pod({
       key: 'client', innerKey: 'clientBox', x: CLIENT_X, y: 252, w: CLIENT_W, h: 120,
       label: 'Client Pod', sublabel: '10.244.1.5',
@@ -72,18 +69,15 @@ export const SCENE = {
       label: 'Pod web', sublabel: '10.244.3.9:8080',
       inner: { dx: 20, dy: 34, w: POD_W - 40, h: 52, label: 'app', sublabel: 'eth0' },
     }),
-    // Five cyan dashed route wires, labels filled per step: connect, the map lookup pair, and the fan
-    // to the two backends. All five are traffic paths, so all five take the kit role and its cyan
-    // arrowhead, and `dim` is the resting stroke WEIGHT a ball rides over. The second fan leg is the
-    // backend the lookup did not pick, drawn so the choice reads as a choice (NET.A-03).
+    // Five dashed route wires, all traffic paths, so all take the kit role and `dim` is only the resting
+    // stroke WEIGHT. The second fan leg is the backend the lookup did not pick (NET.A-03).
     P.arrow({ from: CONNECT[0], to: CONNECT[1], dashed: true, dim: true }),
     P.arrow({ from: LOOKUP[0], to: LOOKUP[1], dashed: true, dim: true }),
     P.arrow({ from: LOOKUP_BACK[0], to: LOOKUP_BACK[1], dashed: true, dim: true }),
     P.lane({ points: TO_PODX, dashed: true, dim: true }),
     P.lane({ points: TO_PODY, dashed: true, dim: true }),
     // No connect-wire label: the connect target (ClusterIP) is drawn on the client socket box.
-    // Offset past the RIGHT lane of the pair, not past LOOKUP_X: 15 from the centre line puts the
-    // first glyph 3 units off the return lane and under the ball riding it.
+    // Offset past the RIGHT lane of the pair, not past LOOKUP_X, or the text sits under the return ball.
     P.wire({ key: 'lookup', x: LOOKUP_X + LOOKUP_DX + 15, y: 238, anchor: 'start' }),
     P.wire({ key: 'deliver', x: (HOOK_RIGHT + FAN_X) / 2, y: FLOW_Y + 20 }),
     // Info chips: three equal widths spanning the diagram content exactly, from the client left edge
@@ -132,17 +126,14 @@ export const STEPS_SPEC = [
   },
   {
     id: 'connect-time',
-    // Motion: the client pulse, the connect call to the hook, then the map lookup up and its
-    // answer back down, ending at 3660.
     duration: 4000,
     narration: 'When the client calls connect to the ClusterIP, the socket-level eBPF program looks the address up in the map and rewrites the destination to a chosen Pod right there, before the packet is even built. This is connect-time load balancing, not per-packet DNAT.',
     chips: { svcChip: MAP_HIT, modeChip: 'connect-time', kpChip: 'present' },
     wires: { lookup: 'map lookup' },
     opacity: { w2: 1 },
     lit: [],
-    // The mode is what the RETURNED address makes true, so the chip is wound back to the old world
-    // and turns over on that arrival: lit at entry it stated the payoff 3100ms before the picture
-    // drew it (P-03).
+    // The mode is what the RETURNED address makes true, so the chip is wound back and turns over on that
+    // arrival (P-03).
     rewind: { chips: { modeChip: 'per-packet DNAT' } },
     // Up-arrow: the client pulses first, the connect call reaches the socket hook, which lights on
     // arrival. The map lights a beat later, as the program looks the address up.
@@ -170,8 +161,8 @@ export const STEPS_SPEC = [
     // Down-arrow: the rewritten connection rides the right-angle route to the chosen Pod, which
     // pulses on arrival. The client source IP rides with it and arrives unchanged (no NAT).
     flow: [
-      F.route({ points: TO_PODX, dur: DELIVER_DUR, name: 'give' }),
-      tag({ text: CLIENT_IP, points: TO_PODX, dur: DELIVER_DUR }),
+      F.route({ points: TO_PODX, dur: LEG_DUR, name: 'give' }),
+      tag({ text: CLIENT_IP, points: TO_PODX, dur: LEG_DUR }),
       F.pulse({ pod: 'w1', at: 'give' }),
     ],
   },

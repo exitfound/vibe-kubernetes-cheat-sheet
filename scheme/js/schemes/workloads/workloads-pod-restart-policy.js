@@ -2,33 +2,31 @@ import { P, F, defineCard, ladder, strip, laneY, midX, WL, LAYOUT, FADE, BEAT, O
 
 // Design notes for this card: ./CARDS/workloads-pod-restart-policy.md
 
-// Layout C on the Workloads canon (WL): panel x<=397 y<=355 leaves no column under it, so the
-// pipeline keeps the right band and the chips form a two-across bottom strip.
+// Layout C on WL: no column under the panel, so the pipeline takes the right band and the chips a
+// two-across bottom strip.
 
-// Kubelet is the node-facing actor, so it leads the row and is centred on CX: the line down to
-// the Node leaves its bottom midpoint and clears the pipeline column. Both boxes take the 232 and
-// the placement of workloads-pod-startup-conditions: left centred on CX, right flush on WL.R.
-const TOP1_W = 232, TOP1_X = WL.CX - TOP1_W / 2;         // 484..716, centred on CX
-const TOP2_W = 232, TOP2_X = WL.R - TOP2_W;              // 908..1140, right edge on the ladder column
+// Kubelet is the node-facing actor, so it is centred on CX and the line down to the Node leaves
+// its bottom midpoint.
+const TOP1_W = 232, TOP1_X = WL.CX - TOP1_W / 2;
+const TOP2_W = 232, TOP2_X = WL.R - TOP2_W;
 const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
 const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
 const WIRE_X = midX(TOP1_X + TOP1_W, TOP2_X);
 
 // LAYOUT.C of the kit: the ladder takes the RIGHT column, because C has no free column at all.
-const LAD_X = LAYOUT.C.ladder.x, LAD_W = LAYOUT.C.ladder.w;    // 660..1140, the pipeline
-const LAD_Y = 150;                                       // 5 rows -> 150..350
+const LAD_X = LAYOUT.C.ladder.x, LAD_W = LAYOUT.C.ladder.w;
+const LAD_Y = 150;
 
-// Chips two across, 532 wide (LAYOUT.C.strip.two): four across was 258 and every name ran into
-// its own value. The strip spans WL.L..WL.R exactly, so the gap is fixed and the width derives.
+// Two across (LAYOUT.C.strip.two): four across ran every name into its value.
 const CHIP_COLS = 2, CHIP_GAP = 16, CHIP_VGAP = 8;
 const CHIPS = strip({ from: WL.L, to: WL.R, count: CHIP_COLS, gap: CHIP_GAP });
-const CHIPS_Y = 548;                                     // 2 rows -> 548..582 / 590..624
+const CHIPS_Y = 548;
 const CHIP_ROW = ladder({ y: CHIPS_Y, rowH: WL.CHIP_H, gap: CHIP_VGAP });
 const CHIP_X = i => CHIPS.x(i % CHIP_COLS);
 const CHIP_Y = i => CHIP_ROW(Math.floor(i / CHIP_COLS));
 
-const NODE_Y = 392, NODE_H = 140;                        // 392..532, clear of the panel
-const POD_W = 300, POD_H = 94, POD_Y = NODE_Y + 34;      // 426..520
+const NODE_Y = 392, NODE_H = 140;                        // clear of the panel
+const POD_W = 300, POD_H = 94, POD_Y = NODE_Y + 34;
 const POD_PAD = 24;
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 26, h: 50 };
 const POD_XS = [0, 1, 2].map(i => WL.L + POD_PAD + i * ((WL.W - POD_PAD * 2 - POD_W) / 2));
@@ -40,8 +38,7 @@ const OWNERSHIP = [[WL.CX, WL.TOP_BOTTOM], [WL.CX, NODE_Y]];
 const POD_NAMES = ['Pod A', 'Pod B', 'Pod C'];
 const POD_SUBS  = ['restartPolicy: Always', 'restartPolicy: OnFailure', 'restartPolicy: Never'];
 
-// The list order IS the append order, so it is the z-order: Node frame, then the ownership line,
-// then packets, then ladder, Pods, actor row.
+// Append order is z-order: Node frame, ownership line, packets, then ladder, Pods, actor row.
 export const SCENE = {
   'aria-label': 'Pod restartPolicy: Always, OnFailure and Never decide whether Kubelet restarts a container after it exits',
   parts: [
@@ -84,23 +81,19 @@ export const SCENE = {
   },
 };
 
-// The policy step only: Kubelet watches the Api, then the spec hops back down the return lane.
-// The Api RECEIVES that first hop, so it lights on arrival, and `lights` is what the static path
-// shows in place of it.
+// The policy step only: Kubelet watches the API and the spec comes back. The API lights on arrival.
 const bounce = () => [
   F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
   F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, after: 'req' }),
 ];
 
-// The container exit is an in-place event with no packet to anchor to: the Pods react this many ms
-// into the step. The blink is seen at full weight before a stopping Pod fades, and the status
-// report leaves Kubelet a pod blink later (up-arrow order: the Pod first, then the packet).
+// The exit is an in-place event with no packet: the Pods react this far into the step, and the
+// status report leaves a Pod blink later (up-arrow order).
 const REACT_MS = 400;
 const FADE_MS = REACT_MS + 300;
 const REPORT_MS = REACT_MS + BEAT.afterPulse;
 
-// The Pods react together: all three pulse, then every one that stops fades. Written as one helper
-// so no step can fade a Pod and forget to pulse it.
+// All three pulse, then every one that stops fades: one helper, so no step fades a Pod unpulsed.
 const react = (fades) => [
   F.pulse({ pod: 'pod1', delay: REACT_MS }),
   F.pulse({ pod: 'pod2', delay: REACT_MS }),
@@ -108,8 +101,7 @@ const react = (fades) => [
   ...fades.map(([target, to]) => F.fade({ target, from: 1, to, dur: FADE.out, delay: FADE_MS, fill: 'both', easing: 'ease-in' })),
 ];
 
-// What the exit steps send: the decision is taken on the Node, and the ONE thing that travels is
-// the status Kubelet PATCHes afterwards. Nothing comes back, so the return lane stays idle here.
+// The decision is taken on the Node, and the only thing that travels is the status PATCH.
 const report = () => [
   F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: REPORT_MS, lights: ['apiserver'] }),
 ];
@@ -187,8 +179,7 @@ export const STEPS_SPEC = [
     opacity: { pod1: 1, pod2: 1, pod3: 1 },
     lit: ['focusChip', 'pod1Chip', 'pod2Chip', 'pod3Chip'],
     chain: 4,
-    // Nothing travels and nothing happens to a Pod on this step: the fit is a property of the
-    // controller, not a message, so no flow at all (M-27).
+    // The fit is a property of the controller, not a message, so no flow at all (M-27).
   },
 ];
 

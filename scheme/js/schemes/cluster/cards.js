@@ -1,8 +1,7 @@
 // The cluster catalogue: every cluster card and the subcategories they sort into.
 // Adding a card means one entry here, one file beside it, one poster, one note.
 
-// The SUBCATEGORIES list below is an ORDER, not a set: the sequence is an editorial argument
-// about what a reader has to know first, never alphabetical and never a merge artefact.
+// SUBCATEGORIES is an editorial reading ORDER, not a set: never sort it alphabetically.
 
 export const SUBCATEGORIES = [
     { key: 'control-plane',  label: 'Control Plane'  },
@@ -43,11 +42,12 @@ export const CARDS = [
     category: 'cluster',
     subcategory: 'control-plane',
     desc: 'Before any object reaches storage, what gets a say in whether it is allowed and how it looks? Each request runs a gauntlet inside the API: authenticated, authorized, optionally rewritten, checked against the schema, and validated one last time before the write commits. The mutating and validating steps are where Kyverno, OPA Gatekeeper or a sidecar injector plugs in. A slow webhook stalls every write it matches, and failurePolicy decides whether it then fails.',
-    k8sVersion: '1.35',
+    k8sVersion: '1.36',
     tinted: true,
     sources: [
       { label: 'Admission Controllers', href: 'https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/' },
       { label: 'Dynamic Admission Control', href: 'https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/' },
+      { label: 'Mutating Admission Policy', href: 'https://kubernetes.io/docs/reference/access-authn-authz/mutating-admission-policy/' },
       { label: 'Authorization', href: 'https://kubernetes.io/docs/reference/access-authn-authz/authorization/' },
     ],
   },
@@ -311,7 +311,7 @@ export const CARDS = [
     title: 'Node Conditions',
     category: 'cluster',
     subcategory: 'node-lifecycle',
-    desc: 'Five conditions come back from kubectl describe node, so which of them keep a new Pod out and which one throws a running Pod off? Only Ready reaches a Pod that is already there: False becomes the not-ready taint and Unknown becomes unreachable, and both carry NoExecute. MemoryPressure, DiskPressure, PIDPressure and NetworkUnavailable each become a NoSchedule taint instead, which shuts the door on new Pods and leaves the running ones alone.',
+    desc: 'Up to five conditions come back from kubectl describe node, so which of them keep a new Pod out and which one throws a running Pod off? Only the taints of Ready reach a Pod that is already there: False becomes the not-ready taint and Unknown becomes unreachable, and both carry NoExecute. MemoryPressure, DiskPressure, PIDPressure and NetworkUnavailable each become a NoSchedule taint, which shuts the door on new Pods and on its own leaves the running ones alone.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

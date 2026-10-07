@@ -1,14 +1,7 @@
 #!/usr/bin/env node
-// statics.mjs: the source-level sweep, no browser. Dead constants, keys nothing reads, lanes drawn
-// but never ridden, balls riding a path nothing draws, `lit`/`opacity`/`reset` keys that match no
-// part (a silent no-op), prose mechanics, and the catalog wiring around the card.
-//
-//   node .claude/skills/card-review/tools/statics.mjs <card-id>
-//
-// EVERY LINE IS A HEURISTIC, not a verdict. It reads the card as text: confirm each hit against the
-// code before acting on it, and expect a decorative part or a kit-driven key to show up here as a
-// false positive. What it is good at is the opposite error, the thing no reviewer notices: a name
-// that survived a refactor with nothing left reading it.
+// statics.mjs: the source-level sweep of one card, no browser: dead constants, unread keys, unridden lanes, no-op addressing, prose, wiring.
+// usage: node .claude/skills/card-review/tools/statics.mjs <card-id>
+// Every line is a heuristic read off the text: confirm each hit in the code, and expect decorative parts as false positives.
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -38,8 +31,7 @@ const body = bodyLines.join('\n');
 const lineOf = (needle) => lines.findIndex(l => l.includes(needle)) + 1;
 const uses = (name) => (body.match(new RegExp(`\\b${name}\\b`, 'g')) || []).length;
 
-// A BALANCED `{...}` slice from the brace at `i`, string literals skipped. The old reader stopped at
-// the first `})` within 400 characters, which a nested `inner:` or a `tune` body walks straight past.
+// A balanced `{...}` slice from the brace at `i`, string literals skipped.
 function objectAt(src, i) {
   let depth = 0, q = null;
   for (let j = i; j < src.length; j++) {
@@ -69,9 +61,8 @@ function topKey(obj) {
   return null;
 }
 
-// Keys of an object literal with its string VALUES blanked first. Without that blanking
-// `wires: { kr: 'PullImage · nginx:1.27' }` reads `nginx` as a second key and reports it as a ghost.
-// A quoted string followed by a colon is a KEY, not a value, and survives: hyphenated keys need one.
+// Keys of an object literal with its string values blanked first, so a value is not read as a key.
+// A quoted string followed by a colon is a key and survives: hyphenated keys need one.
 const keysOf = (obj) => [...obj.replace(/'(?:[^'\\]|\\.)*'(\s*:)?/g, (m, colon) => (colon ? m : "''"))
   .matchAll(/(?:^|[{,])\s*(?:'([\w-]+)'|([A-Za-z_$][\w$]*))\s*:/g)].map(m => m[1] || m[2]);
 
@@ -87,10 +78,8 @@ for (const m of body.matchAll(/^const\s*\{([^}]*)\}\s*=/gm)) {
 }
 
 // ---- part keys, and the fields that address them ----------------------------------------------
-// Keys minted by a CARD-LOCAL helper (`lane('laneEtcdOut', POINTS)`) are invisible here: this reads
-// `key:` literals only. That is a known hole, not a claim that such a card has no keys.
-// A wire and a box may SHARE a name: they land in refs.wires and refs, two buckets. So a name maps
-// to a SET of kinds, and a single-kind map loses the wire half of `key: 'kernel'` twice over.
+// Reads `key:` literals only, so keys minted by a card-local helper are invisible here.
+// A wire and a box may share a name in two buckets, so a name maps to a SET of kinds.
 const partCalls = [];
 const kindsOf = new Map();
 for (const m of body.matchAll(/P\.(\w+)\(\{/g)) {
@@ -127,9 +116,8 @@ for (const k of new Set(partKeys)) {
   if (isKind(k, 'wire')) continue;                              // BLANK-WIRE covers those
   if ((body.match(new RegExp(`'${k}'`, 'g')) || []).length > 1) continue;
   const kinds = [...(kindsOf.get(k) || [])];
-  // No kind at all means the key never sat at depth 1 of a `P.<kind>({`: it was minted through a
-  // CARD-LOCAL factory (a data array walked by .map, a `disk({key})` wrapper), which no text scan
-  // follows. DEAD-CONST is what covers the container it lives in.
+  // No kind at all means the key was minted through a card-local factory no text scan follows.
+  // DEAD-CONST covers the container it lives in.
   if (!kinds.length) { notByKey.push(`'${k}': minted through a card-local factory, not a P.<kind> call`); continue; }
   if (kinds.every(kind => NOT_BY_KEY.has(kind))) {
     notByKey.push(`${kinds.join('/')} '${k}': ${NOT_BY_KEY.get(kinds[0])}`);
@@ -161,11 +149,8 @@ for (const m of body.matchAll(/\bopacity:\s*\{/g)) {
   for (const k of keysOf(objectAt(body, m.index + m[0].length - 1))) addressed.add(k);
 }
 const declared = new Set([...partKeys, ...[...body.matchAll(/(?:shellKey|innerKey|id):\s*'([\w-]+)'/g)].map(m => m[1])]);
-// A key can also be MINTED from a template, which no source sweep resolves to a string:
-// `innerKey: `${p.key}Box`` over a PODS array, or `key: `pod${i + 1}`` over an index. Reading only
-// quoted literals reported every one of them as a step naming a part that does not exist, which is
-// the tool being blind rather than the card being wrong. Each template becomes a shape instead: the
-// literal text around every `${...}`, with the substitutions as wildcards.
+// A key minted from a template (`${p.key}Box`) becomes a shape: the literal text around every `${...}`,
+// with the substitutions as wildcards.
 const minted = [...body.matchAll(/(?:shellKey|innerKey|key|id):\s*`([^`]*\$\{[^`]*)`/g)].map((m) => {
   const shape = m[1].split(/\$\{[^}]*\}/).map(lit => lit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[\\w-]+');
   return { src: m[1], re: new RegExp(`^${shape}$`) };
@@ -178,9 +163,8 @@ for (const k of addressed) {
 }
 
 // ---- a lane nobody rides, a ball on a path nobody draws ---------------------------------------
-// Cards wrap the kit in local helpers (`trunkPath('trunk', TRUNK)`), so a hit that is neither a
-// recognisable draw nor a recognisable ride is treated as UNKNOWN and reported as nothing. Silence
-// here is not a clean bill: it means the tool could not tell, and the frames have to.
+// A hit that is neither a recognisable draw nor ride (cards wrap the kit in local helpers) is UNKNOWN
+// and reported as nothing, so silence here is not a clean bill.
 const RIDE = /(F\.\w+|packetAlong|topPacket|segmentPacket|animateAlong|routeDur)/;
 const DRAW = /(P\.lane|P\.relation|P\.arrow|lane\(|relationPath)/;
 for (const m of body.matchAll(/^const\s+([A-Z][A-Z0-9_]*)\s*=\s*\[\[/gm)) {
@@ -210,8 +194,7 @@ for (const s of strings) {
 if (/[—]/.test(src)) say('PROSE', `${rel} contains an em-dash somewhere in the file`);
 
 // ---- comment runs (S-34) ----------------------------------------------------------------------
-// The ceiling lives in unit/files.test.mjs and in the canon row; this is the third home and the one
-// that drifts, so it is named once here and read twice below.
+// The ceiling also lives in unit/files.test.mjs and the canon row, so it is named once here.
 const S34_CEILING = 6;
 let run = 0, runStart = 0;
 lines.forEach((l, i) => {

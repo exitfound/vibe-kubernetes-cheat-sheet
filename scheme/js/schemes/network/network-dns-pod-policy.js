@@ -2,40 +2,39 @@ import { P, F, defineCard, midX, BEAT } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-dns-pod-policy.md
 
-
-// One Node frame across the canvas under the panel, the API server over it right of the panel wall.
-// NODE_Y is measured: the frame and the resolvConf file box open left of the panel, so L-03 puts
-// the frame top under the deepest panel reading, 219.69 at 1100x800, with 40 to spare for its label.
+// One Node frame across the canvas under the panel (L-03), the API server over it right of the
+// panel wall.
 const NODE_Y = 260;
-const NODE_X = 40, NODE_W = 1120, NODE_H = 310;
+const NODE_X = 40, NODE_W = 1120;
 const BOX_W = 232, BOX_H = 80, POD_H = 104;          // NET.L-01
 
 // Row A inside the frame: the resolvConf file, the Kubelet, the Pod, on one centre line.
-const ROW_CY = NODE_Y + 80;                          // 340
-const ROW_Y = ROW_CY - BOX_H / 2;                    // 300
-const HOST_X = NODE_X + 20;                          // 60: 20 inside the frame, as the Pod is
+const ROW_CY = NODE_Y + 34 + POD_H / 2;
+const ROW_Y = ROW_CY - BOX_H / 2;
+const HOST_X = NODE_X + 20;                          // 20 inside the frame, as the Pod is
 const KUBELET_X = 484;
-const KUBELET_CX = KUBELET_X + BOX_W / 2;            // 600: the watch lane drops onto this x
-const POD_X = NODE_X + NODE_W - 20 - BOX_W, POD_Y = ROW_CY - POD_H / 2;   // 908, 288
+const KUBELET_CX = KUBELET_X + BOX_W / 2;            // the watch lane drops onto this x
+const POD_X = NODE_X + NODE_W - 20 - BOX_W, POD_Y = ROW_CY - POD_H / 2;
 
 // Over the frame: the API server centred on the Kubelet, the five Pod spec fields beside it.
 const API_Y = 60;
-const SPEC_X = 740, SPEC_W = 400, CHIP_H = 32;
-const SPEC_Y = [44, 84, 124, 164, 204];               // 40 apart, the last 24 above the frame top
-// 400 and not 232: `dnsConfig.nameservers | 192.0.2.1 192.0.2.2 192.0.2.3` is the widest row.
+const SPEC_X = 740, SPEC_W = 400, CHIP_H = 34, CHIP_GAP = 8;
+const SPEC_Y = [0, 1, 2, 3, 4].map((i) => 44 + i * (CHIP_H + CHIP_GAP));
+// Wide enough for `dnsConfig.nameservers | 192.0.2.1 192.0.2.2 192.0.2.3`.
 
-// Row B: the two files line for line. The Node file under its box, the Pod file under the Kubelet
-// and the Pod, 656 wide because the merged search line on `merge` measures 551.3 at 1600x1000.
-const FILE_Y = [NODE_Y + 172, NODE_Y + 212, NODE_Y + 252];   // 432 472 512
-const POD_FILE_X = KUBELET_X, POD_FILE_W = POD_X + BOX_W - KUBELET_X;   // 484, 656
+// Row B: the two files line for line, the Pod file wide enough for the merged search line on `merge`.
+const FILE_Y = [0, 1, 2].map((i) => ROW_CY + 92 + i * (CHIP_H + CHIP_GAP));
+// The frame closes 12 under the last file line.
+const NODE_H = FILE_Y[2] + CHIP_H + 12 - NODE_Y;
+const POD_FILE_X = KUBELET_X, POD_FILE_W = POD_X + BOX_W - KUBELET_X;
 
 // Every lane is ONE array feeding the wire and the ball (A-02). The watch ball stops on the frame
 // face (NET.A-02, A-21), and the two lanes inside the frame join block face midpoints.
 const WATCH = [[KUBELET_CX, API_Y + BOX_H], [KUBELET_CX, NODE_Y]];
 const HOST = [[HOST_X + BOX_W, ROW_CY], [KUBELET_X, ROW_CY]];
 const CRI = [[KUBELET_X + BOX_W, ROW_CY], [POD_X, ROW_CY]];
-const HOST_MID = midX(HOST[0][0], HOST[1][0]);       // 388
-const CRI_MID = midX(CRI[0][0], CRI[1][0]);          // 812
+const HOST_MID = midX(HOST[0][0], HOST[1][0]);
+const CRI_MID = midX(CRI[0][0], CRI[1][0]);
 
 const LINES = ['nameserver', 'search', 'options'];
 const NODE_KEYS = ['nodeNS', 'nodeSearch', 'nodeOpts'];
@@ -81,11 +80,9 @@ export const SCENE = {
   },
 };
 
-// One Pod through the Kubelet. The API server acts first and is the only block lit at entry (M-18a).
-// The watch ball stops on the frame face (NET.A-02) and lands on no block, so the sender of the next
-// hop is cued by the `lights` of that arrival instead: the file box on a reading step, the Kubelet on
-// `none`. Nothing inside the frame may glow while the watch ball is still falling towards it. The
-// file ball then lights the Kubelet mid-chain.
+// One Pod through the Kubelet. The API server is the only block lit at entry (M-18a). The watch ball
+// lands on no block (NET.A-02), so the next sender is cued by the `lights` of that arrival: nothing
+// inside the frame may glow while the watch ball is still falling.
 const build = ({ read = [], changed, spec, file }) => {
   const readsHost = read.length > 0;
   return [
@@ -95,8 +92,7 @@ const build = ({ read = [], changed, spec, file }) => {
     }),
     F.set({ chips: spec, lit: changed, at: 'w' }),
     ...(readsHost ? [F.segment({ from: HOST[0], to: HOST[1], after: 'w', name: 'h', lights: ['kubelet'] })] : []),
-    F.segment({ from: CRI[0], to: CRI[1], after: readsHost ? 'h' : 'w', name: 'c' }),
-    F.pulse({ pod: 'pod', at: 'c' }),
+    F.segment({ from: CRI[0], to: CRI[1], after: readsHost ? 'h' : 'w', name: 'c', pulse: 'pod' }),
     F.set({ chips: file, lit: POD_KEYS, at: 'c' }),
   ];
 };
@@ -134,8 +130,6 @@ const S_WITHHOST = spec('ClusterFirstWithHostNet', 'true');
 const S_NONE = spec('None', 'false', '192.0.2.1', DC_SEARCH, DC_OPTS);
 const S_MERGE = spec('ClusterFirst', 'false', '192.0.2.1 192.0.2.2 192.0.2.3', DC_SEARCH, DC_OPTS);
 
-// A reading step runs to 4000: three hops at the 700 floor land the CRI ball at 3100 and the Pod pulse
-// ends 900 later. `none` skips the file hop, 3200. Each step then holds 1300, the catalog median.
 export const STEPS_SPEC = [
   {
     id: 'idle',

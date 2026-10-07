@@ -1,29 +1,6 @@
-// palette-steps.test.mjs: the coverage the palette check never had.
-//
-// tools/check-palette.mjs sampled a card ONCE, as it opened, and stopped. It contained no gotoStep
-// and no enterStep at all, so every colour that appears in the middle of a story was outside its
-// reach: packets and ripples exist only on the played path and were therefore never sampled by it,
-// and a lit or dimmed state that only some step produces was seen only if that step happened to be
-// the one showing at open. render/palette.test.mjs reproduces that behaviour exactly, numbers
-// included. This file walks every step and measures what the extra sampling adds.
-//
-// WHY THIS IS REPORT-LEVEL AND NOT IN THE GATE. It is an EXTENSION of coverage, not a
-// reimplementation. Anything it finds is a finding about a CARD, and the project already runs the
-// cycle "report-only -> triage -> promote into the mandatory set" (the ENFORCED sets in
-// check-canon.mjs:78 and check-reduced.mjs:25 are the same idea). Promoting the step walk before
-// its findings have been read would turn one measurement into a red gate for work nobody has
-// scheduled. So this file NEVER fails: it prints. Read the census line at the top of its output,
-// because a report that scanned nothing also prints no findings.
-//
-// The played pass is NOT run-to-run deterministic in the small: enterStep freezes the animations of
-// a step, but which of two cards happens to be caught mid-pulse varies, so the per-pass conflict
-// count moves by one between runs while the union stays put. That instability is a second reason
-// the walk stays here rather than in the gate, and it is why nothing below is asserted.
-//
-// The probe below is a LOCAL COPY of the one in render/palette.test.mjs. It is not imported,
-// because importing a node:test module runs its tests as a side effect, and it is not hoisted into
-// ../fixtures/ because widening a shared fixture is out of scope for this change. If a third caller
-// ever appears, that is the moment to move it.
+// The palette tuples sampled at open, on every static step and on every played step, reporting what
+// the extra sampling adds (CONFLICTING). Never fails on a finding: the played pass is not deterministic
+// in the small. Fails only on an incomplete walk (S-46).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -31,20 +8,16 @@ import { cards, SUBSET } from '../fixtures/catalog.mjs';
 import { classify } from '../fixtures/palette.mjs';
 import { readSnapshot } from '../fixtures/snapshot.mjs';
 
-// The numbers render/palette.test.mjs asserts, restated here so the delta is readable without
-// running the other file. If these two ever disagree, the mandatory test is the truth.
+// render/palette.test.mjs is the truth if these ever disagree.
 const OPEN_ELEMENTS = 2047;
 const OPEN_COMBINATIONS = 29;
 
-// One accumulator per sampling scope, plus a union. `where` is card + sampling point, which is what
-// turns a conflict into something a reader can go and open.
+// `where` is card + sampling point, so a conflict can be opened.
 function makeScope(name) {
   return { name, tuples: new Map(), elements: 0, unknown: [], unpainted: [] };
 }
 
-// The JUDGEMENT is ../fixtures/palette.mjs, the same reader render/palette.test.mjs folds with, so
-// the gate and this census cannot disagree about which element resolved a colour. What stays here is
-// this walk's bookkeeping: SITES rather than cards, because a step is what it reports on.
+// The judgement is ../fixtures/palette.mjs. Only sites-not-cards bookkeeping stays here.
 function fold(scope, id, where, rows) {
   for (const r of rows) {
     scope.elements++;
@@ -76,11 +49,7 @@ test('palette across every step (report only, never fails)', async () => {
   let playedSteps = 0;
 
   try {
-    // THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` takes all three readings in its
-    // reduced-motion pass, in the same environment this file set and for the reason it gave:
-    // reducedMotion so a pulse mid-flight is not read back as a resting stroke, with the played
-    // rows overriding it per step through enterStep's reduced:false. render/palette reads the
-    // `open` row of the same pass, which is what made the two files one walk.
+    // All three readings come from the walk's reduced-motion pass. Played rows override it per step.
     const snap = readSnapshot();
     const ids = snap.ids;
 
@@ -103,7 +72,7 @@ test('palette across every step (report only, never fails)', async () => {
           fold(union, id, `static#${i}`, rows);
         }
 
-        // Step 0 is the static poster and has no play path of its own.
+        // Step 0 is the static poster with no play path.
         for (let i = 1; i < total; i++) {
           const rows = card.paint.played[i];
           if (!rows) continue;
@@ -157,11 +126,7 @@ test('palette across every step (report only, never fails)', async () => {
   out.push('');
 
   const bad = conflicts(union);
-  // A conflict whose SECOND and later colours come only from played samples is the sampling
-  // artefact the original avoided by running under reducedMotion: the kit pulse animates the stroke
-  // from the rect's own stroke to tint.bright, enterStep freezes it at its first keyframe, so a lit
-  // element reads back as resting. Separating the two is the difference between a card
-  // finding and a note about this file.
+  // Extra colours from played samples only are a frozen-pulse artefact, not a card finding.
   const playedOnly = bad.filter(([, byColour]) =>
     [...byColour.values()].slice(1).every(sites => sites.every(s => s.includes('@played'))));
   out.push(`CONFLICTING combinations over the whole walk (one tuple, more than one colour): ${bad.length}`);
@@ -186,18 +151,8 @@ test('palette across every step (report only, never fails)', async () => {
 
   console.log(out.join('\n'));
 
-  // NO ASSERTION ON A FINDING, and one on the WALK. Every line above is a measurement, and the
-  // decision about it belongs to a person reading the card's record. What is NOT a measurement is
-  // whether this file ran at all: a browser that never launched, a server that answered nothing or
-  // a card that threw on every open leaves `notes` full, prints REPORT INCOMPLETE into a page of
-  // output nobody has to read, and exits 0. That is the failure the rest of the harness is built
-  // against (`S-46`), and it is the one thing a report may go red on.
-  //
-  // The card census is NOT ASKED under SCHEME_IDS, and skipped rather than failed: a deliberately
-  // narrowed run is not a run that went wrong, and the rest of the suite says so with `floor()` and
-  // `FULL_ONLY` rather than with a red line. The banner above says what the filtered numbers do and
-  // do not mean. What is NOT skipped is the second assertion: sampling zero steps means this file
-  // measured nothing whatever the walk was narrowed to, and that is the failure named above.
+  // No assertion on a finding, one on the walk (S-46). The card census is skipped under SCHEME_IDS,
+  // sampling zero steps never is.
   if (!SUBSET) {
     assert.equal(sampledCards, catalogued.length,
       `sampled ${sampledCards} of ${catalogued.length} card(s). A report that scans nothing reports ` +

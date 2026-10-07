@@ -2,28 +2,28 @@ import { P, F, defineCard, makeRidingLabel, BEAT } from './network-kit.js';
 
 // Design notes for this card: ./CARDS/network-external-traffic-policy.md
 
-
-// A balancer over three Nodes running UNEVEN Pods of web: two on Node-1, one on Node-2, none on
-// Node-3. A share readout under every Pod is what the policy moves. Actors stand right of the panel
-// wall, and the only content left of x 420 is the Node-1 leg, its bus under the deepest panel.
+// A balancer over three Nodes running UNEVEN Pods of web: two, one, none. A share readout under every
+// Pod is what the policy moves. Actors stand right of the panel wall.
 const SCHEME_L = 80, SCHEME_R = 1120;  // content edges, mirrored about x 600
 
-// Node row: three equal frames on the NODE_X grid of the section, bottom 546.
-const NODE_W = 300, NODE_H = 190, NODE_Y = 356;
-const NODE_GAP = (SCHEME_R - SCHEME_L - 3 * NODE_W) / 2;                  // 70
-const NODE_X = [0, 1, 2].map(i => SCHEME_L + i * (NODE_W + NODE_GAP));   // 80, 450, 820
-const NODE_CX = NODE_X.map(x => x + NODE_W / 2);                          // 230, 600, 970
-const NODE_CY = NODE_Y + NODE_H / 2;                                      // 451: the cross-Node lane
+// Node row: three equal frames on the NODE_X grid of the section, the height following the Pod and
+// its share chip.
+const NODE_W = 300, NODE_Y = 356;
+const NODE_GAP = (SCHEME_R - SCHEME_L - 3 * NODE_W) / 2;
+const NODE_X = [0, 1, 2].map(i => SCHEME_L + i * (NODE_W + NODE_GAP));
+const NODE_CX = NODE_X.map(x => x + NODE_W / 2);
 
-// Two Pods fill Node-1 at a 16 gap inside 14 of padding, so every Pod is 128 wide.
-const POD_W = 128, POD_H = 104, POD_Y = NODE_Y + 34, POD_GAP = 16;       // 390, 16 under the frame label
-const POD_X = [NODE_CX[0] - POD_GAP / 2 - POD_W, NODE_CX[0] + POD_GAP / 2, NODE_CX[1] - POD_W / 2];   // 94, 238, 536
-const SHARE_Y = POD_Y + POD_H + 12, SHARE_H = 30;                         // 506..536, 10 over the frame bottom
+// Two Pods fill Node-1 at a 16 gap inside 14 of padding.
+const POD_W = 128, POD_H = 104, POD_Y = NODE_Y + 34, POD_GAP = 16;       // under the frame label
+const POD_X = [NODE_CX[0] - POD_GAP / 2 - POD_W, NODE_CX[0] + POD_GAP / 2, NODE_CX[1] - POD_W / 2];
+const SHARE_Y = POD_Y + POD_H + 12, SHARE_H = 34;                         // over the frame bottom
+const NODE_H = SHARE_Y + SHARE_H + 12 - NODE_Y;
+const NODE_CY = NODE_Y + NODE_H / 2;                                      // the cross-Node lane
 
 // Actor tier, every block NET.L-01 232 wide and 80 tall, on x 600 right of the panel wall.
-const ACTOR_W = 232, ACTOR_H = 80, ACTOR_X = 600 - ACTOR_W / 2;          // 484
-const CLIENT_Y = 16, LB_Y = CLIENT_Y + ACTOR_H + 40;                     // 136: the client lane is 40 long
-const LB_BOTTOM = LB_Y + ACTOR_H;                                         // 216
+const ACTOR_W = 232, ACTOR_H = 80, ACTOR_X = 600 - ACTOR_W / 2;
+const CLIENT_Y = 16, LB_Y = CLIENT_Y + ACTOR_H + 40;                     // the client lane is 40 long
+const LB_BOTTOM = LB_Y + ACTOR_H;
 
 // Every Node leg leaves the balancer bottom on its own exit, the outer two a mirrored pair about 600
 // (L-12), so no stretch of lane is shared and nothing is drawn twice.
@@ -35,21 +35,20 @@ const TO_N3 = [[600 + EXIT, LB_BOTTOM], [600 + EXIT, BUS_Y], [NODE_CX[2], BUS_Y]
 // Node-3 forwards frame face to frame face across the gap, into Node-2.
 const CROSS = [[NODE_X[2], NODE_CY], [NODE_X[1] + NODE_W, NODE_CY]];
 
-// Service strip: four chips of one size, centred on x 600 (L-13), bottom 624 mirroring the top at 16.
+// Service strip: four chips of one size, centred on x 600 (L-13), the bottom mirroring the top.
 const CHIP_W = 232, CHIP_H = 34, CHIP_GAP = 16, CHIP_Y = 590;
-const CHIP_X = [0, 1, 2, 3].map(i => 600 - (4 * CHIP_W + 3 * CHIP_GAP) / 2 + i * (CHIP_W + CHIP_GAP));   // 112..
+const CHIP_X = [0, 1, 2, 3].map(i => 600 - (4 * CHIP_W + 3 * CHIP_GAP) / 2 + i * (CHIP_W + CHIP_GAP));
 const chip = (i, key, name, value) => P.chip({ key, x: CHIP_X[i], y: CHIP_Y, w: CHIP_W, h: CHIP_H, name, value });
 
-// The client address rides the outer legs, beside each vertical: left of the Node-1 leg, right of the
-// Node-3 leg, and it emerges once clear of the balancer bottom. Hold 0 retires it on arrival.
-const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
+// The client address rides the outer legs beside each vertical, emerging once clear of the balancer.
+const ridingLabel = makeRidingLabel({ role: 'network', emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, text: 'src 198.51.100.9', emerge: 300, ...p });
-// The 440 unit outer legs would take routeDur 978 and the tag would retire before it is read, so a
-// TAGGED ball rides them near the catalog median speed instead (M-12, PACING in motion.test).
+// A TAGGED ball rides the outer legs near the catalog median speed so its tag is readable (M-12,
+// PACING in motion.test).
 const LEG_DUR = 1500;
 
 // Per-step outcome notes stand over each Node top face, on the side of its lane the tag does not use,
-// NOTE_DX off it: the arrival ring (r 9, scale 3) has faded to a quarter by the time it reaches 20.
+// NOTE_DX off it so the arrival ring has faded before it reaches them.
 const NOTE_DX = 20;
 const note = (key, i, side) => P.wire({ key, x: NODE_CX[i] + side * NOTE_DX, y: NODE_Y - 10, anchor: side > 0 ? 'start' : 'end' });
 
@@ -104,7 +103,7 @@ const THIRDS = shares('33%', '33%', '33%'), LOCAL_ALL = shares('17%', '17%', '33
 const SHARE_KEYS = ['share1', 'share2', 'share3'];
 // Probes leave 500 apart so the three answers land in turn and each is read where it lands.
 const PROBE_GAP = 500;
-// Connections leave the client 600 apart: on its 700ms lane two balls then share it for 100ms only.
+// Connections leave the client 600 apart, so two balls share its lane only briefly.
 const SPREAD = 600;
 
 export const STEPS_SPEC = [
@@ -116,8 +115,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'cluster',
-    // Motion: lead 800, the client lane 700, a 100 beat, the Node-3 leg at LEG_DUR, a 100 beat, the
-    // cross-Node hop 700, then the Pod blink 900: span 4800.
     duration: 5200,
     narration: 'Service web is a LoadBalancer under the default externalTrafficPolicy Cluster, so every Node accepts its traffic. The balancer picks Node-3, which runs no Pod web. Node-3 SNATs the connection to its own address and forwards it across the cluster network to Pod web-3 on Node-2. Spread at random over all ready Pods, each takes about a third.',
     chips: { ...fields('Cluster', 'lost (SNAT)', 'yes', 'none'), ...THIRDS },
@@ -133,14 +130,12 @@ export const STEPS_SPEC = [
       F.route({ points: TO_N3, after: 'entry', dur: LEG_DUR, name: 'toN3' }),
       tag({ points: TO_N3, after: 'entry', dur: LEG_DUR, dx: 54 }),
       F.set({ at: 'toN3', wires: { n3: 'SNAT · forwarded' } }),
-      F.segment({ from: CROSS[0], to: CROSS[1], after: 'toN3', name: 'hop', lights: ['srcChip', 'hopChip', ...SHARE_KEYS] }),
-      F.pulse({ pod: 'pod3', at: 'hop' }),
+      F.segment({ from: CROSS[0], to: CROSS[1], after: 'toN3', name: 'hop', lights: ['srcChip', 'hopChip', ...SHARE_KEYS], pulse: 'pod3' }),
       F.set({ at: 'hop', chips: { srcChip: 'lost (SNAT)', hopChip: 'yes', ...THIRDS } }),
     ],
   },
   {
     id: 'cluster-snat',
-    // Motion: lead 800, the client lane 700, a 100 beat, the Node-1 leg at LEG_DUR, then the Pod blink 900.
     duration: 4300,
     narration: 'The SNAT is not only for forwarded traffic. The next connection lands on Node-1 and Pod web-1 on that same Node serves it, yet under Cluster its source is still replaced with a Node-1 address. The Pod never sees 198.51.100.9, so source IP allowlists and access logs lose the client, and a forwarded connection also pays an extra hop.',
     chips: { ...fields('Cluster', 'lost (SNAT)', 'no', 'none'), ...THIRDS },
@@ -160,8 +155,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'local',
-    // Motion: lead 800, the client lane 700, the Node-1 leg at LEG_DUR landing at 3100 and its Pod
-    // blink. The second connection leaves 700 behind the first and dies on the Node-3 face at 4600.
     duration: 5400,
     narration: 'With externalTrafficPolicy Local a Node serves only its own Pods, forwards nothing to other Nodes and does no SNAT: Pod web-2 sees 198.51.100.9. The API server allocates healthCheckNodePort 32021, but until the balancer acts on it Node-3 still gets a third of connections and, with no local Pod, drops them. Pods web-1 and web-2 split a third.',
     chips: { ...fields('Local', 'preserved', 'no', HC_PORT), ...LOCAL_ALL },
@@ -188,8 +181,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'healthcheck',
-    // Motion: three probes leave the lit balancer PROBE_GAP apart from lead 800, the Node-3 one lands
-    // last at 2778 and its ring closes near 3340.
     duration: 3800,
     narration: 'The balancer probes /healthz on port 32021 of every Node. A healthy kube-proxy answers from its count of ready local endpoints: 200 from Node-1 with two and from Node-2 with one, 503 from Node-3 with none. The balancer marks Node-3 unhealthy and sends new connections only to Node-1 and Node-2.',
     chips: { ...fields('Local', 'preserved', 'no', HC_PORT), ...LOCAL_ALL },
@@ -209,8 +200,6 @@ export const STEPS_SPEC = [
   },
   {
     id: 'imbalance',
-    // Motion: four connections leave the lit client SPREAD apart from lead 800, alternating Node-1 and
-    // Node-2. The last lands on Node-2 at 4100 and its Pod blink ends at 5000.
     duration: 5400,
     narration: 'A balancer that cannot weight its targets spreads connections per Node, not per Pod. Node-1 and Node-2 get about half each, so the two Pods on Node-1 take a quarter apiece while Pod web-3 alone takes half. That uneven load is the second cost of Local. Spreading Pods evenly across Nodes, for example with topology spread constraints, reduces it.',
     chips: { ...fields('Local', 'preserved', 'no', HC_PORT), ...PER_NODE },
@@ -223,18 +212,14 @@ export const STEPS_SPEC = [
     // Only the first connection lights the balancer: repeated cues on one block read as arrivals it did not get.
     flow: [
       F.segment({ from: C_LANE[0], to: C_LANE[1], delay: BEAT.lead, name: 'e1', lights: ['lb'] }),
-      F.route({ points: TO_N1, after: 'e1', name: 'c1' }),
-      F.pulse({ pod: 'pod1', at: 'c1' }),
+      F.route({ points: TO_N1, after: 'e1', pulse: 'pod1' }),
       F.segment({ from: C_LANE[0], to: C_LANE[1], delay: BEAT.lead + SPREAD, name: 'e2' }),
-      F.segment({ from: TO_N2[0], to: TO_N2[1], after: 'e2', name: 'c2' }),
-      F.pulse({ pod: 'pod3', at: 'c2' }),
+      F.segment({ from: TO_N2[0], to: TO_N2[1], after: 'e2', pulse: 'pod3' }),
       F.segment({ from: C_LANE[0], to: C_LANE[1], delay: BEAT.lead + 2 * SPREAD, name: 'e3' }),
-      F.route({ points: TO_N1, after: 'e3', name: 'c3' }),
-      F.pulse({ pod: 'pod2', at: 'c3' }),
+      F.route({ points: TO_N1, after: 'e3', name: 'c3', pulse: 'pod2' }),
       F.set({ at: 'c3', wires: { n1: '2 Pods · half' } }),
       F.segment({ from: C_LANE[0], to: C_LANE[1], delay: BEAT.lead + 3 * SPREAD, name: 'e4' }),
-      F.segment({ from: TO_N2[0], to: TO_N2[1], after: 'e4', name: 'c4', lights: SHARE_KEYS }),
-      F.pulse({ pod: 'pod3', at: 'c4' }),
+      F.segment({ from: TO_N2[0], to: TO_N2[1], after: 'e4', name: 'c4', lights: SHARE_KEYS, pulse: 'pod3' }),
       F.set({ at: 'c4', chips: PER_NODE, wires: { n2: '1 Pod · half' } }),
     ],
   },
