@@ -1,0 +1,1321 @@
+@import url('tokens.css');
+@import url('diagrams.css');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+  background: linear-gradient(135deg, #0c1022 0%, #110f1f 50%, #18091e 100%);
+  background-attachment: fixed;
+}
+
+body {
+  font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
+  background: transparent;
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+  padding-left: 38px;
+  transition: padding-left 0.18s ease;
+}
+body.sidebar-collapsed { padding-left: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== HEADER (app-only, the shared chrome is /cli/css/chrome.css) ===== */
+.search-input:not(:placeholder-shown) ~ .search-clear { display: flex; }
+
+/* ===== CATEGORY NAV ===== */
+.cat-nav {
+  position: sticky;
+  top: 69px;
+  z-index: 90;
+  background: rgba(17, 15, 31, 0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 1px 0 0 rgba(17, 15, 31, 0.96);
+}
+
+.cat-nav::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(221, 202, 250, 0.2) 30%, rgba(221, 202, 250, 0.2) 70%, transparent);
+  pointer-events: none;
+}
+
+.cat-nav-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 12px;
+  height: 41px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.cat-nav-inner::-webkit-scrollbar { display: none; }
+
+.cat-btn {
+  flex-shrink: 0;
+  height: 33px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-nav);
+  font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s, border-color 0.12s, opacity 0.12s;
+  white-space: nowrap;
+}
+
+.cat-btn[data-cat="all"] { min-width: 48px; padding-left: 10px; padding-right: 10px; justify-content: center; }
+
+.nav-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+/* Hover reads like the header action buttons (GitHub, Contacts): lavender until clicked, and the
+   .active rules below keep a clicked button in its own colour. */
+.cat-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-glow);
+}
+
+.cat-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.cat-btn.active {
+  color: var(--accent);
+  background: rgba(221, 202, 250, 0.1);
+  border-color: var(--accent-border);
+}
+.cat-btn.active[data-cat="network"]   { color: var(--network-color);   background: var(--network-glow);   border-color: var(--network-border); }
+.cat-btn.active[data-cat="storage"]   { color: var(--storage-color);   background: var(--storage-glow);   border-color: var(--storage-border); }
+.cat-btn.active[data-cat="workloads"] { color: var(--workloads-color); background: var(--workloads-glow); border-color: var(--workloads-border); }
+.cat-btn.active[data-cat="cluster"]   { color: var(--cluster-color);   background: var(--cluster-glow);   border-color: var(--cluster-border); }
+.cat-btn.active[data-cat="starred"]   { color: var(--starred-color);   background: var(--starred-glow);   border-color: var(--starred-border); }
+
+/* Starred lives on the far right of the row, the "personal" zone, exactly as on /cli/. */
+.cat-btn.cat-starred { margin-left: auto; }
+
+/* Grid view switch after Starred: detailed cards or compact tiles (js/app.js, VIEW_KEY). */
+.view-toggle {
+  flex-shrink: 0;
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.view-btn {
+  width: 30px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+}
+.view-btn:hover { color: var(--accent); background: var(--accent-glow); }
+.view-btn.active { color: var(--accent); background: rgba(221, 202, 250, 0.1); }
+.view-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ===== SUB-CATEGORY NAV (mirrors CLI mid-row coordinates) ===== */
+.cat-nav-sub {
+  top: 110px;
+}
+.cat-nav-sub .cat-nav-inner {
+  height: 38px;
+  gap: 4px;
+}
+.subcat-btn {
+  flex-shrink: 0;
+  height: 29px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-nav);
+  font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s, border-color 0.12s, opacity 0.12s;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+.subcat-btn[data-sub="all"] { min-width: 48px; padding-left: 10px; padding-right: 10px; justify-content: center; }
+.subcat-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-glow);
+  opacity: 1;
+}
+.subcat-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.subcat-btn.active {
+  color: var(--accent);
+  background: rgba(221, 202, 250, 0.1);
+  border-color: var(--accent-border);
+  opacity: 1;
+}
+.cat-nav-sub[data-cat="network"]   .subcat-btn.active { color: var(--network-color);   background: var(--network-glow);   border-color: var(--network-border); }
+.cat-nav-sub[data-cat="storage"]   .subcat-btn.active { color: var(--storage-color);   background: var(--storage-glow);   border-color: var(--storage-border); }
+.cat-nav-sub[data-cat="workloads"] .subcat-btn.active { color: var(--workloads-color); background: var(--workloads-glow); border-color: var(--workloads-border); }
+.cat-nav-sub[data-cat="cluster"]   .subcat-btn.active { color: var(--cluster-color);   background: var(--cluster-glow);   border-color: var(--cluster-border); }
+
+/* ===== MAIN GRID ===== */
+.main {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px 12px 80px;
+  min-height: 100vh;
+}
+
+.section { margin-bottom: 44px; }
+.section[hidden] { display: none; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 6px;
+  position: relative;
+}
+
+.section-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(221,202,250,0.35) 0%, rgba(221,202,250,0.15) 50%, transparent 100%);
+}
+
+/* Category-colored header underlines */
+.section[data-cat="network"]   .section-header::after { background: linear-gradient(90deg, rgba(79,229,255,0.70)  0%, rgba(79,229,255,0.50)  50%, rgba(79,229,255,0.28)  80%, transparent 100%); }
+.section[data-cat="workloads"] .section-header::after { background: linear-gradient(90deg, rgba(61,160,255,0.70)  0%, rgba(61,160,255,0.50)  50%, rgba(61,160,255,0.28)  80%, transparent 100%); }
+.section[data-cat="storage"]   .section-header::after { background: linear-gradient(90deg, rgba(94,202,148,0.70)  0%, rgba(94,202,148,0.50)  50%, rgba(94,202,148,0.28)  80%, transparent 100%); }
+.section[data-cat="cluster"]   .section-header::after { background: linear-gradient(90deg, rgba(125,134,255,0.70) 0%, rgba(125,134,255,0.50) 50%, rgba(125,134,255,0.28) 80%, transparent 100%); }
+
+.section-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(221, 202, 250, 0.1);
+  border: 1px solid var(--accent-border);
+  border-radius: 7px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.section[data-cat="network"]   .section-icon { background: var(--network-glow);   border-color: var(--network-border);   color: var(--network-color); }
+.section[data-cat="workloads"] .section-icon { background: var(--workloads-glow); border-color: var(--workloads-border); color: var(--workloads-color); }
+.section[data-cat="storage"]   .section-icon { background: var(--storage-glow);   border-color: var(--storage-border);   color: var(--storage-color); }
+.section[data-cat="cluster"]   .section-icon { background: var(--cluster-glow);   border-color: var(--cluster-border);   color: var(--cluster-color); }
+
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: -0.3px;
+}
+
+.section-sub {
+  font-size: 14px;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+.section[data-cat="network"]   .section-sub { color: var(--network-color);   opacity: 0.75; }
+.section[data-cat="workloads"] .section-sub { color: var(--workloads-color); opacity: 0.75; }
+.section[data-cat="storage"]   .section-sub { color: var(--storage-color);   opacity: 0.75; }
+.section[data-cat="cluster"]   .section-sub { color: var(--cluster-color);   opacity: 0.75; }
+
+.section-count {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+  letter-spacing: 0.2px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-radius: 0;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.section[data-cat="network"]   .section-count { color: var(--network-color);   background: var(--network-glow);   border-color: var(--network-border); }
+.section[data-cat="workloads"] .section-count { color: var(--workloads-color); background: var(--workloads-glow); border-color: var(--workloads-border); }
+.section[data-cat="storage"]   .section-count { color: var(--storage-color);   background: var(--storage-glow);   border-color: var(--storage-border); }
+.section[data-cat="cluster"]   .section-count { color: var(--cluster-color);   background: var(--cluster-glow);   border-color: var(--cluster-border); }
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  position: relative;
+}
+.card:hover {
+  transform: translateY(-2px);
+  background: var(--bg-card-hover);
+  border-color: var(--accent-border);
+}
+.card[data-cat="network"]:hover   { border-color: var(--network-color); }
+.card[data-cat="storage"]:hover   { border-color: var(--storage-color); }
+.card[data-cat="workloads"]:hover { border-color: var(--workloads-color); }
+.card[data-cat="cluster"]:hover   { border-color: var(--cluster-color); }
+
+.card-poster {
+  aspect-ratio: 16 / 9;
+  background: rgba(12, 8, 28, 0.85);
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.card-poster svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.card-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-bright);
+  letter-spacing: -0.01em;
+}
+/* The card title is a link to the card's static page (js/app.js renderCard): it reads as the title,
+   and its focus ring is drawn around the whole card. */
+.card-link { color: inherit; text-decoration: none; }
+.card-link:focus-visible { outline: none; }
+.card:has(.card-link:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.card-desc {
+  font-size: 13px;
+  color: var(--text-card-desc);
+  line-height: 1.45;
+  flex: 1;
+}
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.card-cat {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+}
+.card[data-cat="network"]   .card-cat,
+.diagram-dialog[data-cat="network"]   .card-cat { background: var(--network-glow);   color: var(--network-color);   border-color: var(--network-border); }
+.card[data-cat="storage"]   .card-cat,
+.diagram-dialog[data-cat="storage"]   .card-cat { background: var(--storage-glow);   color: var(--storage-color);   border-color: var(--storage-border); }
+.card[data-cat="workloads"] .card-cat,
+.diagram-dialog[data-cat="workloads"] .card-cat { background: var(--workloads-glow); color: var(--workloads-color); border-color: var(--workloads-border); }
+.card[data-cat="cluster"]   .card-cat,
+.diagram-dialog[data-cat="cluster"]   .card-cat { background: var(--cluster-glow);   color: var(--cluster-color);   border-color: var(--cluster-border); }
+.card-version {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+  color: var(--text-dim);
+}
+
+/* Compact view: poster, then one row of title and star. The description becomes the card's
+   hover tooltip, and the tags go, so three to five times as many cards fit on a screen. */
+.view-compact .cards-grid {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.view-compact .card-body {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 11px 14px;
+}
+.view-compact .card-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.view-compact .card-desc,
+.view-compact .card-cat,
+.view-compact .card-version { display: none; }
+.view-compact .card-meta { margin-top: 0; flex-wrap: nowrap; }
+.view-compact .star-btn { margin: -6px -6px -6px 0; }
+
+/* ===== STAR BUTTON (mirrors /cli/) ===== */
+.star-btn {
+  margin: -4px -6px -4px auto;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.1s, color 0.1s, border-color 0.1s, background 0.1s, filter 0.15s;
+  flex-shrink: 0;
+}
+.star-btn svg { fill-opacity: 0; }
+.card:hover .star-btn { opacity: 1; }
+.star-btn:hover {
+  color: var(--starred-color);
+  border-color: var(--starred-border);
+  background: var(--starred-glow);
+}
+.star-btn:focus-visible {
+  outline: 2px solid var(--starred-color);
+  outline-offset: 1px;
+  opacity: 1;
+}
+.star-btn.starred {
+  opacity: 1;
+  color: var(--starred-color);
+  filter: drop-shadow(0 0 5px var(--starred-glow));
+}
+.star-btn.starred svg { fill-opacity: 1; }
+
+/* ===== EMPTY STATE ===== */
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 16px;
+  color: var(--text-dim);
+}
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.empty-desc { font-size: 14px; }
+.empty-icon { color: var(--starred-color); opacity: 0.8; margin-bottom: 10px; }
+.empty-icon svg { width: 40px; height: 40px; fill-opacity: 0; }
+
+/* ===== DIALOG =====
+   The <dialog> covers the whole viewport and draws nothing: a modal leaves everything outside it
+   inert, so the flip arrows have to live INSIDE it to be clickable, and they sit in the 4vw gutters
+   beside the panel. `.dialog-inner` is the panel, at exactly the 92vw x 92vh the dialog itself used
+   to be, so the canvas and every panel measurement taken against it are unchanged. */
+.diagram-dialog {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  overflow: hidden;
+}
+.diagram-dialog[open] {
+  display: grid;
+  place-items: center;
+}
+.diagram-dialog .dialog-inner {
+  width: 92vw;
+  height: 92vh;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.diagram-dialog::backdrop {
+  background: rgba(8, 6, 16, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.diagram-dialog[data-cat="network"]   .dialog-inner { border-top: 3px solid var(--network-color); }
+.diagram-dialog[data-cat="storage"]   .dialog-inner { border-top: 3px solid var(--storage-color); }
+.diagram-dialog[data-cat="workloads"] .dialog-inner { border-top: 3px solid var(--workloads-color); }
+.diagram-dialog[data-cat="cluster"]   .dialog-inner { border-top: 3px solid var(--cluster-color); }
+
+/* ===== TINTED DIALOG =====
+   The whole modal collapses onto one category's colour ramp. A category declares only what is its
+   own: the 3-stop ramp (deep / base / bright), the canvas it draws on, and the three hand-mixed
+   surface fills. Every shade WITH an alpha is derived from those four in the shared block below,
+   so a category cannot disagree with itself. The ramp stops are channel lists rather than hex
+   because rgba() cannot take a hex through a var(): `rgba(var(--tint-base), 0.15)` is invalid, and
+   that invalidity is what made an earlier attempt at deriving these fall back to hand-copied
+   literals. `color-mix` would say the same in one step and is deliberately unused, so resolution
+   stays fully deterministic.
+   THE LITERALS WERE THE BUG, NOT THE FIX: restating each alpha shade per category by hand let two
+   categories disagree with themselves, and a --tint-glow that did not match its own --tint-base put
+   a duller fill inside .diagram-pod-container than the stroke drawn around it. ADDING A SHADE IS ONE
+   LINE IN THE GENERIC BLOCK, NEVER FOUR. */
+.diagram-dialog[data-tinted="true"][data-cat="workloads"] {
+  --tint-deep-rgb:    63, 93, 138;
+  --tint-base-rgb:    91, 184, 255;
+  --tint-bright-rgb: 142, 198, 247;
+  --tint-canvas-rgb:  10, 16, 34;
+  --tint-surface:   #18263f;
+  --tint-chrome:    #101a30;
+  --tint-fill:      rgba(22, 34, 66, 0.72);
+  --tint-fill-node: rgba(13, 21, 44, 0.62);
+}
+.diagram-dialog[data-tinted="true"][data-cat="cluster"] {
+  --tint-deep-rgb:    76, 79, 146;
+  --tint-base-rgb:   125, 134, 255;
+  --tint-bright-rgb: 171, 176, 245;
+  --tint-canvas-rgb:  16, 13, 36;
+  --tint-surface:   #14122c;
+  --tint-fill:      rgba(31, 29, 64, 0.72);
+  --tint-fill-node: rgba(20, 18, 44, 0.62);
+}
+.diagram-dialog[data-tinted="true"][data-cat="network"] {
+  --tint-deep-rgb:    53, 125, 140;
+  --tint-base-rgb:    79, 229, 255;
+  --tint-bright-rgb: 158, 234, 247;
+  --tint-canvas-rgb:   7, 19, 25;
+  --tint-surface:   #0a1a20;
+  --tint-fill:      rgba(14, 38, 46, 0.72);
+  --tint-fill-node: rgba(9, 26, 32, 0.62);
+}
+.diagram-dialog[data-tinted="true"][data-cat="storage"] {
+  --tint-deep-rgb:    53, 110, 82;
+  --tint-base-rgb:    94, 202, 148;
+  --tint-bright-rgb: 174, 224, 199;
+  --tint-canvas-rgb:  11, 20, 16;
+  --tint-surface:   #101c17;
+  --tint-fill:      rgba(20, 40, 32, 0.72);
+  --tint-fill-node: rgba(13, 28, 22, 0.62);
+}
+/* Every shade below is DERIVED from the four channel-list triples each category declares above.
+   The fallbacks are a safety net, not a palette: a category that forgets one of its four triples
+   would otherwise make `rgb(var(--missing))` invalid at computed-value time, which takes the custom
+   property down to the guaranteed-invalid value and blanks FIVE shades at once, --tint-panel (the
+   narration panel background) among them. Nothing in the gate would catch that. The fallback greys
+   are deliberately neutral so a missed declaration reads as unstyled rather than as another
+   category, and they are never the right answer: declare the triples. */
+.diagram-dialog[data-tinted="true"] {
+  --tint-deep:      rgb(var(--tint-deep-rgb,    70, 72, 90));
+  --tint-base:      rgb(var(--tint-base-rgb,   150, 154, 178));
+  --tint-bright:    rgb(var(--tint-bright-rgb, 200, 203, 222));
+  --tint-canvas:    rgb(var(--tint-canvas-rgb,  16, 15, 26));
+
+  --tint-glow:      rgba(var(--tint-base-rgb,   150, 154, 178), 0.15);
+  --tint-border:    rgba(var(--tint-bright-rgb, 200, 203, 222), 0.42);
+  --tint-active:    rgba(var(--tint-bright-rgb, 200, 203, 222), 0.28);
+  --tint-edge:      rgba(var(--tint-deep-rgb,    70, 72, 90), 0.5);
+  --tint-panel:     rgba(var(--tint-canvas-rgb,  16, 15, 26), 0.86);
+
+  --accent:        var(--tint-bright);
+  --accent-glow:   var(--tint-glow);
+  --accent-border: var(--tint-border);
+
+  --cluster-color:   var(--tint-base); --cluster-glow:   var(--tint-glow); --cluster-border:   var(--tint-border);
+  --network-color:   var(--tint-base); --network-glow:   var(--tint-glow); --network-border:   var(--tint-border);
+  --workloads-color: var(--tint-base); --workloads-glow: var(--tint-glow); --workloads-border: var(--tint-border);
+  --storage-color:   var(--tint-base); --storage-glow:   var(--tint-glow); --storage-border:   var(--tint-border);
+
+  --diag-stroke:      var(--tint-base);
+  --diag-arrow:       var(--tint-base);
+  --diag-arrow-dim:   var(--tint-deep);
+  --diag-stroke-soft: var(--tint-deep);
+  --diag-node-stroke: var(--tint-deep);
+  --diag-fill-soft:   var(--tint-fill);
+  --diag-node-fill:   var(--tint-fill-node);
+
+  --bg-card: var(--tint-surface);
+  --border:  var(--tint-deep);
+}
+.diagram-dialog[data-tinted="true"] .dialog-canvas {
+  background-color: var(--tint-canvas);
+  background-image: none;
+}
+.diagram-dialog[data-tinted="true"] .dialog-header {
+  border-bottom-color: var(--tint-border);
+}
+/* Player-chrome gradation, so the modal reads as a three-step ramp instead of one flat tone: the
+   canvas darkest, the controls bar the mid tone, the header and step-dots strip lightest. */
+.diagram-dialog[data-tinted="true"] .dialog-controls {
+  background: var(--tint-chrome, var(--tint-fill-node));
+  border-top-color: var(--tint-border);
+}
+/* --tint-panel is the canvas at 86%, so only the border and the accent edge draw the box.
+   NO border-left-color here: the four `.diagram-dialog[data-cat="..."] .narration-overlay` rules
+   further down have the identical specificity (0,3,0) and come later, so source order hands them
+   the win. Measured on cluster-node-drain, the left edge computes to rgb(125, 134, 255), which is
+   --tint-base, not the --tint-bright rgb(171, 176, 245) a declaration here would ask for. Every
+   card is tinted, so those four rules resolve their --<cat>-color to --tint-base and the edge is
+   the base tone catalog-wide.
+   Restoring the brighter edge is a VISUAL change to all 107 cards, not a cleanup: it means moving
+   this block below those four rules. Left as it renders.
+   DO NOT add a per-category `.narration-overlay` background rule back: retint a category by
+   changing its --tint-canvas-rgb and the panel follows. */
+.diagram-dialog[data-tinted="true"] .narration-overlay {
+  background: var(--tint-panel);
+  border-color: var(--tint-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.dialog-inner {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  /* minmax(0, 1fr), not the implicit auto track: a header wider than the panel (a long title, the
+     section and the counter on a phone) would otherwise widen the whole panel past the viewport. */
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Flip arrows, one in each gutter. 36 wide so they fit the 4vw gutter down to 1000px; below that
+   there is no gutter to stand in and the reader flips with a swipe or Shift+arrows. */
+.dialog-nav {
+  position: absolute;
+  top: 50%;
+  width: 36px;
+  height: 72px;
+  margin-top: -36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(17, 15, 31, 0.72);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s, border-color 0.12s, transform 0.12s;
+}
+.dialog-nav-prev { left: calc(2vw - 18px); }
+.dialog-nav-next { right: calc(2vw - 18px); }
+.dialog-nav:hover,
+.dialog-nav.pressed {
+  color: var(--accent);
+  background: var(--accent-glow);
+  border-color: var(--accent-border);
+}
+.dialog-nav.pressed { transform: scale(0.92); }
+.dialog-nav:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.dialog-nav[hidden] { display: none; }
+@media (max-width: 999px) {
+  .dialog-nav { display: none; }
+}
+
+.dialog-pos {
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.dialog-section {
+  font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.dialog-section[hidden],
+.ctl-source[hidden] { display: none; }
+
+/* A swipe or a flip, the next card glides in from the side it came from. */
+.dialog-canvas.slide-next { animation: slide-from-right 0.24s ease-out; }
+.dialog-canvas.slide-prev { animation: slide-from-left 0.24s ease-out; }
+@keyframes slide-from-right { from { opacity: 0; transform: translateX(36px); } to { opacity: 1; transform: none; } }
+@keyframes slide-from-left  { from { opacity: 0; transform: translateX(-36px); } to { opacity: 1; transform: none; } }
+
+/* Horizontal touch gestures on the stage belong to the flip, vertical ones still scroll and pinch. */
+.dialog-stage { touch-action: pan-y pinch-zoom; }
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-bright);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dialog-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+}
+.dialog-meta .card-cat { font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif; }
+.dialog-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-bright);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.dialog-close:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+/* The star, report and fullscreen tools beside close: the same 40px box, quieter until hovered */
+.dialog-tool {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.dialog-tool:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+.dialog-tool[hidden] { display: none; }
+/* Saving a frame is a desktop task (slides), and below 900 the button would cost the title its width. */
+@media (max-width: 900px) { .dialog-save { display: none; } }
+.dialog-tool:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.dialog-star svg { width: 17px; height: 17px; fill-opacity: 0; }
+/* Inside the dialog every control, the star included, takes the category tint the dialog sets on
+   --accent. The grid star keeps the cyan --starred-color. */
+.dialog-star.starred {
+  color: var(--accent);
+  filter: drop-shadow(0 0 5px var(--accent-glow));
+}
+.dialog-star.starred svg { fill-opacity: 1; }
+
+/* Fullscreen (the page is fullscreen, the class is set by app.js): the panel takes the whole
+   screen. There is no gutter left for the flip arrows, so they go, and Shift+arrows (or a swipe)
+   flips instead. */
+.diagram-dialog.is-fullscreen .dialog-inner {
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+.diagram-dialog.is-fullscreen .dialog-nav { display: none; }
+
+.dialog-body {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+.dialog-stage {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  min-height: 0;
+}
+.dialog-canvas {
+  background: rgba(8, 6, 18, 0.55);
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 16px;
+  position: relative;
+}
+.dialog-canvas svg {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
+
+.narration-overlay {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 32%;
+  max-width: 360px;
+  min-width: 240px;
+  padding: 12px 14px;
+  background: rgba(17, 15, 31, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* The panel has a width and NO height constraint, so it is sized by its text. Two consequences that
+   look like one problem and are not:
+   1. It changes height BETWEEN STEPS of one card: on 209 of 216 card+viewport pairs the panel moves
+      as the card plays, so the diagram area under it moves too.
+   2. It changes height BETWEEN VIEWPORTS by up to 186 viewBox units (workloads-pod-lifecycle-phases
+      reaches 503 at 1100x800 and 317 at 1600x1000), so the band every card reserves for its 1100
+      worst case reads as a hole at 1600. Five card records leave a finding OPEN on this.
+   DO NOT pin min-height to the card's tallest narration. It fixes (1) completely (0 of 216 pairs
+   move) and does nothing for (2), because (2) is not a height problem:
+   what varies is the fixed-pixel FONT, so a wider viewport wraps the same text into fewer lines and
+   divides by a larger scale. The panel's WIDTH in viewBox units is BOUNDED, not constant, and the
+   distinction matters to anyone measuring on one viewport: x<=397 holds everywhere, but the right
+   edge still travels 105.78 units across the standard set (cluster-architecture, 290.77 at
+   1600x1000 against 396.55 at 1100x800), so the bound is reached only at the narrowest one. Closing
+   (2) means typography that scales with the diagram, a design decision and not a cleanup.
+   WHY NOT the clamp: its cost is visible. Pinned to its tallest narration, a card with a wide
+   spread of narration lengths shows about 100px of empty strip inside a drawn border, and an empty
+   strip inside a border reads as a fault where empty canvas reads as space. Geometry is unaffected
+   either way. If (1) is worth solving alone, the direction is a transition on the height rather
+   than a clamp, which keeps the panel snug and removes the jump. */
+/* Initial hidden state while the card module loads, so the box never flashes empty.
+   updateNarration removes it the instant the first step's text is set (no fade, 0ms). */
+.narration-overlay.is-poster {
+  opacity: 0;
+  visibility: hidden;
+}
+.diagram-dialog[data-cat="network"]   .narration-overlay { border-left-color: var(--network-color); }
+.diagram-dialog[data-cat="workloads"] .narration-overlay { border-left-color: var(--workloads-color); }
+.diagram-dialog[data-cat="storage"]   .narration-overlay { border-left-color: var(--storage-color); }
+.diagram-dialog[data-cat="cluster"]   .narration-overlay { border-left-color: var(--cluster-color); }
+.narration-overlay .narration-step {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.narration-overlay .narration-text {
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.dialog-progress {
+  height: 3px;
+  background: rgba(221, 202, 250, 0.07);
+  position: relative;
+  overflow: hidden;
+}
+.dialog-progress-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+.diagram-dialog[data-cat="network"]   .dialog-progress-fill { background: var(--network-color); }
+.diagram-dialog[data-cat="workloads"] .dialog-progress-fill { background: var(--workloads-color); }
+.diagram-dialog[data-cat="storage"]   .dialog-progress-fill { background: var(--storage-color); }
+.diagram-dialog[data-cat="cluster"]   .dialog-progress-fill { background: var(--cluster-color); }
+
+.dialog-step-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 18px 6px;
+  flex-wrap: wrap;
+}
+.step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(221, 202, 250, 0.18);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.18s, width 0.2s, opacity 0.18s, border-radius 0.2s;
+}
+.step-dot:hover {
+  background: rgba(221, 202, 250, 0.45);
+}
+.step-dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.step-dot.passed {
+  background: var(--accent);
+  opacity: 0.5;
+}
+.step-dot.active {
+  width: 22px;
+  border-radius: 4px;
+  background: var(--accent);
+  opacity: 1;
+}
+.diagram-dialog[data-cat="network"]   .step-dot.passed,
+.diagram-dialog[data-cat="network"]   .step-dot.active { background: var(--network-color); }
+.diagram-dialog[data-cat="workloads"] .step-dot.passed,
+.diagram-dialog[data-cat="workloads"] .step-dot.active { background: var(--workloads-color); }
+.diagram-dialog[data-cat="storage"]   .step-dot.passed,
+.diagram-dialog[data-cat="storage"]   .step-dot.active { background: var(--storage-color); }
+.diagram-dialog[data-cat="cluster"]   .step-dot.passed,
+.diagram-dialog[data-cat="cluster"]   .step-dot.active { background: var(--cluster-color); }
+.diagram-dialog[data-cat="network"]   .step-dot.passed,
+.diagram-dialog[data-cat="workloads"] .step-dot.passed,
+.diagram-dialog[data-cat="storage"]   .step-dot.passed,
+.diagram-dialog[data-cat="cluster"]   .step-dot.passed { opacity: 0.5; }
+
+/* The bright end of the ramp: highlighted elements, moving packets and the player progress lift to
+   --tint-bright so the foreground reads lighter than the base-tone blocks. These rules sit AFTER
+   the per-category ones so they win the equal-specificity tie. */
+.diagram-dialog[data-tinted="true"] .diagram-box.highlight .diagram-box-rect,
+.diagram-dialog[data-tinted="true"] .diagram-chip.highlight .diagram-chip-rect,
+.diagram-dialog[data-tinted="true"] .diagram-pod.highlight .diagram-pod-rect,
+.diagram-dialog[data-tinted="true"] .diagram-cylinder.highlight .diagram-cylinder-body,
+.diagram-dialog[data-tinted="true"] .diagram-cylinder.highlight .diagram-cylinder-cap,
+.diagram-dialog[data-tinted="true"] .diagram-node.highlight .diagram-node-rect {
+  stroke: var(--tint-bright);
+}
+.diagram-dialog[data-tinted="true"] .diagram-packet {
+  fill: var(--tint-bright);
+  filter: drop-shadow(0 0 6px var(--tint-bright));
+}
+/* Network --tint-bright is a pale cyan that washes the ball out, so packet and ripple are pinned to
+   the saturated network cyan for network dialogs only, at higher specificity than the generic rule. */
+.diagram-dialog[data-cat="network"][data-tinted="true"] .diagram-packet {
+  fill: #4fe5ff;
+  filter: drop-shadow(0 0 6px #4fe5ff);
+}
+.diagram-dialog[data-cat="network"][data-tinted="true"] .diagram-ripple {
+  stroke: #4fe5ff;
+  filter: drop-shadow(0 0 4px #4fe5ff);
+}
+/* Inner fills: the container glyph and cylinder cap carry literal rgba in
+   diagrams.css (not tokens), so they need an explicit tinted override. */
+.diagram-dialog[data-tinted="true"] .diagram-pod-container {
+  fill: var(--tint-glow);
+  stroke: var(--tint-base);
+}
+.diagram-dialog[data-tinted="true"] .diagram-cylinder-cap {
+  fill: var(--tint-glow);
+}
+
+/* Player chrome with a wide gap between the two states: an idle control blends into the panel, and
+   the active Play, pressed Loop, hovered button and selected speed take a lit --tint-active fill
+   with a bright border and icon. */
+.diagram-dialog[data-tinted="true"] .ctl-btn,
+.diagram-dialog[data-tinted="true"] .ctl-speed {
+  border-color: var(--tint-edge);
+}
+.diagram-dialog[data-tinted="true"] .ctl-btn {
+  background: var(--tint-chrome, var(--tint-fill-node));
+}
+.diagram-dialog[data-tinted="true"] .ctl-btn:hover:not(:disabled),
+.diagram-dialog[data-tinted="true"] .ctl-btn.primary,
+.diagram-dialog[data-tinted="true"] .ctl-btn[aria-pressed="true"] {
+  border-color: var(--tint-bright);
+  background: var(--tint-active);
+  color: var(--tint-bright);
+}
+/* A disabled control keeps the full chip so it stays uniform with its neighbours and only the icon
+   dims. The base rule's blunt `opacity: 0.4` made the whole button look broken. */
+.diagram-dialog[data-tinted="true"] .ctl-btn:disabled {
+  opacity: 1;
+  color: var(--tint-deep);
+}
+.diagram-dialog[data-tinted="true"] .ctl-speed button.active,
+.diagram-dialog[data-tinted="true"] .ctl-speed button:hover {
+  background: var(--tint-active);
+  color: var(--tint-bright);
+}
+/* Progress fill and the active and passed step dots drop from the bright tone to the base tone.
+   The track and the idle dots keep the faint glow. */
+.diagram-dialog[data-tinted="true"] .dialog-progress { background: var(--tint-glow); }
+.diagram-dialog[data-tinted="true"] .step-dot { background: var(--tint-glow); }
+.diagram-dialog[data-tinted="true"] .dialog-progress-fill,
+.diagram-dialog[data-tinted="true"] .step-dot.passed,
+.diagram-dialog[data-tinted="true"] .step-dot.active {
+  background: var(--tint-base);
+}
+
+.dialog-controls {
+  padding: 12px 18px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(12, 8, 28, 0.55);
+}
+.ctl-btn {
+  height: 34px;
+  min-width: 34px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: rgba(28, 22, 56, 0.6);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.ctl-btn:hover:not(:disabled) {
+  border-color: var(--accent-border);
+  background: var(--accent-glow);
+  color: var(--text-bright);
+}
+.ctl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ctl-btn.primary {
+  border-color: var(--accent-border);
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+.ctl-btn[aria-pressed="true"] {
+  border-color: var(--accent-border);
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+.ctl-spacer { flex: 1; }
+.ctl-speed {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.ctl-speed button {
+  height: 32px;
+  width: 38px;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+  font-size: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.ctl-speed button.active,
+.ctl-speed button:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+.ctl-source {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: right;
+}
+.ctl-source a {
+  color: var(--text-dim);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--text-dim);
+}
+.ctl-source a:hover { color: var(--accent); border-color: var(--accent); }
+/* The separator is its own span so the dashed underline of a link stops at the link. Padding
+   rather than a space around the dot, so a wrap breaks between sources and never before it. */
+.ctl-source-sep {
+  padding: 0 6px;
+  opacity: 0.5;
+}
+
+.reduced-notice {
+  font-size: 12px;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin: 8px 18px 0;
+  display: none;
+}
+body.reduced-motion .reduced-notice { display: block; }
+
+/* ===== MOBILE STUB =====
+   The diagrams are not adapted to phones, so a phone gets this page instead of the grid. The query
+   is written three times, here, as MOBILE_STUB in js/app.js (which sends a deep link to the card's
+   static page) and in css/page.css (which hides its play links): change one, change all. PHONES ONLY: a touch screen at most 600 wide
+   (portrait) or at most 500 tall (landscape). The smallest tablet is 744 wide and 744+ tall in
+   either orientation, so every tablet, and every desktop window however narrow, gets the catalog. */
+.mobile-stub { display: none; }
+@media (hover: none) and (pointer: coarse) and (max-width: 600px), (hover: none) and (pointer: coarse) and (max-height: 500px) {
+  .cat-nav, .main, .scroll-top-btn, .search-container, .diagram-dialog { display: none !important; }
+  /* The page is only header, stub and footer here, so the body becomes a column the stub fills:
+     the footer then sits on the bottom edge instead of under a short stub mid-screen. */
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .mobile-stub {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 14px;
+    width: 100%;
+    max-width: 420px;
+    align-self: center;
+    padding: 40px 20px;
+  }
+}
+.mobile-stub-icon {
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-glow);
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.mobile-stub-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-bright);
+}
+.mobile-stub-text {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-card-desc);
+}
+.mobile-stub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.mobile-stub-btn {
+  min-height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.mobile-stub-btn.primary {
+  color: var(--accent);
+  background: var(--accent-glow);
+  border-color: var(--accent-border);
+}
+.mobile-stub-btn.copied {
+  color: var(--success-color);
+  border-color: rgba(92, 184, 92, 0.3);
+  background: rgba(92, 184, 92, 0.08);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .cat-nav-inner::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 48px;
+    background: linear-gradient(to right, transparent, rgba(17, 15, 31, 0.96));
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .cat-nav { top: 110px; }
+  .cat-nav-sub { top: 151px; }
+  .cat-nav-inner { padding: 0 14px; }
+  .main { padding: 20px 12px 60px; }
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+}
+
+@media (max-width: 680px) {
+  .view-compact .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  /* A long title, its category label and the link button can outgrow a narrow row: the count
+     drops to a second line (still right-aligned by its margin-left: auto), as on /cli/ */
+  .section-header { flex-wrap: wrap; row-gap: 6px; }
+  .main { padding: 18px 14px 60px; }
+  .cards-grid { grid-template-columns: 1fr; }
+  .dialog-controls { gap: 6px; padding: 10px 12px; }
+  .ctl-source { display: none; }
+  .dialog-header { gap: 8px; padding: 6px 10px 6px 14px; }
+  .dialog-section { display: none; }
+  .narration-overlay {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    padding: 9px 11px;
+  }
+  .narration-overlay .narration-text { font-size: 12.5px; line-height: 1.4; }
+  html { background-attachment: scroll; }
+}
+
+@media (hover: none) {
+  .cat-btn { min-height: 40px; }
+  .star-btn { opacity: 0.85; width: 40px; height: 40px; margin: -9px -10px -9px auto; }
+}
+
+@media (max-width: 400px) {
+  .cat-nav { top: 97px; }
+  .cat-nav-sub { top: 138px; }
+  .ctl-btn { height: 30px; padding: 0 8px; }
+}
+
+/* ===== SECTION LINK ===== */
+/* Copy-link button beside the section title, mirrors /cli/: always shown in the muted text colour. */
+.section-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+}
+.section-action {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.1s, border-color 0.1s, background 0.1s;
+}
+.section-action:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: rgba(224, 205, 255, 0.08);
+}
+.section-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* The copy-link button belongs to its section, so it takes the category colour on hover. The
+   header and the nav above stay lavender, as on /cli/. */
+.section[data-cat="network"]   { --sec-color: var(--network-color);   --sec-border: var(--network-border);   --sec-glow: var(--network-glow); }
+.section[data-cat="storage"]   { --sec-color: var(--storage-color);   --sec-border: var(--storage-border);   --sec-glow: var(--storage-glow); }
+.section[data-cat="workloads"] { --sec-color: var(--workloads-color); --sec-border: var(--workloads-border); --sec-glow: var(--workloads-glow); }
+.section[data-cat="cluster"]   { --sec-color: var(--cluster-color);   --sec-border: var(--cluster-border);   --sec-glow: var(--cluster-glow); }
+.section .section-action:not(.copied):hover {
+  color: var(--sec-color, var(--accent));
+  border-color: var(--sec-border, var(--accent-border));
+  background: var(--sec-glow, rgba(224, 205, 255, 0.08));
+}
+.section-action.copied {
+  color: var(--success-color);
+  border-color: rgba(92, 184, 92, 0.3);
+  background: rgba(92, 184, 92, 0.08);
+}
+
+/* ===== NEW SINCE LAST VISIT ===== */
+/* js/lib/fresh.js decides what is new for THIS browser. A filled lavender pill, distinct from the
+   cyan star and from every category colour, the same as on /cli/. */
+.new-pill,
+.section-new {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #1a1530;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 16px;
+}
+.card-new {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.section-new {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.section-new + .section-count { margin-left: 8px; }

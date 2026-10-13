@@ -1,43 +1,14 @@
 #!/usr/bin/env node
-// deadair.mjs: how long a step STANDS STILL after its own motion has ended, ranked against the
-// catalog.
-//
-//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/deadair.mjs <card-id> [--base=URL]
-//
-// WHY THIS EXISTS. `M-19` and `render/duration.test.mjs` enforce `span <= duration`: a step must
-// OUTLAST its own motion. Nothing anywhere enforces or even prints the other side of that
-// inequality. A step whose ball lands at 700ms and whose duration is 3800 is green on every check
-// in the tree and reads on screen as a card that froze: the viewer watched the one thing that
-// moves finish, and then waited 3.1 seconds at a picture that is not changing. `timing.mjs` has
-// both numbers in its output and never subtracts them, which is how a full review reported this
-// card healthy while the author was watching the dead air.
-//
-// THE TENSION THIS TOOL MAKES VISIBLE, and it does not resolve it. `duration` is a READING hold:
-// the step has to stay up long enough for its narration to be read, and `timing.mjs` ranks that
-// side (ms per character, catalog median about 10). So dead air is not a defect on its own, it is
-// the PRICE of a long narration over a short motion. A step is only a finding when it is an
-// outlier on BOTH readings at once: far more still time than its siblings AND no reading load to
-// justify it. This tool prints the pair so that judgement is made on two numbers and not on one.
-//
-// THE TWO SPAN READINGS, and they are not interchangeable.
-//   spec  the static lower bound off `timelineOf` (test/fixtures/spec.mjs). It ignores the ripple,
-//         the packet fades and the pulse tails, so it UNDERSTATES the span and therefore OVERSTATES
-//         the dead air. It is what the catalog baseline is built from, because it needs no browser.
-//   real  the live WAAPI reading off `stepSpan`, the same one `render/duration.test.mjs` uses. Only
-//         the target card gets it, because it costs a browser.
-// The RANK is computed spec against spec, so it is internally consistent. The dead-air MILLISECONDS
-// a finding quotes must come from the `real` column, never from the rank's column.
-//
-// WHAT IT IS BLIND TO. Everything `pace.mjs` is blind to, for the same reason: it reads the spec,
-// so a card building its flow inside `step.motion` or an `F.run` escape hides its motion here. It
-// also cannot see that a step is still on PURPOSE: a beat held for emphasis and a beat nobody
-// thought about produce the same number, and only the card's record can tell them apart.
+// deadair.mjs: how long each step stands still after its own motion ends, ranked against the catalog, beside its reading load.
+// usage: cd diagrams/test && node ../../.claude/skills/card-review/tools/deadair.mjs <card-id> [--base=URL]
+// The rank is spec against spec (understates span), quote milliseconds from the `real` column. Blind to motion inside step.motion or F.run.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const SCHEME = new URL('../../../../scheme/', import.meta.url).pathname;
-const { BEAT, routeDur, REVEAL_MS } = await import(`${SCHEME}js/lib/scheme-kit.js`);
-const { timelineOf } = await import(`${SCHEME}test/fixtures/spec.mjs`);
+const APP_DIR = new URL('../../../../diagrams/', import.meta.url).pathname;
+const { BEAT, routeDur, REVEAL_MS } = await import(`${APP_DIR}js/lib/diagram-kit.js`);
+const { timelineOf } = await import(`${APP_DIR}test/fixtures/spec.mjs`);
+const { playedHold, HOLD } = await import(`${APP_DIR}js/lib/tokens.js`);
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
@@ -47,9 +18,7 @@ const id = args.find(a => !a.startsWith('--'));
 if (!id) { console.error('Usage: node deadair.mjs <card-id> [--base=URL] [--no-browser]'); process.exit(1); }
 
 const kit = { BEAT, routeDur, REVEAL_MS };
-// The static span of one step: the latest arrival over its flow, plus the tail of anything that
-// ENDS later than it lands. A fade's arrival already includes its dur; a pulse lands at its delay
-// and then rings for PULSE_MS, which is the one tail worth carrying because it is the longest.
+// The static span of one step: the latest arrival plus the longest tail, a pulse ringing PULSE_MS after its delay.
 const PULSE_MS = 900;
 function specSpan(spec) {
   const rows = timelineOf(spec.flow, kit);
@@ -64,8 +33,8 @@ function specSpan(spec) {
 
 // The catalog baseline: every narrated step of every card, as { card, step, dur, span, dead, pct }.
 const rows = [];
-for (const cat of readdirSync(`${SCHEME}js/schemes`)) {
-  const dir = join(`${SCHEME}js/schemes`, cat);
+for (const cat of readdirSync(`${APP_DIR}js/diagrams`)) {
+  const dir = join(`${APP_DIR}js/diagrams`, cat);
   if (!statSync(dir).isDirectory()) continue;
   for (const f of readdirSync(dir)) {
     if (!f.endsWith('.js') || f.includes('kit') || f === 'cards.js' || f === 'posters.js') continue;
@@ -74,7 +43,8 @@ for (const cat of readdirSync(`${SCHEME}js/schemes`)) {
       if (!spec.narration) continue;                 // the poster holds by design (D-14, S-09)
       const span = specSpan(spec);
       if (span === null) continue;
-      const dur = spec.duration || 0;
+      // The played hold, not the declared ceiling: `duration` is cut under HOLD (M-19a).
+      const dur = playedHold(spec.duration || 0, span, spec.narration.length);
       rows.push({
         card: f.replace(/\.js$/, ''), step: spec.id, dur, span,
         dead: dur - span, pct: dur ? (dur - span) / dur : 0,
@@ -96,7 +66,7 @@ let real = null;
 if (flags['no-browser'] !== 'true') {
   const {
     launch, initPage, openCard, enterStep, stepCount, stepSpan, stepMeta, DEFAULT_BASE,
-  } = await import(`${SCHEME}test/fixtures/render.mjs`);
+  } = await import(`${APP_DIR}test/fixtures/render.mjs`);
   const browser = await launch();
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
   await ctx.addInitScript(initPage, 'expose');
@@ -107,7 +77,7 @@ if (flags['no-browser'] !== 'true') {
   real = [];
   for (let i = 0; i < n; i++) {
     await enterStep(page, i);
-    real.push({ id: meta[i]?.id || '', span: await stepSpan(page), dur: meta[i]?.duration ?? 0 });
+    real.push({ id: meta[i]?.id || '', span: await stepSpan(page, { finiteOnly: true }), dur: meta[i]?.duration ?? 0 });
   }
   await browser.close();
 }
@@ -116,10 +86,10 @@ const mine = rows.filter(r => r.card === id);
 if (!mine.length) { console.error(`no narrated steps found for ${id}`); process.exit(1); }
 
 console.log(`=== ${id} === still time after the motion ends\n`);
-console.log('step                dur   span  spanR   DEAD  DEADr   %still  rank(ms)  chars  ms/char  pace rank');
+console.log('step               play~  span  spanR   DEAD  DEADr   %still  rank(ms)  chars  ms/char  pace rank');
 for (const r of mine) {
   const live = real && real.find(x => x.id === r.step);
-  const deadR = live ? live.dur - live.span : null;
+  const deadR = live ? playedHold(live.dur, live.span, r.chars) - live.span : null;
   const pace = r.pace;
   const paceRank = [...rows].sort((a, b) => a.pace - b.pace).findIndex(x => x.pace >= pace) + 1;
   console.log(
@@ -140,6 +110,9 @@ console.log(`         median reading pace ${medPace.toFixed(2)} ms per character
 console.log(`         rank 1 is the LEAST still step in the catalog, ${rows.length} the most.`);
 console.log(`\nspan is the SPEC lower bound (no ripple, no packet fade, no pulse tail past ${PULSE_MS}ms),`);
 console.log('spanR the live WAAPI reading. Rank is spec against spec. Quote DEADr in a finding.');
+console.log(`\nplay~ is the played hold off the SPEC span: \`duration\` is a ceiling (M-19a), so DEAD stops at`);
+console.log(`HOLD.tail ${HOLD.tail}ms unless the narration floor, ${HOLD.perChar}ms per character, holds the step longer.`);
+console.log('Ties at the tail are expected. A DEAD above it is reading time, and DEADr is the live reading.');
 console.log('\nA HIGH rank is not a defect by itself: still time is the price of a long narration.');
 console.log('It is a finding when the step is high HERE and also slow on ms/char, which means the');
 console.log('hold is not buying reading time either. Then the fix is the NARRATION or the motion,');

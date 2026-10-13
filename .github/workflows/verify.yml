@@ -1,0 +1,155 @@
+name: Verify
+
+on:
+  push:
+    branches-ignore:
+      - main
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Workflow syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: actionlint
+        run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.7 -color
+
+  unit:
+    name: Pages and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Revisions and dates are current
+        run: node tools/pages/build.mjs --check
+
+      - name: Build static pages
+        run: node tools/pages/build.mjs
+
+      - name: Unit tests
+        working-directory: diagrams/test
+        run: node --test --test-concurrency=4 'unit/**/*.test.mjs'
+
+  site:
+    name: Shipped site in a browser
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: diagrams/test/package-lock.json
+
+      - name: Install Playwright
+        working-directory: diagrams/test
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Build static pages
+        run: node tools/pages/build.mjs
+
+      - name: Stage and stamp like deploy
+        run: |
+          tools/deploy/stage.sh _site
+          node tools/deploy/version.mjs _site "${GITHUB_SHA::8}"
+
+      - name: No internal file is staged
+        run: |
+          leaked="$(find _site \( -name CLAUDE.md -o -name CARDS.md -o -name CANON.md -o -name CARDS -o -path '_site/diagrams/test' \) -print)"
+          if [ -n "$leaked" ]; then echo "internal files staged:"; echo "$leaked"; exit 1; fi
+
+      - name: Site smoke on the staged site
+        run: node tools/smoke/site.mjs _site
+
+  diagrams:
+    name: Diagram render tests
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: diagrams/test/package-lock.json
+
+      - name: Install Playwright
+        working-directory: diagrams/test
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Serve the repo
+        run: |
+          python3 -m http.server 8888 --bind 127.0.0.1 > /dev/null 2>&1 &
+          for _ in $(seq 30); do curl -sf -o /dev/null http://127.0.0.1:8888/ && exit 0; sleep 1; done
+          echo "the dev server did not come up"; exit 1
+
+      - name: Unit and render tests
+        working-directory: diagrams/test
+        env:
+          BASE: http://127.0.0.1:8888
+        run: npm test
+
+  container:
+    name: Docker image
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build static pages
+        run: node tools/pages/build.mjs
+
+      - name: Build and run the image
+        run: |
+          docker build -t kube-cheatsheet .
+          docker run -d --name kube-cheatsheet -p 8080:80 kube-cheatsheet
+          for _ in $(seq 30); do curl -sf -o /dev/null http://127.0.0.1:8080/ && exit 0; sleep 1; done
+          echo "the container did not answer"; exit 1
+
+      # Pages answer, and every internal document stays out of the image (S-41).
+      - name: Pages answer, internal docs do not
+        run: |
+          code() { curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080$1"; }
+          fail=0
+          for path in / /cli/ /diagrams/ /diagrams/card/ /cli/section/ /cli/section/helm/ /sitemap.xml /llms.txt; do
+            [ "$(code "$path")" = 200 ] || { echo "not 200: $path"; fail=1; }
+          done
+          for path in /CLAUDE.md /diagrams/CLAUDE.md /diagrams/CANON.md /diagrams/test/ /tools/pages/build.mjs /Dockerfile; do
+            [ "$(code "$path")" = 404 ] || { echo "not 404: $path"; fail=1; }
+          done
+          exit "$fail"

@@ -12,11 +12,16 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
   deploy:
+    needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -27,16 +32,20 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build static pages
+        run: node tools/pages/build.mjs
+
+      # The allowlist and the internal-doc exclusion live in one script, which verify.yml runs too.
       - name: Stage site
-        run: |
-          mkdir -p _site
-          cp index.html 404.html favicon.svg robots.txt sitemap.xml CNAME _site/
-          cp -r images cli scheme _site/
-          rm -rf _site/scheme/test
-          # Two shapes of design record: the per-category CARDS.md and the per-card CARDS/ folder
-          # beside it. Exclusion is by NAME, so a directory needs its own clause or every note in
-          # it ships. -depth so the files go before the folder they sit in.
-          find _site -depth \( -name CLAUDE.md -o -name CARDS.md -o -name CANON.md -o -name CARDS -type d \) -exec rm -rf {} +
+        run: tools/deploy/stage.sh _site
+
+      - name: Stamp asset URLs
+        run: node tools/deploy/version.mjs _site "${GITHUB_SHA::8}"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

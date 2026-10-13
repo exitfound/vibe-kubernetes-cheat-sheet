@@ -8,15 +8,17 @@ on:
       - 'index.html'
       - '404.html'
       - 'cli/**'
-      - 'scheme/**'
+      - 'diagrams/**'
       - 'images/**'
       - 'favicon.svg'
+      - 'favicon.ico'
       - 'robots.txt'
-      - 'sitemap.xml'
       - 'CNAME'
       - 'Dockerfile'
       - 'configs/**'
       - '.dockerignore'
+      - 'tools/pages/**'
+      - '.github/workflows/release.yml'
 
 permissions:
   contents: write
@@ -26,19 +28,32 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
   release:
     name: Create Release
+    needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Generate version
         id: version
-        run: echo "VERSION=v$(date +'%Y.%m.%d')-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "VERSION=v$(date +'%Y.%m.%d')-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Generate release body
         run: echo "# $(date +'%Y/%m/%d')" > release_body.txt
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build static pages
+        run: node tools/pages/build.mjs
 
       - name: Package source
         run: |
@@ -46,16 +61,18 @@ jobs:
             index.html \
             404.html \
             cli/ \
-            scheme/ \
+            diagrams/ \
             images/ \
             favicon.svg \
+            favicon.ico \
             robots.txt \
             sitemap.xml \
+            llms.txt \
             CNAME \
             Dockerfile \
             configs/ \
             .dockerignore \
-            -x "scheme/test/*" "*CLAUDE.md" "*CARDS.md" "*CANON.md" "*/CARDS/*"
+            -x "diagrams/test/*" "*CLAUDE.md" "*CARDS.md" "*CANON.md" "*/CARDS/*"
 
       - name: Create Release on Github
         uses: softprops/action-gh-release@v2

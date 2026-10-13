@@ -1,25 +1,13 @@
 #!/usr/bin/env node
-// timing.mjs: what each step DECLARES against what it actually animates, plus how much reading it
-// asks for. `M-19` (span <= duration) has a machine; reading time has none, and a card whose text
-// grew after its duration was set passes the gate while nobody can read it.
-//
-//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/timing.mjs <card-id> [--base=URL]
-//
-// Prints per step: span (latest delay + active + endDelay over the diagram animations), declared
-// duration, hold (what the Timeline really waits: max(duration, span + 60)), narration characters,
-// ms per character, and the rank of that pace inside the whole catalog. A step near the top of the
-// catalog ranking is a step to read out loud before defending its number.
-//
-// IT PRINTS span AND duration AND NEVER SUBTRACTS THEM, which is the blind spot that shipped a card
-// whose ball landed at 700ms under a 3800ms hold: green on `M-19`, ordinary on the pace ranking
-// here, and 82% of the step spent at a picture that had stopped changing. That difference is
-// `M-19a` and `deadair.mjs` is its reader. Run the two together or the pace number reads as an
-// all-clear it is not.
+// timing.mjs: per step, the animated span against the declared duration, the real hold, and narration ms per character ranked catalog-wide.
+// usage: cd diagrams/test && node ../../.claude/skills/card-review/tools/timing.mjs <card-id> [--base=URL]
+// It never subtracts span from duration: run deadair.mjs (`M-19a`) beside it, or the pace reads as an all-clear.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   launch, initPage, openCard, enterStep, stepCount, stepSpan, stepMeta, DEFAULT_BASE,
-} from '../../../../scheme/test/fixtures/render.mjs';
+} from '../../../../diagrams/test/fixtures/render.mjs';
+import { playedHold } from '../../../../diagrams/js/lib/tokens.js';
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
@@ -28,12 +16,11 @@ const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
 const id = args.find(a => !a.startsWith('--'));
 if (!id) { console.error('Usage: node timing.mjs <card-id>'); process.exit(1); }
 
-// The catalog baseline, read straight off the sources: every `duration:` immediately followed by a
-// `narration:`. A pace is only meaningful next to the pace of the other 100+ cards.
-const SCHEMES = new URL('../../../../scheme/js/schemes/', import.meta.url).pathname;
+// The catalog baseline off the sources: every `duration:` immediately followed by a `narration:`.
+const DIAGRAMS = new URL('../../../../diagrams/js/diagrams/', import.meta.url).pathname;
 const rows = [];
-for (const cat of readdirSync(SCHEMES)) {
-  const dir = join(SCHEMES, cat);
+for (const cat of readdirSync(DIAGRAMS)) {
+  const dir = join(DIAGRAMS, cat);
   if (!statSync(dir).isDirectory()) continue;
   for (const f of readdirSync(dir)) {
     if (!f.endsWith('.js') || f.includes('kit') || f === 'cards.js' || f === 'posters.js') continue;
@@ -57,11 +44,12 @@ const n = await stepCount(page);
 console.log('idx  id                 span  duration    hold  chars  ms/char  catalog rank');
 for (let i = 0; i < n; i++) {
   await enterStep(page, i);
-  const span = await stepSpan(page);
+  const span = await stepSpan(page, { finiteOnly: true });   // the span the Timeline waits on
   const d = meta[i]?.duration ?? 0;
   const text = meta[i]?.narration || '';
-  const hold = Math.max(d, span ? span + 60 : 0);
-  const pace = text.length ? (d / text.length) : 0;
+  // What the Timeline really plays: `duration` is a ceiling under HOLD (M-19a).
+  const hold = Math.max(playedHold(d, span, text.length), span ? span + 60 : 0);
+  const pace = text.length ? (hold / text.length) : 0;   // the played pace, the rank stays on declared durations
   const rank = text.length ? `${rankOf(d, text.length)} of ${rows.length}` : '-';
   const over = span > d ? '  <-- M-19 SPAN>DURATION' : '';
   console.log(
