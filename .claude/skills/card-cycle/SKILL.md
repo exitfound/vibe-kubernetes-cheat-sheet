@@ -20,7 +20,7 @@ signature, and `kin.mjs` judges that against the siblings. An agent that cannot 
 previous card just took will take it too.
 
 Across sections the sibling sets are disjoint, so the census is honest either way. What still
-collides: the README counts, `sitemap.xml`, `scheme/test/fixtures/`, the catalog baselines and the
+collides: the README counts, `sitemap.xml`, `diagrams/test/fixtures/`, the catalog baselines and the
 shared gate. Parallel work across categories is a conversation about those files.
 
 ## 2. The two sign-off gates

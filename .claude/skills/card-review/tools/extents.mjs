@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // extents.mjs: every drawn string of a card measured in viewBox units per step, with overlap against the narration panel.
-// usage: cd scheme/test && node ../../.claude/skills/card-review/tools/extents.mjs <card-id> [--step=N] [--viewport=1600x1000] [--base=URL]
+// usage: cd diagrams/test && node ../../.claude/skills/card-review/tools/extents.mjs <card-id> [--step=N] [--viewport=1600x1000] [--base=URL]
 // Measure rather than count characters: the per-character estimate drifts by several units.
 import {
   launch, initPage, openCard, enterStep, stepCount, DEFAULT_BASE, DIAGRAM,
-} from '../../../../scheme/test/fixtures/render.mjs';
+} from '../../../../diagrams/test/fixtures/render.mjs';
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
@@ -19,7 +19,7 @@ const ctx = await browser.newContext({ viewport: { width, height } });
 await ctx.addInitScript(initPage, 'expose');
 const page = await ctx.newPage();
 await openCard(page, id, (flags.base || DEFAULT_BASE).replace(/\/$/, ''));
-await page.evaluate(() => window.__schemeCtl?.pause?.());
+await page.evaluate(() => window.__diagramCtl?.pause?.());
 // Fonts first: a text measured before the webfont lands is measured in the fallback face.
 await page.evaluate(() => document.fonts.ready.then(() => true));
 

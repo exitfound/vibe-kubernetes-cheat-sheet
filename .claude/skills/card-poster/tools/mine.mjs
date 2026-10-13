@@ -6,7 +6,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = new URL('../../../../', import.meta.url).pathname;
-const SCHEMES = join(ROOT, 'scheme/js/schemes');
+const DIAGRAMS = join(ROOT, 'diagrams/js/diagrams');
 const LIB = join(ROOT, '.claude/skills/card-poster/reference/patterns.md');
 const verbose = process.argv.includes('--verbose');
 
@@ -43,8 +43,8 @@ const matches = (comment, family) => {
 const found = new Map();            // family -> [card id]
 const silent = [], unlisted = [];
 const allIds = new Set(), commented = new Set();
-for (const cat of readdirSync(SCHEMES)) {
-  const file = join(SCHEMES, cat, 'posters.js');
+for (const cat of readdirSync(DIAGRAMS)) {
+  const file = join(DIAGRAMS, cat, 'posters.js');
   if (!existsSync(file)) continue;
   const src = readFileSync(file, 'utf8');
   // Every poster, comment or not: a citation to a poster with no comment is not a dead citation.

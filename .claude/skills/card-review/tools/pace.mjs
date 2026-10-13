@@ -1,24 +1,24 @@
 #!/usr/bin/env node
 // pace.mjs: how fast every ball on a card moves (units per ms), ranked against the catalog and same-length siblings.
-// usage: cd scheme/test && node ../../.claude/skills/card-review/tools/pace.mjs <card-id>
+// usage: cd diagrams/test && node ../../.claude/skills/card-review/tools/pace.mjs <card-id>
 // Short lanes clamp to PKT_DUR_MIN and crawl (`M-13`), so read the siblings column first. Blind to motion inside step.motion or F.run.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const SCHEME = new URL('../../../../scheme/', import.meta.url).pathname;
-const { BEAT, routeDur, routeLength, REVEAL_MS } = await import(`${SCHEME}js/lib/scheme-kit.js`);
-const { timelineOf } = await import(`${SCHEME}test/fixtures/spec.mjs`);
+const APP_DIR = new URL('../../../../diagrams/', import.meta.url).pathname;
+const { BEAT, routeDur, routeLength, REVEAL_MS } = await import(`${APP_DIR}js/lib/diagram-kit.js`);
+const { timelineOf } = await import(`${APP_DIR}test/fixtures/spec.mjs`);
 
 const id = process.argv.slice(2).find(a => !a.startsWith('--'));
 if (!id) { console.error('Usage: node pace.mjs <card-id>'); process.exit(1); }
 
-const CANON_SPEED = 0.45;                 // PKT_SPEED, lib/scheme-kit.js
+const CANON_SPEED = 0.45;                 // PKT_SPEED, lib/diagram-kit.js
 const kit = { BEAT, routeDur, REVEAL_MS };
 
 // Every ball in the catalog. `top` is included because topPacket's fixed HOP_MS hits the same floor.
 const rows = [];
-for (const cat of readdirSync(`${SCHEME}js/schemes`)) {
-  const dir = join(`${SCHEME}js/schemes`, cat);
+for (const cat of readdirSync(`${APP_DIR}js/diagrams`)) {
+  const dir = join(`${APP_DIR}js/diagrams`, cat);
   if (!statSync(dir).isDirectory()) continue;
   for (const f of readdirSync(dir)) {
     if (!f.endsWith('.js') || f.includes('kit') || f === 'cards.js' || f === 'posters.js') continue;

@@ -1,6 +1,6 @@
 # The two axes
 
-A rubric, not a rule: `scheme/CANON.md` says nothing about level or depth (`D-01` carries no such
+A rubric, not a rule: `diagrams/CANON.md` says nothing about level or depth (`D-01` carries no such
 key). It is calibrated against shipped cards so two runs put the same card in the same place. Where
 a rating and this file disagree, say which is wrong.
 

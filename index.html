@@ -5,60 +5,90 @@
   <script>
     (function () {
       var h = location.hash;
-      if (!h) return;
-      // /scheme/ NAMES what it writes (#scheme= a card, #at= a section of the grid), and the bare
+      // #contacts and #sponsor open a header dropdown on the page itself (cli/js/lib/chrome.js).
+      if (!h || h === '#contacts' || h === '#sponsor') return;
+      // /diagrams/ NAMES what it writes (#diagram= a card, #at= a section of the grid), and the bare
       // namespace is /cli/'s, which is why it is the default target rather than a matched one.
-      var toScheme = h.indexOf('#scheme=') === 0 || h.indexOf('#at=') === 0;
-      location.replace((toScheme ? '/scheme/' : '/cli/') + h);
+      // #scheme= is the old name of #diagram=, which /diagrams/ still reads.
+      var toDiagram = /^#(diagram|scheme|at)=/.test(h);
+      location.replace((toDiagram ? '/diagrams/' : '/cli/') + h);
     })();
   </script>
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#110f1f">
   <style>:root{color-scheme:dark}html,body{background:#110f1f;color:#ece9ff}</style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>kube.how | Kubernetes Commands and Schemes</title>
-  <meta name="description" content="Kubernetes reference hub: a searchable CLI cheat sheet and interactive animated architecture schemes.">
-  <meta name="keywords" content="kubernetes, k8s, kubectl, helm, kustomize, k9s, cheat sheet, commands, architecture, diagrams, schemes, reference">
+  <title>kube.how | Kubernetes Commands and Animated Diagrams</title>
+  <meta name="description" content="Kubernetes reference hub: a searchable kubectl cheat sheet and interactive animated architecture diagrams.">
+  <meta name="robots" content="max-image-preview:large">
+  <meta name="keywords" content="kubernetes, k8s, kubectl, helm, kustomize, k9s, cheat sheet, commands, architecture, diagrams, reference">
   <meta name="author" content="kube.how">
 
   <link rel="canonical" href="https://kube.how/">
 
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://kube.how/">
-  <meta property="og:title" content="kube.how | Kubernetes Commands and Schemes">
-  <meta property="og:description" content="Kubernetes reference hub: a searchable CLI cheat sheet and interactive animated architecture schemes.">
-  <meta property="og:image" content="https://kube.how/images/og-hub.png">
+  <meta property="og:title" content="kube.how | Kubernetes Commands and Animated Diagrams">
+  <meta property="og:description" content="Kubernetes reference hub: a searchable kubectl cheat sheet and interactive animated architecture diagrams.">
+  <meta property="og:image" content="https://kube.how/images/og-hub.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="kube.how: Kubernetes commands and diagrams">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="kube.how | Kubernetes Commands and Schemes">
-  <meta name="twitter:description" content="Kubernetes reference hub: a searchable CLI cheat sheet and interactive animated architecture schemes.">
-  <meta name="twitter:image" content="https://kube.how/images/og-hub.png">
+  <meta name="twitter:title" content="kube.how | Kubernetes Commands and Animated Diagrams">
+  <meta name="twitter:description" content="Kubernetes reference hub: a searchable kubectl cheat sheet and interactive animated architecture diagrams.">
+  <meta name="twitter:image" content="https://kube.how/images/og-hub.jpg">
+  <meta name="twitter:image:alt" content="kube.how: Kubernetes commands and diagrams">
 
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"></noscript>
+  <link rel="stylesheet" href="/cli/css/chrome.css">
   <link rel="stylesheet" href="/cli/css/styles.css">
 
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "kube.how",
-    "description": "Kubernetes reference hub: a searchable CLI cheat sheet and interactive animated architecture schemes.",
-    "url": "https://kube.how/"
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://kube.how/#website",
+        "name": "kube.how",
+        "description": "Kubernetes reference hub: a searchable kubectl cheat sheet and interactive animated architecture diagrams.",
+        "url": "https://kube.how/",
+        "inLanguage": "en",
+        "publisher": { "@id": "https://kube.how/#org" }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://kube.how/#org",
+        "name": "kube.how",
+        "url": "https://kube.how/",
+        "sameAs": ["https://github.com/exitfound/vibe-kubernetes-cheat-sheet"]
+      },
+      {
+        "@type": "Person",
+        "@id": "https://kube.how/#author",
+        "name": "exitfound",
+        "url": "https://github.com/exitfound",
+        "sameAs": ["https://github.com/exitfound", "https://t.me/opengrad", "https://www.twitch.tv/exitfound"]
+      }
+    ]
   }
   </script>
 
   <style>
-    /* Hub-specific styles. Header, sidebar, footer, tokens and scrollbar all come from /cli/css/styles.css
-       so the chrome stays pixel-identical to the cli and scheme pages. */
+    /* Hub-specific styles. Header, sidebar, footer and scrollbar come from /cli/css/chrome.css and the
+       tokens from /cli/css/styles.css, so the chrome stays pixel-identical to the cli and diagram pages. */
     :root {
-      --hub-scheme-color:  #c4a8ff;
-      --hub-scheme-glow:   rgba(196, 168, 255, 0.13);
-      --hub-scheme-border: rgba(196, 168, 255, 0.30);
+      --hub-diagram-color:  #c4a8ff;
+      --hub-diagram-glow:   rgba(196, 168, 255, 0.13);
+      --hub-diagram-border: rgba(196, 168, 255, 0.30);
     }
 
     html { overflow-y: scroll; }
@@ -79,7 +109,7 @@
     }
 
     /* Invisible replica of the nav row so alignLogo() can center the logo icon
-       over the same "All" button position as on the cli and scheme pages. */
+       over the same "All" button position as on the cli and diagram pages. */
     .hub-ruler {
       height: 0;
       overflow: hidden;
@@ -88,7 +118,7 @@
     .hub-ruler .nav { position: static; box-shadow: none; }
 
     /* Brighter separators on the hub. The header border goes transparent so
-       its height matches the cli and scheme pages exactly, and a spacer strip
+       its height matches the cli and diagram pages exactly, and a spacer strip
        below extends the header background downward to give the text some calm
        room before the animated graph starts. The strip carries the line. */
     .header { border-bottom-color: transparent; }
@@ -244,10 +274,10 @@
       filter: drop-shadow(0 0 14px var(--workloads-glow));
     }
 
-    .hub-panel-scheme:hover .hub-icon, .hub-panel-scheme:focus-visible .hub-icon {
-      color: var(--hub-scheme-color);
+    .hub-panel-diagram:hover .hub-icon, .hub-panel-diagram:focus-visible .hub-icon {
+      color: var(--hub-diagram-color);
       transform: translateY(-3px);
-      filter: drop-shadow(0 0 14px var(--hub-scheme-glow));
+      filter: drop-shadow(0 0 14px var(--hub-diagram-glow));
     }
 
     .hub-panel h2 {
@@ -273,7 +303,7 @@
       padding: 9px 18px;
       border: 1px solid var(--border);
       border-radius: 8px;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
       font-size: 14px;
       font-weight: 500;
       color: var(--text-nav);
@@ -288,10 +318,10 @@
       background: var(--workloads-glow);
     }
 
-    .hub-panel-scheme:hover .hub-cta, .hub-panel-scheme:focus-visible .hub-cta {
-      border-color: var(--hub-scheme-border);
-      color: var(--hub-scheme-color);
-      background: var(--hub-scheme-glow);
+    .hub-panel-diagram:hover .hub-cta, .hub-panel-diagram:focus-visible .hub-cta {
+      border-color: var(--hub-diagram-border);
+      color: var(--hub-diagram-color);
+      background: var(--hub-diagram-glow);
     }
 
     .hub-panel:hover .hub-cta svg, .hub-panel:focus-visible .hub-cta svg { transform: translateX(3px); }
@@ -303,16 +333,16 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
       font-size: 13px;
       color: var(--text-dim);
     }
 
     @media (hover: none) {
       .hub-panel-cli .hub-icon { color: var(--workloads-color); }
-      .hub-panel-scheme .hub-icon { color: var(--hub-scheme-color); }
+      .hub-panel-diagram .hub-icon { color: var(--hub-diagram-color); }
       .hub-panel-cli .hub-cta { border-color: var(--workloads-border); color: var(--workloads-color); }
-      .hub-panel-scheme .hub-cta { border-color: var(--hub-scheme-border); color: var(--hub-scheme-color); }
+      .hub-panel-diagram .hub-cta { border-color: var(--hub-diagram-border); color: var(--hub-diagram-color); }
     }
 
     @media (max-width: 900px) {
@@ -354,7 +384,7 @@
     <a class="side-btn" id="sideCli" data-tooltip="Commands" aria-label="Commands" href="/cli/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
     </a>
-    <a class="side-btn" id="sideScheme" data-tooltip="Schemes" aria-label="Schemes" href="/scheme/">
+    <a class="side-btn" id="sideDiagram" data-tooltip="Diagrams" aria-label="Diagrams" href="/diagrams/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="7" height="6" rx="1.2"/><rect x="15" y="12" width="7" height="6" rx="1.2"/><line x1="9" y1="9" x2="15" y2="15"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
     </a>
     <button class="side-toggle" id="sideToggle" type="button" data-tooltip="Hide sidebar" aria-label="Hide sidebar">
@@ -366,7 +396,7 @@
   </button>
 
   <header class="header">
-    <h1 class="sr-only">kube.how, the Kubernetes reference hub with CLI commands and animated architecture schemes</h1>
+    <h1 class="sr-only">kube.how, the Kubernetes reference hub with CLI commands and animated architecture diagrams</h1>
     <div class="header-inner">
 
       <a class="logo" href="/">
@@ -395,7 +425,7 @@
         </div>
         <div>
           <div class="logo-text">Kubernetes Reference Hub</div>
-          <div class="logo-sub">Commands &middot; Schemes</div>
+          <div class="logo-sub">Commands &middot; Diagrams</div>
         </div>
       </a>
 
@@ -429,15 +459,15 @@
       </span>
     </a>
 
-    <a class="hub-panel hub-panel-scheme" href="/scheme/">
+    <a class="hub-panel hub-panel-diagram" href="/diagrams/">
       <div class="hub-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="7" height="6" rx="1.2"/><rect x="15" y="12" width="7" height="6" rx="1.2"/><line x1="9" y1="9" x2="15" y2="15"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>
       </div>
-      <h2>Schemes</h2>
+      <h2>Diagrams</h2>
       <p>Animated diagrams of Kubernetes architecture. Step through control plane, networking, storage and workload flows at your own pace.</p>
-      <span class="hub-stat" id="hubStatScheme"></span>
+      <span class="hub-stat" id="hubStatDiagram"></span>
       <span class="hub-cta">
-        kube.how/scheme
+        kube.how/diagrams
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </span>
     </a>
@@ -446,194 +476,45 @@
 
   <footer class="footer">
     <p class="disclaimer">Not affiliated with the CNCF or the Kubernetes project.</p>
-    <p>&copy; <span id="year"></span> <a href="/">kube.how</a></p>
+    <p>&copy; <span id="year"></span> <a href="/">kube.how</a> · <a href="/diagrams/card/">All diagrams</a> · <a href="/cli/section/">All command sections</a></p>
   </footer>
 
   <script type="module">
     import { setupSidebar } from '/cli/js/lib/sidebar.js';
+    import { setupHeader, alignLogo } from '/cli/js/lib/chrome.js';
 
     setupSidebar();
 
     // Live counts, once the page has painted. The two catalogs are the same modules
-    // /cli/ and /scheme/ load, so this also warms the cache for the next click.
+    // /cli/ and /diagrams/ load, so this also warms the cache for the next click.
     const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 200));
     idle(async () => {
       try {
-        const [{ SECTIONS }, { SCHEMES, CATEGORIES }, { readSeen, isFreshStamp, hashKey }] = await Promise.all([
-          import('/cli/js/data.js'), import('/scheme/js/data.js'), import('/cli/js/lib/fresh.js'),
+        const [{ SECTIONS }, { DIAGRAMS, CATEGORIES }, { readSeen, isFreshStamp, stampOf, hashKey }, { REV }] = await Promise.all([
+          import('/cli/js/data.js'), import('/diagrams/js/data.js'), import('/cli/js/lib/fresh.js'), import('/diagrams/js/revisions.js'),
         ]);
         // What a visit would mark NEW: stamped and still fresh, or never seen at all. A browser that
         // has never opened the page has no baseline yet, so nothing counts as new for it.
-        const countNew = (storageKey, keys) => {
-          const seen = readSeen(storageKey);
+        // `legacy` is the key the app wrote before a rename, read until the app's first load moves it.
+        const countNew = (storageKey, keys, legacy) => {
+          const seen = readSeen(storageKey) || (legacy ? readSeen(legacy) : null);
           if (!seen) return 0;
-          return keys.filter(k => !(k in seen) || isFreshStamp(seen[k])).length;
+          return keys.filter(k => { const st = stampOf(seen, k); return st === undefined || isFreshStamp(st); }).length;
         };
         const pill = (n) => n ? `<span class="new-pill" title="New since your last visit">${n} new</span>` : '';
         const cmds = SECTIONS.flatMap(s => s.groups.flatMap(g => g.cmds));
         const cats = CATEGORIES.filter(c => c.key !== 'all').length;
         document.getElementById('hubStatCli').innerHTML =
           `${cmds.length} commands · ${SECTIONS.length} sections${pill(countNew('kube-how:cli-seen:v1', cmds.map(c => hashKey(c.cmd))))}`;
-        document.getElementById('hubStatScheme').innerHTML =
-          `${SCHEMES.length} schemes · ${cats} categories${pill(countNew('kube-how:scheme-seen:v1', SCHEMES.map(s => s.id)))}`;
+        document.getElementById('hubStatDiagram').innerHTML =
+          `${DIAGRAMS.length} diagrams · ${cats} categories${pill(countNew('kube-how:diagram-seen:v1', DIAGRAMS.map(s => `${s.id}@${REV[s.id] || ''}`), 'kube-how:scheme-seen:v1'))}`;
       } catch (_) {}
     });
 
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    // Align logo icon center over the ghost All button, same as the cli and scheme pages
-    function alignLogo() {
-      const logo = document.querySelector('.logo');
-      if (!logo) return;
-      if (window.innerWidth <= 900) { logo.style.marginLeft = '0'; return; }
-      const allBtn   = document.querySelector('.hub-ruler [data-group="all"]');
-      const logoIcon = document.querySelector('.logo-icon');
-      if (!allBtn || !logoIcon) return;
-      const currentMargin = parseFloat(logo.style.marginLeft) || 0;
-      const allCenter  = allBtn.getBoundingClientRect().left  + allBtn.offsetWidth  / 2;
-      const iconCenter = logoIcon.getBoundingClientRect().left + logoIcon.offsetWidth / 2;
-      logo.style.marginLeft = (currentMargin + allCenter - iconCenter) + 'px';
-    }
-    requestAnimationFrame(alignLogo);
-    window.addEventListener('resize', alignLogo);
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => requestAnimationFrame(alignLogo));
-    }
-
-    // Header dropdowns, same implementation as the cli and scheme pages
-    const COPY_ICON    = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
-    const CHECK_ICON   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
-    const CONTACT_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
-    const SPONSOR_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
-    const COPY_RESET_DELAY = 1500;
-    let copyTimer;
-
-    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
-
-    function fallbackCopy(text, callback) {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      try { document.execCommand('copy'); callback(); } catch (_) {}
-      document.body.removeChild(ta);
-    }
-
-    function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
-      const container = document.getElementById('headerActions');
-      if (!container) return;
-
-      let html = '';
-
-      if (GITHUB && GITHUB.enabled) {
-        html += `
-          <a class="action-btn action-btn-link" href="${escapeHtml(GITHUB.href)}" target="_blank" rel="noopener" aria-label="${escapeHtml(GITHUB.label)}">
-            ${GITHUB.icon}<span class="action-btn-label">${escapeHtml(GITHUB.label)}</span>
-          </a>`;
-      }
-
-      if (CONTACTS && CONTACTS.enabled) {
-        const links = CONTACTS.links.map(l => `
-          <a class="dropdown-link" href="${escapeHtml(l.href)}" target="_blank" rel="noopener" role="menuitem">
-            ${l.icon} ${escapeHtml(l.label)}
-          </a>`).join('');
-        html += `
-          <div class="action-wrap">
-            <button class="action-btn" aria-label="Contacts" aria-expanded="false" aria-haspopup="true">
-              ${CONTACT_ICON}<span class="action-btn-label">Contacts</span>
-            </button>
-            <div class="action-dropdown" role="menu">${links}</div>
-          </div>`;
-      }
-
-      if (SPONSOR && SPONSOR.enabled) {
-        const donate = `
-          <a class="dropdown-copy-row dropdown-donate" href="${escapeHtml(SPONSOR.donate.href)}" target="_blank" rel="noopener" role="menuitem" aria-label="${escapeHtml(SPONSOR.donate.label)}">
-            <span class="dropdown-coin">${escapeHtml(SPONSOR.donate.coin)}<span class="dropdown-net">${escapeHtml(SPONSOR.donate.net)}</span></span>
-            <span class="dropdown-addr">${escapeHtml(SPONSOR.donate.addr)}</span>
-            <span class="dropdown-go">${SPONSOR.donate.icon}</span>
-          </a>`;
-        const wallets = SPONSOR.wallets.map(w => `
-          <div class="dropdown-copy-row">
-            <span class="dropdown-coin">${escapeHtml(w.coin)}<span class="dropdown-net">${escapeHtml(w.net)}</span></span>
-            <span class="dropdown-addr" data-addr="${escapeHtml(w.addr)}">${escapeHtml(w.addr)}</span>
-            <button class="dropdown-copy-btn" aria-label="Copy ${escapeHtml(w.coin)} address">${COPY_ICON}</button>
-          </div>`).join('');
-        html += `
-          <div class="action-wrap">
-            <button class="action-btn" aria-label="Sponsor" aria-expanded="false" aria-haspopup="true">
-              ${SPONSOR_ICON}<span class="action-btn-label">Sponsor</span>
-            </button>
-            <div class="action-dropdown" role="menu">
-              ${donate}
-              <div class="dropdown-divider"></div>
-              ${wallets}
-            </div>
-          </div>`;
-      }
-
-      container.innerHTML = html;
-
-      container.querySelectorAll('.action-wrap').forEach(wrap => {
-        wrap.querySelector('.action-btn').addEventListener('click', e => {
-          e.stopPropagation();
-          const isOpen = wrap.classList.contains('open');
-          closeAllDropdowns();
-          if (!isOpen) {
-            wrap.classList.add('open');
-            wrap.querySelector('.action-btn').setAttribute('aria-expanded', 'true');
-          }
-        });
-      });
-
-      container.querySelectorAll('.dropdown-copy-btn').forEach(btn => {
-        btn.addEventListener('click', e => {
-          e.stopPropagation();
-          const addr = btn.closest('.dropdown-copy-row').querySelector('.dropdown-addr').dataset.addr;
-          const finish = () => {
-            clearTimeout(copyTimer);
-            // The clipboard holds one address, so a new copy clears the check on any other wallet.
-            container.querySelectorAll('.dropdown-copy-btn.copied').forEach(b => {
-              b.innerHTML = COPY_ICON;
-              b.classList.remove('copied');
-            });
-            btn.innerHTML = CHECK_ICON;
-            btn.classList.add('copied');
-            copyTimer = setTimeout(() => {
-              btn.innerHTML = COPY_ICON;
-              btn.classList.remove('copied');
-            }, COPY_RESET_DELAY);
-          };
-          if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(addr).then(finish).catch(() => fallbackCopy(addr, finish));
-          } else {
-            fallbackCopy(addr, finish);
-          }
-        });
-      });
-    }
-
-    function closeAllDropdowns() {
-      document.querySelectorAll('#headerActions .action-wrap').forEach(w => {
-        w.classList.remove('open');
-        w.querySelector('.action-btn').setAttribute('aria-expanded', 'false');
-      });
-    }
-
-    document.addEventListener('click', closeAllDropdowns);
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && document.querySelector('#headerActions .action-wrap.open')) {
-        e.stopPropagation();
-        closeAllDropdowns();
-      }
-    });
-
-    try {
-      const mod = await import('/cli/js/contacts.js');
-      renderHeaderActions(mod.CONTACTS, mod.SPONSOR, mod.GITHUB);
-    } catch (_) {}
+    alignLogo('.hub-ruler [data-group="all"]');
+    setupHeader();
 
     // Animated node graph background: drifting cluster nodes, soft links,
     // and occasional packets running along the edges.

@@ -1,6 +1,6 @@
-// "New since your last visit". A copy lives in scheme/js/lib/fresh.js, and the hub reads its storage.
-// Storage maps key to firstSeenMs. The first visit records everything as 0, a baseline that is never
-// new. A later arrival reads NEW for FRESH_DAYS until opened or copied. Departed keys drop on load.
+// "New since your last visit", shared by /cli/, /diagrams/ and the hub. Storage maps key to firstSeenMs:
+// the first visit records 0, a baseline never new. A later key reads NEW for FRESH_DAYS until opened or
+// copied, departed keys drop. A diagram key is `id@revision`, so an edited card reads NEW again.
 
 export const FRESH_DAYS = 14;
 const DAY_MS = 864e5;
@@ -16,11 +16,19 @@ export function readSeen(storageKey) {
 
 export const isFreshStamp = (stamp, now = Date.now()) => stamp > 0 && now - stamp < FRESH_DAYS * DAY_MS;
 
+// The stored stamp of a key, or undefined if never seen. An `id@revision` key falls back to its bare
+// id, the form stored before revisions existed, so the switch to revisions marks nothing new.
+export function stampOf(seen, k) {
+  if (k in seen) return seen[k];
+  const at = k.indexOf('@');
+  return at > 0 ? seen[k.slice(0, at)] : undefined;
+}
+
 export function trackFresh(storageKey, keys) {
   const seen = readSeen(storageKey);
   const now = Date.now();
   const map = {};
-  for (const k of keys) map[k] = !seen ? 0 : (k in seen ? seen[k] : now);
+  for (const k of keys) map[k] = !seen ? 0 : (stampOf(seen, k) ?? now);
   const save = () => { try { localStorage.setItem(storageKey, JSON.stringify(map)); } catch (_) {} };
   save();
   return {

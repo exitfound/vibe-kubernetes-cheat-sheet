@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // motion.mjs: every animation a card really runs, per step, as data, played in real time with CSS transitions left live.
-// usage: cd scheme/test && node ../../.claude/skills/card-review/tools/motion.mjs <card-id> [--viewport=1600x1000] [--base=URL] [--all]
+// usage: cd diagrams/test && node ../../.claude/skills/card-review/tools/motion.mjs <card-id> [--viewport=1600x1000] [--base=URL] [--all]
 // A brightness track is a pulse (`M-04`) and only Pods pulse (`M-01`), so one on a non-Pod is flagged SUSPECT.
 import {
   launch, openCard, DEFAULT_BASE, DIAGRAM,
-} from '../../../../scheme/test/fixtures/render.mjs';
+} from '../../../../diagrams/test/fixtures/render.mjs';
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
@@ -18,10 +18,10 @@ const [width, height] = (flags.viewport || '1600x1000').split('x').map(Number);
 
 const browser = await launch();
 const ctx = await browser.newContext({ viewport: { width, height } });
-// Expose __schemeCtl WITHOUT initPage's transition freeze: the freeze is exactly what would hide
+// Expose __diagramCtl WITHOUT initPage's transition freeze: the freeze is exactly what would hide
 // a CSS transition racing a WAAPI track on one element.
 await ctx.addInitScript(() => {
-  try { localStorage.setItem('scheme:inspect', 'expose'); } catch (_) {}
+  try { localStorage.setItem('diagram:inspect', 'expose'); } catch (_) {}
 });
 const page = await ctx.newPage();
 await openCard(page, id, base);
@@ -35,7 +35,7 @@ const rows = await page.evaluate(async ({ sel, all }) => {
     const txt = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 22);
     return txt ? `${cls} "${txt}"` : cls;
   };
-  const ctl = window.__schemeCtl;
+  const ctl = window.__diagramCtl;
   const total = ctl.total;
   ctl.reset();
   await new Promise(r => setTimeout(r, 250));
@@ -62,10 +62,10 @@ const rows = await page.evaluate(async ({ sel, all }) => {
       seen.add(key);
       out.push({
         step, target: label(eff.target), props, dur: t.duration, delay: t.delay,
-        // A Pod is an unclassed wrapper `g` around a `.scheme-pod` shell plus inner boxes, and pulsePod tracks
-        // the descendants too (`M-03`), so ask the wrapper rather than closest('.scheme-pod').
-        isPod: !!(eff.target.closest('.scheme-pod') || eff.target.querySelector('.scheme-pod')
-          || (eff.target.parentElement && eff.target.parentElement.querySelector(':scope > .scheme-pod'))),
+        // A Pod is an unclassed wrapper `g` around a `.diagram-pod` shell plus inner boxes, and pulsePod tracks
+        // the descendants too (`M-03`), so ask the wrapper rather than closest('.diagram-pod').
+        isPod: !!(eff.target.closest('.diagram-pod') || eff.target.querySelector('.diagram-pod')
+          || (eff.target.parentElement && eff.target.parentElement.querySelector(':scope > .diagram-pod'))),
         vals: kf.map(k => props.map(p => k[p]).join('/')).join(' -> ').slice(0, 78),
       });
     }
@@ -105,15 +105,15 @@ const near = (a, b) => Math.abs(a - b) <= 20;
 for (const step of [...new Set(rows.map(r => r.step))]) {
   const inStep = rows.filter(r => r.step === step);
   const lands = [...new Set(inStep
-    .filter(r => /^scheme-packet/.test(r.target) && r.props.includes('opacity') && /^1 -> 0/.test(r.vals))
+    .filter(r => /^diagram-packet/.test(r.target) && r.props.includes('opacity') && /^1 -> 0/.test(r.vals))
     .map(r => r.delay))];
   for (const at of lands) {
-    const react = inStep.filter(r => near(r.delay, at) && !/^scheme-(packet|ripple)/.test(r.target));
+    const react = inStep.filter(r => near(r.delay, at) && !/^diagram-(packet|ripple)/.test(r.target));
     const pulse = react.filter(r => r.isPod && r.props.some(p => /filter/i.test(p)));
-    const light = react.filter(r => !r.props.length && !/^diagram/.test(r.target));
+    const light = react.filter(r => !r.props.length && !/^diagram(?![-\w])/.test(r.target));
     const fades = react.filter(r => !r.isPod && r.props.includes('opacity'));
     // A deferred write (an F.set turnover, a wire) is an empty track on the svg root itself.
-    const writes = react.filter(r => !r.props.length && /^diagram/.test(r.target));
+    const writes = react.filter(r => !r.props.length && /^diagram(?![-\w])/.test(r.target));
     const verdict = pulse.length || light.length ? 'cued'
       : fades.length ? 'FADE-ONLY' : writes.length ? 'WRITE-ONLY' : 'NO CUE';
     arrivals.push({ step, at, verdict, pulse: pulse.length, light: light.length,

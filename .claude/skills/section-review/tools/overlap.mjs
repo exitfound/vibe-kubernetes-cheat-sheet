@@ -2,7 +2,7 @@
 // overlap.mjs: catalog-wide reads for one section: pages shared with another section, terms leaned on that no card owns, outside cards that fit here.
 // usage: node .claude/skills/section-review/tools/overlap.mjs <category>/<section> [--min=3] [--json]
 // All three are leads, not verdicts: section 3 is one coarse number on one axis, and "owns" means "carries it in the title".
-import { schemes, subcategories, ROOT } from '../../../../scheme/test/fixtures/catalog.mjs';
+import { diagrams, subcategories, ROOT } from '../../../../diagrams/test/fixtures/catalog.mjs';
 import { walkStrings, signature, centre, sourcePath, NOT_A_TOPIC } from './bands.mjs';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -30,7 +30,7 @@ if (!SUBS[cat].some(s => s.key === sec)) {
   process.exit(1);
 }
 
-const ALL = await schemes();
+const ALL = await diagrams();
 const label = (k) => Object.values(SUBS).flat().find(s => s.key === k)?.label || k;
 
 // The vocabulary is terms.json, the dictionary `T-06` holds narration to.
@@ -44,7 +44,7 @@ const rx = t => new RegExp(`(?<![\\w-])${esc(t)}s?(?![\\w-])`, 'i');
 // Every card read once. Everything below is a projection of this list.
 const cards = [];
 for (const e of ALL) {
-  const rel = join('js', 'schemes', e.category, `${e.id}.js`);
+  const rel = join('js', 'diagrams', e.category, `${e.id}.js`);
   const ns = await import(pathToFileURL(join(ROOT, rel)).href);
   const steps = Array.isArray(ns.STEPS_SPEC) ? ns.STEPS_SPEC : [];
   const text = [e.desc, ...steps.flatMap(s => walkStrings(s)), ...walkStrings(ns.SCENE || {})].join('\n');

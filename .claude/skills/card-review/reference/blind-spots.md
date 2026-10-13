@@ -1,7 +1,7 @@
 # What no check can see, and what keeps coming back
 
-Read in phase 3, before opening the frames. Neither list is a rulebook: `scheme/CANON.md` is, and
-it wins. `cd scheme/test && node tools/canon.mjs --check=review` prints the live rows no machine
+Read in phase 3, before opening the frames. Neither list is a rulebook: `diagrams/CANON.md` is, and
+it wins. `cd diagrams/test && node tools/canon.mjs --check=review` prints the live rows no machine
 covers.
 
 ## What the gate cannot see
@@ -25,7 +25,7 @@ covers.
 - a stale record line, a poster that no longer matches the card
 - a comment describing code that moved
 - a ruling inside a green assertion: a baseline constant carries its reason in a comment, and a
-  passing test prints neither. `grep -rn '<card-id>' . --include=*.mjs` from `scheme/test` finds
+  passing test prints neither. `grep -rn '<card-id>' . --include=*.mjs` from `diagrams/test` finds
   it. Such a ruling is also unreviewed, so re-measure what it asserts
 
 ## Recurring defect families

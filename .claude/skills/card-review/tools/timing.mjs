@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // timing.mjs: per step, the animated span against the declared duration, the real hold, and narration ms per character ranked catalog-wide.
-// usage: cd scheme/test && node ../../.claude/skills/card-review/tools/timing.mjs <card-id> [--base=URL]
+// usage: cd diagrams/test && node ../../.claude/skills/card-review/tools/timing.mjs <card-id> [--base=URL]
 // It never subtracts span from duration: run deadair.mjs (`M-19a`) beside it, or the pace reads as an all-clear.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   launch, initPage, openCard, enterStep, stepCount, stepSpan, stepMeta, DEFAULT_BASE,
-} from '../../../../scheme/test/fixtures/render.mjs';
+} from '../../../../diagrams/test/fixtures/render.mjs';
+import { playedHold } from '../../../../diagrams/js/lib/tokens.js';
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
@@ -16,10 +17,10 @@ const id = args.find(a => !a.startsWith('--'));
 if (!id) { console.error('Usage: node timing.mjs <card-id>'); process.exit(1); }
 
 // The catalog baseline off the sources: every `duration:` immediately followed by a `narration:`.
-const SCHEMES = new URL('../../../../scheme/js/schemes/', import.meta.url).pathname;
+const DIAGRAMS = new URL('../../../../diagrams/js/diagrams/', import.meta.url).pathname;
 const rows = [];
-for (const cat of readdirSync(SCHEMES)) {
-  const dir = join(SCHEMES, cat);
+for (const cat of readdirSync(DIAGRAMS)) {
+  const dir = join(DIAGRAMS, cat);
   if (!statSync(dir).isDirectory()) continue;
   for (const f of readdirSync(dir)) {
     if (!f.endsWith('.js') || f.includes('kit') || f === 'cards.js' || f === 'posters.js') continue;
@@ -43,11 +44,12 @@ const n = await stepCount(page);
 console.log('idx  id                 span  duration    hold  chars  ms/char  catalog rank');
 for (let i = 0; i < n; i++) {
   await enterStep(page, i);
-  const span = await stepSpan(page);
+  const span = await stepSpan(page, { finiteOnly: true });   // the span the Timeline waits on
   const d = meta[i]?.duration ?? 0;
   const text = meta[i]?.narration || '';
-  const hold = Math.max(d, span ? span + 60 : 0);
-  const pace = text.length ? (d / text.length) : 0;
+  // What the Timeline really plays: `duration` is a ceiling under HOLD (M-19a).
+  const hold = Math.max(playedHold(d, span, text.length), span ? span + 60 : 0);
+  const pace = text.length ? (hold / text.length) : 0;   // the played pace, the rank stays on declared durations
   const rank = text.length ? `${rankOf(d, text.length)} of ${rows.length}` : '-';
   const over = span > d ? '  <-- M-19 SPAN>DURATION' : '';
   console.log(

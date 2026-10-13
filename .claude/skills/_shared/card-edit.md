@@ -15,7 +15,7 @@ first.
 Then read only what the scope names: the card source, its record, and the canon block it lands in.
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test
+cd "$(git rev-parse --show-toplevel)"/diagrams/test
 node tools/canon.mjs                    # rows per block, by check kind
 node tools/canon.mjs --block=L,A        # geometry     (--block=M motion, T prose, P chips)
 ```
@@ -32,7 +32,7 @@ A ruling can also sit in a test: a baseline constant carries its reason in the c
 and a green assertion prints nothing. Grep before the first edit, and read what the hits say:
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test && grep -rn '<card-id>' . --include=*.mjs
+cd "$(git rev-parse --show-toplevel)"/diagrams/test && grep -rn '<card-id>' . --include=*.mjs
 ```
 
 A request that lands on a ruling is answered with the ruling, not an edit: quote it, say what
@@ -58,7 +58,7 @@ Name the rows you hit before the first edit, and re-check each afterwards.
 Take the BEFORE reading of whatever those rows name while the card is untouched:
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test
+cd "$(git rev-parse --show-toplevel)"/diagrams/test
 npm run report > /tmp/edit-before-report.txt 2>&1; grep -n '<card-id>' /tmp/edit-before-report.txt   # only if a row names a report
 OVERLAY_IDS=<card-id> node --test report/overlay.test.mjs                    # only if prose or a block moved
 node ../../.claude/skills/card-review/tools/pace.mjs <card-id>               # only if geometry moved

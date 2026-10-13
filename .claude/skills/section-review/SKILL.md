@@ -1,6 +1,6 @@
 ---
 name: section-review
-description: Review one SECTION of the scheme catalog as a curriculum rather than as code, in either of two lanes. GAPS, the default, says what the section is MISSING: it fetches the kubernetes.io trees the section already cites, diffs their first-class topics against the cards that are here, filters out everything the user has already declined, and proposes what is left with a subject, a feature stage, an upstream URL and the two cards it would sit between. AUDIT, the rare one, says what is here that should NOT be: it places every card on two axes, gives each a fit verdict against the section's own admission sentence, argues the reading order, and prices every move it proposes. Reports both without editing a single file. Use when the user asks about a section or a category as a whole ("проанализируй секцию Control Plane", "review the storage section", "каких карточек не хватает", "what topics are missing in networking", "какие карточки лишние в этой категории", "is this section balanced"), with `<category>/<section>` or a bare `<category>` as the argument. For one card's geometry and motion use card-review, for the truth of its prose use card-facts, and for its grid thumbnail use card-poster.
+description: Review one SECTION of the diagram catalog as a curriculum rather than as code, in either of two lanes. GAPS, the default, says what the section is MISSING: it fetches the kubernetes.io trees the section already cites, diffs their first-class topics against the cards that are here, filters out everything the user has already declined, and proposes what is left with a subject, a feature stage, an upstream URL and the two cards it would sit between. AUDIT, the rare one, says what is here that should NOT be: it places every card on two axes, gives each a fit verdict against the section's own admission sentence, argues the reading order, and prices every move it proposes. Reports both without editing a single file. Use when the user asks about a section or a category as a whole ("проанализируй секцию Control Plane", "review the storage section", "каких карточек не хватает", "what topics are missing in networking", "какие карточки лишние в этой категории", "is this section balanced"), with `<category>/<section>` or a bare `<category>` as the argument. For one card's geometry and motion use card-review, for the truth of its prose use card-facts, and for its grid thumbnail use card-poster.
 ---
 
 # Section review
@@ -42,7 +42,7 @@ Open the report with the lane and its omission, in the user's language:
 **This skill writes nothing.** No `cards.js` edit, no manifest reorder, no card repair. An accepted
 move is a separate job, priced by the costing block before anyone starts.
 
-**Nothing in the catalog encodes level or order.** `D-01` fixes the `SCHEMES` entry and none of its
+**Nothing in the catalog encodes level or order.** `D-01` fixes the `DIAGRAMS` entry and none of its
 keys is a level, a depth or a prerequisite. Every verdict here is a judgement, only as good as the
 evidence quoted beside it.
 
@@ -57,11 +57,11 @@ cross-section pass. With no argument, run
 
 Read, in order:
 
-1. **The admission rule**: the section table in `scheme/js/schemes/<category>/CLAUDE.md`. Its "what
+1. **The admission rule**: the section table in `diagrams/js/diagrams/<category>/CLAUDE.md`. Its "what
    belongs here" cell is the only written statement of what the section is for.
-2. **The catalog rules**: `node tools/canon.mjs --block=D` from `scheme/test`.
+2. **The catalog rules**: `node tools/canon.mjs --block=D` from `diagrams/test`.
    `D-02`, `D-10` and `D-11` decide what a move costs.
-3. **The manifest**: `scheme/js/schemes/<category>/cards.js` in file order, the order the grid
+3. **The manifest**: `diagrams/js/diagrams/<category>/cards.js` in file order, the order the grid
    renders.
 4. **What each card leaves to a sibling.** It lives in the card's `desc` and narration. Read every
    `desc` in full. `gaps.mjs` still annotates topics ceded by a `SCOPE` record block, a label the

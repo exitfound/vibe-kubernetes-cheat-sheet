@@ -1,3 +1,24 @@
+/* ===== FONTS ===== */
+/* Static faces, one file per weight, declared after the Google stylesheet so they win over its one
+   variable file. Firefox writes a variable font's non-default weight into a PDF without its text, so
+   no description, title or bold first word could be copied, and print needs the faces loaded early. */
+@font-face { font-family: 'JetBrains Mono'; font-weight: 400; font-display: swap; src: url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxTNFOVgaY.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 400; font-display: swap; src: url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxTOlOV.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 500; font-display: swap; src: url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8-qxTNFOVgaY.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 500; font-display: swap; src: url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8-qxTOlOV.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 600; font-display: swap; src: url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8FqtTNFOVgaY.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 600; font-display: swap; src: url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8FqtTOlOV.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 700; font-display: swap; src: url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8L6tTNFOVgaY.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 700; font-display: swap; src: url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8L6tTOlOV.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Space Grotesk'; font-weight: 400; font-display: swap; src: url(https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj7oUXsqPMBTTA.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Space Grotesk'; font-weight: 400; font-display: swap; src: url(https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj7oUXskPMA.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Space Grotesk'; font-weight: 500; font-display: swap; src: url(https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj7aUXsqPMBTTA.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Space Grotesk'; font-weight: 500; font-display: swap; src: url(https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj7aUXskPMA.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Space Grotesk'; font-weight: 600; font-display: swap; src: url(https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj42VnsqPMBTTA.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Space Grotesk'; font-weight: 600; font-display: swap; src: url(https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj42VnskPMA.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Space Grotesk'; font-weight: 700; font-display: swap; src: url(https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj4PVnsqPMBTTA.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Space Grotesk'; font-weight: 700; font-display: swap; src: url(https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj4PVnskPMA.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
 /* ===== VARIABLES ===== */
 :root {
   --bg-card:        #1a1538;
@@ -91,7 +112,7 @@ html {
 }
 
 body {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
   background: transparent;
   color: var(--text);
   min-height: 100vh;
@@ -102,437 +123,12 @@ body {
 }
 body.sidebar-collapsed { padding-left: 0; }
 
-/* ===== SIDEBAR (site switcher) ===== */
-.sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 38px;
-  z-index: 110;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px 0 4px;
-  gap: 3px;
-  background: rgba(17, 15, 31, 0.95);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-right: 1px solid var(--border-subtle);
-  transition: transform 0.18s ease;
-}
-body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
-
-.side-btn,
-.side-toggle {
-  position: relative;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: none;
-  background: transparent;
-  border-radius: 7px;
-  color: var(--text);
-  text-decoration: none;
-  cursor: pointer;
-  font: inherit;
-  transition: color 0.12s, background 0.12s;
-}
-.side-btn:hover,
-.side-toggle:hover {
-  color: var(--text-bright);
-  background: rgba(255, 255, 255, 0.05);
-}
-.side-btn.active {
-  color: var(--accent);
-  background: var(--accent-glow);
-}
-.side-btn svg { width: 20px; height: 20px; }
-.side-btn.active::before {
-  content: '';
-  position: absolute;
-  left: -3px;
-  top: 7px;
-  bottom: 7px;
-  width: 2px;
-  border-radius: 0 2px 2px 0;
-  background: var(--accent);
-}
-.side-btn:focus-visible,
-.side-toggle:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-/* The hide button is drawn like the .side-expand tab that replaces it, and ends 8px above the
-   viewport bottom like the tab does, so hiding leaves the tab right under the cursor. */
-.side-toggle {
-  margin-top: auto;
-  margin-bottom: 4px;
-  width: 30px;
-  height: 46px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: rgba(28, 22, 56, 0.97);
-  color: var(--text-nav);
-  transition: color 0.12s, background 0.12s, border-color 0.12s;
-}
-.side-toggle:hover {
-  color: var(--accent);
-  border-color: var(--accent-border);
-  background: rgba(38, 30, 76, 0.98);
-}
-
-.side-btn[data-tooltip]::after,
-.side-toggle[data-tooltip]::after,
-.side-expand[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  left: calc(100% + 10px);
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 5px 9px;
-  background: rgba(17, 15, 31, 0.97);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-bright);
-  font-size: 12px;
-  font-weight: 500;
-  font-family: 'Space Grotesk', sans-serif;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.12s;
-  z-index: 200;
-}
-.side-btn:hover::after,
-.side-btn:focus-visible::after,
-.side-toggle:hover::after,
-.side-toggle:focus-visible::after,
-.side-expand:hover::after,
-.side-expand:focus-visible::after { opacity: 1; }
-
-/* Expand handle: a tab on the left edge, shown only while the sidebar is hidden. It sits where the
-   hide button was, so it turns up right where the visitor just clicked, and it is drawn bright
-   enough to be found again later. */
-.side-expand {
-  position: fixed;
-  left: 0;
-  bottom: 8px;
-  width: 26px;
-  height: 46px;
-  z-index: 110;
-  display: none;
-  place-items: center;
-  border: 1px solid var(--border);
-  border-left: none;
-  border-radius: 0 9px 9px 0;
-  background: rgba(28, 22, 56, 0.97);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 2px 0 14px rgba(0, 0, 0, 0.35);
-  color: var(--text-nav);
-  cursor: pointer;
-  transition: width 0.12s, color 0.12s, background 0.12s, border-color 0.12s;
-}
-.side-expand:hover,
-.side-expand:focus-visible {
-  width: 32px;
-  color: var(--accent);
-  border-color: var(--accent-border);
-  background: rgba(38, 30, 76, 0.98);
-}
-.side-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-body.sidebar-collapsed .side-expand { display: grid; }
-
-/* Thin rule between Home and the sections, so the list reads as "site root, then sections". */
-.side-sep {
-  flex-shrink: 0;
-  width: 20px;
-  height: 1px;
-  margin: 3px 0;
-  background: rgba(221, 202, 250, 0.3);
-}
-
-/* Phones: tooltips never show on touch and the rail costs a tenth of the width, so it starts
-   hidden here. A visitor who taps the tab gets body.sidebar-shown from sidebar.js, remembered
-   like the desktop choice. Same breakpoint as PHONE_QUERY in sidebar.js. */
-@media (max-width: 680px) {
-  body:not(.sidebar-shown) { padding-left: 0; }
-  body:not(.sidebar-shown) .sidebar { transform: translateX(-100%); }
-  body:not(.sidebar-shown) .side-expand { display: grid; }
-  /* The page gutter is 14px here, so a 26px tab sat on the cards and the footer text. The tab
-     narrows to fit inside the gutter, and an invisible strip keeps the tap target finger-wide. */
-  .side-expand,
-  .side-expand:hover,
-  .side-expand:focus-visible { width: 12px; }
-  .side-expand { border-radius: 0 7px 7px 0; }
-  .side-expand svg { width: 11px; height: 11px; }
-  .side-expand::before {
-    content: '';
-    position: absolute;
-    top: -6px;
-    bottom: -6px;
-    left: 0;
-    width: 30px;
-  }
-}
-
-/* Text for screen readers and crawlers only: the page's h1, which the visible logo already says. */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-/* ===== HEADER ===== */
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: rgba(17, 15, 31, 0.95);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.header-inner {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 0 12px;
-  height: 68px;
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-/* --- Logo --- */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-  text-decoration: none;
-  margin-top: 5px;
-}
-
-.logo-icon {
-  width: 64px;
-  height: 64px;
-  flex-shrink: 0;
-}
-
-.logo-icon svg { width: 100%; height: 100%; }
-
-.logo-text {
-  font-size: 25px;
-  font-weight: 700;
-  color: var(--text-bright);
-  letter-spacing: -0.4px;
-  line-height: 1.2;
-}
-
-.logo-sub {
-  font-size: 13px;
-  color: var(--text-muted);
-  letter-spacing: 0.2px;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-/* --- Header action buttons --- */
-.header-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-  align-items: center;
-  margin-left: auto;
-}
-
-.action-wrap {
-  position: relative;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-nav);
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  text-decoration: none;
-  transition: color 0.12s, background 0.12s, border-color 0.12s;
-}
-
-.action-btn:hover,
-.action-wrap.open .action-btn {
-  color: var(--accent);
-  border-color: var(--accent-border);
-  background: var(--accent-glow);
-}
-
-.action-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-.action-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  min-width: 190px;
-  background: rgba(17, 15, 31, 0.97);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px;
-  z-index: 200;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  opacity: 0;
-  transform: translateY(-6px);
-  pointer-events: none;
-  visibility: hidden;
-  transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
-}
-
-.action-wrap.open .action-dropdown {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-  visibility: visible;
-}
-
-.dropdown-link {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  color: var(--text-nav);
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.1s, color 0.1s;
-}
-
-.dropdown-link:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-bright);
-}
-
-.dropdown-link svg { flex-shrink: 0; }
-
-.dropdown-divider {
-  height: 1px;
-  background: var(--border-subtle);
-  margin: 4px 6px;
-}
-
-.dropdown-copy-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  transition: background 0.1s;
-}
-
-.dropdown-copy-row:hover { background: rgba(255, 255, 255, 0.04); }
-
-/* The Donate link wears a wallet row's shape, with an open-in-new-tab mark where a wallet has its copy button. */
-.dropdown-donate { text-decoration: none; }
-.dropdown-donate:hover .dropdown-addr { color: var(--text-bright); }
-
-.dropdown-coin {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
-  flex-shrink: 0;
-  width: 46px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.dropdown-net {
-  font-size: 9px;
-  font-weight: 500;
-  color: var(--text-muted);
-  opacity: 0.6;
-  letter-spacing: 0.3px;
-}
-
-.dropdown-addr {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--text-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
-}
-
-.dropdown-copy-btn,
-.dropdown-go {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color 0.1s, border-color 0.1s, background 0.1s;
-  line-height: 0;
-}
-
-.dropdown-copy-btn:hover,
-.dropdown-donate:hover .dropdown-go {
-  color: var(--accent);
-  border-color: var(--accent-border);
-  background: var(--accent-glow);
-}
-
-.dropdown-copy-btn.copied {
-  color: var(--success-color);
-  border-color: rgba(92, 184, 92, 0.3);
-  background: rgba(92, 184, 92, 0.06);
-}
-
-/* --- Search --- */
-.search-container {
-  position: absolute;
-  left: 50%;
-  top: calc(50% + 5px);
-  transform: translateX(-50%) translateY(-50%);
-  width: 464px;
-  max-width: calc(100% - 480px);
-}
-
-/* A page-centred search only fits a wide header. Narrower, the centred box runs into the title
-   on the left and the GitHub button on the right, so it joins the row between them instead.
-   Measured on the header, not the viewport, because the sidebar takes 38px of it when shown. */
-.header-inner { container-type: inline-size; }
+/* ===== HEADER (app-only, the shared chrome is chrome.css) ===== */
+/* The PDF button makes four labelled actions, which the centred search runs into below a 1340px
+   header, so here it joins the row at 1340 rather than at chrome.css's 1180. */
 @media (min-width: 901px) {
-  @container (max-width: 1180px) {
-    .logo { margin-right: 16px; }
+  @container (max-width: 1340px) {
+    .header-inner:has(.search-container) .logo { margin-right: 16px; }
     .search-container + .header-actions { margin-left: 16px; }
     .search-container {
       position: relative;
@@ -546,54 +142,13 @@ body.sidebar-collapsed .side-expand { display: grid; }
       margin: 10px auto 0;
     }
   }
-  /* Tighter still, the action buttons drop their labels, the same way they do below 900px. */
-  @container (max-width: 1010px) {
-    .search-container ~ .header-actions { gap: 4px; }
-    .search-container ~ .header-actions .action-btn-label { display: none; }
-    .search-container ~ .header-actions .action-btn { padding: 0 9px; gap: 0; }
-  }
 }
-
-.search-icon {
-  position: absolute;
-  left: 11px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  height: 37px;
-  background: var(--border-subtle);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0 42px 0 40px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 14.5px;
-  color: var(--text);
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.search-input:focus {
-  border-color: var(--accent);
-  box-shadow: none;
-}
-
-.search-input:focus-visible {
-  outline: none;
-}
-
-.search-input::placeholder { color: var(--text-muted); }
-
 .search-count {
   position: absolute;
   right: 36px;
   top: 50%;
   transform: translateY(-50%);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
   font-size: 12px;
   color: var(--text-dim);
   pointer-events: none;
@@ -601,25 +156,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
   transition: opacity 0.15s;
 }
 .search-count.active { opacity: 1; }
-
-.search-clear {
-  position: absolute;
-  right: 9px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 4px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: color 0.15s;
-  line-height: 0;
-}
-.search-clear:hover { color: var(--text); }
 .search-clear.visible { display: flex; }
 
 /* ===== NAV ===== */
@@ -679,7 +215,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
   border-radius: 6px;
   background: transparent;
   color: var(--text-nav);
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
   font-size: 15.5px;
   font-weight: 500;
   cursor: pointer;
@@ -789,12 +325,13 @@ body.sidebar-collapsed .side-expand { display: grid; }
   max-width: 1600px;
   margin: 0 auto;
   padding: 20px 12px 80px;
-  min-height: 80vh;
+  min-height: 100vh;
 }
 
 /* ===== SECTION ===== */
 .section { margin-bottom: 44px; content-visibility: auto; contain-intrinsic-size: 0 700px; scroll-margin-top: 192px; }
 .section[hidden] { display: none; }
+.print-title { display: none; }
 
 .section-header {
   display: flex;
@@ -848,16 +385,36 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .section[data-cat="troubleshooting-kubernetes"] .section-icon { background: var(--ts-kubernetes-glow); border-color: var(--ts-kubernetes-border); color: var(--ts-kubernetes-color); }
 .section[data-cat="troubleshooting-tools"]      .section-icon { background: var(--ts-tools-glow);      border-color: var(--ts-tools-border);      color: var(--ts-tools-color); }
 
+/* A button that belongs to a section takes its category colour on hover. The header and the nav
+   above stay lavender, and the star keeps its cyan. */
+.toc-cat[data-cat="installation"], .section[data-cat="installation"] { --sec-color: var(--installation-color); --sec-border: var(--installation-border); --sec-glow: var(--installation-glow); }
+.toc-cat[data-cat="cluster"], .section[data-cat="cluster"] { --sec-color: var(--cluster-color); --sec-border: var(--cluster-border); --sec-glow: var(--cluster-glow); }
+.toc-cat[data-cat="workloads"], .section[data-cat="workloads"] { --sec-color: var(--workloads-color); --sec-border: var(--workloads-border); --sec-glow: var(--workloads-glow); }
+.toc-cat[data-cat="helm"], .section[data-cat="helm"] { --sec-color: var(--helm-color); --sec-border: var(--helm-border); --sec-glow: var(--helm-glow); }
+.toc-cat[data-cat="kustomize"], .section[data-cat="kustomize"] { --sec-color: var(--kustomize-color); --sec-border: var(--kustomize-border); --sec-glow: var(--kustomize-glow); }
+.toc-cat[data-cat="k9s"], .section[data-cat="k9s"] { --sec-color: var(--k9s-color); --sec-border: var(--k9s-border); --sec-glow: var(--k9s-glow); }
+.toc-cat[data-cat="troubleshooting-kubernetes"], .section[data-cat="troubleshooting-kubernetes"] { --sec-color: var(--ts-kubernetes-color); --sec-border: var(--ts-kubernetes-border); --sec-glow: var(--ts-kubernetes-glow); }
+.toc-cat[data-cat="troubleshooting-tools"], .section[data-cat="troubleshooting-tools"] { --sec-color: var(--ts-tools-color); --sec-border: var(--ts-tools-border); --sec-glow: var(--ts-tools-glow); }
+.section .section-action:not(.copied):hover,
+.section .copy-btn:not(.copied):hover {
+  color: var(--sec-color, var(--accent));
+  border-color: var(--sec-border, var(--accent-border));
+  background: var(--sec-glow, rgba(224, 205, 255, 0.08));
+}
+
 .section-title {
   font-size: 20px;
   font-weight: 700;
   color: var(--text-bright);
   letter-spacing: -0.3px;
 }
+/* The title opens the section's own page (/cli/section/<id>/): reads as the heading until hovered. */
+.section-page { color: inherit; text-decoration: none; }
+.section-page:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .section-sub {
   font-size: 14px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
   color: var(--text-muted);
   margin-left: 2px;
 }
@@ -904,10 +461,10 @@ body.sidebar-collapsed .side-expand { display: grid; }
   gap: 10px;
 }
 
-/* Tool version the section was checked against, as quiet as the k8s label on scheme cards */
+/* Tool version the section was checked against, as quiet as the k8s label on diagram cards */
 .section-version {
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
   color: var(--text-dim);
   white-space: nowrap;
 }
@@ -918,7 +475,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
   padding: 3px 10px;
   font-size: 13px;
   font-weight: 600;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
   letter-spacing: 0.2px;
   border: 1px solid var(--accent-border);
   background: var(--accent-glow);
@@ -1053,7 +610,7 @@ body.starred-mode .nav-mid,
 body.starred-mode .nav-sub { display: none !important; }
 
 .cmd-code {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
   font-size: 15px;
   line-height: 1.55;
   /* Flags and short tokens are unbreakable .tok boxes (hl() in js/lib/commands.js), long URLs and paths wrap
@@ -1234,193 +791,6 @@ mark {
   opacity: 1;
 }
 
-/* ===== SCROLL TO TOP ===== */
-.scroll-top-btn {
-  position: fixed;
-  bottom: 24px;
-  right: 8px;
-  width: 42px;
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  color: var(--text-muted);
-  cursor: pointer;
-  opacity: 0;
-  pointer-events: none;
-  transition: color 0.15s, border-color 0.15s, background 0.15s, opacity 0.2s;
-  z-index: 100;
-}
-
-.scroll-top-btn.visible {
-  opacity: 1;
-  pointer-events: all;
-}
-
-.scroll-top-btn:hover {
-  color: var(--accent);
-  border-color: var(--accent-border);
-  background: rgba(224, 205, 255, 0.07);
-}
-
-.scroll-top-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-
-/* ===== FOOTER ===== */
-.footer {
-  border-top: 1px solid var(--border-subtle);
-  padding: 22px 24px;
-  text-align: center;
-  font-size: 14px;
-  color: var(--text-muted);
-}
-
-.footer a { color: var(--accent); text-decoration: none; }
-.footer a:hover { text-decoration: underline; }
-.footer p + p { margin-top: 4px; }
-.disclaimer { font-size: 13px; }
-
-/* ===== SCROLLBAR ===== */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #110f1f; }
-::-webkit-scrollbar-thumb { background: #3a3260; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-* { scrollbar-width: thin; scrollbar-color: #3a3260 #110f1f; }
-
-/* ===== KEYBOARD SHORTCUTS ===== */
-/* The sheet opened by `?` or the sidebar keyboard button (js/lib/keys.js), and the `/` hint in the
-   search field. Duplicated in cli/css/styles.css and scheme/css/styles.css, like the sidebar. */
-.side-keys { margin-top: auto; }
-.side-keys + .side-toggle { margin-top: 6px; }
-
-.keys-dialog {
-  width: min(480px, calc(100vw - 32px));
-  max-width: none;
-  margin: auto;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-}
-.keys-dialog::backdrop {
-  background: rgba(8, 6, 16, 0.7);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-.keys-inner {
-  padding: 16px 20px 18px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-}
-.keys-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-.keys-head h2 {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text-bright);
-}
-.keys-close {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: color 0.12s, background 0.12s, border-color 0.12s;
-}
-.keys-close:hover {
-  color: var(--accent);
-  background: var(--accent-glow);
-  border-color: var(--accent-border);
-}
-.keys-close:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-.keys-group { margin-top: 12px; }
-.keys-group h3 {
-  margin-bottom: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-.keys-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 7px 0;
-  border-top: 1px solid var(--border-subtle);
-  font-size: 14px;
-}
-.keys-row dd {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.keys-plus,
-.keys-or {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-.keys-or { margin: 0 3px; }
-.keys-dialog kbd,
-.search-kbd {
-  display: inline-block;
-  min-width: 22px;
-  padding: 1px 6px;
-  border: 1px solid var(--border);
-  border-bottom-width: 2px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.04);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  line-height: 18px;
-  text-align: center;
-  color: var(--text-bright);
-}
-
-.search-kbd {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  pointer-events: none;
-}
-.search-input:focus ~ .search-kbd,
-.search-input:not(:placeholder-shown) ~ .search-kbd { display: none; }
-@media (hover: none) {
-  .search-kbd,
-  .side-keys { display: none; }
-  .side-keys + .side-toggle { margin-top: auto; }
-}
-
-/* The narrowest phones: an empty field shows no clear button and no `/` hint, so the room kept for
-   them on the right goes to the placeholder, which otherwise ends cut off. */
-@media (max-width: 400px) {
-  .search-input:placeholder-shown { padding-right: 12px; }
-  .search-kbd { display: none; }
-}
-
 /* ===== NEW SINCE LAST VISIT ===== */
 /* js/lib/fresh.js decides what is new for THIS browser. The pill is a filled lavender, distinct from
    the cyan star and from every category colour. */
@@ -1432,7 +802,7 @@ mark {
   border-radius: 4px;
   background: var(--accent);
   color: #1a1530;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1469,35 +839,10 @@ mark {
 }
 
 @media (max-width: 900px) {
-  .logo-sub { font-size: 12px; }
-  .header-inner {
-    height: auto;
-    padding: 10px 14px;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-  }
-  .logo { margin-top: 0; flex: 0 0 100%; }
-  .logo-icon { width: 44px; height: 44px; }
-  .logo-text { font-size: 23px; }
-  .search-container {
-    position: relative;
-    transform: none;
-    left: auto;
-    flex: 1;
-    width: auto;
-    max-width: none;
-    min-width: 0;
-  }
-  .search-input { height: 37px; font-size: 13.5px; }
   .nav { top: 110px; }
   .nav-mid { top: 151px; }
   .nav-sub { top: 189px; }
   .section { scroll-margin-top: 233px; }
-  .header-actions { gap: 4px; margin-left: 0; }
-  .action-btn-label { display: none; }
-  .action-btn { padding: 0 9px; gap: 0; }
-  .action-dropdown { max-width: calc(100vw - 28px); right: 0; left: auto; }
   .nav-inner { padding: 0 14px; }
 }
 
@@ -1522,57 +867,223 @@ mark {
   .top-btn { min-height: 40px; }
   .cat-btn { min-height: 34px; }
   .sec-btn { min-height: 28px; }
-  .scroll-top-btn { min-width: 44px; min-height: 44px; }
 }
 
 @media (max-width: 400px) {
-  .logo-text { font-size: 18px; }
-  .logo-icon { width: 26px; height: 26px; }
   .nav { top: 97px; }
   .nav-mid { top: 138px; }
   .nav-sub { top: 176px; }
-  .action-btn { height: 30px; }
   .section { scroll-margin-top: 220px; }
 }
 
+/* ===== PDF BOOK ===== */
+/* The header PDF button's document (app.js, layBook): A4 sheets filled by script, each ending on a
+   strip framed like a card with the sheet's number in it. The script measures on screen what the
+   dialog prints, so nothing here sits under a media query, and these rules restate every print rule
+   that moves a line, so the two agree. 296mm, not 297, so a rounding never spills a blank sheet. */
+.book { width: 210mm; font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0; }
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: 210mm;
+  height: 296mm;
+  padding: 12mm 12mm 0;
+  overflow: hidden;
+  background: #110f1f;
+  break-after: page;
+}
+.sheet:last-child { break-after: auto; }
+.sheet-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.sheet-body > * { flex: none; }
+.sheet-strip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 7mm;
+  margin: 3mm 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font: 600 12px 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+  letter-spacing: 0.2px;
+}
+.book-title {
+  margin-bottom: 18px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-bright);
+}
+.book-foot { margin-top: auto; }
+
+.book .section { margin: 0; content-visibility: visible; contain-intrinsic-size: none; }
+.book .cards-grid { display: block; }
+.book .cards-grid > .card + .card { margin-top: 8px; }
+.book .card-desc { padding-top: 8px; font-size: 13px; }
+.book .cmd-item { padding: 6px 14px; }
+.book .cmd-code { font-size: 13px; }
+.book .cmd-desc { font-size: 12.5px; }
+.book .copy-btn,
+.book .star-btn,
+.book .section-actions,
+.book .section-new,
+.book .cmd-item.is-new .cmd-desc::after { display: none; }
+/* Text under opacity goes into the PDF as a transparency group, which viewers draw jagged, so the
+   category label takes the same shade as an opaque mix. */
+.book .section[data-cat] .section-sub { opacity: 1; color: color-mix(in srgb, var(--sec-color) 75%, #110f1f); }
+
+/* The contents: two columns of links, the cards of a section in one line under it. */
+.toc-title { margin-bottom: 12px; font-size: 15px; font-weight: 700; color: var(--text-bright); }
+.toc-columns { columns: 2; column-gap: 28px; }
+.toc-group + .toc-group { margin-top: 14px; }
+.toc-group-title {
+  margin-bottom: 6px;
+  font: 600 11px 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  break-after: avoid;
+}
+.toc-cat { margin-bottom: 10px; }
+.toc-cat-title { margin-bottom: 3px; font-size: 13px; font-weight: 700; color: var(--sec-color); break-after: avoid; }
+.toc-section { padding: 3px 0 3px 10px; border-left: 2px solid var(--sec-border); break-inside: avoid; }
+.toc-section a { color: inherit; text-decoration: none; }
+.toc-section-link { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-bright); }
+.toc-count { font: 400 11px 'JetBrains Mono', 'JetBrains Mono Fallback', monospace; color: var(--text-dim); }
+.toc-cards { font-size: 11px; line-height: 1.5; color: var(--text-muted); }
+.toc-cards a + a::before { content: ' · '; color: var(--text-dim); }
+
 /* ===== PRINT ===== */
+/* Two looks. The header PDF button prints the book above in the site's own dark design, in a frame
+   whose body is .print-dark. Ctrl+P gets a paper theme: the same tokens redefined for white, every hue kept and darkened until it reads
+   on paper. Both print backgrounds without the dialog's "Background graphics" box. */
 @media print {
-  html { background: white; }
-  body { color: #111; }
+  body:not(.print-dark) {
+    --border:         #dcd8ea;
+    --border-subtle:  #e6e3f0;
+    --text:           #1d1b2e;
+    --text-bright:    #14121f;
+    --text-muted:     #615d78;
+    --text-dim:       #6e6a85;
+    --text-card-desc: #4f4b66;
+    --accent:         #5b3fc4;
+    --accent-glow:    #f1edfc;
+    --accent-border:  #cfc4f2;
+
+    --installation-color: #4a52d6;
+    --cluster-color:      #1f6fc0;
+    --workloads-color:    #0a8399;
+    --helm-color:         #857600;
+    --kustomize-color:    #a06e00;
+    --k9s-color:          #bd5a00;
+    --ts-kubernetes-color: #c62828;
+    --ts-tools-color:     #c22d58;
+
+    --hl-cmd:  #1d5fc9;
+    --hl-sub:  #c25400;
+    --hl-res:  #0b7a82;
+    --hl-flag: #8a6400;
+    --hl-ph:   #3d7a10;
+    --hl-val:  #b5305f;
+    --hl-str:  #66648f;
+    --hl-sep:  #77819a;
+
+    /* Tints mixed from the paper colour, so a glow and a border follow their hue. */
+    --installation-glow: color-mix(in srgb, var(--installation-color) 8%, white);  --installation-border: color-mix(in srgb, var(--installation-color) 35%, white);
+    --cluster-glow:      color-mix(in srgb, var(--cluster-color) 8%, white);       --cluster-border:      color-mix(in srgb, var(--cluster-color) 35%, white);
+    --workloads-glow:    color-mix(in srgb, var(--workloads-color) 8%, white);     --workloads-border:    color-mix(in srgb, var(--workloads-color) 35%, white);
+    --helm-glow:         color-mix(in srgb, var(--helm-color) 9%, white);          --helm-border:         color-mix(in srgb, var(--helm-color) 35%, white);
+    --kustomize-glow:    color-mix(in srgb, var(--kustomize-color) 8%, white);     --kustomize-border:    color-mix(in srgb, var(--kustomize-color) 35%, white);
+    --k9s-glow:          color-mix(in srgb, var(--k9s-color) 8%, white);           --k9s-border:          color-mix(in srgb, var(--k9s-color) 35%, white);
+    --ts-kubernetes-glow: color-mix(in srgb, var(--ts-kubernetes-color) 7%, white); --ts-kubernetes-border: color-mix(in srgb, var(--ts-kubernetes-color) 35%, white);
+    --ts-tools-glow:     color-mix(in srgb, var(--ts-tools-color) 7%, white);      --ts-tools-border:     color-mix(in srgb, var(--ts-tools-color) 35%, white);
+  }
+
+  /* The margins take the page canvas, which the head's dark color-scheme paints dark, so paper
+     switches it to light. */
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* No ligatures: Firefox writes a ligature glyph without its letters, so `--token` and "specific"
+     copied out of the PDF came back with unknown characters. */
+  body { font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0; }
+  html:not(:has(.print-dark)) { color-scheme: light; background: white; }
+
+  /* Firefox prints no page background unless the dialog says so, so the book draws its own: a fixed
+     layer repeats on every sheet, under the sheets' own fill. */
+  body.print-dark::before { content: ''; position: fixed; inset: 0; z-index: -1; background: #110f1f; }
+
+  @page {
+    size: A4;
+    margin: 14mm 12mm 16mm;
+    @bottom-left  { content: 'kube.how/cli/'; font: 9pt 'JetBrains Mono', 'JetBrains Mono Fallback', monospace; color: #8a86a0; }
+    @bottom-right { content: counter(page) ' / ' counter(pages); font: 9pt 'JetBrains Mono', 'JetBrains Mono Fallback', monospace; color: #8a86a0; }
+  }
+
 
   .header, .nav, .scroll-top-btn, .toast, .copy-btn, .star-btn, .section-actions { display: none !important; }
 
   .main { padding: 0; max-width: 100%; min-height: 0; }
-  .section { margin-bottom: 24px; }
+  .section { margin-bottom: 22px; content-visibility: visible; }
 
-  .cards-grid { grid-template-columns: 1fr !important; }
+  .print-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--accent);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-bright);
+  }
 
+
+
+  /* Firefox will not split a grid item across pages, so the cards stack as plain blocks. */
+  .cards-grid { display: block; }
+  .cards-grid > .card + .card { margin-top: 8px; }
+
+  /* A card may run onto the next page, each piece keeping its own frame, a command may not, and
+     no heading is left at a page foot. */
   .card {
-    background: white !important;
-    border: 1px solid #ccc !important;
-    box-shadow: none !important;
-    break-inside: avoid;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
+  .card-desc { padding-top: 8px; font-size: 13px; }
+  .cmd-item { padding: 6px 14px; break-inside: avoid; }
+  .cmd-code { font-size: 13px; }
+  .cmd-desc { font-size: 12.5px; }
+  .section-header, .card-title, .card-desc { break-after: avoid; }
+  .card-title { break-inside: avoid; }
+  /* Every section opens a page, so one tool never runs on into the next. A section hidden by the
+     filter takes no page, so the break goes before any section that follows a shown one. */
+  .section:not([hidden]) ~ .section { break-before: page; }
 
-  .card-title { color: #111 !important; background: #f2f2f2 !important; }
-  .card-desc  { color: #555 !important; }
+  /* Text under opacity goes into the PDF as a transparency group, which viewers draw jagged, so the
+     category label takes the same shade as an opaque mix instead. */
+  .section-sub { opacity: 1 !important; }
 
-  .section-title { color: #111 !important; }
-  .section-sub   { color: #777 !important; }
+  /* NEW is per browser and means nothing on paper. */
+  .section-new, .cmd-item.is-new .cmd-desc::after { display: none !important; }
 
-  /* Flatten syntax highlighting to readable dark */
-  .cmd-code,
-  .hl-cmd, .hl-sub, .hl-res, .hl-flag,
-  .hl-ph, .hl-val, .hl-str, .hl-sep {
-    color: #111 !important;
-    font-style: normal !important;
+  /* Paper only. The underlines drawn in screen-alpha rgba vanish on white, so they take the
+     paper hue, and the card loses its dark gradient. */
+  body:not(.print-dark) .section .section-header::after,
+  body:not(.print-dark) .section[data-cat] .section-header::after {
+    height: 2px;
+    background: linear-gradient(90deg, var(--sec-color, var(--accent)) 0%, color-mix(in srgb, var(--sec-color, var(--accent)) 35%, transparent) 60%, transparent 100%);
   }
-
-  .cmd-desc { color: #555 !important; }
-
-  mark { background: #ffe066 !important; color: #111 !important; }
-
-  .footer { border-top: 1px solid #ccc !important; color: #555 !important; }
-  .footer a { color: #333 !important; }
-  .disclaimer { color: #777 !important; }
+  body:not(.print-dark) .section .card-desc::after,
+  body:not(.print-dark) .section[data-cat] .card-desc::after {
+    background: color-mix(in srgb, var(--sec-color, var(--accent)) 25%, transparent);
+  }
+  body:not(.print-dark) .card { background: white; border-color: var(--border); }
+  body:not(.print-dark) .card-title {
+    background: var(--sec-glow, var(--accent-glow));
+    color: var(--sec-color, var(--text));
+    border-bottom: 1px solid var(--sec-border, var(--border));
+  }
+  body:not(.print-dark) mark { background: #ffe9a3; color: inherit; }
 }

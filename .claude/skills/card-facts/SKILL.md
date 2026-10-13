@@ -1,6 +1,6 @@
 ---
 name: card-facts
-description: Fact-check one scheme card against the Kubernetes documentation and the API reference, then check that the animation says the same thing as the text and that every chip, label, sublabel, wire string and aria-label carries a valid value. Builds a claim inventory from the live card, ranks the claims by risk, verifies each against a citable source, reconciles the picture with the narration step by step, and finishes by updating the CONTENT block of the card record and the catalog entry. Use when the user asks to verify the technical content of a card ("проверь техническую часть", "check the facts", "is this card technically correct", "verify against the docs", "проверь текст карточки по докам"), with the card id as the argument. For layout, geometry, motion and dead code use card-review instead. For all four skills run end to end over a SET of cards unattended, use card-cycle.
+description: Fact-check one diagram card against the Kubernetes documentation and the API reference, then check that the animation says the same thing as the text and that every chip, label, sublabel, wire string and aria-label carries a valid value. Builds a claim inventory from the live card, ranks the claims by risk, verifies each against a citable source, reconciles the picture with the narration step by step, and finishes by updating the CONTENT block of the card record and the catalog entry. Use when the user asks to verify the technical content of a card ("проверь техническую часть", "check the facts", "is this card technically correct", "verify against the docs", "проверь текст карточки по докам"), with the card id as the argument. For layout, geometry, motion and dead code use card-review instead. For all four skills run end to end over a SET of cards unattended, use card-cycle.
 ---
 
 # Card facts
@@ -28,7 +28,7 @@ A fix that needs a new drawn element, a moved lane or a re-placed label goes to 
 
 ```bash
 python3 -m http.server 8888 --bind 0.0.0.0      # from the repo root, if nothing is serving
-cd "$(git rev-parse --show-toplevel)"/scheme/test
+cd "$(git rev-parse --show-toplevel)"/diagrams/test
 node ../../.claude/skills/card-facts/tools/claims.mjs <card-id>            # the inventory
 node ../../.claude/skills/card-facts/tools/claims.mjs <card-id> --tokens   # just the token table
 node tools/settled-dump.mjs <card-id>                                      # the settled state, as data
@@ -41,7 +41,7 @@ cd "$(git rev-parse --show-toplevel)" && node .claude/skills/_shared/tools/ctx.m
 `ctx.mjs` gives the source (section 3), the catalog entry (section 1) and the record (section 2),
 whose `CONTENT` block holds the wordings a previous pass forced. Do not re-litigate one without a
 source that overturns it. The prose rules are the `T-` block:
-`cd scheme/test && node tools/canon.mjs --block=T`.
+`cd diagrams/test && node tools/canon.mjs --block=T`.
 
 ## 1. Build the claim inventory
 
@@ -149,13 +149,13 @@ Apply only what the user approves. On an existing card read `_shared/card-edit.m
 rewording. The write hook `check-js.sh` can hard-fail an edit with an apostrophe in a narration:
 the message comes back as tool feedback.
 
-After a prose edit the loop is `npm run test:unit` plus `SCHEME_IDS=<card-id> npm run test:render`,
+After a prose edit the loop is `npm run test:unit` plus `DIAGRAM_IDS=<card-id> npm run test:render`,
 and that is the whole check this skill owes: every catalog-wide prose rule lives in `unit/**`.
 Re-read the changed sentences in the rendered panel (`T-31`).
 
 ## 8. Update the records
 
-1. **The `CONTENT` block** of `scheme/js/schemes/<category>/CARDS/<card-id>.md`, at most 6 lines:
+1. **The `CONTENT` block** of `diagrams/js/diagrams/<category>/CARDS/<card-id>.md`, at most 6 lines:
    first the sources (doc page names and versions), then only the wordings a fact forced or ruled
    out, one short clause each. No long quotations, no history. A rejected wording is a present-tense
    constraint: `"X" is ruled out: the page says Y`. The release in `k8sVersion` dates the claims,
@@ -167,7 +167,7 @@ Re-read the changed sentences in the rendered panel (`T-31`).
 
 If nothing changed, the `CONTENT` block still names the sources it was checked against.
 
-Leave `CANON.md`, the category `CLAUDE.md`, `scheme/CLAUDE.md` and `README.md` alone unless a
+Leave `CANON.md`, the category `CLAUDE.md`, `diagrams/CLAUDE.md` and `README.md` alone unless a
 terminology rule changed, which is a separate decision.
 
 Then `card-verify.md` sections 4 and 6: the count check, the container rebuild, no commit.

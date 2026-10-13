@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // frames.mjs: one PNG per step per viewport at fractions of each span, so a reviewer can LOOK at every frame of a card.
-// usage: cd scheme/test && node ../../.claude/skills/card-review/tools/frames.mjs <card-id> --out=DIR [--viewports=WxH,...] [--at=0,0.5,0.95] [--base=URL]
+// usage: cd diagrams/test && node ../../.claude/skills/card-review/tools/frames.mjs <card-id> --out=DIR [--viewports=WxH,...] [--at=0,0.5,0.95] [--base=URL]
 // Keep 0 in --at: a block differing between -0 and -50 is MOVING. A seek never fires onfinish (M-35), so turnovers need settled-dump.mjs.
 import { mkdir } from 'node:fs/promises';
 import {
   launch, initPage, openCard, enterStep, seekStep, stepCount, stepSpan, DEFAULT_BASE,
-} from '../../../../scheme/test/fixtures/render.mjs';
+} from '../../../../diagrams/test/fixtures/render.mjs';
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
@@ -30,7 +30,7 @@ for (const vp of viewports) {
   const page = await ctx.newPage();
   await openCard(page, id, base);
   // The poster auto-plays step 1 about a second in: pause first or the frame is a race.
-  await page.evaluate(() => window.__schemeCtl?.pause?.());
+  await page.evaluate(() => window.__diagramCtl?.pause?.());
   await page.evaluate(() => document.fonts.ready.then(() => true));
   const n = await stepCount(page);
   for (let i = 0; i < n; i++) {

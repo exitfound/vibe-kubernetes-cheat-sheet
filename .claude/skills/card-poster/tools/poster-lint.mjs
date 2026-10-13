@@ -6,7 +6,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = new URL('../../../../', import.meta.url).pathname;
-const SCHEMES = join(ROOT, 'scheme/js/schemes');
+const DIAGRAMS = join(ROOT, 'diagrams/js/diagrams');
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
   const [k, v = 'true'] = a.slice(2).split('='); return [k, v];
@@ -133,8 +133,8 @@ function chevrons(svg) {
 }
 
 const posters = new Map();      // id -> { cat, svg }
-for (const cat of readdirSync(SCHEMES)) {
-  const file = join(SCHEMES, cat, 'posters.js');
+for (const cat of readdirSync(DIAGRAMS)) {
+  const file = join(DIAGRAMS, cat, 'posters.js');
   if (!existsSync(file)) continue;
   const src = readFileSync(file, 'utf8');
   const re = /'([\w-]+)':\s*`([\s\S]*?)`,?\n/g;
@@ -150,8 +150,8 @@ for (const cat of readdirSync(SCHEMES)) {
 // is told when the same shape shows twice in a row.
 const gridOrder = () => {
   const out = [];
-  for (const cat of readdirSync(SCHEMES)) {
-    const file = join(SCHEMES, cat, 'cards.js');
+  for (const cat of readdirSync(DIAGRAMS)) {
+    const file = join(DIAGRAMS, cat, 'cards.js');
     if (!existsSync(file)) continue;
     const src = readFileSync(file, 'utf8');
     // SUBCATEGORIES is an ORDER, and the grid groups by it, so catalog order is subs x CARDS order.

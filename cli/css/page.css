@@ -2,11 +2,16 @@
    commands with the same cards and highlighting as /cli/, and copy on click. Loaded after
    styles.css, which supplies the chrome, the tokens and every card and command style. */
 
-.page-cli { max-width: 1600px; }
+/* The page arrives in its HTML, so it needs none of the app's full-height reserve against a late list. */
+.page-cli { max-width: 1600px; min-height: 0; }
 .page-sections { max-width: 880px; margin: 0 auto; padding: 26px 20px 64px; }
 .page-cli .section { content-visibility: visible; }
 .page-cli .section-title { font-size: 26px; }
-.page-cli h2.card-title { margin: 0; }
+.page-cli h2.card-title, .page-cli h3.card-title { margin: 0; }
+/* A tool page (/cli/section/helm/) stacks the tool's sections under one title. */
+.page-tool-head { margin: 0 0 22px; }
+.page-tool-head .section-title { font-size: 28px; margin: 0 0 8px; }
+.page-cli .section + .section { margin-top: 34px; }
 .page-cli code.cmd-code { display: block; }
 .page-cli .cmd-item { padding-right: 46px; }
 .page-cli .page-lede { max-width: 860px; margin-top: 4px; }
@@ -14,7 +19,7 @@
 /* The header has no search on a static page, so its one action keeps to the right on every width. */
 .static-page .header-actions { margin-left: auto; }
 
-/* The two index pages, /scheme/card/ and /cli/section/: every page of its kind, grouped. */
+/* The two index pages, /diagrams/card/ and /cli/section/: every page of its kind, grouped. */
 .page-index-group { margin: 0 0 30px; }
 .page-index-group h2 { margin: 0 0 10px; font-size: 21px; color: var(--text-bright); }
 .page-index-group h3 { margin: 14px 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); }
@@ -47,6 +52,7 @@
 }
 .crumbs a { color: var(--text-nav); text-decoration: none; }
 .crumbs a:hover { color: var(--accent); }
+.crumbs [aria-current] { color: var(--text-muted); }
 
 .page-lede {
   margin: 0 0 18px;
@@ -132,3 +138,6 @@
   .page-pager { flex-direction: column; }
   .page-pager a[rel="next"] { text-align: left; }
 }
+
+/* The cross-links to the diagrams sit above the pager, so they keep the gap the pager keeps below. */
+.page-diagrams { margin-bottom: 26px; }

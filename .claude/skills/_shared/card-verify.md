@@ -3,35 +3,35 @@
 The shared tail of `card-new`, `card-review`, `card-facts` and `card-poster`: what a change costs
 on the way out. Procedure only. How to report belongs to the skill that found the thing.
 
-The harness, the gate and the reports are explained once, in `scheme/CLAUDE.md` "The checks".
+The harness, the gate and the reports are explained once, in `diagrams/CLAUDE.md` "The checks".
 This file says which runs a card change owes.
 
 ## 0. Preconditions
 
 ```bash
 python3 -m http.server 8888 --bind 0.0.0.0      # from the repo root, if nothing is serving yet
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8888/scheme/
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8888/diagrams/
 ```
 
 The walk that opens `npm test`, `test:render`, `report` and `all` drives a browser against
 `:8888`. With nothing serving, nothing after it measures anything. Take the `curl` first.
 
 **Every block anchors itself.** The Bash tool keeps its working directory between calls, so a
-second `cd scheme/test` fails. Every block here opens with
-`cd "$(git rev-parse --show-toplevel)"/scheme/test`. Run a block as one call. The helpers under
+second `cd diagrams/test` fails. Every block here opens with
+`cd "$(git rev-parse --show-toplevel)"/diagrams/test`. Run a block as one call. The helpers under
 `.claude/skills/*/tools/` resolve their imports relative to themselves and run from anywhere.
 
 ### Start the long runs first
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test
+cd "$(git rev-parse --show-toplevel)"/diagrams/test
 npm run report > /tmp/report.txt 2>&1 &
 node ../../.claude/skills/card-review/tools/frames.mjs <id> --out=/tmp/frames/<id> > /tmp/frames.txt 2>&1 &
 ```
 
 Read the card while they run. **Walk snapshot race:** `npm run report` rewrites
-`scheme/test/.snapshot/panel.json` as it runs. `OVERLAY_IDS`, `GEOMETRY_IDS` and
-`SCHEME_IDS=<id> npm run test:render` read or overwrite that file, so start them only after the
+`diagrams/test/.snapshot/panel.json` as it runs. `OVERLAY_IDS`, `GEOMETRY_IDS` and
+`DIAGRAM_IDS=<id> npm run test:render` read or overwrite that file, so start them only after the
 background report has exited.
 
 A background run nobody read is worse than none. A card is not closed until every run you launched
@@ -66,7 +66,7 @@ Restore one file with `tar xzf "$D/dirty.tgz" <path>` from the repo root.
 | Loop | What it proves |
 |---|---|
 | `npm run test:unit` | the whole catalog, no browser, seconds. Run it as often as you like |
-| `SCHEME_IDS=<id> npm run test:render` | this card only, floors and censuses off |
+| `DIAGRAM_IDS=<id> npm run test:render` | this card only, floors and censuses off |
 | `npm test` | the gate: `unit/**` and `render/**` over the whole catalog |
 | `npm run report` | `report/**`, which the gate does not run |
 | `npm run all` | both over one walk. Use it instead of the two separately |
@@ -74,13 +74,13 @@ Restore one file with `tar xzf "$D/dirty.tgz" <path>` from the repo root.
 While iterating, the loop is unit plus the filtered render:
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test
+cd "$(git rev-parse --show-toplevel)"/diagrams/test
 npm run test:unit
-SCHEME_IDS=<card-id> npm run test:render > /tmp/r.txt 2>&1
+DIAGRAM_IDS=<card-id> npm run test:render > /tmp/r.txt 2>&1
 grep -E '^# (tests|pass|fail|skipped)|^not ok' /tmp/r.txt
 ```
 
-Run the full gate once, at the end. `SCHEME_IDS=a,b,c` takes a list, so a batch pays for it once.
+Run the full gate once, at the end. `DIAGRAM_IDS=a,b,c` takes a list, so a batch pays for it once.
 
 ### The detail loop, for a change that names its own scope
 
@@ -88,7 +88,7 @@ Route by what the change touched. The rows add up, they are not a menu.
 
 | Owed by | Run |
 |---|---|
-| every change | `npm run test:unit` and `SCHEME_IDS=<id> npm run test:render` |
+| every change | `npm run test:unit` and `DIAGRAM_IDS=<id> npm run test:render` |
 | geometry: a coordinate, a size, a lane endpoint | `GEOMETRY_IDS=<id> node --test report/geometry-soft.test.mjs` |
 | prose: a narration, a wire string, a desc | `OVERLAY_IDS=<id> node --test report/overlay.test.mjs` |
 | motion or state: a duration, an easing, an opacity | `motion.mjs`, then the `-0/-50/-95` frames of the touched steps |
@@ -107,7 +107,7 @@ Everything under `report/` fails on nothing. It is where the findings a human ru
 per card:
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test
+cd "$(git rev-parse --show-toplevel)"/diagrams/test
 npm run report > /tmp/report.txt 2>&1
 grep -n '<card-id>' /tmp/report.txt
 grep -nE 'queue to work|left to work|finding\(s\)' /tmp/report.txt
@@ -118,16 +118,16 @@ ruled on.
 
 Traps:
 
-- `SCHEME_IDS` is not the gate. It prints a `SUBSET` banner and turns every floor and census off.
-- `SCHEME_IDS` is not the filter for report files. `OVERLAY_IDS` and `GEOMETRY_IDS` are, and both
-  also honour `SCHEME_IDS`.
+- `DIAGRAM_IDS` is not the gate. It prints a `SUBSET` banner and turns every floor and census off.
+- `DIAGRAM_IDS` is not the filter for report files. `OVERLAY_IDS` and `GEOMETRY_IDS` are, and both
+  also honour `DIAGRAM_IDS`.
 - Never pipe a run through `tail` alone: a `not ok` scrolls past and the pipe exits 0.
 - When the tree already fails, take the BEFORE list and diff against it.
 
 ## 2. Frames: generate all, open the triaged set
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test
+cd "$(git rev-parse --show-toplevel)"/diagrams/test
 node ../../.claude/skills/card-review/tools/frames.mjs <card-id> --out=/tmp/frames/<card-id>
 node ../../.claude/skills/card-review/tools/motion.mjs <card-id>
 ```
@@ -166,13 +166,13 @@ Three states a frame cannot show:
 - **Turnovers.** A seek never fires `onfinish` (`M-35`). Read them from a real playthrough:
   `node tools/settled-dump.mjs <card-id>`.
 - **Prev and reset** replay statically with `ctx.reduced` (`T-30`). Check wire text and chips
-  after `__schemeCtl.gotoStep(n)`.
+  after `__diagramCtl.gotoStep(n)`.
 - **The build frame** before any step: `node tools/buildframe.mjs <card-id>`.
 
 ## 3. Measure, never estimate
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test
+cd "$(git rev-parse --show-toplevel)"/diagrams/test
 node ../../.claude/skills/card-review/tools/timing.mjs <card-id>
 node ../../.claude/skills/card-review/tools/deadair.mjs <card-id>
 node ../../.claude/skills/card-review/tools/pace.mjs <card-id>
@@ -205,7 +205,7 @@ viewport beside every number and take the widest case for a clearance.
 Documents carry no counts, except the README headline counts that `S-49` guards.
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test
+cd "$(git rev-parse --show-toplevel)"/diagrams/test
 npm run docs:sync          # rewrites the README headline counts, numbers only
 npm run test:unit          # the census and the catalog baselines must be green
 ```
@@ -224,8 +224,8 @@ Report each as **updated**, **still exact**, or **already stale before this pass
 
 ## 5. The record
 
-Each card has one record, `scheme/js/schemes/<category>/CARDS/<id>.md`, in the shape
-`scheme/CANON.md` "The record vocabulary" defines and `S-51` to `S-53` hold:
+Each card has one record, `diagrams/js/diagrams/<category>/CARDS/<id>.md`, in the shape
+`diagrams/CANON.md` "The record vocabulary" defines and `S-51` to `S-53` hold:
 
 ````
 ## <card-id>
@@ -279,7 +279,7 @@ Never commit unless the user asks. Finish, report, leave the tree uncommitted.
 | `card-poster/tools/montage.mjs` | a poster beside the two it sits next to |
 | `card-poster/tools/poster-lint.mjs` | the mechanical half of the poster contract |
 | `card-facts/tools/claims.mjs` | every user-visible string as a claim inventory, plus the token table |
-| `scheme/test/tools/canon.mjs` | the rulebook as a query: by block, by id, or the rows no machine covers |
-| `scheme/test/tools/settled-dump.mjs` | a real playthrough, the only reader of turnovers |
-| `scheme/test/tools/buildframe.mjs` | the frame before any step is entered |
-| `scheme/js/lib/inspector.js` (`?inspect=1`) | grid and bbox overlay, `window.__schemeCtl` |
+| `diagrams/test/tools/canon.mjs` | the rulebook as a query: by block, by id, or the rows no machine covers |
+| `diagrams/test/tools/settled-dump.mjs` | a real playthrough, the only reader of turnovers |
+| `diagrams/test/tools/buildframe.mjs` | the frame before any step is entered |
+| `diagrams/js/lib/inspector.js` (`?inspect=1`) | grid and bbox overlay, `window.__diagramCtl` |

@@ -3,7 +3,7 @@
 Mined from the shipped cards by reading every `SCENE.parts` with `tools/kin.mjs` and opening the
 frames it grouped. Each family is in use, with the cards to open before drawing a new one.
 
-This file holds no rules: `scheme/CANON.md` and the folder contracts do, and they win. It is the
+This file holds no rules: `diagrams/CANON.md` and the folder contracts do, and they win. It is the
 vocabulary they leave open, the diagram twin of `card-poster/reference/patterns.md`.
 `kin.mjs` is the live census. When a card lands in a composition this file does not name, say so
 in the deliverable: the library is the user's to extend.

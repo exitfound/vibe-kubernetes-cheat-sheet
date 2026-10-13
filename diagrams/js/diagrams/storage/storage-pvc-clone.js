@@ -1,0 +1,225 @@
+import { P, F, defineCard, STO, BEAT, FADE, OPACITY, REVEAL_MS } from './storage-kit.js';
+// Design notes for this card: ./CARDS/storage-pvc-clone.md
+
+// Two spec columns mirrored about CX, the source left and the clone right, with the fit test standing
+// between them on the axis. The provisioner sits on the axis above the test because it runs it.
+const CX = 600;
+const SPREAD = 280;
+const SRC_CX = CX - SPREAD, CLONE_CX = CX + SPREAD;
+
+// The catalog actor block, 232 by 80 (NET.L-01).
+const PROV_W = 232, PROV_H = 80, PROV_X = CX - PROV_W / 2, PROV_Y = 36;
+const PROV_BOTTOM = PROV_Y + PROV_H, PROV_MY = PROV_Y + PROV_H / 2;
+
+// Each column head is a claim, the catalog actor block too, its row clear of the deepest panel.
+const COL_W = 232, HEAD_H = 80, HEAD_Y = 220;
+const HEAD_BOTTOM = HEAD_Y + HEAD_H;
+
+// Five field rows, each level with the gate that compares it. The gate column is as wide as the
+// provisioner above it, so the test reads as its column. Chips and gates are STO.CHIP_H tall.
+const ROW_H = STO.CHIP_H, ROW_PITCH = 40, ROW_Y0 = HEAD_BOTTOM + 12;
+const ROW_Y = [0, 1, 2, 3, 4].map(i => ROW_Y0 + i * ROW_PITCH);
+const ROWS_BOTTOM = ROW_Y[4] + ROW_H;
+const GATE_W = PROV_W, GATE_X = CX - GATE_W / 2;
+
+// The backend frame spans the width so its label clears the source disk, and the disks hang under
+// their columns. Sized from the disk: the card's exception to the 34 and 12 frame padding.
+const FRAME_X = 60, FRAME_W = 1080, FRAME_Y = 544;
+const DISK_W = 200, DISK_H = 60, FRAME_INSET = 13;
+const FRAME_H = DISK_H + FRAME_INSET * 2;
+const DISK_Y = FRAME_Y + FRAME_INSET, DISK_MY = DISK_Y + DISK_H / 2;
+
+// Each static wire and its ball share ONE points array. Every endpoint is a block face midpoint.
+const W_REQ = [[CLONE_CX, HEAD_Y], [CLONE_CX, PROV_MY], [PROV_X + PROV_W, PROV_MY]];
+const W_CHECK = [[CX, PROV_BOTTOM], [CX, ROW_Y0]];
+const W_CALL = [[CX, ROWS_BOTTOM], [CX, FRAME_Y]];
+const W_COPY = [[SRC_CX + DISK_W / 2, DISK_MY], [CLONE_CX - DISK_W / 2, DISK_MY]];
+
+// A tag rides 16 units clear of its ball, dy is its text baseline. Both ride right: the request tag
+// clears the clone head top and the provisioner face, the check tag the provisioner sublabel at
+// departure and the first gate label at landing.
+const beside = (side, dy) => (text) => ({ text, dx: side * (16 + 3 * text.length), dy });
+const reqTag = beside(1, -12);
+const checkTag = beside(1, -8);
+// When the gates light: one row at a time, down the column, from the arrival of the check.
+const SCAN_MS = 450;
+
+// The rows, in the order the narration reads them: name, source value, clone value, and the gate.
+const ROWS = [
+  { key: 'Ns', name: 'namespace', gate: 'Same namespace' },
+  { key: 'Phase', name: 'phase', gate: 'Source Bound, not deleting' },
+  { key: 'Mode', name: 'volumeMode', gate: 'Same volumeMode' },
+  { key: 'Size', name: 'storage', gate: 'Size at least source' },
+  { key: 'Class', name: 'storageClassName', gate: 'Class may differ, same driver' },
+];
+const SRC = { Ns: 'shop', Phase: 'Bound', Mode: 'Filesystem', Size: '10Gi', Class: 'rbd' };
+const CLONE = { Ns: 'shop', Phase: 'Pending', Mode: 'Filesystem', Size: '20Gi', Class: 'rbd-retain' };
+const GATES = ROWS.map((r, i) => `g${i}`);
+
+const column = (side, cx, head, sub, values) => P.group({
+  key: `${side}Col`,
+  parts: [
+    P.box({ key: `${side}Head`, x: cx - COL_W / 2, y: HEAD_Y, w: COL_W, h: HEAD_H, label: head, sublabel: sub }),
+    ...ROWS.map((r, i) => P.chip({ key: `${side}${r.key}`, x: cx - COL_W / 2, y: ROW_Y[i], w: COL_W, h: ROW_H, name: r.name, value: values[r.key] })),
+  ],
+});
+
+// List order is z-order: the frame, the blocks, the columns and disks, the relations, lanes and
+// captions, then the packets.
+export const SCENE = {
+  'aria-label': 'Cloning a PVC: a new PersistentVolumeClaim clone-1 whose dataSource names the existing claim data-src is picked up by the external-provisioner, which holds it against its source row by row, the same namespace, the source Bound and not being deleted, the same volumeMode and at least the source size, while the StorageClass may differ if it names the same driver, then calls CreateVolume so the storage backend makes an exact duplicate server-side with no VolumeSnapshot object in between, after which clone-1 binds and keeps its copy when data-src is deleted',
+  parts: [
+    P.defs(),
+    P.node({ key: 'frame', x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'Storage backend' }),
+    P.box({ key: 'prov', x: PROV_X, y: PROV_Y, w: PROV_W, h: PROV_H, label: 'External-provisioner', sublabel: 'driver: rbd.csi.ceph.com' }),
+    ...ROWS.map((r, i) => P.box({ key: GATES[i], x: GATE_X, y: ROW_Y[i], w: GATE_W, h: ROW_H, label: r.gate })),
+    column('src', SRC_CX, 'PVC data-src', 'the source claim', SRC),
+    column('clone', CLONE_CX, 'PVC clone-1', 'dataSource: data-src', CLONE),
+    // The primitive centres the label on the raw bbox, which reads high under the cap (STO.L-02).
+    P.cylinder({ key: 'srcDisk', x: SRC_CX - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'Source volume', labelY: DISK_H / 2 + 10 }),
+    P.cylinder({ key: 'cloneDisk', x: CLONE_CX - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'Cloned volume', labelY: DISK_H / 2 + 10 }),
+    // Each claim bound to its own volume: markerless and dashed, since nothing travels it. It stops on the
+    // backend frame top face and never crosses it.
+    P.relation({ key: 'srcRel', d: `M ${SRC_CX} ${ROWS_BOTTOM} L ${SRC_CX} ${FRAME_Y}`, dash: '5 5' }),
+    P.relation({ key: 'cloneRel', d: `M ${CLONE_CX} ${ROWS_BOTTOM} L ${CLONE_CX} ${FRAME_Y}`, dash: '5 5', opacity: 0 }),
+    P.lane({ key: 'wReq', points: W_REQ, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wCheck', points: W_CHECK, dashed: true, dim: true }),
+    P.lane({ key: 'wCall', points: W_CALL, dashed: true, dim: true }),
+    P.lane({ key: 'wCopy', points: W_COPY, dashed: true, dim: true, opacity: 0 }),
+    // The call hop is too short for a tag to ride, so its name stands beside the lane, centred in the gap
+    // between the last gate and the frame.
+    P.wire({ key: 'callCap', x: CX + 12, y: (ROWS_BOTTOM + FRAME_Y) / 2 + 4, anchor: 'start' }),
+    P.wire({ key: 'copyCap', x: CX, y: DISK_MY - 10 }),
+    P.packets(),
+  ],
+  reset: {
+    keys: ['prov', ...GATES, 'srcHead', 'cloneHead', 'srcDisk', 'cloneDisk',
+      ...ROWS.map(r => `src${r.key}`), ...ROWS.map(r => `clone${r.key}`)],
+  },
+};
+
+// Every step writes EVERY chip (P-01): the one value that moves is the clone phase. A deleted claim
+// has no phase to report, so the source keeps its last one, Bound, and the head sublabel says deleted.
+const chips = (clonePhase) => {
+  const out = {};
+  for (const r of ROWS) {
+    out[`src${r.key}`] = SRC[r.key];
+    out[`clone${r.key}`] = r.key === 'Phase' ? clonePhase : CLONE[r.key];
+  }
+  return out;
+};
+
+// STO.S-01 as a field: both columns, disks, identity links and all four lanes are pinned on every step.
+// A lane is full once both its ends exist, and 0 while either is pending or gone.
+const stage = ({ clone = OPACITY.pending, cloneDisk = OPACITY.pending, cloneRel = 0, src = 1 } = {}) => {
+  const both = (a, b) => (a === 1 && b === 1 ? 1 : 0);
+  return {
+    srcCol: src, srcDisk: src, srcRel: src === 1 ? 1 : 0,
+    cloneCol: clone, cloneDisk, cloneRel,
+    wReq: both(clone, 1), wCheck: 1, wCall: 1, wCopy: both(src, cloneDisk),
+  };
+};
+
+export const STEPS_SPEC = [
+  {
+    id: 'idle',
+    duration: 1500,
+    chipsCued: chips('Pending'),
+    sublabels: { srcHead: 'the source claim' },
+    opacity: stage(),
+  },
+  {
+    id: 'request',
+    duration: 3200,
+    narration: 'You create clone-1, an ordinary claim with one extra field: its dataSource names the existing claim data-src, of kind PersistentVolumeClaim. The external-provisioner for the driver picks it up as a clone request, which it serves only if the driver reports CLONE_VOLUME.',
+    chipsCued: chips('Pending'),
+    sublabels: { srcHead: 'the source claim' },
+    opacity: stage({ clone: 1 }),
+    lit: ['cloneHead'],
+    rewind: { opacity: stage() },
+    flow: [
+      F.reveal({ target: 'cloneCol', from: OPACITY.pending }),
+      F.fade({ target: 'wReq', from: 0, to: 1, dur: REVEAL_MS, fill: 'forwards', easing: 'ease-out' }),
+      F.route({ points: W_REQ, delay: BEAT.lead, name: 'req', tag: reqTag('dataSource: data-src') }),
+      F.light({ targets: ['prov'], at: 'req' }),
+    ],
+  },
+  {
+    id: 'check',
+    duration: 4400,
+    narration: 'The new claim must fit its source: the same namespace, as dataSource carries none and a cross-namespace dataSourceRef is alpha, a source Bound and not being deleted, the same volumeMode, at least the source size, and any class of the same driver. Any misfit leaves clone-1 Pending.',
+    chipsCued: chips('Pending'),
+    sublabels: { srcHead: 'the source claim' },
+    opacity: stage({ clone: 1 }),
+    // The provisioner sends the check, so it is lit at entry. Each gate lights as the scan reaches it.
+    lit: ['prov', 'srcHead', 'cloneHead'],
+    flow: [
+      F.route({ points: W_CHECK, delay: BEAT.lead, name: 'chk', tag: checkTag('fit test') }),
+      ...GATES.map((k, i) => F.light({ targets: [k], at: 'chk', plus: i * SCAN_MS })),
+    ],
+  },
+  {
+    id: 'copy',
+    duration: 4600,
+    narration: 'Every row passes, so the provisioner calls CreateVolume on the driver with the source volume as content. The backend makes an exact duplicate server-side, grown to 20Gi, which CSI lets a driver refuse. No VolumeSnapshot object is created, and on Ceph RBD no data passes through a Node.',
+    chipsCued: chips('Pending'),
+    sublabels: { srcHead: 'the source claim' },
+    wires: { callCap: 'CreateVolume', copyCap: 'exact duplicate' },
+    opacity: stage({ clone: 1, cloneDisk: 1 }),
+    // The provisioner makes the call and the passed test is the state it starts from, so both are lit
+    // at entry, and the call leaves the last gate.
+    lit: ['prov', ...GATES],
+    // The new volume is made on this step, so the animated path starts with it pending, and each caption
+    // is wound back blank until its exchange starts.
+    rewind: { opacity: stage({ clone: 1 }), wires: { callCap: '', copyCap: '' } },
+    flow: [
+      F.route({ points: W_CALL, delay: BEAT.lead, name: 'call' }),
+      F.set({ delay: BEAT.lead, wires: { callCap: 'CreateVolume' } }),
+      F.reveal({ target: 'cloneDisk', from: OPACITY.pending, at: 'call', name: 'made' }),
+      F.fade({ target: 'wCopy', from: 0, to: 1, dur: REVEAL_MS, fill: 'forwards', easing: 'ease-out', at: 'call' }),
+      // The source is the sender of the copy, so it lights when the call lands, REVEAL_MS before its ball
+      // leaves (M-18a).
+      F.light({ targets: ['srcDisk'], at: 'call' }),
+      F.route({ points: W_COPY, at: 'made', name: 'dup' }),
+      F.set({ at: 'made', wires: { copyCap: 'exact duplicate' } }),
+      F.light({ targets: ['cloneDisk'], at: 'dup' }),
+    ],
+  },
+  {
+    id: 'bound',
+    duration: 3100,
+    narration: 'A PV is created for the new volume and clone-1 binds to it, in its own StorageClass rbd-retain. Now that it is Bound, the cloning-protection finalizer on data-src stops holding its deletion, and clone-1 can be used, snapshotted, cloned again or deleted without touching data-src.',
+    chipsCued: chips('Bound'),
+    sublabels: { srcHead: 'the source claim' },
+    wires: { copyCap: 'exact duplicate' },
+    opacity: stage({ clone: 1, cloneDisk: 1, cloneRel: 1 }),
+    lit: ['cloneDisk'],
+    rewind: { opacity: { cloneRel: 0 }, chips: { clonePhase: 'Pending' } },
+    flow: [
+      F.fade({ target: 'cloneRel', from: 0, to: 1, dur: FADE.in, delay: BEAT.lead, fill: 'forwards', easing: 'ease-out', name: 'rel' }),
+      F.light({ targets: ['cloneHead'], at: 'rel' }),
+      F.set({ at: 'rel', chipsCued: { clonePhase: 'Bound' } }),
+    ],
+  },
+  {
+    id: 'independent',
+    duration: 3400,
+    narration: 'Nothing links the two afterwards: dataSource only seeded the volume. Delete data-src, and since its class reclaims with Delete its volume goes too, yet clone-1 keeps its copy untouched. That is the line against a snapshot restore: no VolumeSnapshot stays between them to restore from again.',
+    chipsCued: chips('Bound'),
+    sublabels: { srcHead: 'deleted' },
+    opacity: stage({ clone: 1, cloneDisk: 1, cloneRel: 1, src: OPACITY.terminated }),
+    lit: ['cloneHead', 'cloneDisk'],
+    rewind: {
+      opacity: stage({ clone: 1, cloneDisk: 1, cloneRel: 1 }),
+      sublabels: { srcHead: 'the source claim' },
+      wires: { copyCap: 'exact duplicate' },
+    },
+    flow: [
+      ...['srcCol', 'srcDisk'].map(target => F.fade({ target, to: OPACITY.terminated, dur: FADE.out, delay: BEAT.lead, fill: 'forwards' })),
+      ...['srcRel', 'wCopy'].map(target => F.fade({ target, to: 0, dur: FADE.out, delay: BEAT.lead, fill: 'forwards' })),
+      F.set({ delay: BEAT.lead, sublabels: { srcHead: 'deleted' }, wires: { copyCap: '' } }),
+    ],
+  },
+];
+
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

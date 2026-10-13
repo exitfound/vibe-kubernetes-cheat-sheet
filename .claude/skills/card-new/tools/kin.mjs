@@ -2,7 +2,7 @@
 // kin.mjs: a section's composition signatures, content bands and levers as data, so a new card can differ from its siblings.
 // usage: node .claude/skills/card-new/tools/kin.mjs <category>[/<subcategory>] | --levers | --id=<card-id> [--json]
 // Counts part kinds off SCENE.parts: group transforms, raw shapes and tune output are invisible, and it never judges a picture.
-import { schemes, subcategories, ROOT } from '../../../../scheme/test/fixtures/catalog.mjs';
+import { diagrams, subcategories, ROOT } from '../../../../diagrams/test/fixtures/catalog.mjs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -93,10 +93,10 @@ function readCard(entry, ns) {
 }
 
 async function readAll() {
-  const list = await schemes();
+  const list = await diagrams();
   const out = [];
   for (const entry of list) {
-    const url = pathToFileURL(join(ROOT, 'js', 'schemes', entry.category, `${entry.id}.js`)).href;
+    const url = pathToFileURL(join(ROOT, 'js', 'diagrams', entry.category, `${entry.id}.js`)).href;
     let ns;
     try { ns = await import(url); } catch (err) {
       console.error(`SKIPPED ${entry.id}: ${err.message}`);

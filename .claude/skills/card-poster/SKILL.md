@@ -1,20 +1,20 @@
 ---
 name: card-poster
-description: Design, redraw or adjust the poster of one scheme card, the still frame the grid shows: a 320x180 SVG fragment in posters.js, never the card's animated diagram. Opens the reference sheet first to calibrate against the posters the project reads as finished, reads the card for its one sentence, renders the current poster beside its siblings at true size and at 3x, picks a composition family AND a glyph vocabulary from the mined pattern library, gets the concept signed off in a five-slot line before drawing anything, writes the fragment, verifies it against the poster lint (the ink floor and the neighbour silhouette) and a fresh montage, and records the choice in the comment above the poster in posters.js. Use when the user asks for a poster ("сделай постер", "перерисуй постер", "poster for this card"), equally when they say how one LOOKS is wrong ("постер не нравится", "вяло", "бледно", "тускло", "скучно", "без стиля", "the poster reads weak"), when they say a poster repeats its neighbours ("все постеры одинаковые", "как у соседней карточки"), or when a card review found the poster wrong. For everything else about a card use card-review, and for the truth of its text use card-facts. For all four skills run end to end over a SET of cards unattended, use card-cycle.
+description: Design, redraw or adjust the poster of one diagram card, the still frame the grid shows: a 320x180 SVG fragment in posters.js, never the card's animated diagram. Opens the reference sheet first to calibrate against the posters the project reads as finished, reads the card for its one sentence, renders the current poster beside its siblings at true size and at 3x, picks a composition family AND a glyph vocabulary from the mined pattern library, gets the concept signed off in a five-slot line before drawing anything, writes the fragment, verifies it against the poster lint (the ink floor and the neighbour silhouette) and a fresh montage, and records the choice in the comment above the poster in posters.js. Use when the user asks for a poster ("сделай постер", "перерисуй постер", "poster for this card"), equally when they say how one LOOKS is wrong ("постер не нравится", "вяло", "бледно", "тускло", "скучно", "без стиля", "the poster reads weak"), when they say a poster repeats its neighbours ("все постеры одинаковые", "как у соседней карточки"), or when a card review found the poster wrong. For everything else about a card use card-review, and for the truth of its text use card-facts. For all four skills run end to end over a SET of cards unattended, use card-cycle.
 ---
 
 # Card poster
 
 The poster is the still the grid paints for a card, about 200px wide, held in
-`scheme/js/schemes/<category>/posters.js` as an SVG fragment keyed by card id. Rework always has
+`diagrams/js/diagrams/<category>/posters.js` as an SVG fragment keyed by card id. Rework always has
 the same cause: drawing before deciding what the picture has to say.
 
 **This skill owns** `posters.js`: the fragments and the comment above each one, which is the poster
 note (`R-12`). Nothing in the record. Defects found in the card go to `card-review`, text to
 `card-facts`.
 
-The rules are `R-01` to `R-12` in `scheme/CANON.md`
-(`cd scheme/test && node tools/canon.mjs --block=R`). `R-01` (the concept) and `R-10` (originality)
+The rules are `R-01` to `R-12` in `diagrams/CANON.md`
+(`cd diagrams/test && node tools/canon.mjs --block=R`). `R-01` (the concept) and `R-10` (originality)
 are review only, so a green lint says little about a poster. `reference/patterns.md` is the
 vocabulary.
 
@@ -175,7 +175,7 @@ Nothing goes in the record.
 ```bash
 node .claude/skills/card-poster/tools/poster-lint.mjs <card-id>               # clean, or every finding argued
 node .claude/skills/card-poster/tools/mine.mjs                                # only if the family changed
-cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run test:unit        # D-06 bijection card <-> poster
+cd "$(git rev-parse --show-toplevel)"/diagrams/test && npm run test:unit        # D-06 bijection card <-> poster
 ```
 
 Then `card-verify.md` section 6: the container rebuild, no commit.

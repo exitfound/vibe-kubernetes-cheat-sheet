@@ -2,8 +2,8 @@
 // section.mjs: one section as data in manifest order: prose size, animation size, cited pages and the five-band layer signature.
 // usage: node .claude/skills/section-review/tools/section.mjs <category>[/<section>] | --list [--json] [--markers]
 // The signature is a word count over a fixed vocabulary (bands.mjs): read it as the map, never the verdict.
-import { schemes, subcategories, ROOT } from '../../../../scheme/test/fixtures/catalog.mjs';
-import { sentences } from '../../../../scheme/test/fixtures/prose.mjs';
+import { diagrams, subcategories, ROOT } from '../../../../diagrams/test/fixtures/catalog.mjs';
+import { sentences } from '../../../../diagrams/test/fixtures/prose.mjs';
 import { BANDS, BAND_KEYS, walkStrings, signature, centre, bar, sourcePath } from './bands.mjs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -20,7 +20,7 @@ if (!target && !flags.list) {
 }
 
 const SUBS = await subcategories();
-const ALL = await schemes();
+const ALL = await diagrams();
 
 if (flags.list) {
   for (const [cat, subs] of Object.entries(SUBS)) {
@@ -47,7 +47,7 @@ const wanted = sec ? SUBS[cat].filter(s => s.key === sec) : SUBS[cat];
 // One card read: desc, narration and every drawn string all feed the signature, because a card whose
 // only mention of the Kubelet is a block label is still a Kubelet card.
 async function read(entry, pos) {
-  const rel = join('js', 'schemes', entry.category, `${entry.id}.js`);
+  const rel = join('js', 'diagrams', entry.category, `${entry.id}.js`);
   const ns = await import(pathToFileURL(join(ROOT, rel)).href);
   const steps = Array.isArray(ns.STEPS_SPEC) ? ns.STEPS_SPEC : [];
   const narration = steps.map(s => s.narration || '').filter(Boolean);

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // montage.mjs: posters beside their siblings (R-05, R-06), as <name>-actual.png at grid size and <name>-montage.png at 3x.
 // usage: node .claude/skills/card-poster/tools/montage.mjs <card-id> | --ids=a,b,c | --sheet=<category> [--out=DIR] [--base=URL]
-// Needs a server at the base URL and Playwright from scheme/test.
+// Needs a server at the base URL and Playwright from diagrams/test.
 import { mkdir } from 'node:fs/promises';
-import { launch, DEFAULT_BASE } from '../../../../scheme/test/fixtures/render.mjs';
+import { launch, DEFAULT_BASE } from '../../../../diagrams/test/fixtures/render.mjs';
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
@@ -27,7 +27,7 @@ async function shoot(scale, file) {
     deviceScaleFactor: scale,
   });
   const page = await ctx.newPage();
-  await page.goto(`${base}/scheme/`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${base}/diagrams/`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('article.card');
   await page.evaluate(() => document.fonts.ready.then(() => true));
 

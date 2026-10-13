@@ -1,6 +1,6 @@
 ---
 name: card-review
-description: Work on ONE existing scheme card, in either of two lanes, and leave its records true. REVIEW when nothing is named wrong: runs the machine gate filtered to that card, opens the rendered frames at three viewports, measures text and timing, hunts what no check can see (geometry, motion, state, wire placement, dead code, stale records, the poster), and reports findings ranked. DIRECTED CHANGE when the user names a DETAIL to change: a coordinate, a string, a chip value, a duration, an opacity. Use when the user asks to check, review, audit or re-verify a card ("проверь карточку <id>", "check card <id>", "перепроверь карточку"), and equally when they name a detail to change on one that exists ("сдвинь эту линию", "перепиши шаг", "поменяй значение чипа", "edit this step"), with the card id or title as the argument. A change that moves the COMPOSITION, the cast or the step spine is a design change and belongs to card-new even on an existing card. For a card that does not exist yet use card-new, for the truth of its prose card-facts, and for its grid thumbnail card-poster. For all four skills run end to end over a SET of cards unattended, use card-cycle.
+description: Work on ONE existing diagram card, in either of two lanes, and leave its records true. REVIEW when nothing is named wrong: runs the machine gate filtered to that card, opens the rendered frames at three viewports, measures text and timing, hunts what no check can see (geometry, motion, state, wire placement, dead code, stale records, the poster), and reports findings ranked. DIRECTED CHANGE when the user names a DETAIL to change: a coordinate, a string, a chip value, a duration, an opacity. Use when the user asks to check, review, audit or re-verify a card ("проверь карточку <id>", "check card <id>", "перепроверь карточку"), and equally when they name a detail to change on one that exists ("сдвинь эту линию", "перепиши шаг", "поменяй значение чипа", "edit this step"), with the card id or title as the argument. A change that moves the COMPOSITION, the cast or the step spine is a design change and belongs to card-new even on an existing card. For a card that does not exist yet use card-new, for the truth of its prose card-facts, and for its grid thumbnail card-poster. For all four skills run end to end over a SET of cards unattended, use card-cycle.
 ---
 
 # Card review and change
@@ -64,7 +64,7 @@ The verification does not shrink with the lane. Only the search does.
 
 ```bash
 cd "$(git rev-parse --show-toplevel)" && node .claude/skills/_shared/tools/ctx.mjs <card-id>      # already run in phase 0
-cd "$(git rev-parse --show-toplevel)"/scheme/test && node tools/canon.mjs --check=review    # the rows no machine covers
+cd "$(git rev-parse --show-toplevel)"/diagrams/test && node tools/canon.mjs --check=review    # the rows no machine covers
 ```
 
 `ctx.mjs` prints the catalog entry, the record, the source with every comment, the poster fragment,
@@ -75,19 +75,19 @@ steps, labels, aria-label or a sibling) is the highest-yield check there is.
 `--check=review` lists the rows this skill exists for. `--block=L,A --ids` is the geometry
 checklist.
 
-Read yourself when needed: `scheme/CLAUDE.md` once per session, the category kit when a finding
-reaches the grammar, `scheme/js/data.js` when the wiring is in question.
+Read yourself when needed: `diagrams/CLAUDE.md` once per session, the category kit when a finding
+reaches the grammar, `diagrams/js/data.js` when the wiring is in question.
 
 ## 2. The machine pass
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test
+cd "$(git rev-parse --show-toplevel)"/diagrams/test
 npm run test:unit
 # the report started in phase 0. Collect it first:
 grep -n '<card-id>' /tmp/report.txt
 grep -nE 'queue to work|left to work|finding\(s\)' /tmp/report.txt
 # only after the report has exited (walk snapshot race, card-verify.md section 0):
-SCHEME_IDS=<card-id> npm run test:render > /tmp/r.txt 2>&1
+DIAGRAM_IDS=<card-id> npm run test:render > /tmp/r.txt 2>&1
 grep -E '^# (tests|pass|fail|skipped)|^not ok' /tmp/r.txt
 OVERLAY_IDS=<card-id> node --test report/overlay.test.mjs
 ```

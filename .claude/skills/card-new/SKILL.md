@@ -1,6 +1,6 @@
 ---
 name: card-new
-description: Design ONE scheme card and build it, ending with a green gate and a written record. Places the subject in a category and a section, decides the one sentence and the step spine before any geometry, measures what the neighbouring cards already look like and picks a composition the section has not used, gets the concept signed off in one line, builds the module in the declarative form, wires the catalog, verifies at three viewports, and updates every count a new card falsifies. Use when the user asks for a new card ("сделай новую карточку", "добавь карточку про X", "new card for <topic>", "нарисуй схему про X"), and equally when they want an existing card REDESIGNED rather than adjusted: a different composition, a different cast of blocks, a different step spine ("переделай карточку", "перерисуй композицию", "другой набор шагов"), with the subject or the card id as the argument. A change to a coordinate, a string, a chip value, a duration or an opacity is a detail, not a design, and belongs to card-review. For the truth of a card's prose use card-facts, and for its grid thumbnail card-poster. For all four skills run end to end over a SET of cards unattended, use card-cycle.
+description: Design ONE diagram card and build it, ending with a green gate and a written record. Places the subject in a category and a section, decides the one sentence and the step spine before any geometry, measures what the neighbouring cards already look like and picks a composition the section has not used, gets the concept signed off in one line, builds the module in the declarative form, wires the catalog, verifies at three viewports, and updates every count a new card falsifies. Use when the user asks for a new card ("сделай новую карточку", "добавь карточку про X", "new card for <topic>", "нарисуй схему про X"), and equally when they want an existing card REDESIGNED rather than adjusted: a different composition, a different cast of blocks, a different step spine ("переделай карточку", "перерисуй композицию", "другой набор шагов"), with the subject or the card id as the argument. A change to a coordinate, a string, a chip value, a duration or an opacity is a detail, not a design, and belongs to card-review. For the truth of a card's prose use card-facts, and for its grid thumbnail card-poster. For all four skills run end to end over a SET of cards unattended, use card-cycle.
 ---
 
 # Card new
@@ -16,7 +16,7 @@ composition census (phase 3) and the sign-off (phase 4) exist for that.
 
 **When the card already exists**, read `.claude/skills/_shared/card-edit.md` before phase 3.
 
-The rules are `scheme/CANON.md`. This file is the procedure, `reference/compositions.md` the
+The rules are `diagrams/CANON.md`. This file is the procedure, `reference/compositions.md` the
 composition vocabulary.
 
 ## 0. Preconditions
@@ -24,7 +24,7 @@ composition vocabulary.
 Server and working directory: `.claude/skills/_shared/card-verify.md` section 0.
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run test:unit > /tmp/new-before-unit.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/new-before-unit.txt
+cd "$(git rev-parse --show-toplevel)"/diagrams/test && npm run test:unit > /tmp/new-before-unit.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/new-before-unit.txt
 ```
 
 Keep this BEFORE reading, so you know which red lines were already red. Unit only: every baseline a
@@ -34,14 +34,14 @@ new card falsifies is computed there, and the full gate at phase 8 prints the re
 
 1. The design half of the canon:
    ```bash
-   cd "$(git rev-parse --show-toplevel)"/scheme/test
+   cd "$(git rev-parse --show-toplevel)"/diagrams/test
    node tools/canon.mjs --block=L,A          # layout and lanes
    node tools/canon.mjs --block=S            # the module shape
    node tools/canon.mjs --check=review       # the rows no machine covers
    ```
-2. `scheme/CLAUDE.md`: the folder contract, the declarative form, "Adding a card". That checklist
+2. `diagrams/CLAUDE.md`: the folder contract, the declarative form, "Adding a card". That checklist
    is the short version of this skill.
-3. `scheme/js/schemes/<category>/CLAUDE.md`: category rules, sections, exemplar.
+3. `diagrams/js/diagrams/<category>/CLAUDE.md`: category rules, sections, exemplar.
 4. The exemplar card in full. Copy its shape (module order, header, declarative form), never its
    arrangement (`reference/compositions.md`, part four).
 5. The two or three closest siblings.
@@ -146,7 +146,7 @@ Text clearances are measured (`L-20`, `L-21`), with the tools in `card-verify.md
 
 ## 6. Write the module
 
-`scheme/js/schemes/<category>/<card-id>.js`, in the declarative form only (`S-01`, `S-02`).
+`diagrams/js/diagrams/<category>/<card-id>.js`, in the declarative form only (`S-01`, `S-02`).
 
 1. one import from `./<category>-kit.js`, plus `../../lib/svg.js` and `../../lib/primitives.js`
    only if a `raw` needs them (`S-21`)
@@ -159,7 +159,7 @@ Text clearances are measured (`L-20`, `L-21`), with the tools in `card-verify.md
 
 Balls carry their own tag and arrival pulse:
 `F.route({ points, tag: { text, dx, dy }, pulse: 'podKey' })`, the same for `F.segment` and
-`F.top`. Both expand in `scheme/js/lib/step-spec.js` (`expandFlow`), so the tag shares the ball's
+`F.top`. Both expand in `diagrams/js/lib/step-spec.js` (`expandFlow`), so the tag shares the ball's
 path and timing and the pulse fires on its arrival. Every ball and tag fades in 200ms (`M-30a`). A
 separate `F.tag` is only for a tag emerging from a block.
 
@@ -184,10 +184,10 @@ verb, stop and say so (`S-27`).
 
 | File | What it gets | Rule |
 |---|---|---|
-| `js/schemes/<cat>/cards.js` | the `SCHEMES` entry | `D-01`, `D-04`, `D-05` |
-| `js/schemes/<cat>/posters.js` | the thumbnail, drawn by `card-poster` | `D-06` |
-| `js/schemes/<cat>/CARDS/<id>.md` | the record, plus a row in the folder's `CARDS.md` index | `S-45`, `S-43` |
-| `scheme/card/<id>/index.html`, `sitemap.xml` | run `node tools/pages/build.mjs`, never hand-edit | `D-12` |
+| `js/diagrams/<cat>/cards.js` | the `DIAGRAMS` entry | `D-01`, `D-04`, `D-05` |
+| `js/diagrams/<cat>/posters.js` | the thumbnail, drawn by `card-poster` | `D-06` |
+| `js/diagrams/<cat>/CARDS/<id>.md` | the record, plus a row in the folder's `CARDS.md` index | `S-45`, `S-43` |
+| `diagrams/card/<id>/index.html`, `sitemap.xml` | run `node tools/pages/build.mjs`, never hand-edit | `D-12` |
 
 The poster is not drawn here: hand it to `card-poster` (`R-01`). The `desc` opens with the question
 the card answers and carries the words a reader would search for (`D-15`).
@@ -213,7 +213,7 @@ Then the full gate and the report, once. Inside a `card-cycle` run, skip it and 
 loop and its debt list.
 
 ```bash
-cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run all > /tmp/all.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/all.txt
+cd "$(git rev-parse --show-toplevel)"/diagrams/test && npm run all > /tmp/all.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/all.txt
 grep -n '<card-id>' /tmp/all.txt
 grep -nE 'queue to work|left to work|finding\(s\)' /tmp/all.txt
 ```
@@ -228,7 +228,7 @@ the spine changed.
 
 ## 10. The record
 
-`js/schemes/<category>/CARDS/<card-id>.md`, in the form of `card-verify.md` section 5:
+`js/diagrams/<category>/CARDS/<card-id>.md`, in the form of `card-verify.md` section 5:
 
 - `WHAT`: the sentence from 3a
 - `DEVIATES`: every rule the card breaks on purpose, including a block size off the category

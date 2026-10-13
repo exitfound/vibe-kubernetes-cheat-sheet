@@ -9,14 +9,14 @@ const id = process.argv[2];
 if (!id) { console.error('Usage: node statics.mjs <card-id>'); process.exit(1); }
 
 const ROOT = new URL('../../../../', import.meta.url).pathname;
-const SCHEMES = join(ROOT, 'scheme/js/schemes');
+const DIAGRAMS = join(ROOT, 'diagrams/js/diagrams');
 let file = null, category = null;
-for (const cat of readdirSync(SCHEMES)) {
-  if (!statSync(join(SCHEMES, cat)).isDirectory()) continue;
-  const p = join(SCHEMES, cat, `${id}.js`);
+for (const cat of readdirSync(DIAGRAMS)) {
+  if (!statSync(join(DIAGRAMS, cat)).isDirectory()) continue;
+  const p = join(DIAGRAMS, cat, `${id}.js`);
   if (existsSync(p)) { file = p; category = cat; break; }
 }
-if (!file) { console.error(`no card source for "${id}" under scheme/js/schemes/*/`); process.exit(1); }
+if (!file) { console.error(`no card source for "${id}" under diagrams/js/diagrams/*/`); process.exit(1); }
 
 const src = readFileSync(file, 'utf8');
 const lines = src.split('\n');
@@ -204,23 +204,23 @@ lines.forEach((l, i) => {
 if (run > S34_CEILING) say('S-34', `${rel}:${runStart}  comment run of ${run} lines, ceiling is ${S34_CEILING}`);
 
 // ---- the catalog wiring around the card --------------------------------------------------------
-const cardsJs = readFileSync(join(SCHEMES, category, 'cards.js'), 'utf8');
+const cardsJs = readFileSync(join(DIAGRAMS, category, 'cards.js'), 'utf8');
 if (!cardsJs.includes(`id: '${id}'`)) say('CATALOG', `${id} has no entry in ${category}/cards.js`);
 const entry = cardsJs.split(/\{\s*\n/).find(b => b.includes(`id: '${id}'`)) || '';
 for (const field of ['title', 'category', 'subcategory', 'desc', 'k8sVersion', 'sources']) {
   if (!entry.includes(`${field}:`)) say('CATALOG', `${id} entry is missing ${field}`);
 }
-const posters = join(SCHEMES, category, 'posters.js');
+const posters = join(DIAGRAMS, category, 'posters.js');
 if (existsSync(posters) && !readFileSync(posters, 'utf8').includes(`'${id}'`)) {
   say('CATALOG', `${id} has no poster in ${category}/posters.js`);
 }
 // Two shapes of record: one `CARDS.md` per category, or a `CARDS/<id>.md` per card beside it. The
 // per-card file wins when it exists, and the section is parsed the same way out of either.
-const perCard = join(SCHEMES, category, 'CARDS', `${id}.md`);
+const perCard = join(DIAGRAMS, category, 'CARDS', `${id}.md`);
 const recordRel = existsSync(perCard) ? `${category}/CARDS/${id}.md` : `${category}/CARDS.md`;
 const recordMd = existsSync(perCard)
   ? readFileSync(perCard, 'utf8')
-  : readFileSync(join(SCHEMES, category, 'CARDS.md'), 'utf8');
+  : readFileSync(join(DIAGRAMS, category, 'CARDS.md'), 'utf8');
 if (!recordMd.includes(`## ${id}\n`)) say('RECORD', `${recordRel} has no "## ${id}" section`);
 else {
   const section = recordMd.split(`## ${id}\n`)[1].split('\n## ')[0];

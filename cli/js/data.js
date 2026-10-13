@@ -41,19 +41,17 @@ const ICONS = {
   crd: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="4" r="2"/><circle cx="5" cy="20" r="2"/><circle cx="19" cy="20" r="2"/><line x1="12" y1="6" x2="12" y2="13"/><polyline points="5 18 5 13 19 13 19 18"/></svg>`,
 };
 
-const COPY_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
-const CHECK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+// The copy icons have one home, the shared chrome. Re-exported for app.js and tools/pages/build.mjs.
+import { COPY_ICON, CHECK_ICON } from './lib/chrome.js';
 const STAR_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
 const LINK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
 const DOCS_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>`;
-const CONTACT_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
-const SPONSOR_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
 
 // ── Data ──────────────────────────────────────────────────────
 const SECTIONS = [
   // ── INSTALLATION - KUBEADM ──────────────────────────────────
   {
-    id: 'install-kubeadm', title: 'Kubeadm', icon: ICONS.kubeadm, sub: 'Installation', version: 'k8s 1.35',
+    id: 'install-kubeadm', title: 'Kubeadm', icon: ICONS.kubeadm, sub: 'Installation', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/reference/setup-tools/kubeadm/',
     groups: [
       {
@@ -61,8 +59,8 @@ const SECTIONS = [
         desc: 'Install kubeadm, kubelet, and kubectl on each node. These steps are required before initializing or joining a cluster.',
         cmds: [
           { cmd: 'apt-get update && apt-get install -y apt-transport-https ca-certificates curl gpg', desc: 'Install prerequisites on Debian/Ubuntu' },
-          { cmd: 'curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.35/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg', desc: 'Add the Kubernetes apt repository signing key' },
-          { cmd: 'echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.35/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list', desc: 'Add the Kubernetes apt repository' },
+          { cmd: 'curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.36/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg', desc: 'Add the Kubernetes apt repository signing key' },
+          { cmd: 'echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list', desc: 'Add the Kubernetes apt repository' },
           { cmd: 'apt-get update && apt-get install -y kubelet kubeadm kubectl',  desc: 'Install kubelet, kubeadm, and kubectl' },
           { cmd: 'apt-mark hold kubelet kubeadm kubectl',                              desc: 'Prevent automatic upgrades of Kubernetes packages' },
           { cmd: 'systemctl enable --now kubelet',                                      desc: 'Enable and start the kubelet service' },
@@ -113,7 +111,7 @@ const SECTIONS = [
 
   // ── INSTALLATION - K3S ──────────────────────────────────────
   {
-    id: 'install-k3s', title: 'k3s', icon: ICONS.k3s, sub: 'Installation', version: 'k8s 1.35',
+    id: 'install-k3s', title: 'k3s', icon: ICONS.k3s, sub: 'Installation', version: 'k8s 1.36',
     docs: 'https://docs.k3s.io/',
     groups: [
       {
@@ -369,7 +367,7 @@ const SECTIONS = [
 
   // ── CLUSTER HEALTH ────────────────────────────────────────
   {
-    id: 'cluster-health', title: 'Cluster Health', icon: ICONS['cluster-health'], sub: 'Cluster', version: 'k8s 1.35',
+    id: 'cluster-health', title: 'Cluster Health', icon: ICONS['cluster-health'], sub: 'Cluster', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/reference/kubectl/quick-reference/',
     groups: [
       {
@@ -423,7 +421,7 @@ const SECTIONS = [
 
   // ── NODES ─────────────────────────────────────────────────
   {
-    id: 'node', title: 'Nodes', icon: ICONS.node, sub: 'Cluster', version: 'k8s 1.35',
+    id: 'node', title: 'Nodes', icon: ICONS.node, sub: 'Cluster', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/architecture/nodes/',
     groups: [
       {
@@ -474,7 +472,7 @@ const SECTIONS = [
           { cmd: 'kubectl get node <name> -o yaml',                                desc: 'Get node manifest as YAML' },
           { cmd: 'kubectl get nodes -o custom-columns=NAME:.metadata.name,VER:.status.nodeInfo.kubeletVersion,OS:.status.nodeInfo.osImage', desc: 'Custom columns: name, version, and OS' },
           { cmd: 'kubectl get nodes --show-labels',                                desc: 'Nodes with all their labels' },
-          { cmd: 'kubectl get nodes -o wide',                                      desc: 'Nodes with IP, OS, container runtime' },
+          { cmd: 'kubectl get nodes -o wide',                                      desc: 'Nodes with IP, OS, architecture, container runtime' },
           { cmd: 'kubectl get nodes',                                              desc: 'List all nodes in the cluster' },
         ]
       },
@@ -483,7 +481,7 @@ const SECTIONS = [
 
   // ── CUSTOM RESOURCES ──────────────────────────────────────
   {
-    id: 'crd', title: 'Custom Resources', icon: ICONS.crd, sub: 'Cluster', version: 'k8s 1.35',
+    id: 'crd', title: 'Custom Resources', icon: ICONS.crd, sub: 'Cluster', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/',
     groups: [
       {
@@ -526,7 +524,7 @@ const SECTIONS = [
 
   // ── CONTEXTS ──────────────────────────────────────────────
   {
-    id: 'context', title: 'Contexts', icon: ICONS.context, sub: 'Cluster', version: 'k8s 1.35',
+    id: 'context', title: 'Contexts', icon: ICONS.context, sub: 'Cluster', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/',
     groups: [
       {
@@ -573,7 +571,7 @@ const SECTIONS = [
 
   // ── PODS ──────────────────────────────────────────────────
   {
-    id: 'pod', title: 'Pods', icon: ICONS.pod, sub: 'Workloads', version: 'k8s 1.35',
+    id: 'pod', title: 'Pods', icon: ICONS.pod, sub: 'Workloads', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/workloads/pods/',
     groups: [
       {
@@ -652,7 +650,7 @@ const SECTIONS = [
 
   // ── DEPLOYMENTS ───────────────────────────────────────────
   {
-    id: 'deployment', title: 'Deployments', icon: ICONS.deployment, sub: 'Workloads', version: 'k8s 1.35',
+    id: 'deployment', title: 'Deployments', icon: ICONS.deployment, sub: 'Workloads', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/workloads/controllers/deployment/',
     groups: [
       {
@@ -716,7 +714,7 @@ const SECTIONS = [
 
   // ── STATEFULSETS ──────────────────────────────────────────
   {
-    id: 'statefulset', title: 'StatefulSets', icon: ICONS.statefulset, sub: 'Workloads', version: 'k8s 1.35',
+    id: 'statefulset', title: 'StatefulSets', icon: ICONS.statefulset, sub: 'Workloads', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/',
     groups: [
       {
@@ -757,7 +755,7 @@ const SECTIONS = [
 
   // ── DAEMONSETS ────────────────────────────────────────────
   {
-    id: 'daemonset', title: 'DaemonSets', icon: ICONS.daemonset, sub: 'Workloads', version: 'k8s 1.35',
+    id: 'daemonset', title: 'DaemonSets', icon: ICONS.daemonset, sub: 'Workloads', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/',
     groups: [
       {
@@ -797,7 +795,7 @@ const SECTIONS = [
 
   // ── SERVICES ──────────────────────────────────────────────
   {
-    id: 'service', title: 'Services', icon: ICONS.service, sub: 'Workloads', version: 'k8s 1.35',
+    id: 'service', title: 'Services', icon: ICONS.service, sub: 'Workloads', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/services-networking/service/',
     groups: [
       {
@@ -845,7 +843,7 @@ const SECTIONS = [
 
   // ── CONFIGMAPS & SECRETS ─────────────────────────────────
   {
-    id: 'config', title: 'ConfigMaps & Secrets', icon: ICONS.config, sub: 'Workloads', version: 'k8s 1.35',
+    id: 'config', title: 'ConfigMaps & Secrets', icon: ICONS.config, sub: 'Workloads', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/configuration/configmap/',
     groups: [
       {
@@ -899,7 +897,7 @@ const SECTIONS = [
 
   // ── JOBS & CRONJOBS ───────────────────────────────────────
   {
-    id: 'job', title: 'Jobs & CronJobs', icon: ICONS.job, sub: 'Workloads', version: 'k8s 1.35',
+    id: 'job', title: 'Jobs & CronJobs', icon: ICONS.job, sub: 'Workloads', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/workloads/controllers/job/',
     groups: [
       {
@@ -958,7 +956,7 @@ const SECTIONS = [
 
   // ── VOLUMES ───────────────────────────────────────────────
   {
-    id: 'volume', title: 'Volumes', icon: ICONS.volume, sub: 'Workloads', version: 'k8s 1.35',
+    id: 'volume', title: 'Volumes', icon: ICONS.volume, sub: 'Workloads', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/storage/volumes/',
     groups: [
       {
@@ -1012,7 +1010,7 @@ const SECTIONS = [
 
   // ── NETWORKING ────────────────────────────────────────────
   {
-    id: 'network', title: 'Networking', icon: ICONS.network, sub: 'Workloads', version: 'k8s 1.35',
+    id: 'network', title: 'Networking', icon: ICONS.network, sub: 'Workloads', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/services-networking/',
     groups: [
       {
@@ -1113,7 +1111,7 @@ const SECTIONS = [
 
   // ── RBAC ──────────────────────────────────────────────────
   {
-    id: 'rbac', title: 'RBAC', icon: ICONS.rbac, sub: 'Workloads', version: 'k8s 1.35',
+    id: 'rbac', title: 'RBAC', icon: ICONS.rbac, sub: 'Workloads', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/reference/access-authn-authz/rbac/',
     groups: [
       {
@@ -1189,7 +1187,7 @@ const SECTIONS = [
 
   // ── NAMESPACES ────────────────────────────────────────────
   {
-    id: 'namespace', title: 'Namespaces', icon: ICONS.namespace, sub: 'Workloads', version: 'k8s 1.35',
+    id: 'namespace', title: 'Namespaces', icon: ICONS.namespace, sub: 'Workloads', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/',
     groups: [
       {
@@ -1572,7 +1570,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - INSTALLATION ──────────────────────────
   {
-    id: 'troubleshooting-installation', title: 'Installation', icon: ICONS['troubleshooting-installation'], sub: 'Debug K8s', version: 'k8s 1.35',
+    id: 'troubleshooting-installation', title: 'Installation', icon: ICONS['troubleshooting-installation'], sub: 'Debug K8s', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/',
     groups: [
       {
@@ -1647,7 +1645,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - CLUSTER ─────────────────────────────
   {
-    id: 'troubleshooting-cluster', title: 'Cluster', icon: ICONS['troubleshooting-cluster'], sub: 'Debug K8s', version: 'k8s 1.35',
+    id: 'troubleshooting-cluster', title: 'Cluster', icon: ICONS['troubleshooting-cluster'], sub: 'Debug K8s', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/tasks/debug/debug-cluster/',
     groups: [
       {
@@ -1712,7 +1710,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - NETWORK ─────────────────────────────
   {
-    id: 'troubleshooting-network', title: 'Network', icon: ICONS['troubleshooting-network'], sub: 'Debug K8s', version: 'k8s 1.35',
+    id: 'troubleshooting-network', title: 'Network', icon: ICONS['troubleshooting-network'], sub: 'Debug K8s', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/tasks/debug/debug-application/debug-service/',
     groups: [
       {
@@ -1758,7 +1756,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - STORAGE ─────────────────────────────
   {
-    id: 'troubleshooting-storage', title: 'Storage', icon: ICONS['troubleshooting-storage'], sub: 'Debug K8s', version: 'k8s 1.35',
+    id: 'troubleshooting-storage', title: 'Storage', icon: ICONS['troubleshooting-storage'], sub: 'Debug K8s', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/storage/persistent-volumes/',
     groups: [
       {
@@ -1797,7 +1795,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - RESOURCES ───────────────────────────
   {
-    id: 'troubleshooting-resources', title: 'Resources', icon: ICONS['troubleshooting-resources'], sub: 'Debug K8s', version: 'k8s 1.35',
+    id: 'troubleshooting-resources', title: 'Resources', icon: ICONS['troubleshooting-resources'], sub: 'Debug K8s', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/',
     groups: [
       {
@@ -1850,7 +1848,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING - SCHEDULING ──────────────────────────
   {
-    id: 'troubleshooting-scheduling', title: 'Scheduling', icon: ICONS['troubleshooting-scheduling'], sub: 'Debug K8s', version: 'k8s 1.35',
+    id: 'troubleshooting-scheduling', title: 'Scheduling', icon: ICONS['troubleshooting-scheduling'], sub: 'Debug K8s', version: 'k8s 1.36',
     docs: 'https://kubernetes.io/docs/concepts/scheduling-eviction/',
     groups: [
       {
@@ -1976,4 +1974,4 @@ const SECTIONS = [
 
 ];
 
-export { COPY_ICON, CHECK_ICON, STAR_ICON, LINK_ICON, DOCS_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS };
+export { COPY_ICON, CHECK_ICON, STAR_ICON, LINK_ICON, DOCS_ICON, SECTIONS };

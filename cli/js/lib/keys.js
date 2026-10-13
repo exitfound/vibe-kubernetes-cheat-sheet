@@ -1,6 +1,7 @@
-// The shortcuts sheet, opened by `?` or the sidebar keyboard button. A copy lives in scheme/js/lib/keys.js.
+// The shortcuts sheet, opened by `?` or the sidebar keyboard button. The one copy, /diagrams/ imports it too.
 // groups: [{ title, rows: [{ keys: [['Shift', '←'], ['Shift', '→']], desc }] }]
 // `keys` is a list of alternatives, each one a combination pressed together.
+import { escapeHtml as esc } from './chrome.js';
 
 const CLOSE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 
@@ -14,7 +15,6 @@ export const isLetter = (e, ch) => {
   return k.toLowerCase() === ch || (!/^[a-z]$/i.test(k) && e.code === `Key${ch.toUpperCase()}`);
 };
 
-const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 function renderKeys(alts) {
   return alts

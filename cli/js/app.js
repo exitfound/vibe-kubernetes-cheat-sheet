@@ -1,5 +1,6 @@
-import { COPY_ICON, CHECK_ICON, STAR_ICON, LINK_ICON, DOCS_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS } from './data.js';
+import { COPY_ICON, CHECK_ICON, STAR_ICON, LINK_ICON, DOCS_ICON, SECTIONS } from './data.js';
 import { setupSidebar } from './lib/sidebar.js';
+import { setupHeader, alignLogo, copyText, escapeHtml } from './lib/chrome.js';
 import { setupKeysHelp, isSlash } from './lib/keys.js';
 import { hl, sortCmds } from './lib/commands.js';
 import { trackFresh, hashKey } from './lib/fresh.js';
@@ -25,8 +26,10 @@ const REPORT_ICON      = `<svg width="14" height="14" viewBox="0 0 24 24" fill="
 // Old command string to its rewrite, so a star saved under the old string follows its command.
 const STAR_RENAMES = {
   "apt-get update && apt-get install -y apt-transport-https ca-certificates curl": "apt-get update && apt-get install -y apt-transport-https ca-certificates curl gpg",
-  "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg": "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.35/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg",
-  "echo \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /\" | tee /etc/apt/sources.list.d/kubernetes.list": "echo \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.35/deb/ /\" | tee /etc/apt/sources.list.d/kubernetes.list",
+  "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg": "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.36/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg",
+  "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.35/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg": "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.36/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg",
+  "echo \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /\" | tee /etc/apt/sources.list.d/kubernetes.list": "echo \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /\" | tee /etc/apt/sources.list.d/kubernetes.list",
+  "echo \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.35/deb/ /\" | tee /etc/apt/sources.list.d/kubernetes.list": "echo \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /\" | tee /etc/apt/sources.list.d/kubernetes.list",
   "kubeadm init --cri-socket /run/containerd/containerd.sock": "kubeadm init --cri-socket unix:///var/run/containerd/containerd.sock",
   "k3d kubeconfig merge <name> --switch-context": "k3d kubeconfig merge <name> --kubeconfig-switch-context",
   "curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64 && chmod +x ./kind && sudo mv ./kind /usr/local/bin/": "curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64 && chmod +x ./kind && sudo mv ./kind /usr/local/bin/",
@@ -89,15 +92,6 @@ function persistStarred() {
 }
 
 function isStarred(cmd) { return starred.has(cmd); }
-
-// ── HTML escape ───────────────────────────────────────────────
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 // ── Search helpers ────────────────────────────────────────────
 function escapeRe(s) {
@@ -217,7 +211,7 @@ function renderSection(section) {
     <section class="section" data-section="${escapeHtml(section.id)}" data-cat="${cat}" data-group="${group}">
       <div class="section-header">
         <div class="section-icon">${section.icon}</div>
-        <h2 class="section-title">${escapeHtml(section.title)}</h2>
+        <h2 class="section-title"><a class="section-page" href="/cli/section/${escapeHtml(section.id)}/">${escapeHtml(section.title)}</a></h2>
         <span class="section-sub">${escapeHtml(section.sub)}</span>
         <span class="section-actions">
           <button class="section-action section-link" type="button" title="Copy link to this section" aria-label="Copy link to the ${escapeHtml(section.title)} section">${LINK_ICON}</button>
@@ -259,7 +253,6 @@ function renderCmd(item) {
 
 // ── Copy to clipboard ─────────────────────────────────────────
 let toastTimer;
-let copyTimer;
 const toast = document.getElementById('toast');
 
 function showToast() {
@@ -269,8 +262,8 @@ function showToast() {
 }
 
 // The clipboard holds one command, so only the button that put it there shows the check: a new copy
-// resets whichever command button was still showing one. Its own timer, not the shared `copyTimer`,
-// so a wallet copy in the header cannot cancel a command button's reset and leave it stuck.
+// resets whichever command button was still showing one. Its own timer, not the header's wallet timer
+// (lib/chrome.js), so a wallet copy cannot cancel a command button's reset and leave it stuck.
 let cmdCopyTimer;
 
 function resetCmdCopyBtn(btn) {
@@ -307,32 +300,14 @@ function copyCmd(item) {
     cmdCopyTimer = setTimeout(() => resetCmdCopyBtn(btn), COPY_RESET_DELAY);
   };
 
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(raw).then(finish).catch(() => fallbackCopy(raw, finish));
-  } else {
-    fallbackCopy(raw, finish);
-  }
+  copyText(raw, finish);
 }
 
 // The section ids double as hash routes, so a copied link opens the page filtered to that section.
+// The section's own static page, which every crawler and chat preview can read, not the `#` view.
 function copySectionLink(id) {
-  const url = `${location.origin}${location.pathname}#${id}`;
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(url).then(showToast).catch(() => fallbackCopy(url, showToast));
-  } else {
-    fallbackCopy(url, showToast);
-  }
-}
-
-function fallbackCopy(text, callback) {
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none';
-  document.body.appendChild(ta);
-  ta.focus();
-  ta.select();
-  try { document.execCommand('copy'); callback(); } catch (_) {}
-  document.body.removeChild(ta);
+  const url = `${location.origin}/cli/section/${id}/`;
+  copyText(url, showToast);
 }
 
 // ── Three-level navigation ───────────────────────────────────
@@ -720,135 +695,201 @@ restoreFromHash();
 if (!location.hash) writeUrl('');
 window.addEventListener('hashchange', restoreFromHash);
 
-// ── Align logo icon center over "All" button center ───────────
-function alignLogo() {
-  const logo = document.querySelector('.logo');
-  if (!logo) return;
-  if (window.innerWidth <= 900) { logo.style.marginLeft = '0'; return; }
-  const allBtn   = document.querySelector('[data-group="all"]');
-  const logoIcon = document.querySelector('.logo-icon');
-  if (!allBtn || !logoIcon) return;
-  // Read phase first (before any writes) to avoid forced layout
-  const currentMargin = parseFloat(logo.style.marginLeft) || 0;
-  const allCenter  = allBtn.getBoundingClientRect().left  + allBtn.offsetWidth  / 2;
-  const iconCenter = logoIcon.getBoundingClientRect().left + logoIcon.offsetWidth / 2;
-  logo.style.marginLeft = (currentMargin + allCenter - iconCenter) + 'px';
+// ── Save as PDF ───────────────────────────────────────────────
+// The header button prints every command from a hidden frame of A4 sheets laid out here, each numbered
+// on a strip at its foot (Firefox draws no @page margin boxes). Ctrl+P prints the view, on paper.
+const PDF_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><polyline points="9 15 12 18 15 15"/></svg>`;
+const BOOK_FACES = ['400', '500', '600', '700'].flatMap(w => [`${w} 13px "JetBrains Mono"`, `${w} 13px "Space Grotesk"`]);
+let bookFrame = null;
+
+// Every group, category, section and card, each a link to its place in the book.
+function bookToc() {
+  const byId = new Map(SECTIONS.map(s => [s.id, s]));
+  const tocSection = (s) => {
+    const total = s.groups.reduce((n, g) => n + g.cmds.length, 0);
+    const cards = s.groups.map((g, gi) => `<a href="#toc-${s.id}-${gi}">${escapeHtml(g.title)}</a>`).join('');
+    return `
+      <div class="toc-section">
+        <a class="toc-section-link" href="#toc-${s.id}"><span>${escapeHtml(s.title)}</span><span class="toc-count">${total}</span></a>
+        <div class="toc-cards">${cards}</div>
+      </div>`;
+  };
+  const groups = Object.entries(GROUPS).filter(([, cats]) => cats.length).map(([g, cats]) => `
+    <div class="toc-group">
+      <h2 class="toc-group-title">${GROUP_LABELS[g]}</h2>
+      ${cats.map(cat => `
+        <div class="toc-cat" data-cat="${cat}">
+          <h3 class="toc-cat-title">${CATEGORY_LABELS[cat]}</h3>
+          ${CATEGORIES[cat].map(id => tocSection(byId.get(id))).join('')}
+        </div>`).join('')}
+    </div>`).join('');
+  return `<nav class="book-toc" aria-label="Contents"><p class="toc-title">Contents</p><div class="toc-columns">${groups}</div></nav>`;
 }
-requestAnimationFrame(alignLogo);
-window.addEventListener('resize', alignLogo);
-document.fonts.ready.then(() => requestAnimationFrame(alignLogo));
 
-// ── Header dropdowns ──────────────────────────────────────────
-function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
-  const container = document.getElementById('headerActions');
-  if (!container) return;
+// Fills the book one block at a time and moves a block that overflows its sheet on to a new one.
+// A card breaks only between commands, and its head never sits alone at a sheet foot.
+function layBook(doc) {
+  const book = doc.querySelector('.book');
+  const el = (html) => {
+    const t = doc.createElement('template');
+    t.innerHTML = html.trim();
+    return t.content.firstElementChild;
+  };
+  let page;
+  const sheet = () => {
+    const s = el('<div class="sheet"><div class="sheet-body"></div><div class="sheet-strip"></div></div>');
+    book.append(s);
+    page = s.firstElementChild;
+    return page;
+  };
+  const fits = () => page.scrollHeight <= page.clientHeight;
 
-  let html = '';
-
-  if (GITHUB && GITHUB.enabled) {
-    html += `
-      <a class="action-btn action-btn-link" href="${escapeHtml(GITHUB.href)}" target="_blank" rel="noopener" aria-label="${escapeHtml(GITHUB.label)}">
-        ${GITHUB.icon}<span class="action-btn-label">${escapeHtml(GITHUB.label)}</span>
-      </a>`;
+  // The contents run on to further sheets a section at a time. A group or category head that would
+  // sit alone at a sheet foot moves with its first section, otherwise a headless shell continues it.
+  const toc = el(bookToc());
+  let cols = toc.querySelector('.toc-columns');
+  const tocGroups = [...cols.children];
+  cols.replaceChildren();
+  sheet().append(el('<p class="book-title">Kubernetes Commands</p>'), toc);
+  for (let g of tocGroups) {
+    const cats = [...g.querySelectorAll('.toc-cat')];
+    cats.forEach(c => c.remove());
+    cols.append(g);
+    for (let c of cats) {
+      const items = [...c.querySelectorAll('.toc-section')];
+      items.forEach(item => item.remove());
+      g.append(c);
+      for (const item of items) {
+        c.append(item);
+        if (fits()) continue;
+        item.remove();
+        const nav = el('<nav class="book-toc" aria-label="Contents, continued"><div class="toc-columns"></div></nav>');
+        sheet().append(nav);
+        cols = nav.firstElementChild;
+        if (c.querySelector('.toc-section')) c = c.cloneNode(false); else c.remove();
+        if (g.querySelector('.toc-cat')) g = g.cloneNode(false); else g.remove();
+        cols.append(g);
+        g.append(c);
+        c.append(item);
+      }
+    }
   }
 
-  if (CONTACTS.enabled) {
-    const links = CONTACTS.links.map(l => `
-      <a class="dropdown-link" href="${escapeHtml(l.href)}" target="_blank" rel="noopener" role="menuitem">
-        ${l.icon} ${escapeHtml(l.label)}
-      </a>`).join('');
-    html += `
-      <div class="action-wrap">
-        <button class="action-btn" aria-label="Contacts" aria-expanded="false" aria-haspopup="true">
-          ${CONTACT_ICON}<span class="action-btn-label">Contacts</span>
-        </button>
-        <div class="action-dropdown" role="menu">${links}</div>
-      </div>`;
-  }
-
-  if (SPONSOR.enabled) {
-    const donate = `
-      <a class="dropdown-copy-row dropdown-donate" href="${escapeHtml(SPONSOR.donate.href)}" target="_blank" rel="noopener" role="menuitem" aria-label="${escapeHtml(SPONSOR.donate.label)}">
-        <span class="dropdown-coin">${escapeHtml(SPONSOR.donate.coin)}<span class="dropdown-net">${escapeHtml(SPONSOR.donate.net)}</span></span>
-        <span class="dropdown-addr">${escapeHtml(SPONSOR.donate.addr)}</span>
-        <span class="dropdown-go">${SPONSOR.donate.icon}</span>
-      </a>`;
-    const wallets = SPONSOR.wallets.map(w => `
-      <div class="dropdown-copy-row">
-        <span class="dropdown-coin">${escapeHtml(w.coin)}<span class="dropdown-net">${escapeHtml(w.net)}</span></span>
-        <span class="dropdown-addr" data-addr="${escapeHtml(w.addr)}">${escapeHtml(w.addr)}</span>
-        <button class="dropdown-copy-btn" aria-label="Copy ${escapeHtml(w.coin)} address">${COPY_ICON}</button>
-      </div>`).join('');
-    html += `
-      <div class="action-wrap">
-        <button class="action-btn" aria-label="Sponsor" aria-expanded="false" aria-haspopup="true">
-          ${SPONSOR_ICON}<span class="action-btn-label">Sponsor</span>
-        </button>
-        <div class="action-dropdown" role="menu">
-          ${donate}
-          <div class="dropdown-divider"></div>
-          ${wallets}
-        </div>
-      </div>`;
-  }
-
-  container.innerHTML = html;
-
-  container.querySelectorAll('.action-wrap').forEach(wrap => {
-    wrap.querySelector('.action-btn').addEventListener('click', e => {
-      e.stopPropagation();
-      const isOpen = wrap.classList.contains('open');
-      closeAllDropdowns();
-      if (!isOpen) {
-        wrap.classList.add('open');
-        wrap.querySelector('.action-btn').setAttribute('aria-expanded', 'true');
+  for (const s of SECTIONS) {
+    const cat = categoryOfSection(s.id) ?? 'all';
+    const section = el(renderSection(s));
+    section.id = `toc-${s.id}`;
+    const cards = [...section.querySelectorAll('.card')];
+    let grid = section.querySelector('.cards-grid');
+    grid.replaceChildren();
+    sheet().append(section);
+    const runOn = () => {
+      const wrap = el(`<section class="section" data-cat="${cat}"><div class="cards-grid"></div></section>`);
+      sheet().append(wrap);
+      grid = wrap.firstElementChild;
+    };
+    cards.forEach((card, gi) => {
+      card.id = `toc-${s.id}-${gi}`;
+      let list = card.querySelector('.cmd-list');
+      const items = [...list.children];
+      list.replaceChildren();
+      grid.append(card);
+      for (const item of items) {
+        list.append(item);
+        if (fits()) continue;
+        item.remove();
+        runOn();
+        if (!list.children.length) {
+          grid.append(card);
+        } else {
+          const piece = el('<div class="card card-cont"><div class="cmd-list"></div></div>');
+          grid.append(piece);
+          list = piece.firstElementChild;
+        }
+        list.append(item);
       }
     });
-  });
-
-  container.querySelectorAll('.dropdown-copy-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const addr = btn.closest('.dropdown-copy-row').querySelector('.dropdown-addr').dataset.addr;
-      const finish = () => {
-        clearTimeout(copyTimer);
-        // The clipboard holds one address, so a new copy clears the check on any other wallet.
-        container.querySelectorAll('.dropdown-copy-btn.copied').forEach(b => {
-          b.innerHTML = COPY_ICON;
-          b.classList.remove('copied');
-        });
-        btn.innerHTML = CHECK_ICON;
-        btn.classList.add('copied');
-        copyTimer = setTimeout(() => {
-          btn.innerHTML = COPY_ICON;
-          btn.classList.remove('copied');
-        }, COPY_RESET_DELAY);
-      };
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(addr).then(finish).catch(() => fallbackCopy(addr, finish));
-      } else {
-        fallbackCopy(addr, finish);
-      }
-    });
-  });
-}
-
-function closeAllDropdowns() {
-  document.querySelectorAll('#headerActions .action-wrap').forEach(w => {
-    w.classList.remove('open');
-    w.querySelector('.action-btn').setAttribute('aria-expanded', 'false');
-  });
-}
-
-document.addEventListener('click', closeAllDropdowns);
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && document.querySelector('#headerActions .action-wrap.open')) {
-    e.stopPropagation();
-    closeAllDropdowns();
   }
-});
 
-try {
-  const mod = await import('./contacts.js');
-  renderHeaderActions(mod.CONTACTS, mod.SPONSOR, mod.GITHUB);
-} catch (_) {}
+  // The site footer closes the book at the foot of the last sheet. The PDF leaves the site, so the
+  // home link carries the domain.
+  const foot = document.querySelector('.footer').cloneNode(true);
+  foot.classList.add('book-foot');
+  foot.querySelector('#year')?.removeAttribute('id');
+  foot.querySelectorAll('a[href="/"]').forEach(a => { a.href = 'https://kube.how/'; });
+  page.append(doc.importNode(foot, true));
+  if (!fits()) { const last = page.lastElementChild; last.remove(); sheet().append(last); }
+
+  const strips = book.querySelectorAll('.sheet-strip');
+  strips.forEach((strip, i) => { strip.textContent = `${i + 1} / ${strips.length}`; });
+}
+
+// The frame is as wide as an A4 sheet, so the width queries match the printout, takes the page's
+// stylesheets (already stamped by the deploy), and lays out once its fonts are in.
+async function buildBook() {
+  const frame = document.createElement('iframe');
+  frame.title = 'PDF layout';
+  frame.setAttribute('aria-hidden', 'true');
+  frame.inert = true;
+  frame.style.cssText = 'position:fixed;top:0;left:-10000px;width:210mm;height:297mm;border:0;visibility:hidden';
+  document.body.append(frame);
+  const doc = frame.contentDocument;
+  const links = [...document.querySelectorAll('link[rel="stylesheet"]')]
+    .map(l => `<link rel="stylesheet" href="${escapeHtml(l.href)}">`).join('');
+  doc.open();
+  doc.write(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${escapeHtml(document.title)}</title>${links}
+    <style>@page { size: A4; margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
+    html, body { margin: 0; padding: 0; min-height: 0; background: #110f1f; }</style>
+    </head><body class="print-dark"><div class="book"></div></body></html>`);
+  doc.close();
+  try {
+    await Promise.all([...doc.querySelectorAll('link')].map(l => l.sheet ? null : new Promise(r => { l.onload = l.onerror = r; })));
+    await Promise.all(BOOK_FACES.map(f => doc.fonts.load(f).catch(() => {})));
+    layBook(doc);
+  } catch (err) {
+    frame.remove();
+    throw err;
+  }
+  return frame;
+}
+
+function addPdfButton() {
+  const actions = document.getElementById('headerActions');
+  if (!actions) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'action-btn';
+  btn.title = 'Save all commands as PDF';
+  btn.setAttribute('aria-label', 'Save all commands as PDF');
+  btn.innerHTML = `${PDF_ICON}<span class="action-btn-label">PDF</span>`;
+  // A failed layout is not cached, so the next click builds the book again.
+  btn.addEventListener('click', async () => {
+    bookFrame ??= buildBook().catch((err) => { bookFrame = null; throw err; });
+    try {
+      const frame = await bookFrame;
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+    } catch (err) {
+      console.error('PDF:', err);
+    }
+  });
+  actions.prepend(btn);
+}
+
+// Four header buttons leave a narrow phone too little field for the full placeholder, so it
+// shortens when it would be cut. The aria-label keeps the full name.
+const PLACEHOLDER = searchInput.placeholder;
+const measureCtx = document.createElement('canvas').getContext('2d');
+function fitPlaceholder() {
+  const cs = getComputedStyle(searchInput);
+  measureCtx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const room = searchInput.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  searchInput.placeholder = measureCtx.measureText(PLACEHOLDER).width <= room ? PLACEHOLDER : 'Search...';
+}
+// The field itself is watched: the sidebar toggling changes its width with no window resize.
+if (window.ResizeObserver) new ResizeObserver(fitPlaceholder).observe(searchInput);
+else window.addEventListener('resize', fitPlaceholder);
+document.fonts?.ready.then(fitPlaceholder);
+
+alignLogo('[data-group="all"]');
+setupHeader().then(() => { addPdfButton(); fitPlaceholder(); });

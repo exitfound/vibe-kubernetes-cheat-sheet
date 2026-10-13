@@ -2,19 +2,19 @@
 
 Guidance for the commands sub-app. The root `../CLAUDE.md` has the repo overview, Running/Deployment, and the **shared chrome** (left sidebar switcher, chrome parity / `alignLogo`, first-paint flash handling) that this page inherits. This file covers only what is specific to `/cli/`.
 
-Self-contained: `cli/index.html`, `cli/css/styles.css`, `cli/js/{app,data,contacts}.js`, `cli/js/lib/{sidebar,keys,fresh,commands}.js`. Beside them sit the generated static section pages in `cli/section/` (written by `tools/pages/build.mjs`, never edited by hand) and `cli/css/page.css`, which styles only those pages, on top of `styles.css`. No framework, no bundler. The only runtime dependency is Google Fonts.
+Files: `cli/index.html`, `cli/css/{chrome,styles}.css`, `cli/js/{app,data,contacts}.js`, `cli/js/lib/{chrome,sidebar,keys,fresh,commands}.js`. `chrome.css` and `lib/{chrome,sidebar,keys,fresh}.js` are the site-wide chrome (root `CLAUDE.md`): the hub, `/diagrams/` and `404.html` load them from here. Beside them sit the generated static section pages in `cli/section/` (written by `tools/pages/build.mjs`, never edited by hand) and `cli/css/page.css`, which styles only those pages, on top of `styles.css`. No framework, no bundler. The only runtime dependency is Google Fonts.
 
 ## Architecture
 
-**`js/data.js`**: all content: `SECTIONS` array, `ICONS` object, `COPY_ICON`/`CHECK_ICON`/`STAR_ICON`/`LINK_ICON`/`DOCS_ICON`/`CONTACT_ICON`/`SPONSOR_ICON` SVGs.
+**`js/data.js`**: all content: `SECTIONS` array, `ICONS` object, `COPY_ICON`/`CHECK_ICON`/`STAR_ICON`/`LINK_ICON`/`DOCS_ICON` SVGs.
 
-**`js/contacts.js`**: optional file. Exports `CONTACTS`, `SPONSOR`, and `GITHUB` config objects, dynamically imported by `app.js` at runtime; if absent the header renders without those buttons and everything else works. Delete it to ship without GitHub/Contacts/Sponsor. Structure:
+**`js/contacts.js`**: optional file. Exports `CONTACTS`, `SPONSOR`, and `GITHUB` config objects, dynamically imported at runtime by `setupHeader()` in `js/lib/chrome.js` on every page; if absent the header renders without those buttons and everything else works. Delete it to ship without GitHub/Contacts/Sponsor. Structure:
 ```js
 export const CONTACTS = { enabled: true, links: [{ label, href, icon }] };
 export const GITHUB   = { enabled: true, label, href, icon };
 export const SPONSOR  = { enabled: true, donate: { label, href, icon }, wallets: [{ coin, net, addr }] };
 ```
-The three header buttons are ghost-style: GitHub is a plain `<a>`, Contacts and Sponsor open dropdown popovers (click-outside or `Esc` closes). Wallet rows copy the full `addr` despite truncated display, reusing the `COPY_ICON`/`CHECK_ICON` pattern. `.header-actions` carries `margin-left: auto`. The same `contacts.js` is also lazily imported by the root hub.
+The three header buttons are ghost-style: GitHub is a plain `<a>`, Contacts and Sponsor open dropdown popovers (click-outside or `Esc` closes). Wallet rows copy the full `addr` despite truncated display, reusing the `COPY_ICON`/`CHECK_ICON` pattern. `.header-actions` carries `margin-left: auto`.
 
 **`js/app.js`**: runtime logic.
 - `GROUPS` maps top-level group keys (`kubernetes`, `tools`, `troubleshooting`, `starred`) to arrays of category keys. `starred` is a pseudo-group with an empty array: it carries no categories and is filtered per-command via the in-memory `starred` Set.
@@ -25,9 +25,9 @@ The three header buttons are ghost-style: GitHub is a plain `<a>`, Contacts and 
 - `sortCmds()` sorts commands by subcommand, then flag count, then full string.
 - All content renders into `<main id="main">` on `init()`; copy and star clicks handled by event delegation on `main` (star wins over copy when both are clicked).
 - Search input is debounced (~80ms) and re-runs `hl()` plus `<mark>` highlighting on each keystroke.
-- `renderHeaderActions(CONTACTS, SPONSOR, GITHUB)` renders the GitHub link plus Contacts and Sponsor dropdowns into `#headerActions`.
+- `setupHeader()` (from `js/lib/chrome.js`) renders the GitHub link plus Contacts and Sponsor dropdowns into `#headerActions`.
 - `alignSubNav()` runs after `renderSubNav()` and on resize, computing the X of the first cat-btn in the mid row and applying matching `padding-left` to `navSubInner` (plus a 6px `SUB_NUDGE`). The sub row's leftmost chip thus always starts at the same X regardless of active category.
-- `alignLogo()` centers the logo icon over the "All" button (skipped at <=900px), re-run on RAF, resize, and after `document.fonts.ready`.
+- `alignLogo('[data-group="all"]')` (from `js/lib/chrome.js`) centers the logo icon over the "All" button (skipped at <=900px), re-run on RAF, resize, and after `document.fonts.ready`.
 - Separately, at module top level, `app.js` awaits one painted frame before building the heavy command list (first-paint flash mitigation, see root).
 
 ## Navigation: three sticky rows below the header
@@ -58,7 +58,7 @@ Identity key is the **raw command string**. Commands that appear in two sections
 
 Each `.section-header` carries a right-aligned `.section-count` chip showing `N commands` (`N command` for n=1), computed in `renderSection()` by summing `g.cmds.length`. Rectangular, JetBrains Mono 13px @ 600, colored by the section's category tokens (lavender fallback). It shows the section total, not the visible-after-filter count, so it does not react to search or Starred mode.
 
-The count sits in a `.section-meta` wrapper (which carries the `margin-left: auto`) together with `.section-version`, the quiet `version` label from the section data, in `--text-dim` mono 12px like the `k8s` label on scheme cards. Beside the title, `.section-actions` holds up to three icon buttons, always visible in `--text-muted`: `.section-link` copies `<origin>/cli/#<section-id>` and shows the shared toast, a book icon opens the section's `docs` URL in a new tab, and a flag icon opens a new GitHub issue prefilled by `reportUrl(section)` (title `[cli] <section>: `, a body naming the section, its link, and empty `Command:` / `What is wrong:` lines). At <=680px `.section-header` wraps, so a long title with its actions drops the version and count to a second, right-aligned line instead of clipping them.
+The count sits in a `.section-meta` wrapper (which carries the `margin-left: auto`) together with `.section-version`, the quiet `version` label from the section data, in `--text-dim` mono 12px like the `k8s` label on diagram cards. The title itself is a link (`.section-page`) to the section's static page `/cli/section/<id>/`. Beside it, `.section-actions` holds up to three icon buttons, always visible in `--text-muted`: `.section-link` copies `<origin>/cli/section/<id>/` (that static page) and shows the shared toast, a book icon opens the section's `docs` URL in a new tab, and a flag icon opens a new GitHub issue prefilled by `reportUrl(section)` (title `[cli] <section>: `, a body naming the section, its link, and empty `Command:` / `What is wrong:` lines). At <=680px `.section-header` wraps, so a long title with its actions drops the version and count to a second, right-aligned line instead of clipping them.
 
 ## Sections
 
@@ -67,9 +67,9 @@ map in `js/app.js`. Array order in `SECTIONS` = display order in "All" view: Ins
 
 ## Editing content
 
-**Adding commands:** edit only `SECTIONS` in `js/data.js`. Each group has `cmds: [{ cmd, desc }]`. Every group needs a `desc`. Commands sort automatically. Then run `node tools/pages/build.mjs` from the repo root: every section has a static page `/cli/section/<id>/` built from the same data, and `npm test` in `scheme/test` fails while one is stale. Every section's `sub` label has to be a key of `CLI_CAT` in the generator, which throws if it is not, so only a section that brings a NEW label (a new category, below) needs an entry there.
+**Adding commands:** edit only `SECTIONS` in `js/data.js`. Each group has `cmds: [{ cmd, desc }]`. Every group needs a `desc`. Commands sort automatically. Then run `node tools/pages/build.mjs` from the repo root: every section has a static page `/cli/section/<id>/` built from the same data (gitignored build output, the workflows build it). Every section's `sub` label has to be a key of `CLI_CAT` in the generator, which throws if it is not, so only a section that brings a NEW label (a new category, below) needs an entry there.
 
-**Adding a section to an existing category:** add it to `SECTIONS` (with `sub` matching the category label) at the right position, then add its ID to the right `CATEGORIES.<category>` array in `js/app.js`. Give it a `version` (the tool and release its commands were checked against, e.g. `'k8s 1.35'`, `'Helm 4.3'`) and a `docs` URL (the official page for the section, opened from the header's book icon). Both are optional in code, a section without them just renders without the label or the icon, so nothing fails when one is forgotten.
+**Adding a section to an existing category:** add it to `SECTIONS` (with `sub` matching the category label) at the right position, then add its ID to the right `CATEGORIES.<category>` array in `js/app.js`. Give it a `version` (the tool and release its commands were checked against, e.g. `'k8s 1.36'`, `'Helm 4.3'`) and a `docs` URL (the official page for the section, opened from the header's book icon). Both are optional in code, a section without them just renders without the label or the icon, so nothing fails when one is forgotten.
 
 **Changing a command string:** a saved star is keyed on the raw string, so a rewritten command loses its star silently. Add the old string to `STAR_RENAMES` in `js/app.js`, mapped to the new one, and the star follows it on the next load. A deleted command needs no entry.
 

@@ -2,7 +2,7 @@
 // gaps.mjs: what a section does NOT teach, by diffing the kubernetes.io trees it already cites against its cards, minus the declined ledger.
 // usage: node .claude/skills/section-review/tools/gaps.mjs <category>[/<section>] [--absent] [--top=N] [--min-cite=N] [--stage=none|gaps|all] [--refresh] [--offline] [--json]
 // A citation is never coverage: COVERED comes from card names only. The cache keeps extracts, so bump PARSER after changing extraction.
-import { schemes, subcategories, ROOT } from '../../../../scheme/test/fixtures/catalog.mjs';
+import { diagrams, subcategories, ROOT } from '../../../../diagrams/test/fixtures/catalog.mjs';
 import { walkStrings, sourcePath, NOT_A_TOPIC } from './bands.mjs';
 import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -135,10 +135,10 @@ const { map: TREE_MAP, declined: DECLINED } = readUpstream();
 // ---------------------------------------------------------------------------------------------
 // the catalog: every card, because "another section already owns this" cannot be seen from inside one section.
 // ---------------------------------------------------------------------------------------------
-const ALL = await schemes();
+const ALL = await diagrams();
 const cards = [];
 for (const e of ALL) {
-  const rel = join('js', 'schemes', e.category, `${e.id}.js`);
+  const rel = join('js', 'diagrams', e.category, `${e.id}.js`);
   const ns = await import(pathToFileURL(join(ROOT, rel)).href);
   const steps = Array.isArray(ns.STEPS_SPEC) ? ns.STEPS_SPEC : [];
   const text = [e.desc, ...steps.flatMap(s => walkStrings(s)), ...walkStrings(ns.SCENE || {})].join('\n');
@@ -153,13 +153,13 @@ for (const e of ALL) {
 // because a block in another category ceding a topic says nothing about this section.
 function readScopes() {
   const out = [];
-  const dirs = readdirSync(join(ROOT, 'js', 'schemes'), { withFileTypes: true })
+  const dirs = readdirSync(join(ROOT, 'js', 'diagrams'), { withFileTypes: true })
     .filter(d => d.isDirectory()).map(d => d.name);
   const files = [];
   for (const d of dirs) {
-    const one = join(ROOT, 'js', 'schemes', d, 'CARDS.md');
+    const one = join(ROOT, 'js', 'diagrams', d, 'CARDS.md');
     if (existsSync(one)) files.push([one, null]);
-    const split = join(ROOT, 'js', 'schemes', d, 'CARDS');
+    const split = join(ROOT, 'js', 'diagrams', d, 'CARDS');
     if (existsSync(split)) {
       for (const f of readdirSync(split)) if (f.endsWith('.md')) files.push([join(split, f), f.replace(/\.md$/, '')]);
     }

@@ -1,24 +1,25 @@
-// Site smoke: drives the hub, /cli/ and /scheme/ in a real browser and checks every key, button and
-// view the chrome offers. `node tools/smoke/site.mjs` from the repo root, exits 1 on any FAIL. Serves
-// the tree itself on a free port. Playwright comes from scheme/test: run `npm ci` there once.
+// Site smoke: drives the hub, /cli/ and /diagrams/ in a real browser and checks every key, button and
+// view the chrome offers. `node tools/smoke/site.mjs [dir]` from the repo root, exits 1 on any FAIL. Serves
+// the tree (or a staged site, as verify.yml passes it) on a free port. Playwright: `npm ci` in diagrams/test.
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { extname, join, normalize, dirname } from 'node:path';
+import { extname, join, normalize, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const { chromium } = await import(join(ROOT, 'scheme/test/node_modules/playwright/index.mjs'));
+const { chromium } = await import(join(ROOT, 'diagrams/test/node_modules/playwright/index.mjs'));
+const SERVE = process.argv[2] ? resolve(process.argv[2]) : ROOT;
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.xml': 'application/xml', '.txt': 'text/plain' };
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.json': 'application/json', '.xml': 'application/xml', '.txt': 'text/plain' };
 
 const server = http.createServer(async (req, res) => {
   try {
     let path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname));
     if (path.includes('..')) throw new Error('bad path');
-    let file = join(ROOT, path);
+    let file = join(SERVE, path);
     if ((await stat(file)).isDirectory()) {
-      // The apps write `/scheme` (no slash) for an empty hash. nginx and GitHub Pages answer a
+      // The apps write `/diagrams` (no slash) for an empty hash. nginx and GitHub Pages answer a
       // directory without its slash with a 301, and so does this server, or a reload would resolve
       // the page's relative css/ and js/ against the root.
       if (!path.endsWith('/')) { res.writeHead(301, { Location: path + '/' }); res.end(); return; }
@@ -108,9 +109,9 @@ await group('cli: keys and buttons', DESK, async (p) => {
   ok('no command overflows its card', await p.$$eval('.cmd-code', els => els.every(e => e.scrollWidth <= e.clientWidth + 1)));
 });
 
-// ─────────────────────────────────────────────────────────────── /scheme/
-await group('scheme: grid and dialog keys and buttons', DESK, async (p) => {
-  await p.goto(B + '/scheme/'); await p.evaluate(() => document.fonts.ready); await w(p, 700);
+// ─────────────────────────────────────────────────────────────── /diagrams/
+await group('diagram: grid and dialog keys and buttons', DESK, async (p) => {
+  await p.goto(B + '/diagrams/'); await p.evaluate(() => document.fonts.ready); await w(p, 700);
   await p.keyboard.press('/'); await w(p, 150);
   ok('"/" focuses search', (await activeId(p)) === 'searchInput');
   await p.keyboard.type('etcd'); await w(p, 400);
@@ -129,19 +130,19 @@ await group('scheme: grid and dialog keys and buttons', DESK, async (p) => {
   ok('section link buttons are visible without hover', await p.$eval('.section-actions', e => getComputedStyle(e).opacity === '1'));
   await p.click('.section:nth-of-type(2) .section-link'); await w(p, 250);
   const url = await p.evaluate(() => navigator.clipboard.readText());
-  ok('section link copies #at=<section>', /\/scheme\/#at=[a-z-]+$/.test(url), url);
+  ok('section link copies #at=<section>', /\/diagrams\/#at=[a-z-]+$/.test(url), url);
 
   const href = await p.$eval('.card .card-link', a => a.getAttribute('href'));
-  ok('a card title links to its static page', /^\/scheme\/card\/[a-z0-9-]+\/$/.test(href), href);
+  ok('a card title links to its static page', /^\/diagrams\/card\/[a-z0-9-]+\/$/.test(href), href);
   const [tab] = await Promise.all([p.context().waitForEvent('page'), p.click('.card .card-link', { modifiers: ['Control'] })]);
   await tab.waitForLoadState(); await w(p, 300);
-  ok('Ctrl+click opens the static page in a new tab, no dialog here', tab.url().endsWith(href) && !(await p.$('dialog.scheme-dialog[open]')));
+  ok('Ctrl+click opens the static page in a new tab, no dialog here', tab.url().endsWith(href) && !(await p.$('dialog.diagram-dialog[open]')));
   await tab.close();
   await p.focus('.card-link'); await p.keyboard.press(' '); await w(p, 1200);
-  ok('Space on a focused card opens it', await p.evaluate(() => !!document.querySelector('dialog.scheme-dialog[open]')));
+  ok('Space on a focused card opens it', await p.evaluate(() => !!document.querySelector('dialog.diagram-dialog[open]')));
   await p.keyboard.press('Escape'); await w(p, 400);
   await p.focus('.card-link'); await p.keyboard.press('Enter'); await w(p, 1800);
-  ok('Enter opens the focused card', await p.evaluate(() => !!document.querySelector('dialog.scheme-dialog[open]')));
+  ok('Enter opens the focused card', await p.evaluate(() => !!document.querySelector('dialog.diagram-dialog[open]')));
   ok('the dialog has no copy-link button', !(await p.$('.dialog-link')));
   const st = () => p.evaluate(() => document.querySelector('.narration-step').textContent);
   const playing = () => p.$eval('[data-act="play"]', b => b.getAttribute('aria-label') === 'Pause');
@@ -167,7 +168,7 @@ await group('scheme: grid and dialog keys and buttons', DESK, async (p) => {
   await p.keyboard.press('Shift+ArrowLeft'); await w(p, 1200);
   ok('Shift+arrows flip cards', t1 !== t0 && (await title()) === t0, `${t0} -> ${t1}`);
   await p.keyboard.press('f'); await w(p, 500);
-  const fs = await p.evaluate(() => [!!document.fullscreenElement, document.querySelector('dialog.scheme-dialog').classList.contains('is-fullscreen')]);
+  const fs = await p.evaluate(() => [!!document.fullscreenElement, document.querySelector('dialog.diagram-dialog').classList.contains('is-fullscreen')]);
   await p.keyboard.press('f'); await w(p, 500);
   ok('F enters and leaves fullscreen', fs[0] && fs[1] && !(await p.evaluate(() => !!document.fullscreenElement)));
   await p.mouse.click(700, 500); await ru(p, 'а', 'KeyF'); await w(p, 500);
@@ -180,15 +181,15 @@ await group('scheme: grid and dialog keys and buttons', DESK, async (p) => {
   const s3 = await st(); await p.keyboard.press('ArrowRight'); await w(p);
   ok('card keys do nothing under the sheet', s3 === (await st()));
   await p.keyboard.press('Escape'); await w(p);
-  ok('Esc closes the sheet first, the card stays', !(await helpOpen(p)) && await p.evaluate(() => !!document.querySelector('dialog.scheme-dialog[open]')));
+  ok('Esc closes the sheet first, the card stays', !(await helpOpen(p)) && await p.evaluate(() => !!document.querySelector('dialog.diagram-dialog[open]')));
 
   await p.click('.dialog-star'); await w(p, 200);
-  const star = await p.evaluate(() => [document.querySelector('.dialog-star').classList.contains('starred'), JSON.parse(localStorage.getItem('kube-how:scheme-starred:v1') || '[]').length]);
+  const star = await p.evaluate(() => [document.querySelector('.dialog-star').classList.contains('starred'), JSON.parse(localStorage.getItem('kube-how:diagram-starred:v1') || '[]').length]);
   await p.click('.dialog-star'); await w(p, 200);
   ok('dialog star adds and removes', star[0] && star[1] === 1 && !(await p.$eval('.dialog-star', b => b.classList.contains('starred'))));
   await p.click('[data-act="next"]'); await w(p, 400);
   const rh = decodeURIComponent(await p.$eval('.dialog-report', a => a.href));
-  ok('report link names the card and the step', rh.includes('/issues/new?title=[scheme]') && /Step: \d+ \/ \d+/.test(rh) && rh.includes('&step='));
+  ok('report link names the card and the step', rh.includes('/issues/new?title=[diagram]') && /Step: \d+ \/ \d+/.test(rh) && rh.includes('&step='));
   await p.click('.dialog-full'); await w(p, 500); const fb = await p.evaluate(() => !!document.fullscreenElement);
   await p.click('.dialog-full'); await w(p, 500);
   ok('fullscreen button on and off', fb && !(await p.evaluate(() => !!document.fullscreenElement)));
@@ -203,7 +204,7 @@ await group('scheme: grid and dialog keys and buttons', DESK, async (p) => {
   const lb = await loop(); await p.click('[data-act="loop"]'); await w(p, 150);
   ok('loop button', lb !== (await loop())); await p.click('[data-act="loop"]');
   await p.click('.ctl-speed button[data-speed="2"]'); await w(p, 150);
-  ok('speed 2x is active and remembered', await p.evaluate(() => document.querySelector('.ctl-speed [data-speed="2"]').classList.contains('active') && localStorage.getItem('kube-how:scheme-speed:v1') === '2'));
+  ok('speed 2x is active and remembered', await p.evaluate(() => document.querySelector('.ctl-speed [data-speed="2"]').classList.contains('active') && localStorage.getItem('kube-how:diagram-speed:v1') === '2'));
   await p.click('.ctl-speed button[data-speed="1"]');
   await p.click('.step-dot:nth-child(3)'); await w(p, 400);
   ok('a step dot jumps to its step', /^Step 3 /.test(await st()));
@@ -211,13 +212,13 @@ await group('scheme: grid and dialog keys and buttons', DESK, async (p) => {
   await p.click('.dialog-nav-prev'); await w(p, 1200);
   ok('side arrows flip cards', n1 !== n0 && (await title()) === n0);
   await p.keyboard.press('Escape'); await w(p, 400);
-  ok('Esc closes the card', !(await p.evaluate(() => !!document.querySelector('dialog.scheme-dialog[open]'))));
+  ok('Esc closes the card', !(await p.evaluate(() => !!document.querySelector('dialog.diagram-dialog[open]'))));
   await p.click('.card'); await w(p, 1200); await p.click('.dialog-close'); await w(p, 400);
-  ok('the close button closes the card', !(await p.evaluate(() => !!document.querySelector('dialog.scheme-dialog[open]'))));
+  ok('the close button closes the card', !(await p.evaluate(() => !!document.querySelector('dialog.diagram-dialog[open]'))));
 });
 
-await group('scheme: compact view', DESK, async (p) => {
-  await p.goto(B + '/scheme/'); await p.evaluate(() => document.fonts.ready); await w(p, 700);
+await group('diagram: compact view', DESK, async (p) => {
+  await p.goto(B + '/diagrams/'); await p.evaluate(() => document.fonts.ready); await w(p, 700);
   const cols = () => p.$eval('.cards-grid', g => getComputedStyle(g).gridTemplateColumns.split(' ').length);
   const fullCols = await cols();
   await p.click('.view-btn[data-view="compact"]'); await w(p, 400);
@@ -226,10 +227,10 @@ await group('scheme: compact view', DESK, async (p) => {
   await p.reload(); await w(p, 800);
   ok('the view is remembered', await p.evaluate(() => document.body.classList.contains('view-compact')));
   await p.click('.card .star-btn'); await w(p, 200);
-  ok('the star works and does not open the card', await p.evaluate(() => document.querySelector('.card .star-btn').classList.contains('starred') && !document.querySelector('dialog.scheme-dialog')));
+  ok('the star works and does not open the card', await p.evaluate(() => document.querySelector('.card .star-btn').classList.contains('starred') && !document.querySelector('dialog.diagram-dialog')));
   await p.click('.card .star-btn');
   await p.click('.card .card-poster'); await w(p, 1200);
-  ok('a compact card opens', await p.evaluate(() => !!document.querySelector('dialog.scheme-dialog[open]')));
+  ok('a compact card opens', await p.evaluate(() => !!document.querySelector('dialog.diagram-dialog[open]')));
   await p.keyboard.press('Escape'); await w(p);
   await p.click('.view-btn[data-view="full"]'); await w(p, 400);
   ok('back to the detailed view', await p.evaluate(() => !document.body.classList.contains('view-compact') && !document.querySelector('.card').title));
@@ -238,34 +239,45 @@ await group('scheme: compact view', DESK, async (p) => {
 // ─────────────────────────────────────────────────────────────── NEW badges + hub counts
 await group('new since last visit + hub counts', DESK, async (p) => {
   await p.goto(B + '/'); await w(p, 1200);
-  ok('hub shows live counts', /\d+ commands · \d+ sections/.test(await p.textContent('#hubStatCli')) && /\d+ schemes · \d+ categories/.test(await p.textContent('#hubStatScheme')));
+  ok('hub shows live counts', /\d+ commands · \d+ sections/.test(await p.textContent('#hubStatCli')) && /\d+ diagrams · \d+ categories/.test(await p.textContent('#hubStatDiagram')));
   ok('hub has no Continue link (rejected idea)', !(await p.$('#hubContinue')));
   ok('first visit: no new pills on the hub', !(await p.$('.hub-stat .new-pill')));
   await p.goto(B + '/cli/'); await w(p, 900);
   ok('first cli visit: no NEW badges', (await p.$$('.cmd-item.is-new')).length === 0);
-  await p.goto(B + '/scheme/'); await w(p, 900);
-  ok('first scheme visit: no NEW badges', (await p.$$('.card-new')).length === 0);
+  await p.goto(B + '/diagrams/'); await w(p, 900);
+  ok('first diagram visit: no NEW badges', (await p.$$('.card-new')).length === 0);
+  // A browser that stored bare ids, before revisions existed, sees nothing new and is rewritten to id@revision.
+  await p.evaluate(() => {
+    const sch = JSON.parse(localStorage.getItem('kube-how:diagram-seen:v1'));
+    localStorage.setItem('kube-how:diagram-seen:v1', JSON.stringify(Object.fromEntries(Object.keys(sch).map(k => [k.split('@')[0], 0]))));
+  });
+  await p.goto(B + '/diagrams/'); await w(p, 900);
+  ok('diagram: bare-id storage migrates with no NEW badges', (await p.$$('.card-new')).length === 0
+    && await p.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('kube-how:diagram-seen:v1'))).every(k => k.includes('@'))));
   await p.evaluate(async () => {
     const { SECTIONS } = await import('/cli/js/data.js'); const { hashKey } = await import('/cli/js/lib/fresh.js');
     const cli = JSON.parse(localStorage.getItem('kube-how:cli-seen:v1'));
     [...SECTIONS[0].groups[0].cmds.slice(0, 3), ...SECTIONS[9].groups[0].cmds.slice(0, 2)].forEach(c => delete cli[hashKey(c.cmd)]);
     localStorage.setItem('kube-how:cli-seen:v1', JSON.stringify(cli));
-    const sch = JSON.parse(localStorage.getItem('kube-how:scheme-seen:v1'));
-    ['cluster-architecture', 'cluster-admission-chain', 'storage-volume-snapshot'].forEach(id => delete sch[id]);
-    localStorage.setItem('kube-how:scheme-seen:v1', JSON.stringify(sch));
+    // Diagram keys are id@revision: two cards never seen, and one seen at an older revision (edited since).
+    const sch = JSON.parse(localStorage.getItem('kube-how:diagram-seen:v1'));
+    const keyOf = (id) => Object.keys(sch).find(k => k.startsWith(id + '@'));
+    ['cluster-architecture', 'cluster-admission-chain'].forEach(id => delete sch[keyOf(id)]);
+    const old = keyOf('storage-volume-snapshot'); delete sch[old]; sch['storage-volume-snapshot@00000000'] = 0;
+    localStorage.setItem('kube-how:diagram-seen:v1', JSON.stringify(sch));
   });
   await p.goto(B + '/'); await w(p, 1200);
-  ok('hub counts what is new before the pages are visited', (await p.textContent('#hubStatCli')).includes('5 new') && (await p.textContent('#hubStatScheme')).includes('3 new'));
+  ok('hub counts what is new before the pages are visited', (await p.textContent('#hubStatCli')).includes('5 new') && (await p.textContent('#hubStatDiagram')).includes('3 new'));
   await p.goto(B + '/cli/'); await w(p, 900);
   ok('cli: 5 NEW commands, chips 3 + 2', (await p.$$('.cmd-item.is-new')).length === 5 && JSON.stringify(await p.$$eval('.section-new', e => e.map(x => x.textContent))) === '["3 new","2 new"]');
   await p.click('.cmd-item.is-new .copy-btn'); await w(p);
   ok('cli: a copy clears its badge and recounts', (await p.$$('.cmd-item.is-new')).length === 4 && (await p.$$eval('.section-new', e => e.map(x => x.textContent))).includes('2 new'));
-  await p.goto(B + '/scheme/'); await w(p, 900);
-  ok('scheme: 3 NEW posters', (await p.$$('.card-new')).length === 3);
+  await p.goto(B + '/diagrams/'); await w(p, 900);
+  ok('diagram: 3 NEW posters, an edited card among them', (await p.$$('.card-new')).length === 3 && !!(await p.$('.card[data-id="storage-volume-snapshot"] .card-new')));
   await p.click('.card[data-id="cluster-admission-chain"]'); await w(p, 1200);
   await p.keyboard.press('Escape'); await w(p, 400);
-  ok('scheme: opening a card clears its badge and recounts', (await p.$$('.card-new')).length === 2 && (await p.$eval('.section .section-new', e => e.textContent)) === '1 new');
-  ok('scheme: nothing remembers the last opened card', await p.evaluate(() => localStorage.getItem('kube-how:scheme-last:v1') === null));
+  ok('diagram: opening a card clears its badge and recounts', (await p.$$('.card-new')).length === 2 && (await p.$eval('.section .section-new', e => e.textContent)) === '1 new');
+  ok('diagram: nothing remembers the last opened card', await p.evaluate(() => localStorage.getItem('kube-how:diagram-last:v1') === null));
 });
 
 // ─────────────────────────────────────────────────────────────── static pages
@@ -273,18 +285,18 @@ await group('static pages: every one answers, with its own title and canonical',
   const xml = await (await fetch(B + '/sitemap.xml')).text();
   const locs = [...xml.matchAll(/<loc>https:\/\/kube\.how([^<]+)<\/loc>/g)].map(m => m[1]);
   const bad = [];
-  for (const path of locs.filter(l => /^\/(scheme\/card|cli\/section)\/([a-z0-9-]+\/)?$/.test(l))) {
+  for (const path of locs.filter(l => /^\/(diagrams\/card|cli\/section)\/([a-z0-9-]+\/)?$/.test(l))) {
     const r = await fetch(B + path); const html = await r.text();
     if (r.status !== 200) { bad.push(`${path} ${r.status}`); continue; }
     if (!html.includes(`<link rel="canonical" href="https://kube.how${path}">`)) bad.push(`${path} canonical`);
     if ((html.match(/<h1[ >]/g) || []).length !== 1) bad.push(`${path} h1 count`);
   }
   ok(`${locs.length} sitemap URLs, every card and section page answers 200 with one h1 and its own canonical`, bad.length === 0 && locs.length > 100, bad.slice(0, 5).join(', '));
-  await p.goto(B + '/scheme/card/cluster-architecture/'); await w(p, 600);
+  await p.goto(B + '/diagrams/card/cluster-architecture/'); await w(p, 600);
   ok('a card page lists every narrated step', (await p.$$('.page-steps li')).length >= 3);
-  ok('its Play link opens the card in the app', (await p.$eval('.page-play', a => a.getAttribute('href'))) === '/scheme/#scheme=cluster-architecture');
+  ok('its Play link opens the card in the app', (await p.$eval('.page-play', a => a.getAttribute('href'))) === '/diagrams/#diagram=cluster-architecture');
   await p.click('.page-play'); await w(p, 1800);
-  ok('and the dialog opens there', await p.evaluate(() => document.querySelector('dialog.scheme-dialog[open] .dialog-title')?.textContent) === 'Cluster Architecture');
+  ok('and the dialog opens there', await p.evaluate(() => document.querySelector('dialog.diagram-dialog[open] .dialog-title')?.textContent) === 'Cluster Architecture');
   await p.goto(B + '/cli/section/pod/'); await w(p, 600);
   await p.click('.cmd-item .copy-btn'); await w(p, 200);
   ok('a section page copies a command', (await p.evaluate(() => navigator.clipboard.readText())) === (await p.$eval('.cmd-item', e => e.dataset.raw)));
@@ -292,16 +304,16 @@ await group('static pages: every one answers, with its own title and canonical',
 
 // ─────────────────────────────────────────────────────────────── analytics and URL shape
 await group('analytics counts page loads only, URLs keep their slash', DESK, async (p) => {
-  for (const [path, act] of [['/scheme/', '.cat-btn[data-cat="storage"]'], ['/cli/', '.top-kubernetes']]) {
+  for (const [path, act] of [['/diagrams/', '.cat-btn[data-cat="storage"]'], ['/cli/', '.top-kubernetes']]) {
     await p.goto(B + path); await w(p, 700);
     const beacon = await p.$eval('script[data-cf-beacon]', s => JSON.parse(s.dataset.cfBeacon));
     ok(`${path} beacon has spa:false (no page view per step or filter)`, beacon.spa === false);
     await p.click(act); await w(p, 300);
     ok(`${path} keeps its trailing slash after a filter`, await p.evaluate((pp) => location.pathname === pp, path));
   }
-  await p.goto(B + '/scheme/'); await w(p, 700); await p.click('.card .card-poster'); await w(p, 1200);
+  await p.goto(B + '/diagrams/'); await w(p, 700); await p.click('.card .card-poster'); await w(p, 1200);
   await p.keyboard.press('Escape'); await w(p, 300);
-  ok('/scheme/ keeps its slash after a card is closed', await p.evaluate(() => location.pathname === '/scheme/'));
+  ok('/diagrams/ keeps its slash after a card is closed', await p.evaluate(() => location.pathname === '/diagrams/'));
 });
 
 // ─────────────────────────────────────────────────────────────── layout at many widths
@@ -316,7 +328,7 @@ for (const [wd, ht] of [[1440, 900], [1280, 720], [700, 900], [390, 844]]) {
 }
 for (const wd of [360, 390]) {
   await group(`narrow ${wd}px`, { width: wd, height: 800 }, async (p) => {
-    for (const path of ['/', '/cli/', '/scheme/']) {
+    for (const path of ['/', '/cli/', '/diagrams/']) {
       await p.goto(B + path); await p.evaluate(() => document.fonts.ready); await w(p, 700);
       ok(`${path} has no horizontal scroll`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       if (path === '/') continue;

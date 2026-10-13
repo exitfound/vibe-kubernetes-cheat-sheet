@@ -5,7 +5,7 @@
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { ROOT, schemes, cards, recordFiles, recordPointer, subcategories } from '../../../../scheme/test/fixtures/catalog.mjs';
+import { ROOT, diagrams, cards, recordFiles, recordPointer, subcategories } from '../../../../diagrams/test/fixtures/catalog.mjs';
 
 const REPO = join(ROOT, '..');
 const args = process.argv.slice(2);
@@ -31,7 +31,7 @@ const rule = (n) => {
 // ---------------------------------------------------------------------------------------------
 // Resolve the card. An id, or a title, because both are what a person types.
 // ---------------------------------------------------------------------------------------------
-const all = await schemes();
+const all = await diagrams();
 const files = await cards();
 const norm = (s) => s.toLowerCase().replace(/\s+/g, ' ').trim();
 const entry = all.find(s => s.id === target)
@@ -45,7 +45,7 @@ if (!entry) {
 }
 const card = files.find(c => c.id === entry.id);
 const CAT = entry.category;
-const catDir = join(ROOT, 'js', 'schemes', CAT);
+const catDir = join(ROOT, 'js', 'diagrams', CAT);
 
 // Slice a named entry by brace matching, walked BACK to the object opener because the id is never the first key.
 function sliceEntry(text, idRe, { open = '{', close = '}' } = {}) {
@@ -107,16 +107,16 @@ function recordOf(c) {
   const rf = recordFiles(c.category);
   const split = rf.find(f => f.rel.endsWith(join('CARDS', `${c.id}.md`)));
   if (split && existsSync(split.path)) {
-    return { shape: 'split', rel: join('scheme', split.rel), path: split.path, from: 1, text: read(split.path) };
+    return { shape: 'split', rel: join('diagrams', split.rel), path: split.path, from: 1, text: read(split.path) };
   }
   const mono = rf[0];
   if (!existsSync(mono.path)) return null;
   const src = lines(read(mono.path));
   const at = src.findIndex(l => l.trim() === `## ${c.id}`);
-  if (at < 0) return { shape: 'monolith', rel: join('scheme', mono.rel), path: mono.path, from: 0, text: null };
+  if (at < 0) return { shape: 'monolith', rel: join('diagrams', mono.rel), path: mono.path, from: 0, text: null };
   let end = at + 1;
   while (end < src.length && !/^## /.test(src[end])) end++;
-  return { shape: 'monolith', rel: `${join('scheme', mono.rel)}:${at + 1}-${end}`, path: mono.path, from: at + 1, to: end, text: src.slice(at, end).join('\n') };
+  return { shape: 'monolith', rel: `${join('diagrams', mono.rel)}:${at + 1}-${end}`, path: mono.path, from: at + 1, to: end, text: src.slice(at, end).join('\n') };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -275,9 +275,9 @@ if (flags.siblings !== 'none') {
 }
 
 P(rule('7. WHAT THIS DUMP DID NOT READ'));
-P('  scheme/CLAUDE.md        the sub-app contract. Once per session, not once per card');
-P('  scheme/CANON.md         the rulebook. `cd scheme/test && node tools/canon.mjs --check=review`');
-P(`  js/schemes/${CAT}/${CAT}-kit.js${' '.repeat(Math.max(1, 12 - CAT.length * 2))}the kit this card paints with`);
+P('  diagrams/CLAUDE.md        the sub-app contract. Once per session, not once per card');
+P('  diagrams/CANON.md         the rulebook. `cd diagrams/test && node tools/canon.mjs --check=review`');
+P(`  js/diagrams/${CAT}/${CAT}-kit.js${' '.repeat(Math.max(1, 12 - CAT.length * 2))}the kit this card paints with`);
 P('  the sibling SOURCES     only their prose is above. --siblings=full prints them');
 P('  the composition census  `node .claude/skills/card-new/tools/kin.mjs --id=' + card.id + '`');
 P('  THE RENDERED FRAMES     nothing here is evidence about geometry, motion or timing.');

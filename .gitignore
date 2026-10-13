@@ -18,8 +18,15 @@ Thumbs.db
 .playwright-mcp/
 smoke-*.png
 
-# Scheme test harness: the one playwright install the whole sub-app shares.
-scheme/test/node_modules/
+# Static pages for crawlers: build output of tools/pages/build.mjs, written by the workflows.
+# diagrams/js/revisions.js comes out of the same run and IS committed, app.js imports it.
+diagrams/card/
+cli/section/
+/sitemap.xml
+/llms.txt
+
+# Diagram test harness: the one playwright install the whole sub-app shares.
+diagrams/test/node_modules/
 
 # CodeGraph: the local code-intelligence index, one per machine.
 .codegraph/

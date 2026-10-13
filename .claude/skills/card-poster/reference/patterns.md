@@ -3,7 +3,7 @@
 Mined from the shipped posters by rendering them with `tools/montage.mjs` and reading the grid.
 Each family is in use unless marked otherwise, with the cards to open before drawing a new one.
 
-This file holds no rules: `R-01` to `R-12` in `scheme/CANON.md` do, and they win. It is the
+This file holds no rules: `R-01` to `R-12` in `diagrams/CANON.md` do, and they win. It is the
 vocabulary they leave open.
 
 **How to use it.** Write the sentence, pick the family that says that kind of sentence, pick the
