@@ -265,8 +265,8 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
   for (const l of lowDelta) out.push(`    ${l}`);
   out.push('');
 
-  out.push('  Against the record: the four CARDS.md carry the OPEN entries L-16 leaves open on purpose,');
-  out.push('  counted in diagrams/CLAUDE.md and machine-compared by unit/docs-census.test.mjs.');
+  out.push('  Against the record: the per-card records carry the OPEN entries L-16 leaves open on purpose,');
+  out.push('  and nothing counts them.');
   out.push(`  This walk produced ${total}. The two counts are NOT the same population and are not expected to`);
   out.push('  match: an OPEN entry is any finding a card record leaves open, including review-level ones no');
   out.push('  tool produces (an empty band at wide viewports, a frame label the panel covers, a poster');

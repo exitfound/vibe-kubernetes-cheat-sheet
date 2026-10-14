@@ -8,12 +8,12 @@ const CX = 600;
 // axis, up (the mount) left of it. Under the claim only the mount rides, so only the up lane runs.
 const DOWN_X = CX + 12, UP_X = CX - 12;
 
-// The catalog Pod (NET.L-01).
+// The catalog Pod (STO.L-05).
 const POD_W = 232, POD_H = 104, POD_Y = 36;
 const POD_X = CX - POD_W / 2, POD_BOTTOM = POD_Y + POD_H;
 const APP_W = 192, APP_H = 44, APP_DY = 26;
 
-// The catalog actor block (NET.L-01).
+// The catalog actor block (STO.L-05).
 const ROW_Y = 212, ROW_H = 80, ROW_BOTTOM = ROW_Y + ROW_H;
 const ROW_MY = ROW_Y + ROW_H / 2;
 const CLAIM_W = 232, SIDE_W = 232, SIDE_SPREAD = 340;

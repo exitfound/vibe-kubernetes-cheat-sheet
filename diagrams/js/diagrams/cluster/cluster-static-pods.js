@@ -36,7 +36,8 @@ const POD_X = CONTENT_R - POD_PAD - POD_W;
 const BOX_TOP = ROW_CY - BOX_H / 2;
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
 
-// The file lane points at the Kubelet because what travels is the spec off the disk.
+// The file lane points at the Kubelet because what travels is the spec off the disk. Neither lane
+// takes a wire label: 134 and 100 units hold about 19 and 14 characters, and the boxes name it.
 const FILE_TO_KUBE = [[FILE_R, ROW_CY], [KUBE_X, ROW_CY]];
 const KUBE_TO_POD = [[KUBE_R, ROW_CY], [POD_X, ROW_CY]];
 // Leaves the Node frame face above the Kubelet, not the Kubelet itself (A-21).

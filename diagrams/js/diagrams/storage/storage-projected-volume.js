@@ -6,7 +6,7 @@ import { g, rect, path } from '../../lib/svg.js';
 // One mount as three file rows in the middle, the writer and its source in a column right of them,
 // the Pod left of them and a time axis across the floor. The columns are evenly spaced, so the row
 // stack and the chip strip centre on the canvas.
-const BOX_W = 232, BOX_H = 80;                                    // NET.L-01
+const BOX_W = 232, BOX_H = 80;                                    // STO.L-05
 const COL_X = 868, COL_CX = COL_X + BOX_W / 2;
 const API_Y = 38, API_B = API_Y + BOX_H;
 const KUBE_Y = 234, KUBE_MY = KUBE_Y + BOX_H / 2;                 // the gap between the boxes holds the riding tags
@@ -14,7 +14,7 @@ const UP_X = COL_CX - LANE_DY, DOWN_X = COL_CX + LANE_DY;
 
 // The mount, in ls order. The middle row is level with the Kubelet, so the write fan is symmetric
 // about a straight middle leg, and the read fan out of the rows mirrors it.
-const ROW_X = 484, ROW_W = 232, ROW_H = 56, ROW_GAP = 12;
+const ROW_X = 484, ROW_W = 232, ROW_H = 56, ROW_GAP = 12;         // at 80 the Pod bottom runs through the token 1 bar
 const ROW_R = ROW_X + ROW_W, ROW_CX = ROW_X + ROW_W / 2;
 const ROW_Y0 = 178;
 const rowY = (i) => ROW_Y0 + i * (ROW_H + ROW_GAP);
@@ -23,7 +23,7 @@ const CA = 0, NS = 1, TOK = 2;
 const MID_Y = rowMY(NS);                                          // level with KUBE_MY
 const BUS_X = 780;                                                // the write bus, rows to Kubelet
 
-// The catalog Pod (NET.L-01), centred on the row stack like the Kubelet, so both fans leave on MID_Y.
+// The catalog Pod (STO.L-05), centred on the row stack like the Kubelet, so both fans leave on MID_Y.
 const POD_X = 100, POD_W = 232, POD_H = 104;
 const POD_Y = MID_Y - POD_H / 2;
 const POD_R = POD_X + POD_W;

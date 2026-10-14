@@ -3,13 +3,13 @@ import { LANE_DY, P, F, defineCard, OPACITY, BEAT } from './storage-kit.js';
 
 
 // Every tier declares its bottom with its top, so the lanes between tiers re-solve when one moves.
-// Every block is 80 tall (NET.L-01) and the three tier gaps are equal.
+// Every block is 80 tall (STO.L-05) and the three tier gaps are equal.
 const BOX_H = 80, TIER_GAP = 40;
 const PVC_Y = 30, PVC_H = BOX_H, PVC_BOTTOM = PVC_Y + PVC_H;
 const PV_Y = PVC_BOTTOM + TIER_GAP, PV_H = BOX_H, PV_TOP = PV_Y, PV_BOTTOM = PV_Y + PV_H;
 const BAND_Y = PV_BOTTOM + TIER_GAP, BAND_H = BOX_H, BAND_TOP = BAND_Y, BAND_BOTTOM = BAND_Y + BAND_H;
 const DISK_Y = BAND_BOTTOM + TIER_GAP, DISK_H = 100, DISK_TOP = DISK_Y;
-// The catalog 232 (NET.L-01). Each unit of column gap moves the content centre half a unit off 600 (L-13).
+// The catalog 232 (STO.L-05). Each unit of column gap moves the content centre half a unit off 600 (L-13).
 const COL_W = 232, COL_GAP = 16;
 
 const LEFT_X = 400, STACK_W = COL_W * 2 + COL_GAP;
@@ -18,7 +18,7 @@ const DEL_CX = DEL_X + COL_W / 2, RET_CX = RET_X + COL_W / 2;
 const BAND_X = LEFT_X, BAND_W = STACK_W;
 const RET_RIGHT = RET_X + COL_W;
 
-// The two outside actors flank the stack (NET.L-01): the StorageClass left of the provisioner it feeds
+// The two outside actors flank the stack (STO.L-05): the StorageClass left of the provisioner it feeds
 // (L-03), the administrator right of the claims. Each sits one SIDE_GAP off the stack.
 const SIDE_W = 232, SIDE_GAP = 48;
 const SC_X = LEFT_X - SIDE_GAP - SIDE_W, SC_Y = BAND_Y;         // 120..352

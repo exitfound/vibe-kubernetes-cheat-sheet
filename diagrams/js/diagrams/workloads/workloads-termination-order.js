@@ -5,7 +5,7 @@ import { g, path, text } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS/workloads-termination-order.md
 
 // No A / B / C preset: chips sit in both columns and there is no ladder (WL.L-06).
-// PANEL_B is the measured panel bottom, valid only for the longest narration here.
+// PANEL_B is a layout line set below the card's measured panel bottom, not the measurement.
 const PANEL_B = 230, PANEL_GAP = 20;
 
 // The Runtime sits on CX because it sends the signal (A-09), so the spine leaves it.

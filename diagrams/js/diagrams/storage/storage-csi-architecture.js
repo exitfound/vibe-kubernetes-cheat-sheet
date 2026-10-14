@@ -17,7 +17,7 @@ const CF_W = CONTENT_R - FRAME_X;
 const CF_INNER_L = FRAME_X + FRAME_PAD;
 const CF_INNER_R = CONTENT_R - FRAME_PAD;
 
-// Every actor block is the catalog 80 tall (NET.L-01), and the tiers chain off each other.
+// Every actor block is the catalog 80 tall (STO.L-05), and the tiers chain off each other.
 const BLOCK_H = 80;
 const CF_Y = 48;
 const S_Y = 82, S_H = BLOCK_H;

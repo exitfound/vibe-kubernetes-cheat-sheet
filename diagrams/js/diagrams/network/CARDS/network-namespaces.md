@@ -5,8 +5,7 @@
 ```
 WHAT     A Pod gets its own copy of the network stack, drawn as four layers inside the namespace,
          and every container in the Pod joins that one copy instead of getting one each.
-DEVIATES NET.L-01: the netns shell is 600 by 469, the stage padded off the 520 slab band, and the
-         three containers are 160 wide, sized by that band.
+DEVIATES NET.L-01: the netns shell is 600 by 469, the stage padded off the 520 slab band.
          NET.S-01: the netns is a bare `podShell` holding three containers and a stack band, which
          `buildPod` with its single inner box cannot hold.
 CONTENT  Sources: Pod networking, network_namespaces(7), CRI api.proto, CNI spec 1.1.0 (v1.36).

@@ -56,6 +56,7 @@ const HB_WIRE_Y = HB_JOG_Y + 18;
 
 const HEARTBEAT_CONNECTOR = [[NODE_A_CX + LANE_DX, NODE_Y], [NODE_A_CX + LANE_DX, HB_JOG_Y], [GUTTER_X, HB_JOG_Y], [GUTTER_X, UNDER_TOP_Y], [LEASE_CX, UNDER_TOP_Y], [LEASE_CX, TOP_BOTTOM]];
 // Not a mirrored pair: Node-2's top face is under the ladder, so the reschedule enters its side.
+// It crosses the heartbeat return leg, and no step puts a ball on both.
 const RS_X = CX;
 const EV_X = CX - LANE_DX * 2;
 const WRITE_CONNECTOR     = [[EV_X, TOP_BOTTOM], [EV_X, EV_JOG_Y], [NODE_A_CX - LANE_DX, EV_JOG_Y], [NODE_A_CX - LANE_DX, NODE_Y]];

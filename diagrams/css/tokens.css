@@ -31,7 +31,8 @@
   --toast-text:     #c4a8ff;
 
   /* Chrome per category, keyed off `data-cat`. Deliberately NOT the kit tint that paints the
-     diagram (C-15): cluster is #7d86ff here, rgb(192,176,255) in cluster-kit.js. Retint: C-22. */
+     diagram (C-15): cluster is #7d86ff here, its pulse peak rgb(224, 214, 255) in cluster-kit.js.
+     Retint: C-22. */
   --network-color:    #4fe5ff;
   --network-glow:     rgba(79, 229, 255, 0.13);
   --network-border:   rgba(79, 229, 255, 0.28);

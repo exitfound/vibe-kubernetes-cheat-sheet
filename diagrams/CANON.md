@@ -45,16 +45,16 @@ tool that only prints numbers is not a `skill:` value. `R-01` to `R-12` are post
 | ID | Rule | Check | Source |
 |---|---|---|---|
 | L-01 | The safe-zone is an L, not a forbidden box: the overlay covers the top-left quadrant only, so the usable area is the full width below its bottom PLUS the full height right of its right edge | review | this file |
-| L-02 | The narration panel's RIGHT edge is `x<=397` on every card, on every viewport | report:overlay/L-02 | `test/report/overlay.test.mjs` |
+| L-02 | The narration panel's RIGHT edge is `x<=361` on every card over the standard set: 321.29 above its 11px text floor, 360.03 at 1100x800 on it. An empty gutter left of the drawing pulls it in (232 at 1920x969) | report:overlay/L-02 | `test/report/overlay.test.mjs` |
 | L-03 | Nothing starts left of x=420 unless it also sits below that card's own panel bottom | review | L-02 |
-| L-04 | The panel BOTTOM is per card and ranges about 90 to 379 over the standard viewport set. The shallow end is a cluster many cards share: read the value the report prints, never the card id beside it | report:overlay/L-04 | `test/report/overlay.test.mjs` |
-| L-05 | The panel moves NON-MONOTONICALLY against the PICTURE and one way only against the VIEWPORT (a wider dialog wraps into fewer lines), so it is never measured on one viewport | report:overlay/L-05 | `test/report/overlay.test.mjs` |
-| L-05a | **The panel's movement is a TYPOGRAPHY problem, not a height problem**: clamping the height does not touch it, and closing it needs type that scales with the diagram | report:overlay/L-05a | `diagrams/css/styles.css` under `.narration-overlay` |
+| L-04 | The panel BOTTOM is per card and ranges about 94 to 286 over the standard viewport set. The shallow end is a cluster many cards share: read the value the report prints, never the card id beside it | report:overlay/L-04 | `test/report/overlay.test.mjs` |
+| L-05 | The panel's left edge sits on the stage corner, so the gutter left of the drawing widens it and moves its bottom a line or two between screens, and under its text floor it grows against the picture. It is never measured on one viewport | report:overlay/L-05 | `test/report/overlay.test.mjs` |
+| L-05a | **The panel's size is TYPOGRAPHY that scales with the diagram**: 0.85 of its scale, never under 11px text. What still moves is the floor and the gutter, up to 65 units of bottom over the standard set. Clamping the height touches neither | report:overlay/L-05a | `diagrams/css/styles.css`, the `@supports (width: 1cqw)` block |
 | L-05b | The panel ALSO changes height between the STEPS of one card. Pinning `min-height` to the tallest narration is not done: it leaves an empty strip inside a drawn border, which reads as a fault | review | `diagrams/css/styles.css` under `.narration-overlay` |
-| L-06 | The standard viewport set is `1600x1000`, `1280x860`, `1100x800`. A card may pin a stricter row of its own (storage cards carry `900x650`), and where the two disagree the card takes the stricter number and says so | review | `test/report/geometry-soft.test.mjs`, `VIEWPORTS` |
+| L-06 | The standard viewport set is `1600x1000`, `1280x860`, `1100x800`. A card may pin a stricter row of its own, and where the two disagree the card takes the stricter number and says so | review | `test/report/geometry-soft.test.mjs`, `VIEWPORTS` |
 | L-07 | A card's measured panel extent is never a constant: the reserved corner is a fact about the panel, not an input to the layout | review | this file |
 | L-08 | The panel bottom is often a CHARACTER BUDGET, and editing prose for accuracy spends it silently. Re-measure after any prose edit on such a card (`OCCLUDED` will not tell you) | report:overlay/L-08 | `test/report/overlay.test.mjs` |
-| L-08a | **A card that carries a two-column X grammar picks the first of `A` / `B` / `C` that fits above its OWN measured panel bottom**, and reads the columns out of its kit's `LAYOUT` rather than typing them | test:module/L-08a | `js/diagrams/workloads/CLAUDE.md` `WL.L-06`, `js/diagrams/cluster/cluster-kit.js` |
+| L-08a | **A card that carries a two-column X grammar picks one of `A` / `B` / `C` against its OWN measured panel bottom**, and reads the columns out of its kit's `LAYOUT` rather than typing them | test:module/L-08a | `js/diagrams/workloads/CLAUDE.md` `WL.L-06`, `js/diagrams/cluster/cluster-kit.js` |
 | L-09 | A segment is horizontal or vertical. Nothing runs diagonally | test:geometry/DIAGONAL, test:spec-scene/DIAGONAL | `test/render/geometry.test.mjs` |
 | L-10 | No segment crosses a block it does not terminate on | test:geometry/THROUGH, test:spec-scene/THROUGH | `test/render/geometry.test.mjs` |
 | L-11 | An endpoint sits on a block FACE MIDPOINT, never a hand-typed coordinate near one, or on a Node FRAME face level with the block inside it that the lane addresses | test:geometry/OFFEDGE, test:spec-scene/OFFEDGE | `test/render/geometry.test.mjs` |
@@ -62,11 +62,11 @@ tool that only prints numbers is not a `skill:` value. `R-01` to `R-12` are post
 | L-13 | The content bbox centres within 40 units of x=600, and the chip strip within 6 | report:geometry-soft/CENTRE | `test/report/geometry-soft.test.mjs` |
 | L-14 | Blocks sitting BELOW the overlay centre on x=600 too: the full width is free there | report:geometry-soft/CENTRE-LOW | `test/report/geometry-soft.test.mjs` |
 | L-15 | No block sits substantially under the narration panel | report:geometry-soft/OCCLUDED | `test/report/geometry-soft.test.mjs` |
-| L-16 | **Do not close a `CENTRE` finding by stretching a strip or widening a frame.** If a finding can only be closed by making the picture worse, leave it OPEN and write the reason into the card's record | review | the `OPEN` lines of each category's records (`CARDS.md` indexes them), and `test/report/geometry-soft.test.mjs` for the findings |
+| L-16 | **Do not close a `CENTRE` finding by stretching a strip or widening a frame.** If a finding can only be closed by making the picture worse, leave it OPEN and write the reason into the card's record | review | the `OPEN` lines of each category's records, and `test/report/geometry-soft.test.mjs` for the findings |
 | L-17 | `CENTRE` and `CENTRE-LOW` count neither `node()` frames nor chips, so a card balanced by a frame full of chip rows still reports. Read a finding against the card record before treating it as a regression | report:geometry-soft/L-17 | `test/report/geometry-soft.test.mjs` |
 | L-18 | Never set `font-size` as a presentation attribute on a label: the class rule outranks it, so it never renders and a clearance budget sized off it is wrong. Add a class in `diagrams.css` instead | test:files/L-18 | `diagrams/css/diagrams.css` |
 | L-19 | Nothing in the suite measures WIRE-LABEL width. `render/chipfit.test.mjs` measures chips only | review | `test/render/chipfit.test.mjs` |
-| L-20 | Text rates are PER CLASS and MEASURED: a sublabel is 6.03 units per character, chip text 6.89, and a box label is proportional, so measure the string | review | `js/diagrams/storage/CLAUDE.md` |
+| L-20 | Text rates are PER CLASS and MEASURED: a sublabel is 6.03 units per character, chip text 6.89, and a box label is proportional, so measure the string | review | `diagrams/css/diagrams.css`, the font sizes they follow from |
 | L-21 | **Await `document.fonts.ready` before measuring anything in the DOM**, or you measure the fallback, which is about 20 percent narrower and flatters you. Never eyeball a width off a screenshot | test:geometry/L-21, test:chipfit/L-21 | root `CLAUDE.md` |
 | L-22 | A card that needs room should check L-01 first: on a cramped card the room is usually already there | review | this file |
 | L-23 | **Every `node()` frame pads what it holds by 34 under its top and 12 over its floor, in every category**, measured to the outermost lane, tag or label. A frame departs only where that is impossible, as a `DEVIATES` line | review | each category `CLAUDE.md` lists its departures |
@@ -104,7 +104,7 @@ tool that only prints numbers is not a `skill:` value. `R-01` to `R-12` are post
 
 | ID | Rule | Check | Source |
 |---|---|---|---|
-| M-01 | **Only Pods pulse.** Block auto-pulse is off catalog-wide (`autoPulse: false` is the `makeInit` default). Infrastructure lights through `.highlight` or `lightBoxAt` and never pulses. **This row outranks `M-27`** | test:motion/PULSE-POD | `lib/timeline.js`, `lib/diagram-kit.js` |
+| M-01 | **Only Pods pulse.** There is no block auto-pulse (the Timeline has none). Infrastructure lights through `.highlight` or `lightBoxAt` and never pulses. **This row outranks `M-27`** | test:motion/PULSE-POD | `lib/timeline.js`, `lib/diagram-kit.js` |
 | M-02 | A card never calls `pulse(` from `primitives.js` directly. Pods pulse through the kit's `pulsePod` | test:motion/PULSE-KIT | `test/render/motion.test.mjs` |
 | M-03 | **A Pod pulses with everything inside it.** The pulsed element is always the `g` holding the shell AND its inner boxes | test:motion/PULSE-WHOLE, test:motion/PULSE-TOGETHER | `lib/diagram-kit.js`, `pulsePodWithTint` |
 | M-04 | Pulse is `filter: brightness(...)`, never `transform: scale(...)`: diagram elements carry a `translate` a scale would compose-clobber | review | `lib/diagram-kit.js` |
@@ -244,7 +244,7 @@ tool that only prints numbers is not a `skill:` value. `R-01` to `R-12` are post
 | ID | Rule | Check | Source |
 |---|---|---|---|
 | D-01 | A `DIAGRAMS` entry is `id`, `title`, `category`, `subcategory`, `desc`, `k8sVersion`, `tinted: true`, `sources: [{ label, href }]`. There is no path field | test:catalog/D-01 | `js/diagrams/<cat>/cards.js` |
-| D-02 | `app.js` imports ``./diagrams/${category}/${id}.js``, so **the id MUST start with the category, which is the folder name** | test:catalog/D-02 | `test/unit/catalog.test.mjs` |
+| D-02 | `dialog.js` imports ``./diagrams/${category}/${id}.js``, so **the id MUST start with the category, which is the folder name** | test:catalog/D-02 | `test/unit/catalog.test.mjs` |
 | D-03 | A module on disk that no `DIAGRAMS` entry claims is unclaimed: nothing lints it and the grid never shows it | test:catalog/D-03 | `test/unit/catalog.test.mjs` |
 | D-04 | `desc` is 400 to 470 characters hard, 410 to 460 target | test:catalog/D-04 | `test/unit/catalog.test.mjs` |
 | D-05 | `desc` is 2 to 4 sentences, 3 target | test:catalog/D-05 | `test/unit/catalog.test.mjs` |
@@ -257,7 +257,7 @@ tool that only prints numbers is not a `skill:` value. `R-01` to `R-12` are post
 | D-12 | Every card has a static page `/diagrams/card/<id>/` (every command section `/cli/section/<id>/`), written by `tools/pages/build.mjs` and listed in `sitemap.xml`, gitignored build output. `npm test` rebuilds them first | test:catalog/D-12 | `tools/pages/build.mjs`, `sitemap.xml` |
 | D-13 | Adding a CATEGORY touches the folder, kit, `cards.js`, `posters.js`, `CLAUDE.md`, records, `CATEGORIES`, the tint in `tokens.css` and `styles.css`, `POSTER_COLORS` and a `<CAT>.*` block here, in the order `diagrams/CLAUDE.md` gives | review | `diagrams/CLAUDE.md`, new-category checklist |
 | D-14 | The poster-first model applies to every card: idle is a static poster, step 1 auto-plays after about 0.7s, the poster previews step 1's TEXT immediately, and `Next` from the last step wraps to poster then step 1 | test:skeleton/D-14 | `lib/timeline.js` |
-| D-15 | Search reads `title + desc + category + subcategory`, debounced 80ms. Grid keys: `/`, `Esc`, `Enter`, `?`. Dialog keys: `Space`, arrows, `Shift`+arrows, `R`, `L`, `F`, `Esc`. Letters, `/` and `?` use `keys.js`. Each key has a sheet row | review | `js/app.js`, `cli/js/lib/keys.js` |
+| D-15 | Search reads `title + desc + category + subcategory`, debounced 80ms. Grid keys: `/`, `Esc`, `Enter`, `?`. Dialog keys: `Space`, arrows, `Shift`+arrows, `R`, `L`, `F`, `Esc`. Letters, `/` and `?` use `keys.js`. Each key has a sheet row | review | `js/app.js`, `js/dialog.js`, `cli/js/lib/keys.js` |
 | D-16 | The hash holds the GRID as well as the card: `#at=<key>&q=<search>` is the grid's state, and `#diagram=<id>&step=<n>&at=<key>&q=<search>` carries it through an open card. A filter or search change resets the scroll | test:hash/D-16 | `js/app.js`, root `index.html` |
 
 ## R: posters
@@ -275,7 +275,7 @@ tool that only prints numbers is not a `skill:` value. `R-01` to `R-12` are post
 | R-08 | House idiom two: **a poster carries no arrowhead by default.** Direction comes from the composition being closed, or from a dashed leg, or from a fill ramp. The posters that do carry one are the `R-08a` allowlist | skill:poster-lint/R-08 | `.claude/skills/card-poster/tools/poster-lint.mjs` |
 | R-08a | **A chevron is allowed only to a poster on the registry in `poster-lint.mjs`**, earned when the sentence IS a direction composition cannot say. A poster redrawn without its chevron leaves the registry | skill:poster-lint/R-08a | `.claude/skills/card-poster/tools/poster-lint.mjs` |
 | R-09 | **A poster carries no packet dot**: a ball frozen on a wire reads as a paused animation | skill:poster-lint/R-09 | this file |
-| R-10 | No literal copy of the card diagram, no reused two-box layout, no plain "dumb circles" | review | root `CLAUDE.md` |
+| R-10 | No literal copy of the card diagram, no reused two-box layout, no plain "dumb circles" | review | `.claude/skills/card-poster/SKILL.md` |
 | R-11 | `FALLBACK_POSTER` in `js/lib/poster.js` breaks R-08 and R-09 on purpose. Do not "fix" it into canon and do not delete it: it is the failure mode made visible | test:catalog/D-06 | `js/lib/poster.js` |
 | R-12 | A poster is drawn once against the sibling montage, so its note is a comment above that poster in the folder's `posters.js` and never a block in the record | test:docs/G1, skill:poster-lint/R-12 | `test/unit/docs.test.mjs` |
 
@@ -316,7 +316,7 @@ tool that only prints numbers is not a `skill:` value. `R-01` to `R-12` are post
 | S-25c | **`F.flash` is a live flow verb with no call site, and it STAYS.** Do not delete it, and do not reach for it either: `M-27` is why no card calls it, and `test:spec-steps/M-26` is what watches the door | test:spec-steps/M-26 | `lib/step-spec.js`, `flash` |
 | S-26 | **`defineCard` is the ONE producer of a card's `init`**: a card writes `export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });` and never calls `makeInit` itself | review | `diagrams/CLAUDE.md` |
 | S-27 | **Take S-26 further only on a COUNT.** A new `P` or `F` verb has to name the cards that need it before it is added | review | `diagrams/CLAUDE.md` |
-| S-28 | **No top-level browser globals at module load**, except in `motion.js` and `app.js`. `svg.js`, `primitives.js`, `timeline.js` and `data.js` must parse cleanly in Node so the tools can read them | test:module/S-28 | `test/unit/module.test.mjs` |
+| S-28 | **No top-level browser globals at module load**, except in `motion.js`, `app.js` and `dialog.js`. `svg.js`, `primitives.js`, `timeline.js` and `data.js` must parse cleanly in Node so the tools can read them | test:module/S-28 | `test/unit/module.test.mjs` |
 | S-29 | `svg.js` exports names nothing imports and they STAY: it is a library surface, not accumulated code. Do not read their absence from the import graph as a finding | review | `lib/svg.js` |
 | S-30 | The site chrome has ONE copy, in `cli/`: `/diagrams/` imports `cli/js/lib/{chrome,sidebar,keys,fresh}.js` and links `cli/css/chrome.css`. Never copy it back into `diagrams/` | review | root `CLAUDE.md` |
 | S-31 | A card module must parse as an ES module (`node --input-type=module --check`, file on stdin) the moment it is written. The hook exits 2 and hard-fails the edit | hook | `.claude/hooks/check-js.sh` |
@@ -325,14 +325,15 @@ tool that only prints numbers is not a `skill:` value. `R-01` to `R-12` are post
 | S-34 | **A comment is at most THREE lines, in a card and in every script.** It states an invariant, a non-obvious reason or a rule id. It carries no date, no past defect, no account of an earlier version, no number the code already computes | test:files/S-34 | `diagrams/CLAUDE.md`, where the record lives |
 | S-35 | Anything longer than S-34 is not a comment, and each length has one home. **A reason for one constant is a comment ON that constant**, never a note in the record pointing at it | review | `diagrams/CLAUDE.md` |
 | S-36 | Each card carries exactly ONE pointer comment under its imports, in the shape its category's record is in: `./CARDS.md#<id>` for one file per category, `./CARDS/<id>.md` for one file per card | test:files/S-36 | `test/unit/files.test.mjs` |
-| S-37 | Notes on anything that is NOT one card go to the JSDoc BESIDE THE CODE they describe: `lib/*`, the kits, `app.js`, `data.js`, and a comment block in the CSS for a rule about a CSS rule | review | `diagrams/CLAUDE.md`, where the record lives |
+| S-37 | Notes on anything that is NOT one card go to the JSDoc BESIDE THE CODE they describe: `lib/*`, the kits, `app.js`, `dialog.js`, `data.js`, and a comment block in the CSS for a rule about a CSS rule | review | `diagrams/CLAUDE.md`, where the record lives |
 | S-48 | **A comment and a record state what IS, never what CHANGED.** No date on an edit, no `used to`, no `renamed on`: a reader needs the constraint and the number behind it, and the repository is not a diary | review | `diagrams/CLAUDE.md`, the "Where the record lives" table, which already sends history to the bin |
 | S-49 | **A count a document states is MEASURED, not typed**, and a sentence reworded past its pattern fails as loudly as a wrong number | test:docs-census/CENSUS, report:baselines/BASELINES | `test/unit/docs-census.test.mjs`, `test/report/baselines.test.mjs` |
 | S-50 | **A card skill CITES a rule and never restates it.** The skills under `.claude/skills/` read this file from outside `diagrams/` | test:docs/D1 | `.claude/skills/card-review/SKILL.md` |
+| S-55 | **A `CLAUDE.md` names only what exists**: every backticked repo path, `npm` script, `kube-how:` storage key and rule id resolves, and every key the code writes is named in one | test:docs/H1, test:docs/H2, test:docs/H3, test:docs/D1 | `test/unit/docs.test.mjs`, group H |
 | S-38 | **A record carries no `### before` anchor** (`S-51`). A reason for one line of code is a comment ON that line, and an anchor that does appear must still resolve in its own card | test:docs/A2 | `test/unit/docs.test.mjs` |
 | S-39 | When a card is renamed, rename its record heading too, and the record FILE with it where the category is split | test:docs/A4 | `test/unit/docs.test.mjs` |
 | S-40 | A test file under `diagrams/test/` keeps what it asserts and what it cannot see in its OWN HEADER, inside the `S-34` cap | review | `diagrams/test/`, and every test file header |
-| S-41 | **Internal markdown never ships.** Three filenames (`CLAUDE.md`, `CARDS.md`, `CANON.md`), the `CARDS/` record folder, plus `diagrams/test/`, excluded BY NAME in three places that must agree: `deploy.yml`, `release.yml`, `.dockerignore` | test:files/S-41 | root `CLAUDE.md` |
+| S-41 | **Internal markdown never ships.** `CLAUDE.md`, `CARDS.md`, `CANON.md`, `README.md`, the `CARDS/` folder and `diagrams/test/` are excluded BY NAME in `stage.sh`, `release.yml` and `.dockerignore`, and `verify.yml` probes for all of them | test:files/S-41 | root `CLAUDE.md` |
 | S-42 | Do not unify what VARIES between cards: the kit, block size, geometry, step count, connector style. **The `role` passed to primitives and the Pod tint are the one exception, and only when the binding is made IN THE CATEGORY KIT** | test:spec-scene/S-42 | `diagrams/CLAUDE.md`, and C-02 / P-08 for the cost of the cross-category default |
 
 ---
@@ -350,7 +351,7 @@ once, `WHAT` first, present tense, no dates:
 | `OPEN` | a known defect left open, one line each, with the reason it stays |
 
 Structural rules for a record file, all of them enforced by `unit/docs.test.mjs`: group A for the
-first four, group E for `S-47` and group G for the FORM the last three state.
+first four, group E for `S-47` and group G for the FORM the last four state.
 
 | ID | Rule | Check | Source |
 |---|---|---|---|
@@ -362,8 +363,9 @@ first four, group E for `S-47` and group G for the FORM the last three state.
 | S-51 | **A record section is ONE `### layout` heading and nothing else**: no poster note, no per-line anchor, no second heading. A note that would have taken an anchor goes under the label it belongs to | test:docs/G1 | `test/unit/docs.test.mjs` |
 | S-52 | **A record's labels come from "The record vocabulary" above, in that order, each at most once, `WHAT` first.** A note that fits none of them does not belong in the record | test:docs/G2 | `test/unit/docs.test.mjs` |
 | S-53 | **A line in the label column carries a label and no other word.** `S-52` ranks the labels it knows, so a word outside the vocabulary is invisible to it: this is the half that sees one. Prose belongs at the column at 9 | test:docs/G3 | `test/unit/docs.test.mjs` |
+| S-54 | **A `DEVIATES` entry opens on the id of the row it breaks**, as `L-03: ` or `L-03, M-12: `. A note that breaks no row is a comment on the constant it guards (`S-35`) | test:docs/G4 | `test/unit/docs.test.mjs` |
 
-`S-51`, `S-52` and `S-53` hold at zero in every category, so a record off the form fails the gate.
+`S-51` to `S-54` hold at zero in every category, so a record off the form fails the gate.
 
 ---
 
@@ -386,8 +388,8 @@ you are in the wrong file.
 | `CLU.C-01` | the tint against the chrome colour |
 | `CLU.S-01` | what a cluster card's own record states |
 | `CLU.S-02` | the exemplar card |
-| `CLU.S-03` | what a record is for at the margin, and its length band |
-| `CLU.L-01` | the Cluster Node frame family, and the cards that deviate |
+| `CLU.S-03` | a record's length ceiling |
+| `CLU.L-01` | the Pod size inside a Node frame, and where the departures are listed |
 | `CLU.D-01` | the subcategory split |
 
 ### `WL.*` workloads, `js/diagrams/workloads/CLAUDE.md`
@@ -415,7 +417,7 @@ you are in the wrong file.
 | ID | Subject |
 |---|---|
 | `NET.C-01` | the tint, and the one category colour that is a literal in `diagrams.css` |
-| `NET.L-01` | 232 by 80 is the actor-block size, 232 by 104 for a Pod, and what may overrule it |
+| `NET.L-01` | the size of an actor (a party block) and of a Pod, and what may overrule it |
 | `NET.S-01` | what a Pod is built from here |
 | `NET.A-01` | endpoints on a block edge |
 | `NET.A-02` | traffic delivered to a Node |
@@ -424,7 +426,7 @@ you are in the wrong file.
 | `NET.T-01` | addresses ride the ball |
 | `NET.S-02` | the inner app boxes named in `reset.keys` |
 | `NET.S-03` | the exemplar card |
-| `NET.S-04` | the two things a record here has to name that no check sees |
+| `NET.S-04` | what a record here never restates |
 | `NET.D-01` | the subcategory split |
 
 ### `STO.*` storage, `js/diagrams/storage/CLAUDE.md`
@@ -434,8 +436,9 @@ you are in the wrong file.
 | `STO.C-01` | the tint and its saturation ceiling |
 | `STO.L-01` | the vertical-stack grammar |
 | `STO.L-02` | the cylinder label offset |
-| `STO.L-03` | the family chip width |
-| `STO.L-04` | a card's own viewport row, where it is stricter |
+| `STO.L-03` | the family chip width, and when a strip sizes its own |
+| `STO.L-04` | the viewport set a storage card is judged on |
+| `STO.L-05` | the size of an actor and of a Pod |
 | `STO.A-01` | the identity spine |
 | `STO.A-02` | the mount lane |
 | `STO.C-02` | no highlight on an inner container box |
@@ -443,7 +446,7 @@ you are in the wrong file.
 | `STO.S-02` | a block and its lanes as one construction |
 | `STO.S-03` | the z-order |
 | `STO.S-04` | the exemplar card |
-| `STO.S-05` | the per-card record and the size line it owes |
+| `STO.S-05` | the per-card record, and which off-default size owes a line |
 | `STO.D-01` | the subcategory split |
 
 ---

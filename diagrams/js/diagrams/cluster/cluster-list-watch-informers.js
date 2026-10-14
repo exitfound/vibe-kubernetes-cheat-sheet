@@ -43,6 +43,7 @@ const INF_Y = 235, INF_H = 80, INF_BOTTOM = INF_Y + INF_H;
 const IDX_Y = 390, IDX_H = 80;                           // level with the Client
 const LANE_INSET = 4;
 const WATCH_LANE = [[CX, TOP_BOTTOM + LANE_INSET], [CX, INF_Y - LANE_INSET]];
+// No wire label: a centred one overlaps the `req` register, and both ends name the feed.
 const FEED_LANE  = [[CX, INF_BOTTOM + LANE_INSET], [CX, IDX_Y - LANE_INSET]];
 
 // The watch event stream: four slots centred on CX below the Indexer.

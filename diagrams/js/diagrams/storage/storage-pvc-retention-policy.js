@@ -13,7 +13,7 @@ const CLAIM_H = 44, DISK_H = 40, DISK_DY = CELL_PAD + CLAIM_H + 6;
 const CELL_W = 3 * SLOT_W + 2 * SLOT_GAP + 2 * CELL_PAD;
 const CELL_H = DISK_DY + DISK_H + CELL_PAD;
 
-// The owner column is the catalog block (NET.L-01).
+// The owner column is the catalog block (STO.L-05).
 const OWNER_W = 232, OWNER_GAP = 40;
 const RET_X = CX - OWNER_W / 2 - OWNER_GAP - CELL_W;
 const DEL_X = CX + OWNER_W / 2 + OWNER_GAP;

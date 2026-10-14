@@ -9,15 +9,13 @@ DEVIATES WL.L-06: no LAYOUT preset. Ownership is the vertical axis (two bands) a
          horizontal one (the mark), and the card carries no ladder or chain.
          WL.A-03: no node() frame. Where these Pods run is not the story, so a frame is a block no
          step narrates.
-         Slots are 216 wide and Pods 80 tall: four slots and the doubled mark gaps span the width.
-         SLOT_X(3) hangs off MARK_X, so moving the mark is a layout and a timing change.
          M-12: the `own` fan flies all three lanes for one fanTiming duration, the longest lane's
          routeDur, with one trunk corner, so the balls ride the trunk as one and land on one beat.
-         pod3 leaves the owned band with NO pulse: it loses an owner and keeps running.
-         pod2 leaves on `self-heal` with NO pulse: nothing drawn deletes it. Its replacement is
-         its own Pod, web-8bjfs, which pulses as it lands, because a replacement gets a new name.
-         The unowned band is drawn at 0.3 and often empty: it says nothing is unowned (C-14).
-         Spec.replicas and the observed count are never chips: the mark and the band carry them.
+         M-08: pod3 leaves the owned band with NO pulse: it loses an owner and keeps running.
+         M-08: pod2 leaves on `self-heal` with NO pulse: nothing drawn deletes it. Its replacement
+         is its own Pod, web-8bjfs, which pulses as it lands, because a replacement gets a new name.
+         C-04: the unowned band is drawn at 0.3, outside OPACITY, and is often empty: it says
+         nothing is unowned (C-14).
 CONTENT  Sources: ReplicaSet, Deployment, Owners and Dependents (v1.36), controller_utils.go 1.36.
          Scale-down follows the code: not ready ranks before deletion cost, which the page omits.
          Deletion cost stays `best effort`. Adoption needs `no controller ownerReference`, not

@@ -10,7 +10,7 @@ const COL_W = (1200 - 2 * M - GUTTER) / 2;
 const LAD_ROW = 32, LAD_GAP = 10;
 
 // Controller side left, Node side right is the division the four calls are about.
-// The staging band is not an actor (NET.L-01): it is sized by the node inner width.
+// The staging band is not an actor (STO.L-05): it is sized by the node inner width.
 const BLOCK_W = 232, BLOCK_H = 80;
 const CTRL_W = BLOCK_W, CTRL_H = BLOCK_H;
 const CTRL_X = M, CTRL_Y = 268;

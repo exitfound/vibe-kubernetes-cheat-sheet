@@ -790,6 +790,7 @@ mark {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
 }
+.toast.is-error svg { display: none; }
 
 /* ===== NEW SINCE LAST VISIT ===== */
 /* js/lib/fresh.js decides what is new for THIS browser. The pill is a filled lavender, distinct from
@@ -823,6 +824,7 @@ mark {
 @media (max-width: 1024px) {
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 
+  .nav-top::after,
   .nav-mid::after,
   .nav-sub::after {
     content: '';

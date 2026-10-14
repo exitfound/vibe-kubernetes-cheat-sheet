@@ -10,7 +10,7 @@ const COPY_RESET_DELAY = 1500;
 
 export const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-export function fallbackCopy(text, callback) {
+function fallbackCopy(text, callback, failed) {
   const ta = document.createElement('textarea');
   ta.value = text;
   ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none';
@@ -18,17 +18,21 @@ export function fallbackCopy(text, callback) {
   ta.focus();
   ta.select();
   // execCommand reports a refused copy by returning false, so the check shows only on a real copy.
-  try { if (document.execCommand('copy')) callback(); } catch (_) {}
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (_) {}
   document.body.removeChild(ta);
+  if (ok) callback();
+  else if (failed) failed();
 }
 
 // The one copy path: the async clipboard where the context allows it, the textarea fallback on
-// plain http or a refused permission. `done` runs once the text is on the clipboard.
-export function copyText(text, done) {
+// plain http or a refused permission. `done` runs once the text is on the clipboard, `failed` when
+// both paths refused.
+export function copyText(text, done, failed) {
   if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done, failed));
   } else {
-    fallbackCopy(text, done);
+    fallbackCopy(text, done, failed);
   }
 }
 
@@ -187,8 +191,8 @@ export async function setupHeader() {
   });
   document.addEventListener('click', closeAllDropdowns);
   document.addEventListener('keydown', e => {
+    // The page's own Esc (clear the search) skips itself while a dropdown is open.
     if (e.key === 'Escape' && document.querySelector('#headerActions .action-wrap.open')) {
-      e.stopPropagation();
       closeAllDropdowns();
     }
   });

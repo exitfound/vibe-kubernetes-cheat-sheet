@@ -21,7 +21,7 @@ const NODE_H = SHARE_Y + SHARE_H + 12 - NODE_Y;
 const NODE_CY = NODE_Y + NODE_H / 2;                                      // the cross-Node lane
 
 // Actor tier, every block NET.L-01 232 wide and 80 tall, on x 600 right of the panel wall. The outer
-// legs leave the balancer side faces on LEG_Y, under the deepest panel (255 at 1100x800) with the
+// legs leave the balancer side faces on LEG_Y, under the deepest panel (184 at 1100x800) with the
 // tag ink over them, so the balancer stands on LEG_Y and the client lane takes up the rest.
 const ACTOR_W = 232, ACTOR_H = 80, ACTOR_X = 600 - ACTOR_W / 2, ACTOR_R = ACTOR_X + ACTOR_W;
 const LEG_Y = 280;

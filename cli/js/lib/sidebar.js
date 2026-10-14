@@ -2,7 +2,7 @@ const KEY = 'kube-how:sidebar-collapsed:v1';
 
 // '1' = the visitor hid the sidebar, '0' = the visitor showed it, absent = no choice yet.
 // With no choice the CSS decides: shown on desktop, hidden at phone width (see the
-// body:not(.sidebar-shown) block in styles.css). An explicit choice wins on any screen.
+// body:not(.sidebar-shown) block in chrome.css). An explicit choice wins on any screen.
 export function setupSidebar() {
   let stored = null;
   try { stored = localStorage.getItem(KEY); } catch (_) {}

@@ -37,8 +37,8 @@ const TICKS = ['12:00', '12:05', '12:10', '12:15', '12:20', '12:25', '12:30'];
 const RUNS = [0, 2, 3, 4];
 const JOB_NAME = { 0: 'backup-28394640', 2: 'backup-28394650', 3: 'backup-28394655', 4: 'backup-28394660' };
 
-// Presentation shades, not lifecycle phases. grad is the workloads tint, copied because a style
-// value here cannot resolve a token.
+// Presentation shades, not lifecycle phases. grad is the workloads tint as a literal channel
+// list, so a retint misses it.
 const RULE = Object.freeze({
   axis: 'rgba(255, 255, 255, 0.16)',
   grad: 'rgba(91, 184, 255, 0.9)',

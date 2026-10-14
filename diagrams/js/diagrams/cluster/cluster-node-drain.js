@@ -2,7 +2,7 @@ import { LANE_DY, P, F, defineCard, laneY, ladder, strip, spread, midX, shade, C
 
 // Design notes for this card: ./CARDS/cluster-node-drain.md
 
-// Layout C, ladder right, Node frame under the panel: no narration may pass 528 characters.
+// Layout C, ladder right, Node frame under the panel.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;
 const CX = midX(CONTENT_L, CONTENT_R);
@@ -50,7 +50,7 @@ export const SCENE = {
   'aria-label': 'Node drain: cordon, list-and-skip, eviction through the API with PDB gating, a 429 and a retry, and the DaemonSet Pod left standing',
   parts: [
     P.defs(),
-    // The request runs right to left: the panel owns everything left of the API.
+    // The request runs right to left: a kubectl left of the API would stand at 60..292, under the panel.
     P.arrow({ x1: KUBECTL_X, y1: REQ_Y, x2: API_R, y2: REQ_Y, dim: true, dashed: true }),
     P.arrow({ x1: API_R, y1: RESP_Y, x2: KUBECTL_X, y2: RESP_Y, dim: true, dashed: true }),
     P.wire({ key: 'req', x: WIRE_X, y: WIRE_Y }),
@@ -145,6 +145,8 @@ export const STEPS_SPEC = [
     duration: 5500,
     narration: 'The drain command POSTs its evictions in parallel, and the one for web-1 reaches the API first. The API reads the matching PDB, whose status the disruption controller keeps at disruptionsAllowed=1. It decrements that to 0 under optimistic concurrency, marks web-1 with a DisruptionTarget condition and deletes it with its grace period, then answers 201 Created. The web-2 eviction lands just after, finds disruptionsAllowed=0 and gets 429 Too Many Requests. The ReplicaSet replaces web-1 elsewhere.',
     chips: { cordonChip: CORDONED, pdbChip: '1', healthyChip: '1 of 2', lastChip: ANSWERS_A },
+    // The requests and no status code: the label stands for the whole step, and a `429` would
+    // still be up after web-2 leaves on a 201.
     wires: { req: 'POST .../pods/web-1/eviction · .../pods/web-2/eviction' },
     // S-13: the static block states the end. The API reads 2 and the eviction takes it to 1.
     rewind: { chips: { healthyChip: '2 of 2', lastChip: 'none' } },

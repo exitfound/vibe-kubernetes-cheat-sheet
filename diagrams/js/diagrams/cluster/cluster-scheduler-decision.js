@@ -31,7 +31,7 @@ const CHIP_H = CLU.CHIP_H, CHIP_Y = i => CHIP_ROW(i) - (CHIP_H - ROW_H) / 2;
 
 // The two lanes leaving the API bottom face are a mirrored pair at +-LANE_DX (L-12).
 const LANE_DX = 30;
-// Below the band midpoint so the left horizontal leg clears the narration panel on every viewport.
+// 10 below the 180 band midpoint: both API lanes turn on this one line, the Kubelet leg included.
 const JOG_Y = 190;
 const REL_X = API_CX - LANE_DX, WATCH_X = API_CX + LANE_DX;
 // A relationship, not a route: the API owns the Pod objects the cycle below reads.
@@ -53,6 +53,8 @@ const NODE4_CX = midX(NODE_X(3), NODE_X(3) + NODE_W);
 const KUBELET_X = NODE4_CX - KUBELET_W / 2;
 const KUBELET_BOTTOM = KUBELET_Y + KUBELET_H;
 const API_TO_KUBELET = [[WATCH_X, TOP_BOTTOM], [WATCH_X, JOG_Y], [NODE4_CX, JOG_Y], [NODE4_CX, KUBELET_Y]];
+// A ball and no wire label: the Pod appearing is the sentence, and a caption in the 90 units
+// between the blocks crowds the arrival.
 const KUBELET_TO_NODE = [[NODE4_CX, KUBELET_BOTTOM], [NODE4_CX, NODE_Y]];
 // Start-anchored right of the drop: centred, the string runs back over the WATCH_X drop.
 const WIRE_WATCH_X = WATCH_X + 14;

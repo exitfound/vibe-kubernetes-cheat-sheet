@@ -4,11 +4,12 @@
 
 ```
 WHAT     readOnly true makes only that one mount read-only, so a tmpfs under the host directory
-         stays writable in the container. recursiveReadOnly Enabled closes it only when five
-         requirements hold, and IfPossible falls back to Disabled with the status as the only sign.
-DEVIATES L-13: the tree centres on 630, so the left drop tag clears the panel edge. The spec and
-         status chips stack beside the Pod whose fields they are, mirrored to the ladder.
-         L-23: the frame top is held by the two drops that end on it, so its content moves instead.
+         stays writable in the container until recursiveReadOnly Enabled closes it, which needs
+         five requirements, while IfPossible falls back to Disabled with the status as the only
+         sign.
+DEVIATES L-13: the tree centres on 630, so the Node frame clears the requirements ladder (40..296)
+         by 34. The spec and status chips stack beside the Pod whose fields they are, mirrored to
+         the ladder.
 CONTENT  Sources at 1.36: Volumes (release-1.36, no change from 1.35), RecursiveReadOnlyMounts gate
          (GA locked since 1.33, still present in v1.36.5), KEP 3857, validation.go, kubelet_pods.go.
          Rows 1 and 2 are API validation for Enabled and IfPossible alike: the desc and step 4 say

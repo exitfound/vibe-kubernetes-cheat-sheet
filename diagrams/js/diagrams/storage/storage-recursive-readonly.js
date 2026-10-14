@@ -2,13 +2,13 @@ import { P, F, defineCard, BEAT, STO } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-recursive-readonly.md
 
 // Two columns, one per tree level: the directory left, its submount right. The container view is the
-// upper row, the host tree the Node frame below it. The tree centres on 630 to stay clear of the panel.
+// upper row, the host tree the Node frame below it. The tree centres on 630 to clear the ladder.
 const BOX_W = 232, BOX_H = 80;
 const TREE_CX = 630;
 const TOP_CX = TREE_CX - 160, SUB_CX = TREE_CX + 160;              // the two tree columns
 const TOP_X = TOP_CX - BOX_W / 2, SUB_X = SUB_CX - BOX_W / 2;
 
-// The catalog Pod (NET.L-01), centred between the two columns so each write lane runs before it turns.
+// The catalog Pod (STO.L-05), centred between the two columns so each write lane runs before it turns.
 const POD_W = 232, POD_H = 104, POD_Y = 56;
 const POD_X = TREE_CX - POD_W / 2;
 const POD_MY = POD_Y + POD_H / 2;

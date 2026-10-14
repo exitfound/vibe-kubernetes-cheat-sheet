@@ -7,8 +7,6 @@ WHAT     One write through Raft: proposal to the Leader, replication to the Foll
          apply, and what happens when the majority is gone.
 DEVIATES L-12: the two arcs are concentric, not mirrored. Mirrored, the ack lane crosses the
          outbound lane above ETCD-3, so ETCD-3 sends and receives with the same hand as ETCD-1.
-         The margin is 40, not CLU.M 60: it buys the proposal label its gap without narrowing the
-         API off 232, and the bbox stays centred on 600.
 CONTENT  Sources (v1.36, etcd 3.6.8): Raft, the Raft paper, etcd v3.6 API guarantees and FAQ,
          Operating etcd clusters for Kubernetes, etcd `server.go`, `bootstrap.go`, raft `raft.go`.
          Acks count, the quorum chip judges: Leader plus one Follower. `the Leader counts as one`,

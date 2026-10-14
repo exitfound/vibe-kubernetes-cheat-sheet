@@ -61,6 +61,7 @@ async function walkedDirs() {
 const NAMED_TARGETS = [
   join('diagrams', 'js', 'data.js'),
   join('diagrams', 'js', 'app.js'),
+  join('diagrams', 'js', 'dialog.js'),
   join('diagrams', 'js', 'posters.js'),
   join('diagrams', 'index.html'),
   // A rule that quotes a dash teaches the dash.

@@ -7,7 +7,6 @@ WHAT     A revision is a ReplicaSet carrying a revision annotation, so rollout h
          objects and a rollback renumbers one of them forward instead of rewinding anything.
 DEVIATES WL.A-03: no Node frame and no Pod. The subject is which ReplicaSet carries which revision,
          so a frame is a block no step narrates.
-         WL.L-06: reads LAYOUT.C.strip.two for the chip strip only. No ladder, no flanking column.
          L-11: a crossing connector leaves its object 24 left of centre and reaches its row 18
          right. The rollback leaves a three-cycle that centred ends cannot separate.
          A-03: the upward read route enters the owner's left face, not a lane at WL.LANE_DY off the

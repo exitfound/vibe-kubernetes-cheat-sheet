@@ -21,7 +21,7 @@ Every command runs from `diagrams/test/`.
 | change narration or a label | CANON `T` | `<id>.js` | `npm test` |
 | touch a shared helper | the comment beside it | `js/lib/*` | `npm test`, then `tools/settled-dump.mjs` against the tree before |
 | draw a poster | CANON `R` | `js/diagrams/<cat>/posters.js` | a montage beside two siblings |
-| write or debug a check | the test file header | `test/{unit,render,report}/*.test.mjs` | `node --test '<path>'` |
+| write or debug a check | the test file header | `test/{unit,render,report}/*.test.mjs` | `node --test '<path>'`, after `npm run walk` for `render/` and `report/` |
 
 **Verification ends at the rendered frames, never at the suite.** A lane ending in empty space, a
 composition off centre or a tag drifting off its ball is invisible to every check. A step's
@@ -31,16 +31,19 @@ composition off centre or a tag drifting off its ball is invisible to every chec
 
 ```
 diagrams/
-  index.html  CANON.md
+  index.html  CANON.md  README.md  favicon.svg
   card/        generated static page and diagram SVG per card (tools/pages/build.mjs), gitignored build output
-  css/         tokens.css (category colours), styles.css (layout, dialog; the chrome is /cli/css/chrome.css),
-               diagrams.css (SVG classes), page.css (static card pages)
+  css/         tokens.css (category colours), styles.css (layout and dialog, the chrome is
+               /cli/css/chrome.css), diagrams.css (SVG classes), page.css (static card pages)
   js/
-    app.js       router, grid, dialog, keyboard, hash routing (card and filter, D-16)
-    data.js      CATEGORIES + the four manifests as DIAGRAMS / SUBCATEGORIES
-    posters.js   the four poster maps merged
-    lib/         svg, primitives, timeline, motion, poster, inspector,
-                 tokens.js (PULSE_POD, PULSE_BLOCK, OPACITY, FADE, BEAT),
+    app.js       router, grid, hash routing (card and filter, D-16)
+    dialog.js    the card dialog: player, flips, fullscreen, PNG save, the keys inside a card
+    data.js      CATEGORIES + the category manifests as DIAGRAMS / SUBCATEGORIES
+    posters.js   the poster maps merged
+    revisions.js generated content fingerprint per card (committed, read by app.js and the hub)
+    lib/         svg, primitives, timeline, motion, poster, inspector (+ inspect-mode),
+                 export.js (the dialog's PNG save, loaded on demand),
+                 tokens.js (PULSE_POD, PULSE_BLOCK, OPACITY, FADE, BEAT, HOLD, playedHold),
                  layout.js (LANE_DY, GRID, LAYOUT, laneY, ladder, strip, spread, midX, shade),
                  diagram-kit.js (the shared base kit), scene-spec.js, step-spec.js
     diagrams/<category>/
@@ -126,30 +129,42 @@ A step is data plus one ordered motion program:
 `ctx.register(animation)` tracks an animation for cancel on step change. Prev resets the scene and
 replays steps 0..n reduced.
 
-**The page around the cards** lives in `js/app.js`: the dialog header (title, section, position,
-star, report link, fullscreen), the grid with its detailed and compact views
-(`kube-how:diagram-view:v1`), the `NEW` badges (`cli/js/lib/fresh.js`), the hash contract (`D-16`), the keys
-(`D-15`) and the poster-first model (`D-14`). Fullscreen goes on the page, not the dialog: Chrome
-refuses `requestFullscreen()` on a `<dialog>`, so `syncFullscreenBtn()` re-opens the modal on top.
+**The page around the cards** lives in `js/app.js` (grid, routing) and `js/dialog.js`: the dialog header (title, section, position,
+star, report link, PNG save, fullscreen), the grid with its detailed and compact views, the `NEW`
+badges (`cli/js/lib/fresh.js`, keyed by `id@revision`), the hash contract (`D-16`), the keys
+(`D-15`) and the poster-first model (`D-14`). Per-browser choices persist in `localStorage` as
+`kube-how:diagram-{view,loop,speed,starred}:v1`. Fullscreen goes on the page, not the dialog:
+Chrome refuses `requestFullscreen()` on a `<dialog>`, so `syncFullscreenBtn()` re-opens the modal
+on top. On a phone the page shows a desktop-only stub (`.mobile-stub` in `index.html`) that links
+the static card pages instead of the grid. A tablet held upright (touch, portrait, 601 to 900 wide)
+gets the dialog, with a `.portrait-hint` line under the drawing that points to landscape or the
+card's page.
 
-## Adding a card
+## Card work
 
-1. Read `./CANON.md` and the category `CLAUDE.md`. Copy the category exemplar's shape.
-2. Write `js/diagrams/<category>/<id>.js`. The id starts with the category (`D-02`).
-3. Add the entry to `cards.js`: 410-460 characters, 3 sentences (`D-04`, `D-05`).
-4. Add the poster to `posters.js` (`D-06`) after the concept is signed off (`R-01`).
-5. Write `CARDS/<id>.md` (`WHAT`, and `DEVIATES` / `CONTENT` / `OPEN` when they apply), add its row
-   to `CARDS.md`, and leave the pointer comment under the card's imports (`S-36`).
-6. `npm run pages` here, which writes the static page and the sitemap entry (`D-12`).
-7. `npm test`, then open the rendered frames at 1600x1000, 1280x860 and 1100x800.
+Card work runs through the skills in `.claude/skills/`, each of which reads CANON itself. The tools
+below need the dev server and Playwright from `diagrams/test/`, and run from that folder.
+
+| Lane | Skill | Tool |
+|---|---|---|
+| a new card, or a new composition for one | `card-new` | |
+| review a card, or change a detail of one | `card-review` | frames: `node ../../.claude/skills/card-review/tools/frames.mjs <id> --out=DIR` |
+| the truth of its prose | `card-facts` | |
+| its poster | `card-poster` | montage: `node ../../.claude/skills/card-poster/tools/montage.mjs <id> --out=DIR` |
+| all four over a set of cards | `card-cycle` | |
+| a section as a curriculum | `section-review` | |
+
+Adding or removing a card, with a skill or without one, also takes `npm run docs:sync` (the README
+headline counts) and `npm run pages` (the static page and its sitemap entry, `D-12`).
 
 ## Adding a category
 
-`D-13` lists what a fifth category touches. Order: folder, kit (shared re-export block unchanged,
+`D-13` lists what a new category touches. Order: folder, kit (shared re-export block unchanged,
 tint, pulses, bindings), `cards.js`, `posters.js`, `CLAUDE.md`, `CARDS.md`, then `js/data.js` and
 `js/posters.js`, then `css/tokens.css` and the tint block in `css/styles.css` (`C-16`), then
-`POSTER_COLORS` in `js/lib/poster.js` and the `<CAT>.*` index in CANON. Nothing checks the CSS and
-poster steps: re-read them.
+`POSTER_COLORS` in `js/lib/poster.js`, `ROLES` in `test/fixtures/palette.mjs`, the `<CAT>.*` index
+in CANON, the table in `diagrams/README.md`, and `npm run docs:sync`. Nothing checks the CSS, poster
+and README steps: re-read them.
 
 ## Where notes live
 
@@ -186,8 +201,9 @@ named check to go red, run it after editing a check).
 
 ## Constraints a card cannot close
 
-- The narration panel covers the top left (`x<=397`, `L-02`) and its depth changes with the
-  viewport. A card is laid out against its deepest panel, so the band a wide viewport frees stays
-  empty.
+- The narration panel covers the top left (`x<=361`, `L-02`). It scales with the diagram, but its
+  depth still moves a line or two with the empty gutter beside the drawing (`L-05`) and grows under
+  its 11px text floor (1100x800). A card is laid out against its deepest panel.
 - A `node()` frame label prints at `x: 12, y: 18` inside the frame, so a frame starting left of
-  about 385 above the panel bottom loses its label under the panel.
+  about 350 above the panel bottom loses its label under the panel at 1100x800, and left of about
+  310 on every viewport.

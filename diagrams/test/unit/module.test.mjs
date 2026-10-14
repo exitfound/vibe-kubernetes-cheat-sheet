@@ -102,17 +102,17 @@ class ProbeScene {
 const probeInit = diagramKit.makeInit(ProbeScene, [{ id: 'idle', duration: 1000, enter() {} }], { posterFirst: true });
 const controller = probeInit({ replaceChildren() {} }, {});
 
-// Read off js/app.js. `call` records whether app.js guards the member or calls it flat.
+// Read off js/app.js and js/dialog.js, which drives the player. `call` records how each member is reached.
 const APP_CONTROLLER_MEMBERS = {
   setSpeed:    { type: 'function', call: 'unconditional' },
   setLoop:     { type: 'function', call: 'unconditional' },
-  gotoStep:    { type: 'function', call: 'unconditional at open, feature-detected on deep link and scrub' },
+  gotoStep:    { type: 'function', call: 'unconditional' },
   posterFirst: { type: 'boolean',  call: 'read flat, picks the 700ms dwell over 500ms' },
-  autoPlay:    { type: 'function', call: 'feature-detected, falls back to setTimeout + play()' },
+  autoPlay:    { type: 'function', call: 'unconditional, the cancellable poster dwell' },
   play:        { type: 'function', call: 'unconditional' },
   pause:       { type: 'function', call: 'unconditional' },
-  isPlaying:   { type: 'function', call: 'feature-detected: isPlaying && isPlaying()' },
-  isLooping:   { type: 'function', call: 'feature-detected: isLooping && isLooping()' },
+  isPlaying:   { type: 'function', call: 'unconditional' },
+  isLooping:   { type: 'function', call: 'unconditional' },
   step:        { type: 'function', call: 'unconditional' },
   restart:     { type: 'function', call: 'unconditional' },
   destroy:     { type: 'function', call: 'unconditional, inside a try/catch on dialog close' },
@@ -137,32 +137,32 @@ describe('the init contract', () => {
     t.diagnostic(`${walked} inits, 1 distinct body, signature init(root, callbacks = {}) so arity ${probeInit.length}`);
   });
 
-  test(`the controller carries the ${Object.keys(APP_CONTROLLER_MEMBERS).length} members app.js consumes`, (t) => {
+  test(`the controller carries the ${Object.keys(APP_CONTROLLER_MEMBERS).length} members the app consumes`, (t) => {
     const findings = [];
     for (const [name, { type }] of Object.entries(APP_CONTROLLER_MEMBERS)) {
       if (!(name in controller)) { findings.push(`${name}  missing from the controller`); continue; }
-      if (typeof controller[name] !== type) findings.push(`${name}  is ${typeof controller[name]}, app.js uses it as ${type}`);
+      if (typeof controller[name] !== type) findings.push(`${name}  is ${typeof controller[name]}, the app uses it as ${type}`);
     }
     assert.equal(findings.length, 0,
-      `${findings.length} member(s) app.js depends on are not on the object init returns:\n  ${listing(findings)}`);
+      `${findings.length} member(s) the app depends on are not on the object init returns:\n  ${listing(findings)}`);
     const detected = Object.entries(APP_CONTROLLER_MEMBERS).filter(([, m]) => m.call.startsWith('feature-detected')).length;
     t.diagnostic(`${Object.keys(APP_CONTROLLER_MEMBERS).length} consumed, ${detected} of them behind a feature detect, ` +
       `${Object.keys(controller).length} on the controller in all`);
   });
 
-  // app.js calling a member the kit never returns is a TypeError on a user click.
-  test('app.js reaches for no controller member the kit does not return', async (t) => {
-    const src = await readFile(join(ROOT, 'js', 'app.js'), 'utf8');
+  // The app calling a member the kit never returns is a TypeError on a user click.
+  test('app.js and dialog.js reach for no controller member the kit does not return', async (t) => {
+    const src = (await readFile(join(ROOT, 'js', 'app.js'), 'utf8')) + (await readFile(join(ROOT, 'js', 'dialog.js'), 'utf8'));
     const found = new Set([...src.matchAll(/\b(?:ctrl|activeController)\s*(?:\?\.)?\.\s*([A-Za-z_$][\w$]*)/g)].map(m => m[1]));
     assert.ok(found.size > 0,
-      'read 0 controller members out of js/app.js: the controller was renamed away from ctrl / activeController ' +
+      'read 0 controller members out of js/app.js and js/dialog.js: the controller was renamed away from ctrl / activeController ' +
       'and this assertion has gone blind, which is worse than a finding');
     assert.deepEqual([...found].sort(), Object.keys(APP_CONTROLLER_MEMBERS).sort(),
-      'js/app.js and the table in this file disagree about which controller members are consumed');
+      'js/app.js, js/dialog.js and the table in this file disagree about which controller members are consumed');
     for (const name of found) {
-      assert.ok(name in controller, `js/app.js calls ctrl.${name}, which makeInit does not return`);
+      assert.ok(name in controller, `the app calls ctrl.${name}, which makeInit does not return`);
     }
-    t.diagnostic(`${found.size} distinct controller members reached for in js/app.js, all provided`);
+    t.diagnostic(`${found.size} distinct controller members reached for in js/app.js and js/dialog.js, all provided`);
   });
 });
 

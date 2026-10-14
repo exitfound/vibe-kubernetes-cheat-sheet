@@ -16,5 +16,5 @@ CONTENT  Sources: Gateway API (v1.36), and HTTPRoute, ReferenceGrant, HTTPBacken
          `here` the implementation runs a proxy, reaching the backend by Service IP or endpoint.
          No persona is named (T-21). One parent, so one Accepted and one ResolvedRefs chip.
 OPEN     CENTRE: the chip column at 424..900 stands on the grid the proxy and the grant use, and
-         centring it puts its left edge behind the panel wall (L-16).
+         centring it starts it at 362, left of the L-03 line at 420 above the panel bottom (L-16).
 ```

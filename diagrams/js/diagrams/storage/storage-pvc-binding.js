@@ -5,7 +5,7 @@ import { P, F, defineCard, OPACITY, makeRidingLabel, chipStrip } from './storage
 // The identity column Pod -> PVC -> PV shares this one line, because binding fuses the three into one chain.
 const CX = 600;
 
-// Actor blocks take the catalog size (NET.L-01).
+// Actor blocks take the catalog size (STO.L-05).
 const POD_W = 232, POD_H = 104, POD_X = CX - POD_W / 2, POD_Y = 56;
 const APP_W = 192, APP_H = 44, APP_DY = 26;
 const POD_BOTTOM = POD_Y + POD_H;

@@ -1,0 +1,10 @@
+name: kube-how
+services:
+  web:
+    build:
+      context: .
+    image: kube-cheatsheet:local
+    container_name: kube-cheatsheet
+    ports:
+      - "8080:80"
+    restart: unless-stopped

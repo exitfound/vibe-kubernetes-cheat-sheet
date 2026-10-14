@@ -33,6 +33,8 @@ const NODE_Y = 394, NODE_H = 140;
 const GI = 56;
 const BAR_W = 16 * GI, BAR_X = CX - BAR_W / 2;
 const BAR_Y = NODE_Y + 34, BAR_H = 64;                   // clears the Node label
+// The three narrow segments carry no caption: 56 and 28 units hold none, and the ladder names
+// all three budgets on the same beat.
 const KUBE_X = BAR_X, KUBE_W = GI;                       // 1Gi
 const SYS_X = KUBE_X + KUBE_W, SYS_W = GI / 2;           // 512Mi
 const EVICT_X = SYS_X + SYS_W, EVICT_W = GI / 2;         // 512Mi

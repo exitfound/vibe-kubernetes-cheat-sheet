@@ -19,7 +19,7 @@ const NP_BOTTOM = NP_Y + NP_H;
 // Close under the rule chip: the DNAT hop is the shortest lane on the card.
 const POD_W = 200, POD_H = 112, POD_Y = NP_BOTTOM + 36;
 
-// Actor tier, every block NET.L-01 232 wide and 80 tall, right of the panel wall at x 420.
+// Actor tier, every block NET.L-01 232 wide and 80 tall, right of the L-03 line at x 420.
 const ACTOR_W = 232, ACTOR_H = 80;
 const CCM_Y = 16;                                 // straight above the balancer it provisions
 const CCM_BOTTOM = CCM_Y + ACTOR_H;

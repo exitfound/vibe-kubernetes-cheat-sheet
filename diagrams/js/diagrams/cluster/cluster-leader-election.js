@@ -5,7 +5,9 @@ import { P, F, defineCard, midX, strip, laneOf, CLU, FADE, OPACITY } from './clu
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;
 const CX = midX(CONTENT_L, CONTENT_R);
-const PANEL_B = 130;                                     // measured panel bottom at 1100x800
+// A layout band, not a panel reading: the replica row starts at 145. The deepest panel on this
+// card reads 112 (1600x1000), 33 above the row, under two text lines of headroom.
+const PANEL_B = 130;
 
 const REP_W = 232, REP_H = 80, REP_GAP = 30;
 const STACK_W = 3 * REP_W + 2 * REP_GAP;
@@ -132,6 +134,7 @@ export const STEPS_SPEC = [
     narration: 'Only the leader runs control loops. It PUTs a fresh renewTime well inside leaseDurationSeconds (15s), and the standbys only GET the Lease to check it.',
     chips: { v1: 'leader · reconciling', v2: 'standby · polling', v3: 'standby · polling', holderChip: 'Controller-mgr-1', durChip: '15s', renewChip: '0s', transChip: '0' },
     sublabels: { r1: RUNNING_LOOPS, r2: IDLE_LOOPS, r3: IDLE_LOOPS },
+    // The call name, not a code: on a renewal no status code is news.
     wires: { w1: 'PUT renewTime', w2: 'GET Lease', w3: 'GET Lease' },
     opacity: stage(),
     lit: ['r1', 'r2', 'r3', 'v1', 'v2', 'v3', 'renewChip'],

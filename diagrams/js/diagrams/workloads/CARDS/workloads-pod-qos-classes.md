@@ -10,12 +10,10 @@ DEVIATES WL.A-03: the three taps stop on the frame top border from outside, one 
          WL.A-01: one answer lane on TOP_CY and no pair, because no step names anything going the
          other way.
          M-12: the `schedule` and `cgroups` fans fly all three lanes for one fanTiming duration, the
-         outer lanes' routeDur, with one trunk corner, so the balls ride the trunk as one and land on
-         one beat.
+         outer lanes' routeDur, with one trunk corner, so the balls ride the trunk as one and land
+         on one beat.
          A-13: the trunk and the bus stay at full weight while the Pods are pending. They end on
          the rail and not on a Pod, and dimming them switches the whole drawing off.
-         L-08: the bus at 384 stands 5.1 under the deepest panel, tied on `cgroups` and `tiers`, so
-         neither narration can gain a line unless the bus moves first.
 CONTENT  Sources (1.36): Pod QoS Classes, Node-pressure Eviction, `helper/qos`, kubelet `policy.go`.
          Pod-level resources (beta, on) replace the containers. Rule: CPU and memory, `above zero`.
          Class set `at creation`, a resize that would change it is rejected. A and B `uncapped`.

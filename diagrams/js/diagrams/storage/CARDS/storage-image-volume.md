@@ -5,8 +5,7 @@
 ```
 WHAT     An image volume puts a second OCI image, model weights llm:v1, into the Pod as one
          read-only directory: Kubelet has the runtime resolve it by pullPolicy at Pod startup, it
-         is pulled like a container image, and the app container waits for it. Two frames, the
-         Registry and the Node, and the volume is a box, since an image is not a disk.
+         is pulled like a container image, and the app container waits for it.
 DEVIATES L-11: the pull lane runs frame face to frame face on the shared midline, touching no inner
          block. It is traffic between two places, and the lit llm:v1 and its tag say which image.
 CONTENT  Sources (release-1.36, v1.36.5): Volumes (image), Image Volumes, Images, kubelet

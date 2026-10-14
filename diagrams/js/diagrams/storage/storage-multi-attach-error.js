@@ -2,10 +2,11 @@ import { P, F, defineCard, BEAT, FADE, OPACITY, LANE_DY, chipStrip, packetArriva
 // Design notes for this card: ./CARDS/storage-multi-attach-error.md
 
 
-// The panel wall as an L: above y 344 nothing sits left of it, so the VolumeAttachment row may.
+// Right of the panel. The VolumeAttachment row sits below every panel bottom, so it may start
+// left of it (L-03).
 const LEFT_X = 400;
 
-// NET.L-01 actor block.
+// STO.L-05 actor block.
 const BLOCK_W = 232, BLOCK_H = 80;
 const NODE_H = 150, BAND_H = BLOCK_H, VA_H = BLOCK_H, DK_H = 86, CHIP_H = 34;
 // Heights and gaps declared once, summed, and the leftover split evenly, so the card re-centres by

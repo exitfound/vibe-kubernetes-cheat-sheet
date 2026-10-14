@@ -4,7 +4,7 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, cards, census, recordPointer } from '../fixtures/catalog.mjs';
 import { importAll } from '../fixtures/module.mjs';
@@ -216,6 +216,7 @@ describe('the stylesheets', () => {
 const DOCKERIGNORE = readFileSync(join(REPO, '.dockerignore'), 'utf8');
 const DEPLOY = readFileSync(join(REPO, 'tools', 'deploy', 'stage.sh'), 'utf8');
 const RELEASE = readFileSync(join(REPO, '.github', 'workflows', 'release.yml'), 'utf8');
+const VERIFY = readFileSync(join(REPO, '.github', 'workflows', 'verify.yml'), 'utf8');
 
 // `**/CARDS/` is a tree-wide name like `**/CARDS.md`, not a path. A bare root entry is not compared.
 function dockerignoreLists() {
@@ -257,8 +258,19 @@ function releaseLists() {
   return { names, paths };
 }
 
+// verify.yml checks the staged tree for the names and probes the container for 404s.
+function verifyLists() {
+  const find = /leaked="\$\(find _site ([^\n]*)/.exec(VERIFY);
+  const probe = /for path in (\/CLAUDE\.md[^;]*);/.exec(VERIFY);
+  return {
+    names: new Set([...(find ? find[1].matchAll(/-name\s+([\w.-]+)/g) : [])].map(m => m[1])),
+    paths: new Set([...(find ? find[1].matchAll(/-path\s+'_site\/([\w./-]+)'/g) : [])].map(m => m[1])),
+    probes: probe ? probe[1].trim().split(/\s+/) : [],
+  };
+}
+
 describe('what never ships', () => {
-  test('S-41: the three exclusion lists name the same internal files', (t) => {
+  test('S-41: the three exclusion lists and the two checks in verify.yml name the same internal files', (t) => {
     const dock = dockerignoreLists();
     const deploy = deployLists();
     const release = releaseLists();
@@ -271,7 +283,7 @@ describe('what never ships', () => {
         'so a parse that has gone quiet has to be a failure here rather than a pass.');
     }
     // Anchored to the live names, so three lists cannot agree on the wrong thing.
-    for (const name of ['CLAUDE.md', 'CARDS.md', 'CANON.md', 'CARDS']) {
+    for (const name of ['CLAUDE.md', 'CARDS.md', 'CANON.md', 'README.md', 'CARDS']) {
       for (const [where, got] of [['.dockerignore', dock.names], ['stage.sh', deploy.names], ['release.yml', release.names]]) {
         assert.ok(got.has(name), `${where} does not exclude ${name}, which is an internal document that must never ship`);
       }
@@ -291,6 +303,18 @@ describe('what never ships', () => {
     assert.deepEqual(pathGap, [],
       `the workflows exclude ${pathGap.join(', ')} and .dockerignore does not, so the local ` +
       'container would carry it: Dockerfile is a blanket COPY . . while the workflows are allowlists.');
+    // verify.yml repeats the list twice: the staged-tree check and the container probes.
+    const verify = verifyLists();
+    assert.deepEqual(sorted(verify.names), sorted(dock.names),
+      'the leak check in verify.yml looks for different internal filenames than the three lists exclude');
+    assert.ok(verify.paths.has('diagrams/test'), 'the leak check in verify.yml does not look for diagrams/test');
+    assert.ok(verify.probes.length >= 6, `verify.yml probes ${verify.probes.length} path(s) for a 404, the parse has gone quiet`);
+    // A probe for a file the tree lacks is a 404 that proves nothing, and every name needs one live probe.
+    const absent = verify.probes.filter(p => !existsSync(join(REPO, p)));
+    assert.deepEqual(absent, [], `verify.yml probes path(s) the repo does not hold, which 404 trivially: ${absent.join(', ')}`);
+    const unprobed = [...dock.names, 'diagrams/test'].filter(n => !verify.probes.some(p => p.split('/').includes(n.split('/').pop()) && p.includes(n)));
+    assert.deepEqual(unprobed, [], `verify.yml probes the container for no file under ${unprobed.join(', ')}`);
+
     t.diagnostic(`${dock.names.size} internal filenames excluded in all three (${sorted(dock.names).join(', ')}), ` +
       `${dock.rootOnly.length} root-only entries in .dockerignore alone (${dock.rootOnly.join(', ')})` +
       (pathGap.length ? `. PATH GAP: the workflows also exclude ${pathGap.join(', ')} and .dockerignore does not` : ''));

@@ -1,6 +1,6 @@
-import { COPY_ICON, CHECK_ICON, STAR_ICON, LINK_ICON, DOCS_ICON, SECTIONS } from './data.js';
+import { STAR_ICON, LINK_ICON, DOCS_ICON, SECTIONS } from './data.js';
 import { setupSidebar } from './lib/sidebar.js';
-import { setupHeader, alignLogo, copyText, escapeHtml } from './lib/chrome.js';
+import { setupHeader, alignLogo, copyText, escapeHtml, COPY_ICON, CHECK_ICON } from './lib/chrome.js';
 import { setupKeysHelp, isSlash } from './lib/keys.js';
 import { hl, sortCmds } from './lib/commands.js';
 import { trackFresh, hashKey } from './lib/fresh.js';
@@ -255,11 +255,21 @@ function renderCmd(item) {
 let toastTimer;
 const toast = document.getElementById('toast');
 
-function showToast() {
+// The text is written on every show and emptied on hide, so the status region announces each copy
+// instead of holding a permanent "Copied" in the accessibility tree.
+function showToast(msg = 'Copied to clipboard', failed = false) {
   clearTimeout(toastTimer);
+  toast.querySelector('.toast-text').textContent = msg;
+  toast.classList.toggle('is-error', failed);
   toast.classList.add('show');
-  toastTimer = setTimeout(() => toast.classList.remove('show'), TOAST_DURATION);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+    // Emptied once the 0.2s fade is over, so the box does not shrink while it is still visible.
+    toastTimer = setTimeout(() => { toast.querySelector('.toast-text').textContent = ''; }, 250);
+  }, TOAST_DURATION);
 }
+
+const copyFailed = () => showToast('Copy failed', true);
 
 // The clipboard holds one command, so only the button that put it there shows the check: a new copy
 // resets whichever command button was still showing one. Its own timer, not the header's wallet timer
@@ -288,9 +298,9 @@ function clearNew(raw) {
 
 function copyCmd(item) {
   const raw = item.dataset.raw;
-  clearNew(raw);
 
   const finish = () => {
+    clearNew(raw);
     showToast();
     const btn = item.querySelector('.copy-btn');
     clearTimeout(cmdCopyTimer);
@@ -300,14 +310,14 @@ function copyCmd(item) {
     cmdCopyTimer = setTimeout(() => resetCmdCopyBtn(btn), COPY_RESET_DELAY);
   };
 
-  copyText(raw, finish);
+  copyText(raw, finish, copyFailed);
 }
 
-// The section ids double as hash routes, so a copied link opens the page filtered to that section.
-// The section's own static page, which every crawler and chat preview can read, not the `#` view.
+// The copied link is the section's own static page, which every crawler and chat preview can read,
+// not the `#` view.
 function copySectionLink(id) {
   const url = `${location.origin}/cli/section/${id}/`;
-  copyText(url, showToast);
+  copyText(url, () => showToast(), copyFailed);
 }
 
 // ── Three-level navigation ───────────────────────────────────
@@ -553,7 +563,9 @@ function applySearch(query) {
   const countEl = document.getElementById('searchCount');
   if (countEl) {
     if (q) {
-      const n = [...document.querySelectorAll('.cmd-item')].filter(el => !el.hidden).length;
+      // An out-of-scope section is hidden whole, its items keep their own state, so the test is any
+      // hidden ancestor.
+      const n = [...document.querySelectorAll('.cmd-item')].filter(el => !el.closest('[hidden]')).length;
       countEl.textContent = n.toString();
       countEl.classList.toggle('active', true);
     } else {
@@ -596,7 +608,8 @@ document.addEventListener('keydown', e => {
     searchInput.select();
     return;
   }
-  if (e.key === 'Escape' && (typing || searchInput.value)) {
+  if (e.key === 'Escape' && (typing || searchInput.value)
+      && !document.querySelector('#headerActions .action-wrap.open')) {
     clearTimeout(searchDebounce);
     searchInput.value = '';
     if (typing) searchInput.blur();

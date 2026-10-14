@@ -21,7 +21,7 @@ const CFG_LX = POD_CX + OFF_IN;  // Kubelet and the API server under it
 const CACHE_LX = POD_CX + OFF_MID;  // Node disk, left of the disk pair
 const LOGS_LX = POD_CX + OFF_OUT;  // Node disk, right of the disk pair
 
-// The homes are 80 tall (NET.L-01) and one width.
+// The homes are 80 tall (STO.L-05) and one width.
 const HOME_Y = 322, HOME_H = 80, HOME_BOTTOM = HOME_Y + HOME_H;
 const HOME_W = 120;
 const WR_W = HOME_W, RAM_W = HOME_W, KUBE_W = HOME_W, DISK_W = HOME_W;

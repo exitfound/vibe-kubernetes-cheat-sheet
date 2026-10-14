@@ -14,12 +14,10 @@ DEVIATES WL.L-06: no LAYOUT preset. Two chip columns flank the spine and no ladd
          columns at 444, and the floor then stands 8 above the canvas edge.
          WL.A-01: no lane pair. Nothing answers on this card, a closed door states its verdict in
          its own sublabel.
-         L-08: step 3 is a character budget, so the static Pod refusal lives in CONTENT only. A
-         fifth source wraps the dialog footer at 1100x800 and drops the panel under the caption.
          M-19a: steps 4 and 6 stand still for their whole hold. They are packet-less and Pod-less
          (M-27), and the hold buys reading time.
-         T-21: step 6 names the container runtime and nothing draws it. cluster-pod-sandbox-cri
-         draws the CRI stack.
+         T-21: step 5 names the Kubelet and step 6 the container runtime, and nothing draws either.
+         cluster-pod-sandbox-cri draws the CRI stack.
 CONTENT  v1.36: Ephemeral Containers, Debug Running Pods, Share Process Namespace, Pod v1, Pods (Pod
          update), kubectl debug profiles.go. A Pod update THROUGH THAT DOOR changes only images,
          `immutable` is ruled out. exec is closed by the IMAGE, for a shell exec into app. Never

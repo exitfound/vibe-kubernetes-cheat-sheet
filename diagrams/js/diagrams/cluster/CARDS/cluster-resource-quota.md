@@ -5,8 +5,8 @@
 ```
 WHAT     A namespace budget that accumulates: the bar is spec.hard, admitted Pods fill it left to
          right, and the refused request is drawn past the bar edge.
-DEVIATES L-03: the ReplicaSet starts at 340, behind the panel corner. The actor pair centres its gap
-         on 600, and pushing it clear of 420 leans the card 80 to the right.
+DEVIATES L-03: the ReplicaSet starts at 340, 20 units behind the panel corner at 1100x800. The
+         actor pair centres its gap on 600, and pushing it clear of 420 leans the card 80 right.
          L-08a: the ladder is column 2, 780..1140, not the 400 or 480 family. Its longest row fills
          it, and every element under it centres on one of three 360 columns.
          P-02: the `ReplicaSet web` chip reports a count, then a condition on persist. It is named

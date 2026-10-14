@@ -100,58 +100,6 @@
       min-height: 100svh;
     }
 
-    .sr-only {
-      position: absolute;
-      width: 1px; height: 1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-    }
-
-    /* Invisible replica of the nav row so alignLogo() can center the logo icon
-       over the same "All" button position as on the cli and diagram pages. */
-    .hub-ruler {
-      height: 0;
-      overflow: hidden;
-      visibility: hidden;
-    }
-    .hub-ruler .nav { position: static; box-shadow: none; }
-
-    /* Brighter separators on the hub. The header border goes transparent so
-       its height matches the cli and diagram pages exactly, and a spacer strip
-       below extends the header background downward to give the text some calm
-       room before the animated graph starts. The strip carries the line. */
-    .header { border-bottom-color: transparent; }
-
-    .hub-headpad {
-      position: relative;
-      height: 5px;
-      background: rgba(17, 15, 31, 0.95);
-    }
-
-    .hub-headpad::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 2px;
-      background: linear-gradient(to right, rgba(221, 202, 250, 0.06), rgba(221, 202, 250, 0.32) 50%, rgba(221, 202, 250, 0.06));
-      pointer-events: none;
-    }
-
-    .footer { position: relative; border-top-color: transparent; }
-    .footer::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      height: 2px;
-      background: linear-gradient(to right, rgba(221, 202, 250, 0.06), rgba(221, 202, 250, 0.32) 50%, rgba(221, 202, 250, 0.06));
-      pointer-events: none;
-    }
-
     .hub-split {
       position: relative;
       flex: 1;
@@ -371,10 +319,12 @@
       .hub-panel { padding: 18px 20px; }
       .hub-panel h2 { font-size: 25px; }
       .hub-icon { width: 48px; height: 48px; }
+      /* The labelled buttons are wide enough to tap, and 30 tall keeps the hub one viewport. */
+      .header-actions .action-btn { height: 30px; }
     }
   </style>
 </head>
-<body>
+<body class="hub-frame">
 
   <aside class="sidebar" aria-label="Site switcher">
     <a class="side-btn active" id="sideHome" data-tooltip="Home" aria-label="Home" aria-current="page" href="/">
@@ -476,7 +426,7 @@
 
   <footer class="footer">
     <p class="disclaimer">Not affiliated with the CNCF or the Kubernetes project.</p>
-    <p>&copy; <span id="year"></span> <a href="/">kube.how</a> · <a href="/diagrams/card/">All diagrams</a> · <a href="/cli/section/">All command sections</a></p>
+    <p>&copy; <span id="year"></span> <a href="/">kube.how</a></p>
   </footer>
 
   <script type="module">

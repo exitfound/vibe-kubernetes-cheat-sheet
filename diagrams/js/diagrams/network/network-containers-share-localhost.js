@@ -3,8 +3,8 @@ import { P, F, defineCard, makeRidingLabel, strip, midX, BEAT } from './network-
 
 // Design notes for this card: ./CARDS/network-containers-share-localhost.md
 
-// The shell opens right of the panel wall, so it may stand as high as the card wants. The client Pod
-// left of the wall stands below the container row, which keeps it clear of the deepest panel.
+// The shell opens on the L-03 line at 420, so it may stand as high as the card wants. The client Pod
+// left of that line stands below the container row, which keeps it clear of the deepest panel.
 const SHELL_X = 420, SHELL_Y = 168, SHELL_W = 720, SHELL_H = 340;
 const IN_PAD = 30;
 const IN_L = SHELL_X + IN_PAD, IN_R = SHELL_X + SHELL_W - IN_PAD;

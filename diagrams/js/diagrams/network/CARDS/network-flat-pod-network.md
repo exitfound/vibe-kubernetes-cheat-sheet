@@ -21,5 +21,4 @@ OPEN     The riding tag crosses the band floor twice a step and sweeps the band 
          down: a tag that clears the band label on the rail has to sit outside the band.
          The Node-2 kubelet overhangs into Node-1. Its drop lands inside Node-2, and moving the box
          puts it off centre over the symmetric band on every other step (L-16).
-         The poster is a literal miniature of the diagram, left for a poster pass.
 ```

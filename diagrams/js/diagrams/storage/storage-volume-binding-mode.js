@@ -6,7 +6,7 @@ import { P, F, defineCard, chipStrip, BEAT, FADE, OPACITY, REVEAL_MS } from './s
 // one claim resolving into one of two zones.
 const CX = 600;
 
-// Actor blocks at the catalog size (NET.L-01). The class sublabel carries the mode value alone,
+// Actor blocks at the catalog size (STO.L-05). The class sublabel carries the mode value alone,
 // since the full field name does not fit a 232 box.
 const BOX_W = 232, BOX_H = 80, TIER_GAP = 28;
 const SC_W = BOX_W, SC_H = BOX_H, SC_X = CX - SC_W / 2, SC_Y = 36;

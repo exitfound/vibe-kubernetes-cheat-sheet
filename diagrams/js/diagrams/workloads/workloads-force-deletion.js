@@ -59,7 +59,8 @@ const N_A_CX = N_A_X + N_W / 2, N_B_CX = N_B_X + N_W / 2;
 // arrowhead (A-05). It ends on the Node-1 frame face (WL.A-03).
 const BUS_Y = NODE_Y - 15;
 const ACK = [[WL.SPINE_X, SLOT_Y + SLOT_H], [WL.SPINE_X, BUS_Y], [N_A_CX, BUS_Y], [N_A_CX, NODE_Y]];
-// The break is a mark over a lane, not a lane segment, so L-09 does not reach it.
+// The break is a mark over a lane, not a lane segment, so L-09 does not reach it. A cross, not
+// two ticks, which would read as an equals sign.
 const CUT_CY = 373, CUT_R = 11;
 const CUT_D = `M ${WL.SPINE_X - CUT_R} ${CUT_CY - CUT_R} L ${WL.SPINE_X + CUT_R} ${CUT_CY + CUT_R}`
   + ` M ${WL.SPINE_X + CUT_R} ${CUT_CY - CUT_R} L ${WL.SPINE_X - CUT_R} ${CUT_CY + CUT_R}`;

@@ -7,7 +7,7 @@ const CX = 600;
 const SPREAD = 280;
 const SRC_CX = CX - SPREAD, CLONE_CX = CX + SPREAD;
 
-// The catalog actor block, 232 by 80 (NET.L-01).
+// The catalog actor block, 232 by 80 (STO.L-05).
 const PROV_W = 232, PROV_H = 80, PROV_X = CX - PROV_W / 2, PROV_Y = 36;
 const PROV_BOTTOM = PROV_Y + PROV_H, PROV_MY = PROV_Y + PROV_H / 2;
 

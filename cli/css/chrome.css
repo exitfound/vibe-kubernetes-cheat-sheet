@@ -163,7 +163,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 
 /* Phones: tooltips never show on touch and the rail costs a tenth of the width, so it starts
    hidden here. A visitor who taps the tab gets body.sidebar-shown from sidebar.js, remembered
-   like the desktop choice. Same breakpoint as PHONE_QUERY in sidebar.js. */
+   like the desktop choice. */
 @media (max-width: 680px) {
   body:not(.sidebar-shown) { padding-left: 0; }
   body:not(.sidebar-shown) .sidebar { transform: translateX(-100%); }
@@ -567,6 +567,36 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .footer p + p { margin-top: 4px; }
 .disclaimer { font-size: 13px; }
 
+/* ===== HUB FRAME =====
+   The hub and 404.html (body.hub-frame) have no nav rows, so their header and footer lines are
+   brighter gradients: the header border goes transparent (same height as the other pages) and a 5px
+   strip under it carries the line. .hub-ruler is an invisible nav row for alignLogo() to measure. */
+body.hub-frame .header { border-bottom-color: transparent; }
+.hub-headpad {
+  position: relative;
+  height: 5px;
+  background: rgba(17, 15, 31, 0.95);
+}
+.hub-headpad::after,
+body.hub-frame .footer::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to right, rgba(221, 202, 250, 0.06), rgba(221, 202, 250, 0.32) 50%, rgba(221, 202, 250, 0.06));
+  pointer-events: none;
+}
+.hub-headpad::after { bottom: 0; }
+body.hub-frame .footer { position: relative; border-top-color: transparent; }
+body.hub-frame .footer::before { top: 0; }
+.hub-ruler {
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+.hub-ruler .nav { position: static; box-shadow: none; }
+
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #110f1f; }
@@ -739,7 +769,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
 @media (max-width: 400px) {
   .logo-text { font-size: 18px; }
   .logo-icon { width: 26px; height: 26px; }
-  .action-btn { height: 30px; }
 }
 
 /* ===== PRINT ===== */

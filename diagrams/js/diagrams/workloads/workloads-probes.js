@@ -3,7 +3,7 @@ import { P, F, defineCard, ladder, WL, FADE, BEAT, OPACITY } from './workloads-k
 // Design notes for this card: ./CARDS/workloads-probes.md
 
 // Three parallel probe lanes, not the column preset: three questions on three independent periodSeconds.
-// PANEL_B is the narration panel bottom, and there is no head room to spend.
+// PANEL_B is a layout line set below the card's measured panel bottom, not the measurement.
 const PANEL_B = 255, PANEL_GAP = 21;
 const BAND_Y = PANEL_B + PANEL_GAP;
 

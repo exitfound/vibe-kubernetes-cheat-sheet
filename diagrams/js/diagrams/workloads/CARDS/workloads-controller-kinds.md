@@ -9,8 +9,6 @@ DEVIATES WL.L-06: no LAYOUT preset and no WL.L-05 strip. The chips stay a column
          so it centres on WL.CX with its left wall on the 420 L-03 allows.
          WL.A-03: no node() frame. One frame claims a DaemonSet has one Node, and the subject is
          which kind to write, which no Node acts in. No P.chain: the kinds are alternatives.
-         P-06: all three chips turn over at step ENTRY. They read out the kind in focus, not a value
-         a ball produces, and the rows are carried in test/fixtures/carried.mjs.
          T-21: ReplicationController is named only in the desc, and the Node only as the DaemonSet
          Pod block `One per matching Node`.
 CONTENT  Sources: Workload Management, ReplicationController, Jobs, Deployments (v1.36), the apps/v1

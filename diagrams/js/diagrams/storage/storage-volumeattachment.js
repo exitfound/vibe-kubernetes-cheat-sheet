@@ -7,7 +7,7 @@ import { P, F, defineCard, BEAT, OPACITY } from './storage-kit.js';
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;
 
-// Every solid block is the catalog actor block (NET.L-01), and the Pod is the catalog Pod.
+// Every solid block is the catalog actor block (STO.L-05), and the Pod is the catalog Pod.
 const BOX_W = 232, BOX_H = 80;
 
 const LEFT_X = 400;

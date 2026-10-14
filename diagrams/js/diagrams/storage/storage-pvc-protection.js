@@ -7,7 +7,7 @@ import { P, F, defineCard, BEAT, OPACITY, makeRidingLabel } from './storage-kit.
 const CX = 600;                                                // canvas and identity-spine centre
 const TIER = 162;
 
-// Every actor is 232 by 80 and the Pod 232 by 104 around a 192 by 44 app box (NET.L-01).
+// Every actor is 232 by 80 and the Pod 232 by 104 around a 192 by 44 app box (STO.L-05).
 const BOX_W = 232, BOX_H = 80;
 const POD_W = BOX_W, POD_H = 104, POD_X = CX - POD_W / 2, POD_Y = 56;
 const POD_BOTTOM = POD_Y + POD_H, POD_MID = POD_Y + POD_H / 2, POD_RIGHT = POD_X + POD_W;

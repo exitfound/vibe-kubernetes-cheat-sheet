@@ -5,8 +5,7 @@
 ```
 WHAT     The EndpointSlice controller derives a list from live Pods, one endpoint per selected Pod
          with its address and ready condition, and kube-proxy builds rules from the ready endpoints.
-DEVIATES NET.L-01: the three Pods are 250 by 120 with a 210 by 48 app box, the card's own size. The
-         slice frame is sized by its rows.
+DEVIATES NET.L-01: the three Pods are 250 by 120 with a 210 by 48 app box, the card's own size.
          A-08: the comb relation draws at full stroke-opacity through `tune`. At 0.45 it reads
          fainter than the dashed arrows it meets.
 CONTENT  Sources: Service, EndpointSlices, Probes, Pod Lifecycle (v1.36), 1.36 endpointslice code.

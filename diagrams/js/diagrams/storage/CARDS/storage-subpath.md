@@ -5,9 +5,8 @@
 ```
 WHAT     A subPath mount resolves to one file inside the volume when the container starts and is
          bind-mounted there, so the ..data flip that updates the volume never reaches it until the
-         container restarts. The volume row sits inside the Pod, which owns spec.volumes, with no
-         frame of its own.
-DEVIATES NET.L-01: a 1000 by 250 Pod along the bottom holds the volume row and two 232 by 80
+         container restarts.
+DEVIATES STO.L-05: a 1000 by 250 Pod along the bottom holds the volume row and two 232 by 80
          containers. The row entries are 48 tall and ..data 140 wide, not actors.
 CONTENT  Sources: Volumes, ConfigMaps, Projected Volumes (v1.36), kubelet subpath_linux.go.
          "Resolves that path when the container starts", not "once": a restart rebinds a new file.

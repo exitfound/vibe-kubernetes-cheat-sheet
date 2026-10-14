@@ -1,8 +1,8 @@
 import { reducedMotion } from './motion.js';
-import { PULSE_BLOCK, playedHold } from './tokens.js';
+import { playedHold } from './tokens.js';
 
 export class Timeline {
-  constructor({ steps, scene, onSceneReset, onChange, onPlayingChange, defaultDuration = 2000, posterFirst = false, autoPulse = true }) {
+  constructor({ steps, scene, onSceneReset, onChange, onPlayingChange, posterFirst = false }) {
     this.steps = steps;
     this.scene = scene;
     this.idx = 0;
@@ -15,14 +15,13 @@ export class Timeline {
     this._onChange = onChange || (() => {});
     this._onPlayingChange = onPlayingChange || (() => {});
     this._onSceneReset = onSceneReset || (() => {});
-    this._defaultDuration = defaultDuration;
     // When true, steps[0] is a non-narrated "poster" rest frame: auto-play and loop
     // start at step 1 (the first action), and manual Next wraps the last step back to it.
     this.posterFirst = posterFirst;
-    // Generic block auto-pulse: a brightness flash on every freshly highlighted block or chip.
-    // OFF catalog-wide through the makeInit default, so only Pods pulse (CANON.md M-25).
-    this.autoPulse = autoPulse;
     this._destroyed = false;
+    // Set only when a run stops on its own at the last step: a Play after that starts over, a Play
+    // after a pause on the last step plays that step again.
+    this._finished = false;
     queueMicrotask(() => this._notifyChange());
   }
 
@@ -95,38 +94,19 @@ export class Timeline {
     this._clearTimer();
     const step = this.steps[idx];
     if (!step) return;
-
-    const svgRoot = this._sceneSvg();
-    const prevHighlights = svgRoot ? new Set(svgRoot.querySelectorAll('.highlight')) : new Set();
+    this._finished = false;
 
     // A throw inside enter() is SWALLOWED into console.error, so one broken step cannot take the
     // dialog down. The cost: a missing import reads as a step that stops after its first packet.
     try { step.enter && step.enter(this.scene, this._ctx(reduced)); }
     catch (e) { console.error('Timeline step enter:', e); }
 
-    if (!reduced && svgRoot && this.autoPulse) {
-      const curr = svgRoot.querySelectorAll('.highlight');
-      for (const el of curr) {
-        if (prevHighlights.has(el)) continue;
-        try {
-          const a = el.animate(
-            [
-              { filter: 'brightness(1)' },
-              { filter: `brightness(${PULSE_BLOCK.bright})` },
-              { filter: 'brightness(1)' },
-            ],
-            { duration: PULSE_BLOCK.ms, iterations: 1, easing: PULSE_BLOCK.easing }
-          );
-          a.playbackRate = this.speed;
-          this._anims.push(a);
-        } catch (_) {}
-      }
-    }
-
     this.idx = idx;
     this._notifyChange();
-    if (opts.withTimer && !reduced) {
-      const baseDur = step.duration || this._defaultDuration;
+    // The reduced path plays too, as still frames: it registers no animation, so the hold is the
+    // reading time alone.
+    if (opts.withTimer) {
+      const baseDur = step.duration;
       let maxAnimEnd = 0;
       for (const a of this._anims) {
         try {
@@ -148,13 +128,6 @@ export class Timeline {
       this._stepResumeAt = performance.now();
       this._scheduleAdvance();
     }
-  }
-
-  _sceneSvg() {
-    if (!this.scene) return null;
-    return this.scene.refs?.svg
-      || (this.scene.host && this.scene.host.querySelector('svg'))
-      || null;
   }
 
   // Apply the poster (steps[0]) resting state without animation, so a following
@@ -181,6 +154,7 @@ export class Timeline {
           this._enterStep(0, { withTimer: true });
         }
       } else {
+        this._finished = true;
         this._setPlaying(false);
       }
     }, real);
@@ -189,7 +163,7 @@ export class Timeline {
   play() {
     if (this._destroyed) return;
     this._clearAutoPlay();
-    if (this.isLast && !this._timer) {
+    if (this.isLast && this._finished) {
       this._onSceneReset();
       this.idx = 0;
     }

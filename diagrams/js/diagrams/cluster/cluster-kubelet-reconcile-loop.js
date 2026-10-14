@@ -2,7 +2,7 @@ import { LANE_DY, P, F, defineCard, CLU, LAYOUT, laneY, ladder, midX } from './c
 
 // Design notes for this card: ./CARDS/cluster-kubelet-reconcile-loop.md
 
-// Laid out on the L. The API box at y=300 caps narration at 360 characters.
+// Laid out on the L.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;
 

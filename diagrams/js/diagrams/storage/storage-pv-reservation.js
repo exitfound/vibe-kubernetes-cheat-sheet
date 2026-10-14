@@ -5,7 +5,7 @@ import { LANE_DY, P, F, defineCard, OPACITY, BEAT, STO } from './storage-kit.js'
 const CX = STO.CX;                                    // the PV stands on it
 
 // Two body bands: the writers above, the two objects the reservation pairs below. Actor blocks take
-// the catalog size (NET.L-01).
+// the catalog size (STO.L-05).
 const BOX_W = 232, BOX_H = 80;
 const UP_Y = 90, UP_BOTTOM = UP_Y + BOX_H, UP_MID = UP_Y + BOX_H / 2;
 const LOW_Y = 400, LOW_BOTTOM = LOW_Y + BOX_H, LOW_MID = LOW_Y + BOX_H / 2;
@@ -20,7 +20,7 @@ const ADM_X = PV_X - 128 - BOX_W, ADM_RIGHT = ADM_X + BOX_W;
 // The PV spec line sits 14 under the name cylinder() prints at h/2 + 5 (STO.L-02).
 const SPEC_Y = LOW_Y + BOX_H / 2 + 19;
 
-// Upper band, right of the panel wall: the rival at 420, the controller one 128 lane to its right,
+// Upper band, from the L-03 line: the rival at 420, the controller one 128 lane to its right,
 // the same length as the admin lane below it.
 const SCR_X = 420, SCR_RIGHT = SCR_X + BOX_W;
 const CTRL_X = SCR_RIGHT + 128, CTRL_CX = CTRL_X + BOX_W / 2;

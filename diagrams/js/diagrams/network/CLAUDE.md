@@ -2,8 +2,8 @@
 
 How traffic moves in a cluster: the flat Pod network and the machinery under it, one packet's path
 at Pod level, Services and what backs them, traffic from outside, and DNS. A networking card is
-usually a PATH. Rules: `diagrams/CANON.md`. Module contract and the test suite: `diagrams/CLAUDE.md`.
-Per-card notes: `./CARDS/<id>.md`.
+usually a PATH. Rules: `diagrams/CANON.md`. Module contract and the test suite:
+`diagrams/CLAUDE.md`. Per-card notes: `./CARDS/<id>.md`.
 
 ## Sections
 
@@ -32,7 +32,11 @@ the 700 floor would make crawl. Each card using it registers its balls in `PACIN
 - A round trip is one lane pair, `laneY(FLOW_Y, LANE_DY)`, 24 apart (`A-23`).
 - `node()` frames pad 34 over and 12 under what they hold (`L-23`). A frame in a row of peer Nodes
   keeps the row height. `network-wiring-pod-via-cni`, `network-gateway-traffic-splitting` and
-  `network-traffic-distribution` use `node()` as a grouping frame, not a Node.
+  `network-traffic-distribution` use `node()` as a grouping frame, not a Node. The `L-23`
+  departures are `DEVIATES` lines in the records of `network-external-traffic-policy`,
+  `network-internal-traffic-policy`, `network-ipam-pod-cidr`, `network-nodelocal-dnscache`,
+  `network-nodeport-loadbalancer`, `network-packet-classification`, `network-pod-egress-snat` and
+  `network-pod-ip-and-veth`.
 - A `tune` or `raw` assigns a LITERAL ref key (`refs.x = ...`): `unit/spec-steps.test.mjs` cannot
   read a computed one. A `raw` that imitates a part kind is declared in `RAW_SHAPED_AS`
   (`unit/spec-scene.test.mjs`).
@@ -44,13 +48,13 @@ the 700 floor would make crawl. Each card using it registers its balls in `PACIN
 
 | ID | Rule |
 |---|---|
-| `NET.C-01` | `.diagram-packet` and `.diagram-ripple` pin `#4fe5ff` in `diagrams.css`, and the tinted dialog in `css/styles.css` the same: the tint stop washed the ball out. Never fold them into tokens (`C-21`) |
-| `NET.L-01` | An actor block is 232 by 80 and a Pod starts at 232 by 104. An actor departs only for a string that does not fit, the panel wall, or a row it is sized by. A Pod may depart. Either way the record states size and reason as a `DEVIATES` line, and a Pod is never resized to 232 by 104 for consistency alone |
+| `NET.C-01` | The ball and ripple colour is the literal `#4fe5ff`, in `diagrams.css` and the tinted dialog in `css/styles.css` alike: `C-21` |
+| `NET.L-01` | An actor block (a party: client, controller, Service, balancer, gateway) is 232 by 80 and a Pod starts at 232 by 104. An actor departs only for a string that does not fit or a row it is sized by. A Pod may depart. Either way the record states size and reason as a `DEVIATES` line, and a Pod is never resized to 232 by 104 for consistency alone. Stations, instruments, bands, tables and frames are sized by their row and owe no record line |
 | `NET.S-01` | A Pod is `podShell` plus an inner box in one `g`, as `P.pod` builds it. Client, kube-proxy, CoreDNS, a bridge and a NIC are infrastructure and light rather than pulse |
-| `NET.A-01` | Every endpoint sits on a block edge: a rewrite inside a box (DNAT, SNAT, port remap, conntrack) is a fade at one edge and a re-emergence at the far edge |
+| `NET.A-01` | Every endpoint sits on a block edge, and a rewrite inside a box re-emerges at the far edge: `A-19` |
 | `NET.A-02` | Traffic is delivered to a Node: a ball stops on the Node frame edge and the Pod inside pulses, and no wire or ball crosses a Node border. A grouping frame that is not a Node is exempt |
 | `NET.A-03` | N destinations get N wires: a fan draws every candidate even when a step takes one. The unridden legs are not a defect and `test/fixtures/carried.mjs` carries them |
-| `NET.A-04` | No line passes `role: ''` (`A-22`). Weight is `dim`, recession is `P.relation` at 0.45: a wire a ball rides is a route at full opacity, one nothing rides is a relation |
+| `NET.A-04` | No line passes `role: ''`, and weight and recession keep the hue: `A-22` |
 | `NET.T-01` | An address rides the ball as its tag (`M-30`), never as wire text: an address overflows an 80 unit gap and prints through a block border |
 | `NET.S-02` | `SCENE.reset.keys` lists every Pod inner box by key: `clearPodHighlight` resets only inline strokes, so a highlight from a reduced replay would leak into later steps (`S-19`) |
 | `NET.S-03` | The exemplar is `network-service-clusterip`. Copy its shape, not its Pod sizes |

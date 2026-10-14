@@ -2,7 +2,7 @@ import { LANE_DY, P, F, defineCard, laneY, ladder, strip, midX, CLU, LAYOUT, FAD
 
 // Design notes for this card: ./CARDS/cluster-oom-kill.md
 
-// Layout C: ladder right, chips in a two-row bottom strip. The Node frame top caps narration at roughly 570 characters.
+// Layout C: ladder right, chips in a two-row bottom strip.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;
 const CX = midX(CONTENT_L, CONTENT_R);

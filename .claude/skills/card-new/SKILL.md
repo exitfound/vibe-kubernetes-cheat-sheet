@@ -137,8 +137,8 @@ the prose (`L-08`).
 3. Lay out against the L-shaped safe zone (`L-01`, `L-03`).
 4. Take the category grammar: column presets (`L-08a`, `WL.L-06`), the vertical stack
    (`STO.L-01`), the frame family (`L-23`, `CLU.L-01`). Block sizes come from the same place, height
-   included (`NET.L-01`: actor 232 by 80, Pod 232 by 104 with a 192 by 44 app box). A departure
-   becomes a `DEVIATES` line.
+   included (`NET.L-01`, `STO.L-05`: actor 232 by 80, Pod 232 by 104 with a 192 by 44 app box). A
+   departure becomes a `DEVIATES` line.
 5. Derive, do not type. Measured inputs stay literals with their comment (`L-07`).
 6. Re-measure the panel on the rendered card at the smallest viewport, and move the band if needed.
 

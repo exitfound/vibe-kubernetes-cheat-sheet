@@ -1,6 +1,6 @@
-// The card records, CANON.md and the card skills against the code and each other: anchors and sections (A),
-// the category index (B), ids, Source paths and symbols (C), citations (D), the Check column (E),
-// rule length (F) and record form (G). Counts are docs-census.test.mjs (S-49). Nothing skips (S-46).
+// The card records, CANON.md, the skills and every CLAUDE.md against the code and each other: anchors (A),
+// the category index (B), ids, Source paths and symbols (C), citations (D), the Check column (E), rule
+// length (F), record form (G) and the CLAUDE.md files (H). Counts are docs-census (S-49). Nothing skips (S-46).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,7 +17,7 @@ const REPO = join(ROOT, '..');
 // Floors, not equalities, where a quantity may grow: they catch a walker that stops finding its input.
 // No anchor floor on purpose: a quota on anchors is a quota on documentation.
 const CATALOG_RULE_FLOOR = 235;
-const INDEX_ROWS = 47;
+const INDEX_ROWS = 48;
 const CANON_ROW_FLOOR = CATALOG_RULE_FLOOR + INDEX_ROWS;
 const REF_FLOOR = 400;
 const LABEL_MAX_CHARS = 90;
@@ -32,7 +32,7 @@ const SOURCE_PATH_FLOOR = 190;
 const SOURCE_SYMBOL_FLOOR = 38;
 
 // How category rules are declared in their folders, asserted exactly so the parser cannot go quiet.
-const DECLARATION_SHAPES = { row: 47, heading: 0, bullet: 0 };
+const DECLARATION_SHAPES = { row: 48, heading: 0, bullet: 0 };
 
 const CATS = await categories();
 const { CATEGORY_LABEL } = await catalog();
@@ -600,6 +600,8 @@ test('D1 every id a document cites resolves to a declared rule', () => {
   const docs = [
     ['CANON.md', CANON],
     ['CLAUDE.md', CONTRACT],
+    ['../CLAUDE.md', readFileSync(join(REPO, 'CLAUDE.md'), 'utf8')],
+    ['../cli/CLAUDE.md', readFileSync(join(REPO, 'cli', 'CLAUDE.md'), 'utf8')],
     ...CATS.map(c => [relFolder(c), FOLDER_MD.get(c)]),
     ...CATS.flatMap(c => CARDS_MD.get(c).map(d => [d.rel, d.md])),
     ...SKILL_MD,
@@ -908,4 +910,124 @@ test('G3 a line in the label column carries a label from the vocabulary and no o
     `The vocabulary is ${VOCAB.join(' ')} and nothing else (S-52). A note that fits none of them ` +
     'does not belong in the record. If the line is prose rather than a label, indent it to the column at 9.\n  ' +
     findings.join('\n  '));
+});
+
+// S-54: a DEVIATES entry opens on the id it breaks, as `<ID>: ` or `<ID>, <ID>: `. A continuation line
+// is prose at column 9 like a fresh entry, so an id-less sentence after a full stop is not seen.
+const RULE_ID = '[A-Z]{1,3}(?:\\.[A-Z])?-\\d+[a-z]?';
+const ENTRY_HEAD = new RegExp(`^${RULE_ID}(?:(?:, | and )${RULE_ID})*: `);
+
+test('G4 every DEVIATES entry opens on the rule id it breaks', (t) => {
+  const findings = [];
+  let blocks = 0, entries = 0;
+  for (const cat of CATS) {
+    for (const s of recordBodies(cat)) {
+      const m = /^### layout\n\n```\n([\s\S]*?)\n```/m.exec(s.body.join('\n'));
+      if (!m) continue;                                      // G1 owns a section with no layout block
+      let inBlock = false;
+      for (const line of m[1].split('\n')) {
+        if (line && !line.startsWith(' ')) inBlock = labelOn(line) === 'DEVIATES';
+        if (!inBlock) continue;
+        const prose = line.slice(LABEL_COL);
+        const at = `${s.rel}:${s.line}  ## ${s.id}  ${JSON.stringify(prose.slice(0, 60))}`;
+        if (line.startsWith('DEVIATES')) {
+          blocks++;
+          if (ENTRY_HEAD.test(prose)) entries++;
+          else findings.push(`${at}  the block opens on no rule id`);
+        } else if (ENTRY_HEAD.test(prose)) entries++;
+        // A capitalised word and a colon is a heading of its own: `Note:`, `Conformance:`.
+        else if (/^[A-Z][\w-]*: /.test(prose)) findings.push(`${at}  an entry headed by a word, not a rule id`);
+      }
+    }
+  }
+  assert.ok(blocks >= 100, `only ${blocks} DEVIATES block(s) parsed: a parse that stops matching finds nothing and passes`);
+  assert.deepEqual(findings, [],
+    `${findings.length} DEVIATES line(s) that do not open on a rule id. An entry names the row it breaks ` +
+    '(S-54), and a note that breaks no row goes to a comment on the constant it guards (S-35).\n  ' +
+    findings.join('\n  '));
+  t.diagnostic(`DEVIATES: ${entries} entr(ies) over ${blocks} block(s), each opening on a rule id`);
+});
+
+// Group H (S-55): the seven CLAUDE.md files against the tree. Paths, npm scripts and storage keys
+// are read off backticks and command lines, so a name in plain prose is not checked.
+const GUIDES = ['CLAUDE.md', 'cli/CLAUDE.md', 'diagrams/CLAUDE.md', ...CATS.map(c => `diagrams/${relFolder(c)}`)]
+  .map(rel => ({ rel, md: readFileSync(join(REPO, rel), 'utf8') }));
+
+const TREE_SKIP = new Set(['node_modules', '.git', '.codegraph', '.snapshot', '_site', 'card', 'section']);
+function treeNames(dir = '.', out = new Set()) {
+  for (const e of readdirSync(join(REPO, dir), { withFileTypes: true })) {
+    if (TREE_SKIP.has(e.name)) continue;
+    out.add(e.name);
+    if (e.isDirectory()) treeNames(join(dir, e.name), out);
+  }
+  return out;
+}
+
+// Named but not in a fresh checkout: a device, an image, the generated pages, the gitignored index.
+const NOT_IN_TREE = new Set(['/', '/dev/null', 'nicolaka/netshoot', 'section/', 'kustomize/', 'k9s/', '.codegraph/']);
+const GUIDE_BASES = ['.', 'diagrams', 'diagrams/js', 'diagrams/test', 'cli'];
+const FILE_EXT = /^[\w.-]+\.(js|mjs|css|html|json|md|sh|ya?ml|conf|txt|xml|svg|png|jpe?g)$/;
+
+test('H1 every repo path a CLAUDE.md names in backticks exists', (t) => {
+  const names = treeNames();
+  const dead = [];
+  let seen = 0;
+  for (const g of GUIDES) {
+    g.md.split('\n').forEach((line, i) => {
+      for (const m of line.matchAll(/`([^`]+)`/g)) for (const raw of m[1].split(/\s+/)) {
+        const tok = raw.replace(/^\(/, '').replace(/[),.:]+$/, '');
+        // Placeholders, globs, URLs with a fragment or query, keys and flags are not paths.
+        if (!tok || /[<>{}*$?=@#]|^https?:|^kube-how:|^-/.test(tok) || NOT_IN_TREE.has(tok)) continue;
+        if (!tok.includes('/') && !FILE_EXT.test(tok)) continue;
+        seen++;
+        const bare = tok.replace(/^\//, '').replace(/\/$/, '');
+        const ok = bare.includes('/')
+          ? [dirname(g.rel), ...GUIDE_BASES].some(b => existsSync(join(REPO, b, bare)))
+          : names.has(bare);
+        if (!ok) dead.push(`${g.rel}:${i + 1}  \`${tok}\` resolves nowhere in the tree`);
+      }
+    });
+  }
+  assert.ok(seen >= 150, `only ${seen} path(s) read off ${GUIDES.length} guides: a parse that stops matching passes`);
+  assert.deepEqual(dead, [], `${dead.length} dead path(s) in a CLAUDE.md:\n  ${dead.join('\n  ')}`);
+  t.diagnostic(`PATHS: ${seen} path(s) over ${GUIDES.length} guides, all resolving`);
+});
+
+test('H2 every npm script a CLAUDE.md runs is defined in diagrams/test/package.json', (t) => {
+  const dead = [];
+  let seen = 0;
+  for (const g of GUIDES) {
+    // A command may wrap between `npm run` and its script name.
+    for (const m of g.md.matchAll(/\bnpm\s+(?:run\s+([\w:-]+)|(test|ci)\b)/g)) {
+      seen++;
+      if (m[1] ? m[1] in PKG.scripts : m[2] === 'ci' || 'test' in PKG.scripts) continue;
+      dead.push(`${g.rel}:${g.md.slice(0, m.index).split('\n').length}  \`npm run ${m[1]}\` is not a script`);
+    }
+  }
+  assert.ok(seen >= 15, `only ${seen} npm command(s) read off the guides`);
+  assert.deepEqual(dead, [], `${dead.length} npm command(s) with no script behind them:\n  ${dead.join('\n  ')}`);
+  t.diagnostic(`NPM: ${seen} command(s), scripts ${Object.keys(PKG.scripts).join(' ')}`);
+});
+
+// Keys the code still names only to move them to their current name.
+const LEGACY_KEYS = new Set(['kube-how:scheme-seen:v1']);
+
+test('H3 the localStorage keys the guides name are the keys the code writes', (t) => {
+  const code = ['index.html', '404.html', ...['cli/js', 'diagrams/js'].flatMap(d => treeSources(join(REPO, d)).map(([p]) => p))]
+    .map(p => readFileSync(p.startsWith('/') ? p : join(REPO, p), 'utf8')).join('\n');
+  const inCode = new Set([...code.matchAll(/kube-how:[a-z-]+:v\d+/g)].map(m => m[0]));
+  const inDocs = new Map();
+  for (const g of GUIDES) {
+    g.md.split('\n').forEach((line, i) => {
+      for (const m of line.matchAll(/kube-how:([a-z-]*)(?:\{([a-z,]+)\})?([a-z-]*):(v\d+)/g)) {
+        const parts = m[2] ? m[2].split(',') : [''];
+        for (const p of parts) inDocs.set(`kube-how:${m[1]}${p}${m[3]}:${m[4]}`, `${g.rel}:${i + 1}`);
+      }
+    });
+  }
+  const dead = [...inDocs].filter(([k]) => !inCode.has(k)).map(([k, at]) => `${at}  ${k} is written by no code`);
+  const unnamed = [...inCode].filter(k => !inDocs.has(k) && !LEGACY_KEYS.has(k)).map(k => `${k} is named by no CLAUDE.md`);
+  assert.ok(inCode.size >= 8, `only ${inCode.size} key(s) found in the code`);
+  assert.deepEqual([...dead, ...unnamed], [], `the guides and the code disagree on storage keys:\n  ${[...dead, ...unnamed].join('\n  ')}`);
+  t.diagnostic(`KEYS: ${inDocs.size} named, ${inCode.size} in the code (${LEGACY_KEYS.size} legacy)`);
 });

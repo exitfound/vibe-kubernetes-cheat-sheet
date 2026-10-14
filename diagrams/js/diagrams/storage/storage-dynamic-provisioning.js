@@ -1,12 +1,12 @@
 import { BEAT, FADE, LANE_DY, OPACITY, P, F, defineCard, chipStrip, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-dynamic-provisioning.md
 
-// The panel wall (L-02) pins the top row at LEFT_X, so the columns centre on 652, not 600.
+// The top row starts at LEFT_X 400, right of the panel, so the columns centre on 652, not 600.
 // CANVAS_CX is separate on purpose: only the chip strip has the full width.
 const LEFT_X = 400;                                   // leftmost the TOP ROW may go, all viewports
 const CANVAS_CX = 600;                                // where the chip strip sits, always
 
-// Every block is the catalog 232 by 80 (NET.L-01). The 40 channel holds the class reference and the elbow.
+// Every block is the catalog 232 by 80 (STO.L-05). The 40 channel holds the class reference and the elbow.
 const COL_GAP = 40;                                   // the elbow channel lives in here
 const BOX_W = 232, BOX_H = 80;
 const COL_L_W = BOX_W;                                // identity column: the claim and its volume

@@ -36,6 +36,8 @@ const LADDER_Y = 220;
 const API_TO_CHAIN = [[API_CX, TOP_BOTTOM], [API_CX, LADDER_Y]];
 
 const CHIP_H = 34, CHIPS_Y = 520, CHIP_GAP = 20;
+// Two across (490): four across (258) cannot hold the longest `Pod object` value beside its
+// name (P-07).
 const { w: CHIP_W, x: CHIP_X } = strip({ from: BAND_L, to: BAND_R, count: 2, gap: CHIP_GAP });
 
 // The list order is the z-order: the three top-row blocks go last.

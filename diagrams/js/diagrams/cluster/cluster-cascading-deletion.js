@@ -63,7 +63,8 @@ const ETCD_GAP_CX = midX(API_R, ETCD_X);
 // One register for both client labels: they never share a step.
 const KCTL_LABEL_CX = midX(CX, KCTL_CX);
 const KCTL_LABEL_Y = BAND_OUT_Y - 16;
-// The GC return label names the JOG_UP lane, so it sits below that run, not under the box.
+// The GC return label names the JOG_UP lane, so it sits below that run, not under the box. In the
+// watch register it would read as the API issuing the DELETEs to the Garbage collector.
 const WIRE_GC_BACK_Y = JOG_UP + 14;
 // End-anchored left of the spine: a horizontal label centred on a vertical lane is cut in half.
 const WIRE_KUBELET_X = CX - LANE_DY - 14;

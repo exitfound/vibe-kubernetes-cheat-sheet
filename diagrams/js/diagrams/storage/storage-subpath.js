@@ -6,7 +6,7 @@ import { P, F, defineCard, BEAT } from './storage-kit.js';
 // The Pod holds the volume (spec.volumes is a Pod field), so every read stays inside the Pod frame
 // and the one lane that reaches the Pod, the Kubelet write, ends on its top face midpoint.
 const MID_X = 600;                                                // the Pod, Kubelet and ..data axis
-const COL_W = 232, BLK_H = 80;                                    // NET.L-01
+const COL_W = 232, BLK_H = 80;                                    // STO.L-05
 const TOP_Y = 140, TOP_MY = TOP_Y + BLK_H / 2;                    // the actor row
 const KUBE_X = MID_X - COL_W / 2;
 const CM_X = 860;
@@ -20,7 +20,7 @@ const SIDE_DX = 260;
 const PROXY_CX = MID_X - SIDE_DX, WEB_CX = MID_X + SIDE_DX;
 const V1_CX = PROXY_CX, V2_CX = WEB_CX;
 const V1_X = V1_CX - DIR_W / 2, V2_X = V2_CX - DIR_W / 2, DATA_X = MID_X - DATA_W / 2;
-const CT_W = 232, CT_H = 80, CT_Y = 416;                          // NET.L-01
+const CT_W = 232, CT_H = 80, CT_Y = 416;                          // STO.L-05
 const GRID_Y = 548, CHIP_H = 34, ROW_GAP = 12, CHIP_W = 300;
 
 // Each static wire and its ball share one array. The two reads start on the volume row floor and

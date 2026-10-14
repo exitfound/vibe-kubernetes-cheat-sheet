@@ -6,17 +6,17 @@ import { P, F, defineCard, BEAT, FADE } from './storage-kit.js';
 // The Filesystem row passes two stations and the Block row passes none: the gap is the subject.
 const ROW_FS = 364, ROW_BLK = 514;  // row centres
 
-// A disk left of the panel wall has to sit under the panel bottom (L-03).
+// A disk left of the L-03 line at 420 has to sit below the panel bottom (L-03).
 const DISK_W = 150, DISK_H = 96;
 const DISK_X = 40;  // mirrors the frame right edge about 600
 const DISK_R = DISK_X + DISK_W;
 const DISK_CX = DISK_X + DISK_W / 2;
 
-// The frame starts left of the panel wall, which is legal because its top sits under the panel.
+// The frame starts left of the L-03 line at 420, which is legal because its top sits below the panel.
 // Every lane from a disk stops on its left face, and the Node carries the story on from there.
 const NODE_X = 300, NODE_R = 1160, NODE_PAD = 24, NODE_HEAD = 34, NODE_FOOT = 12;
 const ST_W = 160, ST_H = 80, ST_GAP = 70;  // deliberately 160, not 232
-const POD_W = 232, POD_H = 104;  // NET.L-01
+const POD_W = 232, POD_H = 104;  // STO.L-05
 const APP_W = 192, APP_H = 44, APP_DY = 26;
 const POD_X = NODE_R - NODE_PAD - POD_W;
 const MNT_X = POD_X - ST_GAP - ST_W;

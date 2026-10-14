@@ -1,25 +1,8 @@
 // `?inspect=1` or the `diagram:inspect` localStorage key: a coordinate grid and a bbox overlay, so a
 // geometry number is READ off the canvas and not guessed. Inert otherwise: no listener, no DOM.
+import { inspectMode } from './inspect-mode.js';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
-
-function inspectMode() {
-  try {
-    const qs = new URLSearchParams(location.search);
-    const v = qs.get('inspect');
-    if (v === '1' || v === 'grid') return 'grid';
-    if (v === 'expose') return 'expose';
-  } catch (_) {}
-  try {
-    const v = localStorage.getItem('diagram:inspect');
-    if (v === '1' || v === 'grid') return 'grid';
-    if (v === 'expose') return 'expose';
-  } catch (_) {}
-  return false;
-}
-
-export function isInspectActive() {
-  return inspectMode() !== false;
-}
 
 function collectRefs(svg) {
   if (!svg) return [];

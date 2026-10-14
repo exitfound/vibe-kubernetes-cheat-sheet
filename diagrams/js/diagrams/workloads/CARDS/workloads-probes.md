@@ -14,8 +14,6 @@ DEVIATES WL.L-06: no LAYOUT preset. Three parallel probe lanes at 528 / 600 / 67
          outside `gate-opens`, and a relation never stands beside an arrowhead.
          P-05: background chip changes on `readiness-fails`, `liveness-fails` and
          `fresh-container` stay unlit. `lit` names what the step is about.
-         L-08: `startup-gating` is a character budget at the panel limit. A step past about 320
-         characters pays inside that step, never by moving the band.
 CONTENT  Sources (v1.36): Probes concept page, Configure Probes task, Pod Lifecycle, EndpointSlices,
          Pod v1, prober worker.go, endpointslice utils.go. Keep the readinessGates clause and name
          no controller, kube-proxy or Service (T-21). The docs say a failed readiness probe removes

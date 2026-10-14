@@ -9,10 +9,8 @@ DEVIATES CLU.L-01: the zone frames are 126/80/34. Two plain-box slots per frame,
          round a label pair leaves 60 units of nothing.
          M-19a: `zone-unhealthy` animates nothing and stands still for its whole duration. The next
          taint is 100 seconds away, and a ball would draw the reduced rate as the normal one.
-         Each zone draws only the head of its queue. Six Nodes per zone makes the cluster 12, under
-         the threshold of 50 where the secondary rate is 0, against the chips.
-         Opacity: a lit slot is never left at the NotReady shade. It rises to full as it lights,
-         and its sublabel keeps the NotReady or tainted state. Unlit, it drops back next step.
+         C-07: a lit slot rises to full rather than stay at the NotReady shade, and its sublabel
+         keeps the NotReady or tainted state. Unlit, it drops back next step.
 CONTENT  Sources (v1.36): Rate Limits on Eviction, kube-controller-manager, Taint-Based Evictions,
          the taint reference, `node_lifecycle_controller.go` at v1.36.0. The rate limits the taint,
          never a Pod delete, and "stops evicting" is ruled out: the node-lifecycle-controller only

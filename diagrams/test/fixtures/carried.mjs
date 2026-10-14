@@ -1130,33 +1130,37 @@ const ENTRIES = [
       + 'machinery column and the cylinder, 400..904 on 652, and the reason is the same 40 channel' },
   { axis: 'CENTRE-LOW', card: 'network-dns-coredns', where: [],
     why: 'the block that balances this card is the one the rule cannot count. CENTRE-LOW reads only '
-      + 'what sits BELOW the panel bottom of one viewport, 143 at 1600x1000, and the API server '
+      + 'what sits BELOW the panel bottom of one viewport, 184 at 1600x1000, and the API server '
       + 'block stands at 60..140 in the band the panel leaves free on the right (`L-01`), which is '
       + 'where the card puts it on purpose: it carries the composition out to x=1130 and closed the '
       + 'CENTRE finding this card used to hold. The five blocks the rule does see span 70..852. At '
-      + 'the narrower viewports the panel is deeper still, 171.42 and 204.97, so the block stays '
+      + 'the narrower viewports the panel is deeper still, 184.65 and 198.87, so the block stays '
       + 'above the line on every one of them and no reading of this metric can ever include it. '
-      + 'Dropping it under 143 to be counted re-opens the empty top band it was added to fill.' },
+      + 'Dropping it under 184 to be counted re-opens the empty top band it was added to fill.' },
   { axis: 'CENTRE-LOW', card: 'cluster-cascading-deletion', where: [],
     why: 'the same lean as the CENTRE row on this card, with the frame walls left out. CENTRE-LOW '
-      + 'judges against the panel bottom of ONE viewport, 177 at 1600x1000, and the blind-spot '
-      + 'block below says so itself: at the worst-of-three bottom, 255, the finding drops.' },
+      + 'judges against the panel bottom of ONE viewport, 184 at 1600x1000, and at the '
+      + 'worst-of-three bottom, 204, the finding stands too.' },
   { axis: 'CENTRE', card: 'cluster-object-create-path', where: [],
     why: 'the client hanging off the right of a composition centred on the frames. DO NOT close it '
       + 'by re-centring: that drags the frames off 600, which is what keeps the Node lane one '
       + 'straight segment. Widening the client to the 232 the API carries is the other route and it '
       + 'is refused on measurement: the band outside the wall is 150 units, the viewBox width '
       + 'available is 1200 at 1280x860 and below, and +90 shrinks the whole card by 7% there.' },
+  { axis: 'CENTRE-LOW', card: 'cluster-node-allocatable', where: [],
+    why: 'a reading of the panel, not of the composition: at 1600x1000 the scaled panel ends at 220, '
+      + 'above the Scheduler top, so the rule counts the Scheduler with the blocks below and reads '
+      + '152..1140 on 646. At the worst-of-three bottom, 265, the Scheduler stays above the line and '
+      + 'the finding drops. The card is laid out as it stands and nothing moves for the metric.' },
   { axis: 'CENTRE-LOW', card: 'cluster-object-create-path', where: [],
     why: 'the same complaint as the CENTRE row on this card with the frame walls left out. '
-      + 'CENTRE-LOW judges against the panel bottom of ONE viewport, 143 at 1600x1000, and the '
-      + 'blind-spot block below says so itself: at the worst-of-three bottom, 230, the finding '
-      + 'drops.' },
+      + 'CENTRE-LOW judges against the panel bottom of ONE viewport, 166 at 1600x1000, and the '
+      + 'worst-of-three bottom is the same 166, so the finding stands on every viewport.' },
   { axis: 'CENTRE', card: 'storage-ephemeral-storage-eviction', where: [],
     why: 'the rule counts the two top-row blocks, the Pod 484..716 and the Kubelet 884..1116, and not '
       + 'the gauge, which is bare rects (P.raw) and spans 120..1080 on centre 600 with the chip strip '
-      + 'at 112..1088. The top row stands right of the panel because the panel reaches x<=397 down to '
-      + '205 at 1100x800 and the row sits at 80..184, so neither block can start left of 420: the '
+      + 'at 112..1088. The top row stands right of the panel because the panel reaches x<=360 down to '
+      + '184 at 1100x800 and the row sits at 80..184, so neither block can start left of 420: the '
       + 'furthest left the pair can go still centres on about 770. Drawing the gauge as a box would '
       + 'label and centre it as one block and lose the to-scale segments the card is built on.' },
   { axis: 'CENTRE', card: 'storage-volume-model', where: [],
@@ -1164,7 +1168,7 @@ const ENTRIES = [
       + 'chip strip centred on 212, and the content row leaves both it and the timeline row labels '
       + 'at x 40 uncounted, reading 200..1168 on 684. The whole ink spans 32..1168 on centre 600. The '
       + 'Pod stands right of the panel because its top row sits at 104..184 while the panel reaches '
-      + 'x<=397 down to 180 at 1100x800. The record carries the same argument under OPEN' },
+      + 'x<=360 down to 123 at 1100x800. The record carries the same argument under OPEN' },
   { axis: 'CENTRE-LOW', card: 'storage-volume-model', where: [],
     why: 'the same lean as the CENTRE row on this card: the timeline bars start at 200 because the '
       + 'row labels own 40..190, and the labels are tags the rule does not count' },
@@ -1173,14 +1177,14 @@ const ENTRIES = [
       + '400..1179 on 790 and the chip column as a strip on 196. The column is the PV object, its '
       + 'fields stacked bottom left where the full width is free below the panel, and with it the ink '
       + 'spans 80..1179 on 630. The row cannot centre on 600 instead: the controller band spans exactly '
-      + 'the row, and a band at 231..969 would stand under the panel at 1100x800 (x<=397 above y 205). '
+      + 'the row, and a band at 231..969 would stand under the panel at 1100x800 (x<=360 above y 164). '
       + 'The record carries the same argument under OPEN' },
   { axis: 'CENTRE', card: 'storage-where-volume-data-lives', where: [],
     why: 'two rows, one ruling. The rule counts neither the Node frame nor the chips as ink, so it '
       + 'reads 410..1170 on centre 790. The ledger column 60..380 is the second axis of the card and '
       + 'owns the left under the panel on purpose: the whole ink, ledger included, spans 60..1170 on '
       + 'centre 615. Moving the tiers left puts the Pod and the frame label under the panel at '
-      + '1100x800 (x<=397 above y 205), and centring the ledger as a strip puts it under the Pod. The '
+      + '1100x800 (x<=360 above y 144), and centring the ledger as a strip puts it under the Pod. The '
       + 'record carries the same argument under OPEN' },
   { axis: 'CENTRE-LOW', card: 'storage-pv-lifecycle-phases', where: [],
     why: 'the same blocks as the CENTRE content row, 400..1179, with the chip column that balances '
@@ -1194,8 +1198,7 @@ const ENTRIES = [
     why: 'the chip row runs along the top of the Node frame, exactly as wide as it, 300..1160 on '
       + 'centre 730, because the chips report on what happens inside that frame. The drawn extent, '
       + 'disks included, spans 40..1160 on centre 600. Centring the row on 600 puts its left end over '
-      + 'the disk corridor and under the narration panel at 1100x800 (x<=397 above y 205), and the '
-      + 'row cannot go under the frame, which ends 47 units above the canvas floor. The record carries '
+      + 'the disks, 170..1030, and the row cannot go under the frame, which ends 47 units above the canvas floor. The record carries '
       + 'the same argument under DEVIATES L-13' },
   { axis: 'CENTRE', card: 'storage-default-storageclass', where: [],
     why: 'the class catalog 772..1068 is a P.chain, so the rule reads it as a chip strip centred on '
@@ -1231,7 +1234,7 @@ const ENTRIES = [
     why: 'the chip strip is the condition column, 424..900 on centre 662, each chip on the row of the '
       + 'object that reports it, 28 left of the ladder at 928..1160, with the ReferenceGrant centred '
       + 'under it. The drawn extent 40..1160 is centred on 600 and so is the proxy Pod on the rail. A '
-      + 'column centred on 600 would start at 362, behind the panel wall at every height it occupies, '
+      + 'column centred on 600 would start at 362, left of the L-03 line at 420 above the panel bottom, '
       + 'and a bottom strip would lose the row alignment that ties a condition to its object' },
   { axis: 'CENTRE', card: 'network-gateway-traffic-splitting', where: [],
     why: 'the chip column spans 564..924 on centre 744 because it stands in the gap between two '
@@ -1280,53 +1283,37 @@ const ENTRIES = [
     why: 'the chip column spans 908..1140 on centre 1024, and it is a column beside the stack on '
       + 'purpose, reading the Service fields next to the layers they describe. Centring it puts it '
       + 'on the spine, and a bottom strip has no room because the Node frame reaches 624.' },
-  { axis: 'OCCLUDED', card: 'cluster-resource-quota', where: ['ReplicaSet web'],
-    why: 'the ReplicaSet box starts at 340 and the panel reaches 396.55 at 1100x800 and 377.76 at '
-      + '1280x860, so its left BORDER is behind the panel on the two smaller viewports, by 56.55 '
-      + 'and 37.76 of a 232 box. The cost is visible rather than numerical and no TEXT is lost, '
-      + 'both its strings being centred on 456 and inking 411.2 at the earliest. Held open because '
-      + 'centring the pair exactly is the requirement and the panel is the thing in the way: `RS_X` '
-      + 'is `600 - 28 - 232` and there is no term in it to move, so closing it means giving up '
-      + 'either the exact centre or the family 232.' },
   { axis: 'OCCLUDED', card: 'cluster-server-side-apply', where: ['kubectl'],
     why: 'the author ruled the three top-row actors onto the family 232 with the 60 unit gaps the '
       + 'arrow pairs need, so the row is 816 wide, right-aligned on 1140 and starting at 324. The '
-      + 'panel reaches 396.55 at 1100x800 and 377.76 at 1280x860, so the left 73 and 54 units of '
-      + 'kubectl stand behind it there and nothing at 1600x1000. The label `kubectl` stays clear, '
-      + 'the sublabel `apply --server-side` inks from 381.7 at 1100x800 and loses its first 15 '
-      + 'units. Closing it means narrower boxes or 20 unit gaps, which is what the row had before.' },
+      + 'panel reaches 360.03 at 1100x800, where its text sits on the 11px floor, and 321.29 above '
+      + 'it, so the left 36 units of kubectl stand behind it at 1100x800 and nothing at 1280x860 '
+      + 'or wider. Both strings stay clear, the sublabel `apply --server-side` inks from 381.7. '
+      + 'Closing it means narrower boxes or 20 unit gaps, which is what the row had before.' },
   { axis: 'OCCLUDED', card: 'cluster-pod-sandbox-cri', where: ['Kubelet'],
     why: 'the same ruling as `cluster-server-side-apply`: three family 232 actors with 60 unit gaps, '
-      + 'right-aligned on 1140, so the Kubelet starts at 324 against a panel reaching 396.55 at '
-      + '1100x800 and 377.76 at 1280x860. No text is lost, `Kubelet` inks from 417.3 and `CRI '
+      + 'right-aligned on 1140, so the Kubelet starts at 324 against a panel reaching 360.03 at '
+      + '1100x800 and 321.29 from 1280x860 up. No text is lost, `Kubelet` inks from 417.3 and `CRI '
       + 'client` from 409.3 at 1100x800. Closing it means the 180 / 210 / 180 boxes the row had '
       + 'before, built leftwards off the 404 wall.' },
-  // The card sits on the canvas centre by design, so the csi-node table top is behind the panel on smaller viewports.
-  ...[['.../kubelet/plugins', '73'], ['.../kubelet/pods', '73'], ['Pod csi-node', '40']]
+  // The card sits on the canvas centre by design, so the csi-node table top is behind the panel on every viewport.
+  ...[['.../kubelet/plugins', '52'], ['.../kubelet/pods', '33'], ['Pod csi-node', '23']]
     .map(([block, pct]) => ({
       axis: 'OCCLUDED', card: 'storage-mount-propagation', where: [block],
       why: `${pct} percent behind the panel at its worst, on the author ruling that the frame and the `
         + 'chip grid centre on 600 even where the panel covers them. The 740 frame then starts at 230, '
-        + 'and a frame kept clear of the panel (x 420..1160) is the rejected alternative. Every string '
-        + 'is readable at 1600x1000, and the two covered rows are the Bidirectional binds that step 2 '
-        + 'names in full in its own narration.',
+        + 'and a frame kept clear of the panel (x 420..1160) is the rejected alternative. At 1100x800 '
+        + 'the panel cuts about half of every csi-node row string, and from 1280x860 up it still takes '
+        + 'the first 18 percent of `.../kubelet/plugins`, the P of `Pod csi-node` and the whole frame '
+        + 'label `Node-1`. The two covered rows are the Bidirectional binds that step 2 names in full '
+        + 'in its own narration.',
     })),
-  { axis: 'OCCLUDED', card: 'storage-access-modes', where: ['Pod app-1'],
-    why: 'the node row spans 306..894 so it stands flush over the driver band, a choice the author '
-      + 'made over the row at x=400 that cleared the panel and centred on 647. Pod app-1 then spans '
-      + '340.8..468.8 and is 44 percent behind the panel at 1100x800 and less at 1280x860, TEXT '
-      + 'included: part of its label and its container sit under the panel there. At 1600x1000 the '
-      + 'panel ends at 290.8 and nothing is covered.' },
-  { axis: 'OCCLUDED', card: 'storage-access-modes', where: ['ctr'],
-    why: 'the container box inside Pod app-1, 42 percent behind the panel at 1100x800, for the same '
-      + 'reason and on the same author ruling as the Pod around it.' },
   { axis: 'CENTRE', card: 'workloads-crashloopbackoff', where: [],
     why: 'the chip strip the metric pools is the four value chips alone, in the left column '
       + '98..540, because the instrument beside them is naked rects and not `.diagram-chip`. '
-      + 'The old ladder of chain rows at 660..1140 used to pull the pooled strip onto 600, and the '
-      + 'card was no better centred for it. The content bbox itself centres: the frame spans '
-      + '98..1102 on WL.CX by construction and the instrument 580..1102 balances the column. Closing it means a chip strip '
-      + 'straddling 600 under a panel that reaches 396.55, which is the 79-collision shape '
+      + 'The content bbox itself centres: the frame spans 98..1102 on WL.CX by construction and the '
+      + 'instrument 580..1102 balances the column. Closing it means a chip strip '
+      + 'straddling 600 under a panel that reaches 360.03, which is the 79-collision shape '
       + '`WL.L-05` refuses.' },
   { axis: 'CENTRE', card: 'workloads-pod-startup-conditions', where: [],
     why: 'an artefact of what the metric can SEE: `L-17` drops frames and chips, and this card '
@@ -1337,8 +1324,8 @@ const ENTRIES = [
   { axis: 'CENTRE', card: 'workloads-replicaset', where: [],
     why: 'the pooled strip is the three value chips alone and the RIGHT column is the only place '
       + 'they fit, so its centre is the column centre by construction. Three things pin them '
-      + 'there: the left column at this y is under the panel, which measures x<=396.55 and '
-      + 'y<=329.20 at 1100x800, a bottom strip has nowhere to go because the two ownership bands '
+      + 'there: the left column at this y is under the panel, which measures x<=360.03 and '
+      + 'y<=244.88 at 1100x800, a bottom strip has nowhere to go because the two ownership bands '
       + 'own 344..618 of a 624 canvas, and a strip straddling 600 would be crossed by the trunk, '
       + 'which runs down x=600 from 120 to the bus at 372 through exactly the band the chips '
       + 'occupy. The content bbox itself centres and is not reported.' },
@@ -1376,8 +1363,8 @@ const ENTRIES = [
       + 'the chip strip up into the 424 x 114 band at 60..484 / 280..394 fits on width, the longest '
       + 'row measuring 82.7 of name plus 282.5 of value, and empties the 548..624 strip instead, '
       + 'against a CHIPS_Y 548 that four sibling cards carry as LAYOUT.C.strip.two. CENTRE-LOW also '
-      + 'judges against the panel bottom of ONE viewport, 177.44 at 1600x1000, and the blind-spot '
-      + 'block below says so itself: at the worst-of-three bottom, 279.51, the finding drops.' },
+      + 'judges against the panel bottom of ONE viewport, 184.10 at 1600x1000, and at the '
+      + 'worst-of-three bottom, 204.39, the finding stands too.' },
   { axis: 'CENTRE-LOW', card: 'workloads-statefulset-update-strategy', where: [],
     why: 'the 4 blocks below the panel are the two Pod slots and their inner boxes and nothing '
       + 'else, spanning 60..360 on centre 210 against a want of ~600. The right half of that band '
@@ -1397,14 +1384,14 @@ const ENTRIES = [
       + 'cards in this section take. The CONTENT lean, 420..1140 on centre 780, is what is left '
       + 'once `L-17` drops those same chips. Measured with them, the card spans 60..1140 and '
       + 'centres on 600 exactly, with margins of 60 and 60. The diagram sits right of x=420 '
-      + 'because the panel measures 396.55 wide and `L-03` allows nothing left of that line above '
+      + 'because the panel measures 360.03 wide and `L-03` allows nothing left of that line above '
       + 'the panel bottom, so the only way to drag the bbox back to 600 is to put blocks in the '
       + 'gutter the column already fills.' },
   { axis: 'CENTRE-LOW', card: 'network-pod-ip-and-veth', where: [],
     why: 'the same six blocks as the CENTRE content row, 450..1110 on centre 780, with the frame '
       + 'wall left out and the chip column still uncounted. CENTRE-LOW also judges against the '
-      + 'panel bottom of ONE viewport, 143 at 1600x1000, and this card measures 204.97 at 1100x800, '
-      + 'which is the blind spot the block below this one states about itself.' },
+      + 'panel bottom of ONE viewport, 148 at 1600x1000, and its deepest of the three, 164.95 at '
+      + '1280x860, does not change the verdict.' },
 
   { axis: 'CENTRE', card: 'workloads-probes', where: [],
     why: 'the card record OPEN: the chip strip spans 140..450 and centring it on 600 puts it at '
@@ -1414,9 +1401,9 @@ const ENTRIES = [
   { axis: 'OCCLUDED', card: 'workloads-env-before-pid-1', where: ['ConfigMap app-config'],
     why: 'the card record OPEN: the source row starts at 254 so the spine lands on 600 with straight '
       + 'legs. Held to the L-03 floor of 420 the row midpoint is 766 and the card leans 166 right of '
-      + 'WL.CX. The box is 65% under the panel at its worst and its label is cut 61% at 1280x860 '
-      + 'and 75% at 1100x800, and the lever that would close it is clamping the panel height in '
-      + 'CSS, which is catalog-wide (L-05a)' },
+      + 'WL.CX. The box is 48% under the panel at 1100x800 and 31% from 1280x860 up, its label '
+      + 'cut 47% and 17%. The panel already scales with the diagram (L-05a), so what is left to '
+      + 'close it is the 420 row and its lean' },
 
   // A-05: a fan leg nothing rides is correct (NET.A-03). ../unit/lane-shared.test.mjs asserts on this set.
   { axis: 'A-05', card: 'network-ebpf-dataplane', where: ['[[672,312],[796,312],[796,442],[920,442]]'],

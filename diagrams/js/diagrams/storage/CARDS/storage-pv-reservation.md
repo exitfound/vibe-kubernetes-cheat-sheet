@@ -4,7 +4,7 @@
 
 ```
 WHAT     A retained volume is handed to one named claim by pointing its claimRef at that claim with
-         no UID. The reservation keeps every other claim out, and volumeName is the other half.
+         no UID, a reservation that keeps every other claim out, with volumeName as the other half.
 DEVIATES STO.L-01: an object board in two bands, writers above and the PV and its claim facing each
          other across the claimRef and volumeName lock, because nothing here is owned.
          L-13: the six chips are two columns under the two objects whose fields they are. Centred

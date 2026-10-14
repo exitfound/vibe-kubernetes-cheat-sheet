@@ -14,9 +14,9 @@ const CHECK = process.argv.includes('--check');
 
 const { DIAGRAMS, CATEGORIES, CATEGORY_LABEL, SUBCATEGORIES } = await from('diagrams/js/data.js');
 const { renderPoster } = await from('diagrams/js/lib/poster.js');
-const { SECTIONS, COPY_ICON } = await from('cli/js/data.js');
+const { SECTIONS } = await from('cli/js/data.js');
 const { hl, sortCmds } = await from('cli/js/lib/commands.js');
-const { escapeHtml: esc } = await from('cli/js/lib/chrome.js');
+const { escapeHtml: esc, COPY_ICON } = await from('cli/js/lib/chrome.js');
 const { POSTERS } = await from('diagrams/js/posters.js');
 // The repo and the author's profiles, for the footer and the JSON-LD graph. contacts.js is optional.
 const contacts = await from('cli/js/contacts.js').catch(() => ({}));
@@ -55,9 +55,9 @@ const OG = {
 // Words a cut description must not end on: "...behind the API, the..." reads as machine output.
 const DANGLING = /\s+(?:the|a|an|of|to|and|or|in|on|at|for|with|by|from|into|its|their|is|are|as|that|which|so)$/i;
 
-// A meta description: the first whole sentences that fit in 160 characters. A sentence ends at . ! or ?
-// before a space and a capital, so `resolv.conf` or `127.0.0.1` never split. Under 100 characters it
-// is too thin, and the text is cut at the last clause break (or word) near 160 instead.
+// A meta description: the first whole sentences (ending . ! or ? before a capital) within 160 chars.
+// Under 100 it is cut at the last clause break near 160 instead, and with none to end on, whole
+// sentences of 60 or more win over a cut in the middle of a clause.
 function summary(text, max = 160) {
   const parts = [];
   let from = 0;
@@ -76,6 +76,7 @@ function summary(text, max = 160) {
   if (text.length <= max) return text;
   const head = text.slice(0, max - 3);
   const clause = Math.max(head.lastIndexOf(', '), head.lastIndexOf(': '), head.lastIndexOf('; '));
+  if (clause < 100 && out.length >= 60) return out;
   let cut = clause >= 100 ? head.slice(0, clause) : head.replace(/\s+\S*$/, '');
   while (DANGLING.test(cut)) cut = cut.replace(DANGLING, '');
   return cut.replace(/[,:;]$/, '') + '...';
@@ -156,7 +157,7 @@ ${body}
   <footer class="footer">
     <p class="disclaimer">Not affiliated with the CNCF or the Kubernetes project.</p>${REPO ? `
     <p class="disclaimer">Every page is checked against the official documentation. Source and corrections on <a href="${REPO}" rel="noopener">GitHub</a>.</p>` : ''}
-    <p>&copy; <span id="year"></span> <a href="/">kube.how</a> · <a href="/diagrams/card/">All diagrams</a> · <a href="/cli/section/">All command sections</a></p>
+    <p>&copy; <span id="year"></span> <a href="/">kube.how</a></p>
   </footer>
 
   <script type="module">
@@ -407,7 +408,7 @@ function toolPage(t) {
       <ol>
         <li><a href="/cli/">Commands</a></li>
         <li><a href="/${SECTION_DIR}/">All sections</a></li>
-        <li aria-current="page">${esc(t.sub)}</li>
+        <li aria-current="page">${esc(heading)}</li>
       </ol>
     </nav>
     <header class="page-tool-head" data-cat="${catKey}">
@@ -454,7 +455,7 @@ function cliPage(sec, i) {
       <ol>
         <li><a href="/cli/">Commands</a></li>
         <li><a href="/${SECTION_DIR}/">All sections</a></li>
-        <li aria-current="page">${esc(sec.title)}</li>
+        <li aria-current="page">${esc(heading)}</li>
       </ol>
     </nav>
     <section class="section" data-section="${sec.id}" data-cat="${catKey}" data-group="${group}">
