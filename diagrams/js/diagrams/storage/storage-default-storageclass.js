@@ -4,7 +4,7 @@ import { FADE, P, F, defineCard, OPACITY, BEAT, STO } from './storage-kit.js';
 
 const CX = STO.CX;  // the four claims sit symmetric about it
 
-// Actor blocks take the catalog size (NET.L-01): 232 by 80.
+// Actor blocks take the catalog size (STO.L-05): 232 by 80.
 const BOX_W = 232, BOX_H = 80;
 
 // Creation order left to right, mirrored about CX, so the admission pair reaches the outer two over
@@ -14,7 +14,7 @@ const CLAIM_Y = 380, CLAIM_BOTTOM = CLAIM_Y + BOX_H;
 const claimCx = (i) => CX + (i - 1.5) * (BOX_W + CLAIM_GAP);
 const A_CX = claimCx(0), B_CX = claimCx(1), C_CX = claimCx(2), D_CX = claimCx(3);
 
-// The admission plugin stands on CX, right of the panel wall, in the top band.
+// The admission plugin stands on CX, right of the panel, in the top band.
 const ADM_X = CX - BOX_W / 2, ADM_Y = 96;
 const ADM_RIGHT = ADM_X + BOX_W, ADM_BOTTOM = ADM_Y + BOX_H;
 const ADM_MID = ADM_Y + BOX_H / 2;

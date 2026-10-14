@@ -1,6 +1,6 @@
 // Stamps every local module, script and stylesheet URL in a staged site with `?v=<version>`, so a
 // fresh page loads a fresh module graph instead of whatever each file's cache holds. Run by
-// deploy.yml on _site. A computed import cannot be rewritten: diagrams/js/app.js stamps its own.
+// deploy.yml on _site. A computed import cannot be rewritten: diagrams/js/dialog.js stamps its own.
 import { readdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
 

@@ -22,6 +22,7 @@ CONTENT  Sources at 1.36: Garbage Collection, Kubelet Configuration, Node-pressu
          LowThresholdPercent. Images go before Pods fail, "every unused image past
          imageMinimumGCAge" because `DeleteUnusedImages` skips younger ones where the docs say
          "all unused images". Names, ages, usage are scenario.
-OPEN     The collection clocks (5m images, 1m containers) are undrawn. The only free band under the
-         panel is 227.9 wide, and the shortest honest chip needs 227.4 of glyph alone.
+OPEN     The collection clocks (5m images, 1m containers) are said on `stores` and not drawn. A
+         chip fits under the panel, left of the 588 delete drop and above the `del` label at 285:
+         drawing one is a composition change.
 ```

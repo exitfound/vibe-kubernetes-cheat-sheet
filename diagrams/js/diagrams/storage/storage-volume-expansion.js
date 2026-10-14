@@ -6,7 +6,7 @@ import { g, rect } from '../../lib/svg.js';
 const CX = 600;
 
 // Three tiers on one pitch between block midpoints, the same pitch and footprints as
-// storage-pvc-protection so the pair reads as one family. Catalog blocks and Pod (NET.L-01).
+// storage-pvc-protection so the pair reads as one family. Catalog blocks and Pod (STO.L-05).
 const BOX_W = 232, BOX_H = 80;
 const POD_W = BOX_W, POD_H = 104, POD_X = CX - POD_W / 2, POD_Y = 56;
 const POD_BOTTOM = POD_Y + POD_H;

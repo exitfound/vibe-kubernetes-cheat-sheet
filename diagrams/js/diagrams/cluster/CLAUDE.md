@@ -2,11 +2,11 @@
 
 The machinery under every workload: the API server and its request path, the scheduler, the
 controllers and ETCD, then the Kubelet and the runtime on one Node, and a Node changing state.
-Rules: `diagrams/CANON.md`. Module contract and the test suite: `diagrams/CLAUDE.md`. Per-card notes:
-`./CARDS/<id>.md`, indexed in catalog order by `./CARDS.md`.
+Rules: `diagrams/CANON.md`. Module contract and the test suite: `diagrams/CLAUDE.md`. Per-card
+notes: `./CARDS/<id>.md`, indexed in catalog order by `./CARDS.md`.
 
 The folder holds `cards.js` (the `CARDS` entries and `SUBCATEGORIES`), `posters.js`,
-`cluster-kit.js` and one `cluster-*.js` per card, and nothing else (`S-20`, `S-21`).
+`cluster-kit.js` and one `cluster-*.js` per card, and no other `.js` (`S-20`).
 
 ## Sections
 
@@ -25,9 +25,10 @@ and of the cards inside each is editorial (`D-10`).
 `CLUSTER_TINT = { bright: 'rgb(224, 214, 255)' }`, violet, the pulse peak only (`M-05`).
 
 `cluster-kit.js` re-exports the shared surface (`S-22`) and adds `CLUSTER_TINT`, the two pulse
-wrappers, `CLU` (the frozen X grammar and the `NODE` frame family) and `LAYOUT` (the `A` / `B` /
-`C` column presets, picked by `L-08a`). There is no cluster-only behaviour helper: a card that
-needs other timings on a riding label builds one with `makeRidingLabel` and passes it as `fn`.
+wrappers, `CLU` (the shared `GRID` plus `BOX_W` and the `NODE` frame family) and `LAYOUT` (the
+`A` / `B` / `C` column presets, picked by `L-08a`). There is no cluster-only behaviour helper: a
+card that needs other timings on a riding label builds one with `makeRidingLabel` and passes it as
+`fn`.
 
 ## Geometry
 
@@ -36,7 +37,12 @@ needs other timings on a riding label builds one with `makeRidingLabel` and pass
 - Columns 60..540 and 660..1140 for `LAYOUT.A` and `B`. `LAYOUT.C` strips the chips at 532 (two
   across) or 350.7 (three across) under the frame.
 - Node frame family `CLU.NODE`: frame 152, Pod 106, Pod top at `NODE_Y + 34`. Copy it from
-  `cluster-node-drain.js`. The chip strip ends on 624.
+  `cluster-node-drain.js`. The lowest row, a chip strip or the frame itself, ends on 624.
+- Frame departures (`L-23`, `CLU.L-01`), each a `DEVIATES` line in its record, as frame/slot/top
+  pad: `cluster-pod-sandbox-cri` 162/116/34 and `cluster-oom-kill` 156/110/34 (a taller Pod),
+  `cluster-node-registration` and `cluster-node-eviction-rate` 126/80/34 (plain-box slots),
+  `cluster-node-failure` 134/106/16 (top pad), `cluster-image-container-gc` (no Pod, 56 over its
+  bar).
 - `cluster-architecture`, `cluster-object-create-path` and `cluster-cascading-deletion` share one
   grid: frames 150..1050, control plane 96..440, Node top 475.
 
@@ -46,13 +52,15 @@ needs other timings on a riding label builds one with `makeRidingLabel` and pass
 |---|---|
 | `CLU.D-01` | The three sections above, split between the last two on whether the Node is healthy |
 | `CLU.C-01` | Chrome indigo `#7d86ff` keys off `data-cat`, the diagram off `data-role` (`C-15`) |
-| `CLU.L-01` | A frame pads 34 above and 12 below, Pods take `CLU.NODE`, a departure is DEVIATES |
+| `CLU.L-01` | A Pod in a Node frame takes `CLU.NODE`, departing frames are listed under Geometry |
 | `CLU.S-01` | A record states only what is true of its own card: no shared contract paragraph |
 | `CLU.S-02` | `cluster-scheduler-decision` is the card a new cluster card copies its shape from |
-| `CLU.S-03` | A record past 300 lines says in its `WHAT` line why the card needs the length |
+| `CLU.S-03` | A record runs at most 30 lines, and one that needs more says why in its `WHAT` line |
 
 ## Exemplar
 
 `cluster-scheduler-decision`: the declarative form read top to bottom, measured inputs as literals
 and everything else derived, a top-row request strip over the actors with the Node row below, and
-the Kubelet with two lanes as the shape for something arriving on a Node.
+the Kubelet with two lanes as the shape for something arriving on a Node. It is the exemplar of the
+form, not of the geometry, which comes from `CLU`: its top row sits at 60..140, its ladder rows on a
+gap of 12, and its chip column is 270 wide (the record says why).

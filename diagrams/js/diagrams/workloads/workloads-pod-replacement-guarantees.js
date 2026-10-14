@@ -3,7 +3,7 @@ import { P, F, defineCard, WL, FADE, BEAT, OPACITY, fanTiming } from './workload
 // Design notes for this card: ./CARDS/workloads-pod-replacement-guarantees.md
 
 // A verdict board: five controller columns, one event reaching all five at once from the API.
-// PANEL_B is the deepest measured panel.
+// PANEL_B is a layout line set below the card's measured panel bottom, not the measurement.
 const PANEL_B = 230, PANEL_GAP = 21;
 const BAND_Y = PANEL_B + PANEL_GAP;
 

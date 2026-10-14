@@ -6,7 +6,7 @@ import { P, F, defineCard, BEAT, FADE, OPACITY } from './storage-kit.js';
 // consumers that read both CSIDriver objects standing ON the spine between them.
 const CX = 600;
 
-// The catalog actor block (NET.L-01). The side blocks sit SIDE_D off the spine, which leaves a
+// The catalog actor block (STO.L-05). The side blocks sit SIDE_D off the spine, which leaves a
 // 128 gap for every hop and centres the drawn extent on CX.
 const BLOCK_W = 232, BLOCK_H = 80, SIDE_D = 360;
 const L_CX = CX - SIDE_D, R_CX = CX + SIDE_D;
@@ -15,8 +15,8 @@ const M_X = CX - BLOCK_W / 2;
 const L_FACE = L_X + BLOCK_W, R_FACE = R_X;
 const M_L = M_X, M_R = M_X + BLOCK_W;
 
-// The head: the two objects side by side right of the panel wall, each a name box over a column
-// of its three fields. 172 is the widest the pair can be and still start at the wall.
+// The head: the two objects side by side from the L-03 line at 420, each a name box over a column
+// of its three fields. 172 is the widest the pair can be and still start at 420.
 const OBJ_W = 172, OBJ_GAP = 16, OBJ_Y = 24, OBJ_H = 48;
 const OBJ_D_X = CX - OBJ_GAP / 2 - OBJ_W, OBJ_N_X = CX + OBJ_GAP / 2;
 const CHIP_H = 34, CHIP_GAP = 8;

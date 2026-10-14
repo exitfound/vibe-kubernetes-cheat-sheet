@@ -2,7 +2,7 @@ import { P, F, defineCard, BEAT, FADE, chipStrip, setBoxLabel } from './storage-
 import { rect } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS/storage-volume-attach-limits.md
 
-// The panel wall. CONTENT_CX lands on 600, set by the chip strip, the widest tier. The node row is
+// Right of the panel. CONTENT_CX lands on 600, set by the chip strip, the widest tier. The node row is
 // the one tier allowed outside CONTENT_W, because it sits below the panel floor.
 const LEFT_X = 400;
 const CONTENT_W = 400;

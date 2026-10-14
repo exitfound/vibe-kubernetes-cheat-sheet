@@ -9,7 +9,7 @@ const ROW_W = 588;
 const ROW_X = CANVAS_CX - ROW_W / 2;
 const RIGHT_END = ROW_X + ROW_W;
 
-// A Pod is 104 tall (NET.L-01) but 128 wide: three 232 Pods and their pads overrun the row.
+// A Pod is 104 tall (STO.L-05) but 128 wide: three 232 Pods and their pads overrun the row.
 const POD_W = 128, POD_H = 104, POD_Y = 104;
 const POD_BOTTOM = POD_Y + POD_H;
 const APP_H = 44, APP_DY = 26;
@@ -29,7 +29,7 @@ const P2_X = P1_X + POD_W + POD_GAP;                     // node-1, second Pod
 const P3_X = NODE_2_X + NODE_PAD;                        // node-2, only Pod
 const P1_CX = P1_X + POD_W / 2, P2_CX = P2_X + POD_W / 2, P3_CX = P3_X + POD_W / 2;
 
-// The band is the row span, 80 tall (NET.L-01).
+// The band is the row span, 80 tall (STO.L-05).
 const DRV_H = 80, DRV_Y = 375 - DRV_H;
 const DRV_X = ROW_X, DRV_W = ROW_W;
 const DRV_TOP = DRV_Y, DRV_BOTTOM = DRV_Y + DRV_H;

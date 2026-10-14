@@ -23,7 +23,7 @@ const DESC_MAX = 470;
 const DESC_SENTENCES_MIN = 2;
 const DESC_SENTENCES_MAX = 4;
 
-// D-01. No path field: app.js derives it from category + id.
+// D-01. No path field: dialog.js derives it from category + id.
 const ENTRY_KEYS = ['id', 'title', 'category', 'subcategory', 'desc', 'k8sVersion', 'tinted', 'sources'];
 
 // Built from code points so this file does not contain the characters it bans.
@@ -79,7 +79,7 @@ test(`the catalog is whole (${CARD_TOTAL} cards)`, () => {
     `data.js lists ${DIAGRAMS.length} cards, the baseline is ${CARD_TOTAL}. Every assertion below walks this list.`);
   // A card lost between the two views is a broken projection.
   census('catalog cards()', CARDS.length, DIAGRAMS.length);
-  assert.equal(ids.size, CARD_TOTAL, `${CARD_TOTAL - ids.size} duplicate id(s): app.js resolves a card by find(), so the second copy is unreachable`);
+  assert.equal(ids.size, CARD_TOTAL, `${CARD_TOTAL - ids.size} duplicate id(s): the app resolves a card by find(), so the second copy is unreachable`);
 });
 
 test(`the four categories hold ${Object.values(PER_CATEGORY).join(' + ')} cards`, async () => {
@@ -116,12 +116,12 @@ test(`D-01 every entry carries exactly the ${ENTRY_KEYS.length} catalog fields`,
   census('entry shape', seen, CARD_TOTAL);
 });
 
-test('D-02 an id starts with its category, which is the folder app.js imports from', () => {
+test('D-02 an id starts with its category, which is the folder dialog.js imports from', () => {
   let seen = 0;
   for (const c of CARDS) {
     seen++;
     assert.equal(c.id.split('-')[0], c.category,
-      `${c.id} would make app.js import js/diagrams/${c.category}/${c.id}.js. This broke once for real, ` +
+      `${c.id} would make dialog.js import js/diagrams/${c.category}/${c.id}.js. This broke once for real, ` +
       'when workloads-pod-priority-preemption became cluster-pod-priority-preemption.');
     assert.equal(c.rel, join('js', 'diagrams', c.category, `${c.id}.js`));
   }

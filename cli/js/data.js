@@ -41,8 +41,6 @@ const ICONS = {
   crd: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="4" r="2"/><circle cx="5" cy="20" r="2"/><circle cx="19" cy="20" r="2"/><line x1="12" y1="6" x2="12" y2="13"/><polyline points="5 18 5 13 19 13 19 18"/></svg>`,
 };
 
-// The copy icons have one home, the shared chrome. Re-exported for app.js and tools/pages/build.mjs.
-import { COPY_ICON, CHECK_ICON } from './lib/chrome.js';
 const STAR_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
 const LINK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
 const DOCS_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>`;
@@ -1974,4 +1972,4 @@ const SECTIONS = [
 
 ];
 
-export { COPY_ICON, CHECK_ICON, STAR_ICON, LINK_ICON, DOCS_ICON, SECTIONS };
+export { STAR_ICON, LINK_ICON, DOCS_ICON, SECTIONS };

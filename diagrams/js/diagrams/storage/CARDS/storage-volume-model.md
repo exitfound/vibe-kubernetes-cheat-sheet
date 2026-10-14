@@ -5,10 +5,10 @@
 ```
 WHAT     One Pod declares a volume once under spec.volumes, three containers opt in through their
          own volumeMounts, and a lifetime row per object shows the volume outliving every container.
-         The disk sits inside the Pod shell because the subject is ownership, not location.
-DEVIATES NET.L-01: containers are 200 by 80, three peers in a 736 wide Pod shell right of the panel.
+DEVIATES STO.L-01: the volume sits inside the Pod shell, because the subject is ownership, not
+         location.
+         STO.L-05: containers are 200 by 80, three peers in a 736 wide Pod shell right of the panel.
          At 232 the row needs 832 and the shell runs past the canvas edge.
-         P-01: no chip strip. The file boxes, the Pod sublabel and the timeline carry its values.
          M-18a: a sending container is cued by the Pod pulse, never lit (STO.C-02), so R4 reads
          seed and app as dark senders. Carried in fixtures/carried.mjs.
 CONTENT  Sources: Volumes, Init Containers, Pod Lifecycle, Pod API (v1.36), unchanged by 1.36.

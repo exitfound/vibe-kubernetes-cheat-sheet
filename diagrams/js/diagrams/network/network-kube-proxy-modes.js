@@ -212,8 +212,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'scale',
-    // The narration has a PANEL ceiling: one line more pushes the panel over the Client Pod. Re-measure
-    // after any edit.
+    // The deepest panel, 204 on this step at 1100x800, ends 84 above the Client Pod (L-08).
     duration: 4300,
     narration: 'Either mode turns the ClusterIP into a ready backend, and what scale exposes is the lookup. With thousands of Services the iptables chain is thousands of rules long and every new one slows the walk, while the IPVS hash stays one step. Large clusters long preferred IPVS for that, but it has been deprecated since v1.35 and may be removed in a future release, with nftables as its replacement.',
     chips: { iptChip: 'thousands of rules', pickChip: 'unchanged by scale', ipvsChip: 'still one lookup' },

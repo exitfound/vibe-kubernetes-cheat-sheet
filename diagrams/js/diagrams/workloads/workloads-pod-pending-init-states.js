@@ -3,8 +3,8 @@ import { box } from '../../lib/primitives.js';
 
 // Design notes for this card: ./CARDS/workloads-pod-pending-init-states.md
 
-// Layout C (WL): the Node band under the panel, the chips a strip three across on the floor
-// because the strip is the subject. The panel bound is measured for the longest narration here.
+// No LAYOUT preset (WL.L-06): the Node band, then the chips a strip three across on the floor
+// because the strip is the subject.
 
 // The strip is narrowed to the width the thesis cell needs (chipfit), declared first because the
 // actor row and the frame are measured off it.
@@ -186,7 +186,7 @@ export const STEPS_SPEC = [
       readyChip: NOT_READY, statusChip: 'PodInitializing', restartChip: NO_RESTARTS,
       ageChip: '4m40s', nodeChip: ON_NODE, holdChip: 'the Kubelet, app containers',
     },
-    // The mechanism goes in the caption: the panel is a character budget here (L-08).
+    // The mechanism goes in the wire caption, not the narration.
     wires: { req: 'regular init containers done · RESTARTS drops their count' },
     opacity: { podGroup: OPACITY.pending, nodeEl: 1, ...corridor(true) },
     podSublabels: { podGroup: 'app container being created' },

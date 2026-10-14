@@ -11,7 +11,7 @@ const CONTENT_L = 60, CONTENT_R = CONTENT_L + bw(1500);
 // The three measure rows, each read from CONTENT_L on the WIRE. Row 1 is the local link, row 2 is
 // what a wrapped frame is made of, row 3 is what the step actually puts on that link.
 const TRACK_H = 38;
-// Row 1 starts at x 60, so LINK_Y sits below this card's deepest panel, 244.5 on `clamp` at
+// Row 1 starts at x 60, so LINK_Y sits below this card's deepest panel, 178.6 on `interface` at
 // 1100x800 (L-03). The rows, the Node and the chips keep their spacing below it.
 const LINK_Y = 262;
 const FRAME_Y = 308;

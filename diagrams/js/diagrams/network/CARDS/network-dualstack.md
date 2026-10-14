@@ -10,7 +10,7 @@ DEVIATES NET.L-01: both Pods are 232 by 106 with a 52 inner box at dy 28, the Po
          cluster and workloads grammars use, so a Pod here is the size of a Pod elsewhere.
 CONTENT  Sources: IPv4/IPv6 Dual-Stack, DNS for Services and Pods, EndpointSlices (v1.36 docs).
          The connect step forwards through the Service. kube-proxy has no block, so the rewrite is
-         passive. kube-controller-manager is named twice: it takes both CIDR flags. `unless a cloud
+         passive. `controller-manager` is named twice: it takes both CIDR flags. `unless a cloud
          provider picks them` stays: `--node-ip` is the one conditional item. `here IPv4 then IPv6`
          hedges, ipFamilies orders it. `each Pod it wires`: a hostNetwork Pod gets no CNI address.
          fd00::1:5, fd00:96::a echo the v4 pair (no 2001:db8::), valid under 1.36 strict IP checks.

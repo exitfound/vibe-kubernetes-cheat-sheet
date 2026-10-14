@@ -23,17 +23,17 @@ const vpName = vp => `${vp.width}x${vp.height}`;
 
 // What the canon records, compared but never used to clamp a measurement.
 
-const RIGHT_CEILING = 397;
-const RECORDED_RIGHT = { value: 396.55, id: 'cluster-architecture', viewport: '1100x800' };
+const RIGHT_CEILING = 361;
+const RECORDED_RIGHT = { value: 360.03, id: 'cluster-architecture', viewport: '1100x800' };
 
 // L-04. Only the deep end belongs to one card: many cards share the shallow four-line panel.
 const RECORDED_BOTTOM = {
-  lo: 90, hi: 379,
-  shallowest: { value: 90.23, id: 'cluster-leader-election', viewport: '1600x1000', step: 2 },
-  deepest: { value: 378.90, id: 'workloads-pod-qos-classes', viewport: '1100x800', step: 4 },
+  lo: 94, hi: 286,
+  shallowest: { value: 93.80, id: 'cluster-leader-election', viewport: '1600x1000', step: 2 },
+  deepest: { value: 285.38, id: 'cluster-pod-priority-preemption', viewport: '1100x800', step: 4 },
 };
 
-const RECORDED_SWING = 131.68;
+const RECORDED_SWING = 65.15;
 
 const EXPECTED_STEPS = await stepTotal();
 
@@ -221,11 +221,10 @@ test('narration panel extent, per card and per viewport (report only, never fail
     (rightSpread.id ? ` (${rightSpread.id}: ${f2(rightSpread.lo)} at the widest viewport to ${f2(rightSpread.hi)} at the narrowest)` : ''));
   out.push(`    verdict         the width is ${rightSpread.value <= SAME ? 'CONSTANT, which L-05a no longer claims: re-read the row' : 'NOT constant, as L-05a says. x<=' + RIGHT_CEILING + ' bounds it and it does'}`);
   if (rightSpread.value > SAME) {
-    out.push('                    move: the panel is a fixed FRACTION of the');
-    out.push('                    dialog, so it holds its share of the picture while the diagram scale');
-    out.push('                    changes under it, and the bound is reached only at the narrowest');
-    out.push('                    viewport. A one-viewport L-02 measurement at 1600x1000 would read');
-    out.push('                    about 100 units clear of a ceiling it is in fact 0.45 short of.');
+    out.push('                    move: above its 11px text floor the edge is pinned to the drawing');
+    out.push('                    at one x, and the floor pushes it out at the narrowest viewport');
+    out.push('                    only. A one-viewport L-02 measurement at 1600x1000 reads the');
+    out.push('                    floor-free edge and misses the ceiling by the whole spread above.');
   }
   out.push('');
 
@@ -253,7 +252,7 @@ test('narration panel extent, per card and per viewport (report only, never fail
 
   out.push('  L-05  THE PANEL AGAINST THE VIEWPORT');
   out.push(`    comparable steps (all three viewports sampled): ${comparableSteps}`);
-  out.push(`    bottom falls as the viewport widens, the direction L-05 names: ${descending}`);
+  out.push(`    bottom falls or holds as the viewport widens: ${descending}`);
   out.push(`    that order broken, so the widest viewport is NOT the shortest panel: ${brokenOrder}`);
   out.push(`    widest swing across the set: ${f2(maxSwing.value)} units on ${maxSwing.id}, step ${maxSwing.step}`);
   out.push(`    L-05a records the swing reaching ${RECORDED_SWING}: measured ` +
@@ -261,16 +260,14 @@ test('narration panel extent, per card and per viewport (report only, never fail
   out.push('    the ten cards whose panel moves most between viewports:');
   swingByCard.slice(0, 10).forEach(s => out.push(`      ${s.id.padEnd(38)} ${f2(s.swing).padStart(7)} at step ${s.step}`));
   out.push('');
-  out.push(`    Read the two counts carefully. ${brokenOrder} broken orders does NOT contradict L-05, and`);
-  out.push('    a reader who takes the word "non-monotonic" literally will think it does. The bottom is');
-  out.push('    an orderly, monotone function of the viewport WIDTH, and it runs in exactly the');
-  out.push('    direction L-05 gives. What is non-monotonic is the panel against the PICTURE: widen the');
-  out.push('    dialog and every drawn thing grows while the panel shrinks, because the panel is HTML at');
-  out.push('    a fraction of the dialog and the diagram scales past it. The consequence is the part');
-  out.push('    worth acting on, and the swing above is that consequence in units: a one-viewport');
-  out.push('    measurement of any of those cards is wrong by up to that much, in the flattering');
-  out.push('    direction if it was taken at 1600x1000. Which is why L-08 names VW=1100 VH=800');
-  out.push('    specifically for an author who has just edited prose.');
+  out.push(`    Read the two counts carefully. ${brokenOrder} broken orders is no defect: the panel scales`);
+  out.push('    with the picture, so the viewport no longer orders its bottom. What moves it is the empty');
+  out.push('    gutter beside the drawing, which gives the panel width and takes lines off it (L-05), the');
+  out.push('    wrap of a line one word earlier or later at another text size, and the 11px floor, which');
+  out.push('    makes it grow against the picture at 1100x800. The swing above is the sum in units: a');
+  out.push('    one-viewport measurement of any of those cards is wrong by up to that much, in the');
+  out.push('    flattering direction if it was taken at 1600x1000. Which is why L-08 names VW=1100');
+  out.push('    VH=800 specifically for an author who has just edited prose.');
   out.push('');
 
   out.push(`  EVERY CARD, EVERY VIEWPORT (${rows.length} cards x ${VIEWPORTS.length} viewports)`);
@@ -285,9 +282,9 @@ test('narration panel extent, per card and per viewport (report only, never fail
   }
   out.push('');
 
-  out.push('  How to read a row. `right` is BOUNDED, not flat: L-05a records x<=397 everywhere and a');
-  out.push('  right edge that still travels up to 105.78 units across the three columns, so the bound');
-  out.push('  is reached at the narrowest viewport alone. The spread measured on this run is above.');
+  out.push('  How to read a row. `right` is BOUNDED, not flat: L-02 records x<=361 everywhere and a');
+  out.push('  right edge that still travels up to 38.74 units across the three columns, all of it at the');
+  out.push('  floor, so the bound is reached at the narrowest viewport alone. This run\'s spread is above.');
   out.push('  `bottom lo..hi` is the card\'s own reserved corner: L-07 says that measurement belongs in');
   out.push('  the card header comment, never in a constant, because it is a fact ABOUT the panel and');
   out.push('  not an input to the layout. L-08: on a card whose bottom is already deep the panel is a');

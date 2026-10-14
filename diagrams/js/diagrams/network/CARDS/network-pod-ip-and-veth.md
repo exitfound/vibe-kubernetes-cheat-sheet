@@ -17,6 +17,9 @@ CONTENT  Sources: Pod networking (v1.36), CNI Specification, CNI bridge plugin (
          "pause opened this namespace" is ruled out: the runtime creates it before CNI ADD.
          "one IP per Pod" is ruled out: one per address family. `address` stays on the pair
          ends, `port` draws 10.244.1.1. `through` keeps `on the usual plugins` (T-19).
-OPEN     M-19a on `pair` and `unit`, which stand still for their whole hold. A ball would be traffic
+OPEN     CENTRE: the chip column at 60..360 is facts about one object, and a strip runs through the
+         namespace boundary at x=760 (L-16).
+         CENTRE-LOW: the rule sees only the six blocks at 450..1110, the column uncounted (L-17).
+         M-19a on `pair` and `unit`, which stand still for their whole hold. A ball would be traffic
          no step narrates, and the narration already reads faster than the catalog median.
 ```

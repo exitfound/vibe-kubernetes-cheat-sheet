@@ -7,7 +7,7 @@ const BLK_W = 232, BLK_H = 80, POD_W = 232, POD_H = 104;
 // Two chip rows centred on 600: the premise `type` alone on top, right of the panel, and the three
 // outcomes under it, low enough to clear the deepest panel.
 const CX = 600, CHIP_H = 34, CHIP_GAP = 12;
-const CHIP_ROW_Y = 192;                                                // 12 under the panel
+const CHIP_ROW_Y = 192;                                                // below the deepest panel
 const CHIP_TOP_Y = CHIP_ROW_Y - CHIP_GAP - CHIP_H;
 const CH = chipStrip({ cx: CX, w: 168, count: 3 });
 const TYPE_W = 232;

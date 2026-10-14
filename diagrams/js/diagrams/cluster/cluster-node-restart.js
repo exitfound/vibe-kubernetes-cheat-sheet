@@ -2,7 +2,7 @@ import { P, F, defineCard, ladder, strip, spread, midX, laneOf, CLU, LAYOUT, BEA
 
 // Design notes for this card: ./CARDS/cluster-node-restart.md
 
-// Layout C. The frame sits just under the panel, so no narration may pass 360 characters.
+// Layout C, the frame under the panel.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;
 const CX = midX(CONTENT_L, CONTENT_R);
@@ -78,6 +78,7 @@ export const SCENE = {
         '5. or replaced · down too long, only a controller replaces a Pod',
       ],
     }),
+    // Never faded: the machine is there while it is off.
     P.node({ key: 'nodeEl', x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
     ...PODS.map((p, i) => P.pod({
       key: p.key, id: p.key, innerKey: `${p.key}Box`,

@@ -6,9 +6,7 @@
 WHAT     Two named entries in spec.schedulingGates standing between a Pod and the active queue,
          the one direction they can be edited in, and the emptied list as the only trigger that
          lets the Scheduler attempt the Pod at all.
-DEVIATES WL.L-06: no LAYOUT preset. A threshold on one floor band with no ladder and no flanking
-         chip column, so there is nothing for A / B / C to choose between.
-         S-08: the Pod is bare, with no inner box and no Node frame. Nothing about it has been
+DEVIATES S-08: the Pod is bare, with no inner box and no Node frame. Nothing about it has been
          placed or started, so a container box would draw a thing that does not exist.
          A-06: step 2 rides a ball on a step that names nothing travelling. It is the Pod reaching
          the gate and stopping, and the pair it makes with step 6 where the same ball goes through.

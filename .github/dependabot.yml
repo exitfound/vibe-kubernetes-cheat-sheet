@@ -1,0 +1,27 @@
+# Weekly update PRs for the pinned actions, the nginx base image and Playwright.
+# A cooldown skips releases younger than a week, so a bad or hijacked release has time to be pulled.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: npm
+    directory: /diagrams/test
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

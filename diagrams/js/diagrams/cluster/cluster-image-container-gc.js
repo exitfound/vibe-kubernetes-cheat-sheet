@@ -4,7 +4,6 @@ import { rect } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS/cluster-image-container-gc.md
 
 // Two stores on one disk, not a sequence: an image bar carved per image, and a roster of dead containers under it.
-// The panel nearly touches the Node frame top, so no narration may pass 360 characters.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;
 const CX = midX(CONTENT_L, CONTENT_R);

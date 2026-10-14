@@ -60,7 +60,8 @@ const busPath = (key, points) => P.lane({
 
 const POD_NAMES = ['Pod web-1', 'Pod web-2', 'Pod web-3', 'Pod web-4'];
 // The word on each Pod and the reason beside it. `terminating` is lower case because it is the
-// kubectl STATUS column, not a phase.
+// kubectl STATUS column, not a phase. web-1 says `one of many`, never a count, so the four Pods
+// never read as the number the count chip states.
 const POD_STATE = [
   ['Succeeded', 'one of many'],
   ['Running', 'Node object deleted'],

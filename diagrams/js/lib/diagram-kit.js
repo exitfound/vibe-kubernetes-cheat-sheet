@@ -74,9 +74,6 @@ export function makeInit(SceneClass, STEPS, opts = {}) {
       onSceneReset: () => scene.reset(),
       onChange: callbacks.onStepChange,
       onPlayingChange: callbacks.onPlayingChange,
-      // Block auto-pulse (a brightness flash on any freshly highlighted block or chip) is OFF for
-      // the whole catalog: only Pods pulse, through explicit pulsePod calls. Override per card.
-      autoPulse: false,
       ...opts,
     });
     return {

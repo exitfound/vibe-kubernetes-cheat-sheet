@@ -2,7 +2,7 @@ import { LANE_DY, P, F, defineCard, laneY, ladder, spread, midX, shade, CLU, LAY
 
 // Design notes for this card: ./CARDS/cluster-graceful-node-shutdown.md
 
-// Laid out on the L. The narration budget is a line count, see the card record before lengthening it.
+// Laid out on the L.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;
 const CX = midX(CONTENT_L, CONTENT_R);

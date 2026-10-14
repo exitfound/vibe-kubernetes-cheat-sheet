@@ -5,7 +5,7 @@ import { P, F, defineCard, BEAT } from './storage-kit.js';
 // The mounted directory drawn as a listing: one row per entry in name order, so every entry owns a
 // fixed slot and a missing entry leaves its slot empty.
 const CX = 600;
-const ROW_W = 232, ROW_H = 56, ROW_GAP = 12;
+const ROW_W = 232, ROW_H = 56, ROW_GAP = 12;                     // at 80 the five slots push app.conf and its Pod into the chips
 const ROW_X = CX - ROW_W / 2;
 const ROW_Y0 = 94, TITLE_Y = ROW_Y0 - 20;                         // the listing title sits over row 0
 const rowY = (i) => ROW_Y0 + i * (ROW_H + ROW_GAP);
@@ -16,7 +16,7 @@ const ROW_R = ROW_X + ROW_W;
 const V1 = 0, V2 = 1, DATA = 2, TMP = 3, CONF = 4;
 const GUTTER_X = ROW_X - 30;
 
-// The writer and its source in one column right of the listing, 232 by 80 (NET.L-01).
+// The writer and its source in one column right of the listing, 232 by 80 (STO.L-05).
 const BOX_W = 232, BOX_H = 80;
 // The column mirrors the Pod about CX.
 const POD_X = 100, POD_W = 232, POD_H = 104;

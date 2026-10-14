@@ -46,12 +46,12 @@ column presets). A `role:` literal in a card is either a cross-category override
 |---|---|
 | `WL.C-01` | A workloads Pod is drawn IN the category tint: the kit binds `{ role: 'workloads', podRole: 'workloads', tint: null }` and pins no Pod tint. Retinting either half is `C-22` |
 | `WL.L-01` | The X grammar is `WL` from the kit, the grid cluster shares. Y values are per card, because each panel bottom is its own measurement |
-| `WL.L-02` | The columns are left `60..540` and right `660..1140`, both 480 wide. The Node frame stays full width, and the actor row is centred on 600 and starts no further left than 420 |
-| `WL.L-03` | **A** (`LAYOUT.A`): ladder left, chips right, Node on the floor. Needs `PANEL_B + 20 + LADDER_H + 20 + NODE_H <= 630` |
-| `WL.L-04` | **B** (`LAYOUT.B`): chips left, ladder right, and the common case: a 4-chip column is 160 tall where a 5-row ladder is 200, and the band free below a real panel is at most about 214 |
-| `WL.L-05` | **C** (`LAYOUT.C`): tall panel, ladder right, Node just under the panel, chips as a full-width bottom strip two or three per row (532 or 350.7 wide). Never four or five across: 258 and 205 are narrower than the strings |
+| `WL.L-02` | The columns are left `60..540` and right `660..1140`, both 480 wide. The Node frame stays full width. The actor row opens on the trunk box at `484..716` (`WL.L-07`) and right-aligns a second actor on 1140 or on a narrower frame's right edge, so a two-actor row on 1140 spans `484..1140` and centres on 812. Nothing in it starts left of the `L-03` line at 420 |
+| `WL.L-03` | **A** (`LAYOUT.A`): ladder left, chips right, Node on the floor. Needs the card's measured panel bottom `+ 20 + LADDER_H + 20 + NODE_H <= 624`, the canvas floor (`CANVAS_B`). No card reads it |
+| `WL.L-04` | **B** (`LAYOUT.B`): chips left, ladder right, because a 4-chip column is 160 tall where a 5-row ladder is 200, so the shorter column takes the left band under the panel. `workloads-init-containers-and-sidecars` reads it whole, `workloads-force-deletion` its chip column alone |
+| `WL.L-05` | **C** (`LAYOUT.C`): ladder right, chips as a full-width bottom strip two or three per row (532 or 350.7 wide). Never four or five across: 258 and 205 are narrower than the strings. `image-pull-registry-auth`, `pod-qos-classes`, `pod-restart-policy` and `pod-garbage-collection` read it |
 | `WL.L-06` | A card with neither a ladder nor a flanking chip column takes no preset and states its own geometry, and a card may read `LAYOUT.C.strip.two` alone for the chip width. The choice itself is `L-08a` |
-| `WL.L-07` | The trunk runs in the `540..660` corridor, so the actor box it leaves is centred on `WL.SPINE_X`: a first actor box of `420..780`, not `420..640` |
+| `WL.L-07` | The trunk runs in the `540..660` corridor, so the actor box it leaves is centred on `WL.SPINE_X`: a 232 box at `484..716`, never one starting at 420 |
 | `WL.A-01` | The top-row pair: `REQ_Y = TOP_CY - LANE_DY` carries the request to the API, `RESP_Y = TOP_CY + LANE_DY` the answer back. Whether the answer is an arrow or a relation is `A-06` |
 | `WL.A-02` | The top-row wire label sits ABOVE the actor row at `WIRE_Y = WL.TOP_Y - 12`. Below it, it lands on the lane and across the spine's step |
 | `WL.A-03` | A lane between the actor row and the Node band ends on the frame face midpoint in both directions (`A-21`), so a frame narrower than full width is centred on `WL.CX`. `report/frame-face.test.mjs` prints the queue |
@@ -64,4 +64,6 @@ column presets). A `role:` literal in a card is either a cross-category override
 
 `workloads-pod-startup-conditions`: the declarative form, a corridor ending on the Node frame face
 (`WL.A-03`), an actor pair at 232. Do not copy its `P.raw` staircase, which writes `role:` by hand,
-or its 600-wide Node frame, which breaks `WL.L-02` for a one-Pod card and says so in its record.
+its 600-wide Node frame (`WL.L-02`), its stacked bands with no preset (`WL.L-06`), or its narration
+naming the Scheduler, a controller, the container runtime and the CNI plugin, none of them drawn
+(`T-21`). Its record names each departure.

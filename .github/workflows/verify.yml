@@ -10,30 +10,53 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   lint:
-    name: Workflow syntax
-    runs-on: ubuntu-latest
+    name: Workflow and Dockerfile lint
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
+      # The linter images are pinned by digest like the actions. Dependabot does not read a `docker
+      # run` line, so a bump here is by hand: the tag and its digest together.
       - name: actionlint
-        run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.7 -color
+        run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color
+
+      - name: zizmor (workflow security)
+        run: docker run --rm -v "$PWD:/repo:ro" --workdir /repo ghcr.io/zizmorcore/zizmor:1.30.1@sha256:a2eb396d886c053073405c7a980f2139ba2248ec172243cfa3841e57196e8101 --offline --min-severity=medium .github/workflows
+
+      - name: hadolint
+        run: docker run --rm -i hadolint/hadolint:v2.15.1@sha256:32dac94127fd60b7b7e3fbfc65e1383b9b5e25c9bfd7b8536de7a539fe68a12d < Dockerfile
+
+      - name: Compose file is valid
+        run: docker compose config --quiet
 
   unit:
     name: Pages and unit tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Revisions and dates are current
         run: node tools/pages/build.mjs --check
@@ -48,16 +71,18 @@ jobs:
   site:
     name: Shipped site in a browser
     needs: unit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: diagrams/test/package-lock.json
 
@@ -77,7 +102,7 @@ jobs:
 
       - name: No internal file is staged
         run: |
-          leaked="$(find _site \( -name CLAUDE.md -o -name CARDS.md -o -name CANON.md -o -name CARDS -o -path '_site/diagrams/test' \) -print)"
+          leaked="$(find _site \( -name CLAUDE.md -o -name CARDS.md -o -name CANON.md -o -name README.md -o -name CARDS -o -path '_site/diagrams/test' \) -print)"
           if [ -n "$leaked" ]; then echo "internal files staged:"; echo "$leaked"; exit 1; fi
 
       - name: Site smoke on the staged site
@@ -86,16 +111,18 @@ jobs:
   diagrams:
     name: Diagram render tests
     needs: unit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: diagrams/test/package-lock.json
 
@@ -111,35 +138,35 @@ jobs:
           for _ in $(seq 30); do curl -sf -o /dev/null http://127.0.0.1:8888/ && exit 0; sleep 1; done
           echo "the dev server did not come up"; exit 1
 
-      - name: Unit and render tests
+      # The unit job already ran the unit half of `npm test`, so only the browser half runs here.
+      - name: Render tests
         working-directory: diagrams/test
         env:
           BASE: http://127.0.0.1:8888
-        run: npm test
+        run: npm run pages && npm run test:render
 
   container:
     name: Docker image
     needs: unit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Build static pages
         run: node tools/pages/build.mjs
 
+      # --wait returns only once the image's healthcheck passes.
       - name: Build and run the image
-        run: |
-          docker build -t kube-cheatsheet .
-          docker run -d --name kube-cheatsheet -p 8080:80 kube-cheatsheet
-          for _ in $(seq 30); do curl -sf -o /dev/null http://127.0.0.1:8080/ && exit 0; sleep 1; done
-          echo "the container did not answer"; exit 1
+        run: docker compose up --detach --build --wait --wait-timeout 60
 
       # Pages answer, and every internal document stays out of the image (S-41).
       - name: Pages answer, internal docs do not
@@ -149,7 +176,11 @@ jobs:
           for path in / /cli/ /diagrams/ /diagrams/card/ /cli/section/ /cli/section/helm/ /sitemap.xml /llms.txt; do
             [ "$(code "$path")" = 200 ] || { echo "not 200: $path"; fail=1; }
           done
-          for path in /CLAUDE.md /diagrams/CLAUDE.md /diagrams/CANON.md /diagrams/test/ /tools/pages/build.mjs /Dockerfile; do
+          for path in /CLAUDE.md /diagrams/CLAUDE.md /diagrams/CANON.md /README.md /cli/README.md /diagrams/README.md /diagrams/js/diagrams/cluster/CARDS.md /diagrams/js/diagrams/cluster/CARDS/cluster-architecture.md /diagrams/test/ /tools/pages/build.mjs /Dockerfile /compose.yaml /configs/nginx.conf /.dockerignore; do
             [ "$(code "$path")" = 404 ] || { echo "not 404: $path"; fail=1; }
           done
           exit "$fail"
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose logs --no-color

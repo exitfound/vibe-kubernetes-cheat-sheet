@@ -4,7 +4,7 @@ import { box } from '../../lib/primitives.js';
 // Design notes for this card: ./CARDS/workloads-container-restarts-laststate.md
 
 // Own geometry, no column preset (WL.L-06): three record slots under the panel, the Node band below.
-// PANEL_B is the measured panel bottom: a longer narration invalidates it.
+// PANEL_B is a layout line set below the card's measured panel bottom, not the measurement.
 const PANEL_B = 230;
 const BAND_Y = PANEL_B + 20;                             // the slot row top
 const CAPTION_Y = BAND_Y - 12;

@@ -14,7 +14,7 @@ const NODE_Y = 475, NODE_H = 146;
 const API_Y = 140, API_BOTTOM = API_Y + BOX_H;
 const API_X = CX - BOX_W / 2, API_R = API_X + BOX_W;
 const API_CY = API_Y + BOX_H / 2;
-// Narrower than the siblings' 130 to keep the ETCD label gap (BUDGET in the record).
+// Narrower than the siblings' 130: the gap to the API holds `write · Raft quorum commit`.
 const ETCD_W = 124, ETCD_X = 906;                        // right edge on the Scheduler below
 const { out: ETCD_OUT, back: ETCD_IN } = laneY(API_CY, LANE_DY);
 

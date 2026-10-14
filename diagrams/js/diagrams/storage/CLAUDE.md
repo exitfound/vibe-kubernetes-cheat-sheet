@@ -34,16 +34,21 @@ here, and a new card takes the writer of its nearest sibling (`P-09`).
 ## Geometry
 
 - Actor block 232 by 80, Pod 232 by 104 around a 192 by 44 app box 26 under its label
-  (the catalog size, `js/diagrams/network/CLAUDE.md`). A card off it says so under `DEVIATES`.
-- What is not an actor keeps its own size: listing rows, cells, bands, counters, cylinders.
+  (`STO.L-05`). A card off it says so under `DEVIATES`.
+- What is not an actor keeps its own size and owes no line: listing rows, cells, bands, counters,
+  cylinders (`STO.S-05`).
 - A claim chain stacks on one centre line (`STO.L-01`). A card with no claim starts from its
   sentence and `.claude/skills/card-new/reference/compositions.md`.
-- Chip strip 232 wide, gap 16, `CHIP_H` 34, centred on 600 (`STO.L-03`, `L-13`).
+- Chips 232 wide, gap 16, `CHIP_H` 34, the strip centred on 600 (`STO.L-03`, `L-13`).
 - Cylinder labels re-centre at `h / 2 + 10` (`STO.L-02`). A cylinder that prints a spec line
   under its name does not re-centre. Copy your own card's offset.
-- Frames pad 34 under the top and 12 over the floor (`L-23`). Out and back lanes sit 24 apart
-  (`A-23`).
-- No `LAYOUT` presets. A card pinned right of the panel writes its own `LEFT_X = 400`.
+- Frames pad 34 under the top and 12 over the floor (`L-23`). Departures, each a `DEVIATES` line
+  in its record: `pvc-clone` (13 inset round the disks), `csi-capacity-tracking` (40 floor, mirrored
+  API frame), `volume-binding-mode` (node-1 keeps its peer's row height). Out and back lanes sit 24
+  apart (`A-23`).
+- No `LAYOUT` presets. A card pinned right of the panel writes its own `LEFT_X = 400`: 20 left
+  of the L-03 line at 420 and 39 clear of the panel edge (361, `L-02`), for a card that needs
+  those 20 units. The rest start at the L-03 line at 420.
 
 ## Rules of this category only
 
@@ -52,8 +57,9 @@ here, and a new card takes the writer of its nearest sibling (`P-09`).
 | `STO.C-01` | Jade is hue 150 at 50 percent saturation. A new shade moves lightness only |
 | `STO.L-01` | An ownership chain stacks on one centre line: Pod, claim, then a `cylinder()` disk |
 | `STO.L-02` | A cylinder label re-centres on its front face via `labelY`, derived from the height |
-| `STO.L-03` | Chips are 232 wide, gap 16, height 34. Shorten the value, never widen (`P-07`) |
-| `STO.L-04` | A card's own `900x650` row wins where stricter (`L-06`), its record says why |
+| `STO.L-03` | Chips are 34 tall, 232 wide at gap 16 unless sized by the span they fill. Shorten the value, never widen a chip for it (`P-07`) |
+| `STO.L-04` | A storage card is judged on the standard set (`L-06`) like every other, and its record names no other viewport |
+| `STO.L-05` | An actor block is 232 by 80 and a Pod 232 by 104 around a 192 by 44 app box. A card that resizes either states the size and the reason as a `DEVIATES` line |
 | `STO.A-01` | An identity spine is dim and dashed, with no arrowhead and no ball |
 | `STO.A-02` | A mount lane runs in its traffic direction, one lane per direction |
 | `STO.C-02` | An inner container box lights only as a receiver, never left lit into a later step |
@@ -61,7 +67,7 @@ here, and a new card takes the writer of its nearest sibling (`P-09`).
 | `STO.S-02` | A block and its lanes are one construction and appear together (`A-16`) |
 | `STO.S-03` | Z-order up: frames, blocks and disks, Pods, lanes and captions, chips, packets |
 | `STO.S-04` | The exemplar below is the template a new card copies |
-| `STO.S-05` | One record per card (`S-51`), every off-default size under `DEVIATES` |
+| `STO.S-05` | One record per card (`S-51`). `DEVIATES` owes a `STO.L-05` line only for an actor or Pod a reader would reset to the catalog size, never for a row, cell, band, listing, gauge, chip or cylinder sized by what it holds |
 | `STO.D-01` | A card sits in the section whose admission test its subject passes |
 
 A volume is named like a claim, `PV web-0` (`T-11a`). On a card that draws no Kubelet box, a step

@@ -7,7 +7,7 @@ import { rect } from '../../lib/svg.js';
 // are one operation read over two windows. Every cell under the reserve level is a container or held room.
 const CH_L = 150, CH_R = 1050, CH_W = CH_R - CH_L;       // centred on WL.CX
 
-// The pair stands right of the panel: centred on the spine it would start behind the panel wall (L-03).
+// The pair starts on the L-03 line at 420: centred on the spine it would start at 338, under the panel.
 // The gap is what the standing relation is drawn in, and a shorter one reads as a hyphen.
 const TOP_W = 232, TOP_GAP = 60;
 const TOP1_X = 420, TOP2_X = TOP1_X + TOP_W + TOP_GAP;
@@ -44,8 +44,8 @@ const MARK_H = 3.5;
 // Above the actor row (WL.A-02): no readout fits between the lanes, and below the row it lands on one.
 const READ_X = TOP_CX, READ_Y = WL.TOP_Y - 12;
 
-// Presentation shades, not lifecycle phases. mark is the workloads tint, copied because a style
-// value here cannot resolve a token.
+// Presentation shades, not lifecycle phases. mark is the workloads tint as a literal channel
+// list, so a retint misses it (OPEN in the record).
 const RULE = Object.freeze({
   axis: 'rgba(255, 255, 255, 0.16)',
   mark: 'rgba(91, 184, 255, 0.9)',

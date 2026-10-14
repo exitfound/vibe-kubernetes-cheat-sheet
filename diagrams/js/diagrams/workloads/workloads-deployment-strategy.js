@@ -3,7 +3,8 @@ import { g, rect, text } from '../../lib/svg.js';
 
 // Design notes for this card: ./CARDS/workloads-deployment-strategy.md
 
-// Two stacked strategy tracks, no LAYOUT preset (WL.L-06). PANEL_B is the deepest panel (D-14).
+// Two stacked strategy tracks, no LAYOUT preset (WL.L-06).
+// PANEL_B is a layout line set below the card's measured panel bottom, not the measurement.
 const PANEL_B = 305;
 
 // Centred on CX for WL.L-07, and 232 to match the Deployment on workloads-rolling-update.

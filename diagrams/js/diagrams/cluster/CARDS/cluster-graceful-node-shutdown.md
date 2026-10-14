@@ -7,8 +7,6 @@ WHAT     systemd telling the Kubelet a shutdown is coming, and the Kubelet spend
          in two buckets, regular Pods then critical ones.
 DEVIATES L-08a: CHIP_X is 620, not LAYOUT.A.chips 660. The 540..620 corridor carries the drop to the
          Node and crosses nothing.
-         The chip column hangs off LADDER_BOTTOM 450, not LADDER_Y. Four chips cannot fill 250..450
-         on the house gap, and the bottom is the edge the Node frame answers to.
 CONTENT  Sources (v1.36): Graceful Node Shutdown, KEP 2000, systemd inhibitor locks, and kubelet
          nodeshutdown, nodestatus, kuberuntime, nodelifecycle at v1.36.0. Lock predates the signal.
          Triggers are poweroff, reboot, halt, never hibernate. Windows are ceilings, 60 less 20.

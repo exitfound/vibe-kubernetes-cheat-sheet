@@ -9,9 +9,6 @@ DEVIATES S-17: `kubelet-stops` pulses the placedPod wrapper with no `reducedLit`
          `create-pod` on cluster-object-create-path. Its static path already dims the Pod.
          L-11: the Garbage collector return lands at 636 on the API bottom face, not 600. At the
          midpoint it crosses the Node return descending at 612.
-         A-05: no lane returns from the controller-manager. It only reads on this card.
-         The `DELETE replicasets . pods` label sits under its own lane, never in the watch register:
-         there it reads as the API issuing the DELETEs to the Garbage collector.
 CONTENT  Sources at 1.36: Garbage Collection, Owners and Dependents, Finalizers, Pod Lifecycle,
          `garbagecollector.go`, `handlers/delete.go`, registry `store.go`, kubelet
          `status_manager.go`, kubectl `delete.go`, the nginx Dockerfile.
@@ -23,4 +20,7 @@ CONTENT  Sources at 1.36: Garbage Collection, Owners and Dependents, Finalizers,
          kubectl wait.
          "202 Accepted" is ruled out: 202 needs orphanDependents=false, kubectl gets 200 and waits.
          nginx:1.27 stops on SIGQUIT. The desc leaves `blockOwnerDeletion` unqualified (T-20).
+OPEN     The `Control plane` frame label prints at (162, 114), under the panel on every viewport. It
+         stays: the grid shared with cluster-architecture and cluster-object-create-path puts the
+         frame at 150, and moving it moves all three cards.
 ```

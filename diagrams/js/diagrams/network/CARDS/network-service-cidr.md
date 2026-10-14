@@ -6,8 +6,6 @@
 WHAT     The Service range as a ledger: a ServiceCIDR declares it, the allocator in the API server
          takes a free address from the high band, and the IPAddress object of that name makes the
          allocation unique.
-DEVIATES NET.L-01: the two ServiceCIDR boxes are 212, sized by the 440 range column they stand in
-         ((440 - 16) / 2). At 232 the pair wants 480 and breaks the column edge.
 CONTENT  Sources: Service ClusterIP allocation, Extend Service IP Ranges, Service v1 API (v1.36),
          and the Multiple ServiceCIDRs KEP, named rather than numbered. The bands match the 1.36
          ipallocator code: upper band from 10.96.1.1 first, the lower one only on ErrFull.

@@ -489,6 +489,8 @@ body.sidebar-collapsed { padding-left: 0; }
   border-radius: 16px;
   overflow: hidden;
 }
+/* The panel holds the opening focus (app.js openDiagram), which needs no ring of its own. */
+.diagram-dialog .dialog-inner:focus { outline: none; }
 .diagram-dialog::backdrop {
   background: rgba(8, 6, 16, 0.78);
   backdrop-filter: blur(6px);
@@ -626,8 +628,9 @@ body.sidebar-collapsed { padding-left: 0; }
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* Flip arrows, one in each gutter. 36 wide so they fit the 4vw gutter down to 1000px; below that
-   there is no gutter to stand in and the reader flips with a swipe or Shift+arrows. */
+/* Flip arrows, one in each gutter. 36 wide, 28 under 1200px so they keep clear of the panel edge in
+   the 4vw gutter down to 1000px; below that there is no gutter to stand in and the reader flips
+   with a swipe or Shift+arrows. */
 .dialog-nav {
   position: absolute;
   top: 50%;
@@ -657,6 +660,11 @@ body.sidebar-collapsed { padding-left: 0; }
   outline-offset: 2px;
 }
 .dialog-nav[hidden] { display: none; }
+@media (max-width: 1199px) {
+  .dialog-nav { width: 28px; }
+  .dialog-nav-prev { left: calc(2vw - 14px); }
+  .dialog-nav-next { right: calc(2vw - 14px); }
+}
 @media (max-width: 999px) {
   .dialog-nav { display: none; }
 }
@@ -824,17 +832,12 @@ body.sidebar-collapsed { padding-left: 0; }
    look like one problem and are not:
    1. It changes height BETWEEN STEPS of one card: on 209 of 216 card+viewport pairs the panel moves
       as the card plays, so the diagram area under it moves too.
-   2. It changes height BETWEEN VIEWPORTS by up to 186 viewBox units (workloads-pod-lifecycle-phases
-      reaches 503 at 1100x800 and 317 at 1600x1000), so the band every card reserves for its 1100
-      worst case reads as a hole at 1600. Five card records leave a finding OPEN on this.
+   2. With a fixed-pixel font it also changed size BETWEEN VIEWPORTS and with browser zoom, because
+      the diagram scales to fit and the text did not: 397x253 viewBox units at 1100x800, 310x160 at
+      1600x1000, 459 wide at 150% zoom. The block below closes (2): the panel is sized in viewBox
+      units, so it covers the same part of the diagram on every screen and at every zoom.
    DO NOT pin min-height to the card's tallest narration. It fixes (1) completely (0 of 216 pairs
-   move) and does nothing for (2), because (2) is not a height problem:
-   what varies is the fixed-pixel FONT, so a wider viewport wraps the same text into fewer lines and
-   divides by a larger scale. The panel's WIDTH in viewBox units is BOUNDED, not constant, and the
-   distinction matters to anyone measuring on one viewport: x<=397 holds everywhere, but the right
-   edge still travels 105.78 units across the standard set (cluster-architecture, 290.77 at
-   1600x1000 against 396.55 at 1100x800), so the bound is reached only at the narrowest one. Closing
-   (2) means typography that scales with the diagram, a design decision and not a cleanup.
+   move), at a visible cost.
    WHY NOT the clamp: its cost is visible. Pinned to its tallest narration, a card with a wide
    spread of narration lengths shows about 100px of empty strip inside a drawn border, and an empty
    strip inside a border reads as a fault where empty canvas reads as space. Geometry is unaffected
@@ -861,6 +864,34 @@ body.sidebar-collapsed { padding-left: 0; }
   font-size: 13.5px;
   color: var(--text);
   line-height: 1.5;
+}
+/* The panel scales with the diagram: on a big screen, a small window or at any browser zoom it
+   covers the same part of the drawing, down to a floor. Every card is 1200x640 and the canvas pads
+   it by 16px, so --u is the pixels one viewBox unit takes right now. --p is 0.85 of it, which gives
+   a 321 unit wide panel with 12 unit text (about 13.4px on a Full HD browser window, the size the
+   panel had before it scaled). --p never drops under 11px of text, so on a laptop or at a deep zoom
+   the panel stops shrinking and is again a little larger than the drawing's share. The panel stays
+   in the stage's top left corner. Where the drawing is centred with an empty gutter on its left,
+   the panel widens by that gutter, so its right edge stays put on the drawing. The `.dialog-stage`
+   prefix outranks the narrow-screen rules below. Without container units the fixed-pixel rules
+   above stay. */
+@supports (width: 1cqw) {
+  .dialog-stage { container-type: size; }
+  .dialog-stage .narration-overlay {
+    --u: min((100cqw - 32px) / 1200, (100cqh - 32px) / 640);
+    --p: max(var(--u) * 0.85, 11px / 14.17);
+    --gutter: max(0px, (100cqw - 32px - var(--u) * 1200) / 2);
+    top: 16px;
+    left: 16px;
+    right: auto;
+    width: min(calc(var(--p) * 378 + var(--gutter)), calc(var(--p) * 480));
+    max-width: none;
+    min-width: 0;
+    padding: calc(var(--p) * 12.6) calc(var(--p) * 14.7);
+    gap: calc(var(--p) * 4.2);
+  }
+  .dialog-stage .narration-overlay .narration-step { font-size: calc(var(--p) * 11.54); }
+  .dialog-stage .narration-overlay .narration-text { font-size: calc(var(--p) * 14.17); line-height: 1.5; }
 }
 
 .dialog-progress {
@@ -1097,6 +1128,33 @@ body.sidebar-collapsed { padding-left: 0; }
   display: none;
 }
 body.reduced-motion .reduced-notice { display: block; }
+
+/* A tablet held upright draws the 1200-wide scene at about half size, labels near 6px. The picture
+   is letterboxed there, so this line sits in the empty band under it and points to the two ways
+   to read it. Tablets only: a phone never gets the dialog (MOBILE STUB below). */
+.portrait-hint { display: none; }
+@media (hover: none) and (pointer: coarse) and (orientation: portrait) and (min-width: 601px) and (max-width: 900px) {
+  .portrait-hint {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    z-index: 6;
+    display: block;
+    width: max-content;
+    max-width: calc(100% - 32px);
+    margin: 0;
+    padding: 10px 14px;
+    transform: translateX(-50%);
+    border: 1px solid var(--tint-border, var(--border));
+    border-radius: 10px;
+    background: var(--tint-panel, rgba(17, 15, 31, 0.82));
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: center;
+  }
+  .portrait-hint a { color: var(--accent); }
+}
 
 /* ===== MOBILE STUB =====
    The diagrams are not adapted to phones, so a phone gets this page instead of the grid. The query

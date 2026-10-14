@@ -3,7 +3,8 @@ import { g, rect, text } from '../../lib/svg.js';
 
 // Design notes for this card: ./CARDS/workloads-replicaset.md
 
-// Two ownership bands and a count mark, no column preset (WL.L-06). PANEL_B is the measured panel bottom.
+// Two ownership bands and a count mark, no column preset (WL.L-06).
+// PANEL_B is a layout line set below the card's measured panel bottom, not the measurement.
 const PANEL_B = 330;
 
 // The ReplicaSet is centred on WL.CX so the trunk leaves a face midpoint (WL.L-07).
@@ -27,6 +28,7 @@ const UNOWN_Y = OWN_Y + OWN_H + 12, UNOWN_H = 112;
 const UNOWN_POD_Y = UNOWN_Y + 24;
 
 // Three slots for the desired count, the fourth PAST the mark so a surplus replica is over a line.
+// SLOT_X(3) hangs off MARK_X, so moving the mark moves a lane and is a timing change (A-11).
 const SLOT_W = 216, SLOT_GAP = 30, MARK_GAP = 54, SLOT_PAD = 24;
 const SLOT_L = WL.L + SLOT_PAD;
 const MARK_X = SLOT_L + 2 * (SLOT_W + SLOT_GAP) + SLOT_W + MARK_GAP;

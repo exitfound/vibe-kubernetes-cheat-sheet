@@ -2,7 +2,7 @@ import { P, F, defineCard, BEAT, FADE, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-detach-on-node-failure.md
 
 
-// The panel wall (L-02).
+// A storage card pinned right of the panel starts here, 20 left of the L-03 line at 420.
 const LEFT_X = 400;
 
 // The two node columns stay identical in width and centre the content on 600: any difference
@@ -12,7 +12,7 @@ const A_X = LEFT_X;
 const B_X = A_X + NODE_W + NODE_GAP;
 const CONTENT_CX = A_X + (NODE_W * 2 + NODE_GAP) / 2;
 
-// The catalog Pod height (NET.L-01), narrowed to fit its node column.
+// The catalog Pod height (STO.L-05), narrowed to fit its node column.
 const POD_Y = 76, POD_W = NODE_W - NODE_PAD * 2, POD_H = 104;
 // The catalog frame padding round the Pod (L-23).
 const NODE_Y = POD_Y - 34, NODE_H = 34 + POD_H + 12;
@@ -38,7 +38,7 @@ const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) => CHIPS_L + i * (CHIP_
 const CHIPS_Y = 596;
 
 const LAD_X = M, LAD_Y = 448, LAD_W = 380, LAD_ROW = 38, LAD_GAP = 9;
-const ESC_W = 232, ESC_H = 80;                           // the catalog actor block (NET.L-01)
+const ESC_W = 232, ESC_H = 80;                           // the catalog actor block (STO.L-05)
 const ESC_X = CONTENT_CX - ESC_W / 2;
 const ESC_GAP = 42;                                      // clear air over the chip strip under it
 const ESC_Y = CHIPS_Y - ESC_GAP - ESC_H;
@@ -54,7 +54,7 @@ const W_ATTACH_B = [[CONTENT_CX + LANE, DK_TOP], [CONTENT_CX + LANE, CORRIDOR_Y]
 const DK_BOTTOM = DK_Y + DK_H;
 // The force delete: kubectl right of Node-2, top-aligned with the frames, its lane over both frames
 // into the Node-1 top face level with the old Pod (A-21), so it crosses no block and no lane.
-const KC_W = 232, KC_H = 80, KC_GAP = 48;                // the catalog actor block (NET.L-01)
+const KC_W = 232, KC_H = 80, KC_GAP = 48;                // the catalog actor block (STO.L-05)
 const KC_X = B_X + NODE_W + KC_GAP, KC_Y = NODE_Y;
 const KC_CX = KC_X + KC_W / 2;
 const KILL_Y = NODE_Y - 20;

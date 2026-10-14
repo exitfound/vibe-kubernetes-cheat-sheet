@@ -2,7 +2,8 @@ import { P, F, defineCard, ladder, laneY, midX, strip, WL, FADE, BEAT, OPACITY }
 
 // Design notes for this card: ./CARDS/workloads-daemonset.md
 
-// An eligibility roster, not a pipeline: Nodes carry labels, chips carry the derived status. Panel bottom at PANEL_B.
+// An eligibility roster, not a pipeline: Nodes carry labels, chips carry the derived status.
+// PANEL_B is a layout line set below the card's measured panel bottom, not the measurement.
 const PANEL_B = 255;
 
 // The write lands from the API (A-09), so the API is centred on CX and the controller sits right of it.

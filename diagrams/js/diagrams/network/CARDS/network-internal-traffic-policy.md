@@ -6,9 +6,9 @@
 WHAT     internalTrafficPolicy decides which endpoints kube-proxy writes into each Node's rules:
          Cluster writes every ready one, Local only those on the caller's Node, and in iptables mode
          a Node with no ready local agent drops the call rather than reach the other Node.
-DEVIATES L-23: the frame top stands 20 over kube-proxy. The other 14 push the chip strip to 2 short
-         of the canvas edge.
-         NET.L-01: the dataplane is 156 by 80 and the Pods 140 by 100, sized by the 540 frame row,
+DEVIATES L-23: the frame top stands 20 over kube-proxy. Lowering the row by the other 14 puts the
+         chip strip floor at 644, past the 640 canvas.
+         NET.L-01: the Pods are 140 by 100, sized by the 540 frame row,
          14 + 140 + 38 + 156 + 38 + 140 + 14.
          P-03: the policy chip stands from entry, because the field is set before anything dials.
 CONTENT  Sources v1.36: Service Internal Traffic Policy, Virtual IPs and Service Proxies, pkg/proxy.

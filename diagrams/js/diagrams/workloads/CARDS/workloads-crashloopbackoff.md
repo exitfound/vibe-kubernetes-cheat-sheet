@@ -10,8 +10,6 @@ DEVIATES WL.L-06: no LAYOUT preset. The subject is a quantity, so it is an instr
          floor, with the chips 98..540 and the bars 580..1102.
          WL.L-02: the frame is 98..1102, sized off the instrument and centred on CX. Nine bars on a
          58 pitch end on 1102 with the axis, the ceiling and the frame edge.
-         L-23: the frame top stays 22 under the axis captions at 418, so the Pod moves down inside
-         it to take the 34 band rather than the frame moving up.
          WL.A-03: the Kubelet sits inside the frame and no lane crosses its edge. The backoff and
          its cap are per-node kubelet state.
          A-06: the restart lane stays empty on `backoff-named`, `doubling` and `cap`. Those steps

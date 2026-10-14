@@ -2,7 +2,7 @@ import { LANE_DY, P, F, defineCard, OPACITY, BEAT } from './storage-kit.js';
 // Design notes for this card: ./CARDS/storage-pv-lifecycle-phases.md
 
 
-// One pitch drives the phase row, and the row stands right of the panel wall so the controller band
+// One pitch drives the phase row, and the row stands right of the panel so the controller band
 // can span all four phases above it: every write lane is then a straight drop onto a box top.
 const PITCH = 196;
 const ST_W = 150, GAP = PITCH - ST_W;
@@ -13,7 +13,7 @@ const ROW_RIGHT = ROW_X + 4 * ST_W + 3 * GAP;
 const stX = cx => cx - ST_W / 2;
 const ROW_Y = 300, ST_H = 72, ROW_BOTTOM = ROW_Y + ST_H, ROW_MID = ROW_Y + ST_H / 2;
 
-// Every actor is 80 tall (NET.L-01). The controller band is sized BY the row it writes to, and its
+// Every actor is 80 tall (STO.L-05). The controller band is sized BY the row it writes to, and its
 // centre is the row centre, so the four write lanes sit at mirrored offsets on its floor (L-12).
 const BOX_H = 80, GAP_Y = 40;
 const SLOT_Y = 30, SLOT_BOTTOM = SLOT_Y + BOX_H;  // the actor sending an event
@@ -30,7 +30,7 @@ const DELETE_LBL_X = RELEASED_CX + LANE_DY, DELETE_LBL_Y = ROW_Y - 18;
 // The Failed caption starts at the Released centre, clear of the way-back line.
 const FAIL_LBL_X = RELEASED_CX;
 
-// The external-provisioner stands under Failed (NET.L-01) and reaches Released from the side.
+// The external-provisioner stands under Failed (STO.L-05) and reaches Released from the side.
 const PROV_W = 232, PROV_X = FAILED_CX - PROV_W / 2, PROV_Y = 450;
 const PROV_MID = PROV_Y + BOX_H / 2;
 

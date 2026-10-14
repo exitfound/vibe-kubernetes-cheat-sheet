@@ -33,7 +33,7 @@ export async function diagrams() {
   return DIAGRAMS;
 }
 
-// Sorted by basename, with `path` built from the convention app.js imports by.
+// Sorted by basename, with `path` built from the convention dialog.js imports by.
 export async function cards() {
   const list = (await diagrams())
     .map(s => {

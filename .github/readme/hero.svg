@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">kube.how</title>
+  <desc id="desc">kube.how is a kubectl cheat sheet and a library of animated diagrams of how Kubernetes works. A command card sends kubectl get pods -A along a dashed lane to the API of a small control plane diagram, drawn the way the site draws its diagrams.</desc>
+
+  <defs>
+    <radialGradient id="glow" cx="78%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#7d86ff" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#7d86ff" stop-opacity="0"/>
+    </radialGradient>
+    <marker id="head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#e0cdff"/>
+    </marker>
+    <marker id="head-dim" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#7d86ff"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="420" rx="24" fill="#110f1f"/>
+  <rect width="1200" height="420" rx="24" fill="url(#glow)"/>
+  <rect x="0.5" y="0.5" width="1199" height="419" rx="23.5" fill="none" stroke="#2e274e"/>
+
+  <g id="title-block" transform="translate(64 0)">
+    <text x="0" y="98" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="17" letter-spacing="3" fill="#9b95b8">KUBERNETES REFERENCE</text>
+    <text x="-3" y="176" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="80" font-weight="700" letter-spacing="-1.5" fill="#f9f8ff">kube.how</text>
+    <text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="25" fill="#c7c2ed">
+      <tspan x="0" y="230">A kubectl cheat sheet you copy from,</tspan>
+      <tspan x="0" y="264">and animated diagrams of how Kubernetes works.</tspan>
+    </text>
+
+    <g id="tools" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="19">
+      <text x="0" y="322" fill="#4fe5ff" font-weight="700">&gt;_</text>
+      <text x="34" y="322" fill="#ece9ff">kubectl · Helm · Kustomize · K9s</text>
+    </g>
+
+    <g id="categories" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="18" fill="#c7c2ed">
+      <circle cx="7" cy="355" r="6" fill="#7d86ff"/><text x="22" y="361">Cluster</text>
+      <circle cx="118" cy="355" r="6" fill="#5bb8ff"/><text x="133" y="361">Workloads</text>
+      <circle cx="251" cy="355" r="6" fill="#4fe5ff"/><text x="266" y="361">Networking</text>
+      <circle cx="395" cy="355" r="6" fill="#5eca94"/><text x="410" y="361">Storage</text>
+    </g>
+  </g>
+
+  <g id="project-proof" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <rect x="700" y="44" width="444" height="212" rx="12" fill="none" stroke="#7d86ff" stroke-opacity="0.55" stroke-width="1.5" stroke-dasharray="6 5"/>
+    <text x="718" y="72" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="16" letter-spacing="2" fill="#9b95b8">CONTROL PLANE</text>
+
+    <g id="lanes" fill="none" stroke-width="1.6" stroke-dasharray="6 5">
+      <path d="M992 110 H1040" stroke="#7d86ff" marker-end="url(#head-dim)"/>
+      <path d="M884 138 V160 H804 V180" stroke="#7d86ff" marker-end="url(#head-dim)"/>
+      <path d="M960 138 V160 H1040 V180" stroke="#7d86ff" marker-end="url(#head-dim)"/>
+      <path d="M922 300 V142" stroke="#e0cdff" stroke-width="1.8" marker-end="url(#head)"/>
+    </g>
+
+    <g id="api">
+      <rect x="852" y="84" width="140" height="54" rx="8" fill="#1a1538" stroke="#e0cdff" stroke-width="2.2"/>
+      <text x="922" y="118" text-anchor="middle" font-size="21" font-weight="700" fill="#f9f8ff">API</text>
+    </g>
+
+    <g id="etcd">
+      <path d="M1046 92 V132 A39 9 0 0 0 1124 132 V92" fill="#1a1538" stroke="#7d86ff" stroke-width="1.6"/>
+      <ellipse cx="1085" cy="92" rx="39" ry="9" fill="#221c46" stroke="#7d86ff" stroke-width="1.6"/>
+      <text x="1085" y="124" text-anchor="middle" font-size="18" font-weight="700" fill="#ece9ff">etcd</text>
+    </g>
+
+    <g id="scheduler">
+      <rect x="716" y="184" width="176" height="52" rx="8" fill="#1a1538" stroke="#7d86ff" stroke-width="1.6"/>
+      <text x="804" y="216" text-anchor="middle" font-size="19" font-weight="600" fill="#ece9ff">scheduler</text>
+    </g>
+
+    <g id="controllers">
+      <rect x="952" y="184" width="176" height="52" rx="8" fill="#1a1538" stroke="#7d86ff" stroke-width="1.6"/>
+      <text x="1040" y="216" text-anchor="middle" font-size="19" font-weight="600" fill="#ece9ff">controllers</text>
+    </g>
+
+    <g id="packet">
+      <circle cx="922" cy="278" r="13" fill="#e0cdff" fill-opacity="0.16"/>
+      <circle cx="922" cy="278" r="6" fill="#e0cdff"/>
+    </g>
+
+    <g id="command">
+      <rect x="700" y="300" width="444" height="68" rx="12" fill="#1a1538" stroke="#2e274e" stroke-width="1.5"/>
+      <text x="724" y="342" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="22" xml:space="preserve"><tspan fill="#83b3ff" font-weight="700">kubectl</tspan> <tspan fill="#ff8011">get</tspan> <tspan fill="#7af4f8">pods</tspan> <tspan fill="#f2d055">-A</tspan></text>
+      <g fill="none" stroke="#9b95b8" stroke-width="1.8" stroke-linejoin="round">
+        <path d="M1078 323 l3.1 6.3 6.9 1 -5 4.9 1.2 6.9 -6.2 -3.3 -6.2 3.3 1.2 -6.9 -5 -4.9 6.9 -1 z"/>
+        <rect x="1106" y="326" width="14" height="14" rx="2.5"/>
+        <path d="M1110 322 h11 a3 3 0 0 1 3 3 v11"/>
+      </g>
+    </g>
+  </g>
+</svg>

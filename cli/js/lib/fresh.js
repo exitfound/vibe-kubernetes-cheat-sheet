@@ -2,7 +2,7 @@
 // the first visit records 0, a baseline never new. A later key reads NEW for FRESH_DAYS until opened or
 // copied, departed keys drop. A diagram key is `id@revision`, so an edited card reads NEW again.
 
-export const FRESH_DAYS = 14;
+const FRESH_DAYS = 14;
 const DAY_MS = 864e5;
 
 export function readSeen(storageKey) {

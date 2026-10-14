@@ -13,7 +13,8 @@ DEVIATES CLU.L-01: the frame is 134/106/16, the one exception to the top padding
          `kubelet-stops`, the picture announces a state the `Ready True (Stale Lease)` chip denies.
          M-21: the Node-1 side fades over HANDOVER_MS 300, not FADE.out 700. At 700 the fade and the
          bind flight read as one beat.
-         The reschedule lane crosses the heartbeat return leg: no step puts a ball on both.
+         S-09: step 0 is `healthy`, not `idle`. It is static and silent like every poster, and its
+         id names what it draws: Node-1 Ready on a fresh Lease, the state the six steps take apart.
 CONTENT  Sources (v1.36): Node Status, Node Taints, Taint-Based Evictions, Force Delete StatefulSet
          Pods, node-lifecycle, taint-eviction, lease, podgc code at v1.36.0. Flip PUT, taint PATCH,
          Lease PUT, grace 50s (the page has 40s). DELETE after a DisruptionTarget PATCH, bypasses

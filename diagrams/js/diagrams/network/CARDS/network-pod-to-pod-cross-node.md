@@ -5,8 +5,8 @@
 ```
 WHAT     A packet from a Pod on one Node to a Pod on another over the physical underlay, wrapped by
          an overlay or routed as is.
-DEVIATES NET.L-01: Pods are 180 by 120 and the dataplanes 150 wide, sized by the 470 Node frame:
-         232 + 92 + 232 is 556. The 120 Pod height is the card's own.
+DEVIATES NET.L-01: Pods are 180 by 120. 180 is sized by the 470 Node frame, where a 232 Pod and a
+         232 dataplane with the 92 between want 556, and 120 is the card's own.
          NET.A-02: the underlay lane starts inside Node-1 and ends inside Node-2, crossing both
          floors, because the dataplanes are what wrap and unwrap. No report sees this crossing.
          P-03: the `encap`, `decap` and `routed` chips turn at entry. Each is a premise of its step,

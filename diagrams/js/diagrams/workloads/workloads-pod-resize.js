@@ -2,7 +2,7 @@ import { LANE_DY, P, F, defineCard, laneY, ladder, strip, midX, shade, WL, FADE,
 
 // Design notes for this card: ./CARDS/workloads-pod-resize.md
 
-// Three tiers on one spine. The narration panel must clear the Node frame, which caps narration length.
+// Three tiers on one spine. The Node frame is the first thing under the narration panel.
 const M = WL.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;
 const CX = midX(CONTENT_L, CONTENT_R);

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="230" viewBox="0 0 1200 230" role="img" aria-labelledby="title desc">
+  <title id="title">kube.how Commands</title>
+  <desc id="desc">The Commands app at kube.how/cli: a searchable kubectl, Helm, Kustomize and K9s cheat sheet. Two command rows show the site's syntax colours with a star and a copy button.</desc>
+
+  <rect width="1200" height="230" rx="22" fill="#110f1f"/>
+  <rect x="0.5" y="0.5" width="1199" height="229" rx="21.5" fill="none" stroke="#2e274e"/>
+
+  <g id="title-block" transform="translate(56 0)">
+    <rect x="0" y="52" width="64" height="56" rx="12" fill="#1a1538" stroke="#5cb1ff" stroke-width="2"/>
+    <path d="M17 68 L29 80 L17 92" fill="none" stroke="#4fe5ff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M34 93 H48" stroke="#4fe5ff" stroke-width="3.2" stroke-linecap="round"/>
+    <text x="88" y="98" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="50" font-weight="700" letter-spacing="-0.5" fill="#f9f8ff">Commands</text>
+    <text x="0" y="148" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" fill="#c7c2ed">Search it, click it, it is on your clipboard.</text>
+    <text x="0" y="184" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="18" fill="#9b95b8">kube.how/cli</text>
+  </g>
+
+  <g id="rows" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace">
+    <g id="row-1">
+      <rect x="628" y="34" width="516" height="74" rx="10" fill="#1a1538" stroke="#2e274e" stroke-width="1.5"/>
+      <text x="648" y="66" font-size="20" xml:space="preserve"><tspan fill="#83b3ff" font-weight="700">kubectl</tspan> <tspan fill="#ff8011">rollout</tspan> <tspan fill="#7af4f8">undo</tspan> <tspan fill="#ef8aa3">deploy/&lt;name&gt;</tspan></text>
+      <text x="648" y="93" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#9b95b8">Rollback to previous revision</text>
+    </g>
+    <g id="row-2">
+      <rect x="628" y="120" width="516" height="74" rx="10" fill="#1a1538" stroke="#2e274e" stroke-width="1.5"/>
+      <text x="648" y="152" font-size="20" xml:space="preserve"><tspan fill="#83b3ff" font-weight="700">kubectl</tspan> <tspan fill="#ff8011">describe</tspan> <tspan fill="#7af4f8">pod</tspan> <tspan fill="#9afb50" font-style="italic">&lt;name&gt;</tspan></text>
+      <text x="648" y="179" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#9b95b8">Full pod details, events and status</text>
+    </g>
+    <g fill="none" stroke="#9b95b8" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M1082 61 l3.1 6.3 6.9 1 -5 4.9 1.2 6.9 -6.2 -3.3 -6.2 3.3 1.2 -6.9 -5 -4.9 6.9 -1 z"/>
+      <rect x="1108" y="64" width="14" height="14" rx="2.5"/>
+      <path d="M1112 60 h11 a3 3 0 0 1 3 3 v11"/>
+      <path d="M1082 147 l3.1 6.3 6.9 1 -5 4.9 1.2 6.9 -6.2 -3.3 -6.2 3.3 1.2 -6.9 -5 -4.9 6.9 -1 z"/>
+      <rect x="1108" y="150" width="14" height="14" rx="2.5"/>
+      <path d="M1112 146 h11 a3 3 0 0 1 3 3 v11"/>
+    </g>
+  </g>
+</svg>

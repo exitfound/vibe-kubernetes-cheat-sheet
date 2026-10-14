@@ -3,7 +3,6 @@ import { P, F, defineCard, ladder, strip, spread, midX, shade, CLU, BEAT, FADE, 
 // Design notes for this card: ./CARDS/cluster-taints-tolerations.md
 
 // Layout C with no ladder: chips in a three-across bottom strip, the evictor in the mid band.
-// The evictor top at 252 caps narration at 313 characters.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;
 const CX = midX(CONTENT_L, CONTENT_R);

@@ -5,8 +5,7 @@
 ```
 WHAT     The netfilter stations in order with a packet walking them, and the routing decision drawn
          as a fork: INPUT on one leg, FORWARD, POSTROUTING and eth0 on the other.
-DEVIATES NET.L-01: the client Pod is 232 by 110 with a 192 by 48 app box, and INPUT is 230 wide,
-         both the card's own sizes.
+DEVIATES NET.L-01: the client Pod is 232 by 110 with a 192 by 48 app box, the card's own size.
          P-03: `dnat` and `fork` turn their chips at entry. Their ball leaves the place that already
          made the value, which `P-06` admits.
 CONTENT  Sources: Virtual IPs and Service Proxies, Cluster Networking (v1.36), kube-proxy code at

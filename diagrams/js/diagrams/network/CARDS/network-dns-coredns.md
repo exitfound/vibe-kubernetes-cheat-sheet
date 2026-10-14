@@ -5,9 +5,7 @@
 ```
 WHAT     A name resolved through the CoreDNS plugin chain: which stage answers it, where that stage
          gets its answers, and the answer coming back out through cache.
-DEVIATES NET.L-01: the resolv.conf chips are 320 wide, because `search` and its value fill a 232
-         chip. They are a file, not an actor row.
-         T-09: the three stage labels stay lowercase, the literal plugin names (`KNOWN_CASING`).
+DEVIATES T-09: the three stage labels stay lowercase, the literal plugin names (`KNOWN_CASING`).
 CONTENT  Sources, 1.36: DNS for Services and Pods, Customizing DNS Service, kubeadm Corefile, and
          CoreDNS v1.14.2 plugin.cfg, kubernetes, cache. Chain order: cache, kubernetes, forward.
          cache is `the first stage that can answer`: prometheus, errors, loadbalance run ahead.

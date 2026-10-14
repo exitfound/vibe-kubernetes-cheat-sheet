@@ -15,6 +15,6 @@
     "pages": "node ../../tools/pages/build.mjs"
   },
   "devDependencies": {
-    "playwright": "1.60.0"
+    "playwright": "1.64.0"
   }
 }

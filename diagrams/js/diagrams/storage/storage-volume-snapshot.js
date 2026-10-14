@@ -24,7 +24,7 @@ const SNAP_Y = LIVE_Y + ROW_PITCH, REST_Y = SNAP_Y + ROW_PITCH;
 const FRAME_X = HEAD_X - FRAME_INSET_X, FRAME_W = ROW_W + 2 * FRAME_INSET_X;
 const FRAME_H = REST_Y + ROW_H + FRAME_BOTTOM - FRAME_Y;
 
-// The catalog Pod (NET.L-01), centred on block C: every write it makes lands straight down on C.
+// The catalog Pod (STO.L-05), centred on block C: every write it makes lands straight down on C.
 const POD_W = 232, POD_H = 104, POD_Y = 36, POD_BOTTOM = POD_Y + POD_H;
 const APP_W = 192, APP_H = 44, APP_DY = 26;
 

@@ -3,7 +3,7 @@ import { podShell } from '../../lib/primitives.js';
 // Design notes for this card: ./CARDS/storage-fsgroup-ownership.md
 
 
-// Both columns centre on this line. Sizes are the catalog's (NET.L-01), except that the Pod is
+// Both columns centre on this line. Sizes are the catalog's (STO.L-05), except that the Pod is
 // taller because it holds two inner boxes.
 const CONTENT_CX = 600;
 

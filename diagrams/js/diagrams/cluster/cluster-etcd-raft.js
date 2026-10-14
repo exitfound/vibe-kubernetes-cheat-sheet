@@ -2,7 +2,7 @@ import { LANE_DY, P, F, defineCard, laneY, ladder, midX, shade, laneOf, BEAT, FA
 
 // Design notes for this card: ./CARDS/cluster-etcd-raft.md
 
-// Laid out on the L with the narration panel almost touching CYL_Y, so narration has a hard character ceiling.
+// 40, not CLU.M 60: it buys the proposal label its gap without narrowing the API off 232.
 const M = 40;
 const CONTENT_L = M, CONTENT_R = 1200 - M;
 const CX = midX(CONTENT_L, CONTENT_R);

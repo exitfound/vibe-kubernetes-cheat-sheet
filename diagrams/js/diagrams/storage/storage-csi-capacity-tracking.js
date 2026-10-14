@@ -2,9 +2,9 @@ import { P, F, defineCard, BEAT, FADE, OPACITY, chipStrip } from './storage-kit.
 import { g, rect } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS/storage-csi-capacity-tracking.md
 
-// Two Nodes along the top, right of the panel wall, and along the bottom the pipeline the card is
+// Two Nodes along the top, right of the panel, and along the bottom the pipeline the card is
 // about: the Scheduler reads, the API server holds the capacity objects, the CSI controller writes.
-const BOX_W = 232, BOX_H = 80;                                               // NET.L-01
+const BOX_W = 232, BOX_H = 80;                                               // STO.L-05
 const POD_W = 232, POD_H = 104, APP_W = 192, APP_H = 44, APP_DY = 26;
 
 // The catalog 34 label band over the Pod. The floor is this card's exception, see NODE_FOOT.

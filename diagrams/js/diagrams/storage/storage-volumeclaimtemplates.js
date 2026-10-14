@@ -6,7 +6,7 @@ import { P, F, defineCard, STO, chipStrip, setPodSublabel, BEAT, FADE, OPACITY }
 // mirrored about it at CX -/+ FLANK. The mint spine drops down the same line.
 const CX = 600;
 
-// The catalog actor block (NET.L-01). The replica count lives in the replicas chip, not the sublabel.
+// The catalog actor block (STO.L-05). The replica count lives in the replicas chip, not the sublabel.
 const SRC_W = 232, SRC_H = 80, SRC_X = CX - SRC_W / 2, SRC_Y = 52;
 const SRC_BOTTOM = SRC_Y + SRC_H;
 
@@ -14,7 +14,7 @@ const SRC_BOTTOM = SRC_Y + SRC_H;
 // Row 0 is set by the panel.
 const ROW_CY = [261, 395, 529];
 
-// The catalog sizes (NET.L-01). The disk is a cylinder, not an actor block, and keeps its own width.
+// The catalog sizes (STO.L-05). The disk is a cylinder, not an actor block, and keeps its own width.
 const POD_W = 232, POD_H = 104;
 const APP_W = 192, APP_H = 44, APP_DY = 26;
 const PVC_W = 232, PVC_H = 80;

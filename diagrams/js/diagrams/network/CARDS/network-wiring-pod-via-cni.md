@@ -6,7 +6,6 @@
 WHAT     Who calls whom to wire a Pod: the Kubelet asks the CRI runtime for a sandbox, the runtime
          runs a list of CNI plugins in order, and one delegates addressing to an IPAM plugin.
 DEVIATES NET.L-01: the sandbox Pod is 240 by 116 with a 196 by 60 pause box, the card's own size.
-         The delegate is 212, sized by the plugin row it nests under.
          A-05: the plugin trunk is a `P.raw` path at full opacity with no arrowhead: the chain
          ball rides it. The two taps nothing rides stay a relation.
 CONTENT  Sources: CNI Specification 1.1.0, Network Plugins (v1.36), CNI Plugins Reference (v1.9),

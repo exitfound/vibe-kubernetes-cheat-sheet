@@ -3,6 +3,7 @@ import { P, F, defineCard, spread, strip, midX, shade, CLU, BEAT, OPACITY } from
 // Design notes for this card: ./CARDS/cluster-pod-cgroup-hierarchy.md
 
 // A tree, not a sequence: tiers of one cgroup v2 hierarchy, each revealed with the lanes into it.
+// No Node frame: it would have to start below the panel and enclose three tiers of five.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;
 const CX = midX(CONTENT_L, CONTENT_R);                   // the spine every tier centres on

@@ -5,13 +5,14 @@ import { P, F, defineCard, BEAT } from './storage-kit.js';
 // Two listings level with each other across one writer: the Pod object, Kubelet, the labels file,
 // each file line level with the label it comes from.
 const CX = 600;
-const COL_W = 232;                                                // NET.L-01, every column
+const COL_W = 232;                                                // STO.L-05, every column
 const OBJ_X = 100, MID_X = CX - COL_W / 2, FILE_X = 1200 - OBJ_X - COL_W;
 const OBJ_R = OBJ_X + COL_W, MID_R = MID_X + COL_W;
 const OBJ_CX = OBJ_X + COL_W / 2, FILE_CX = FILE_X + COL_W / 2;
 
 // A header line, then row slots inset in a frame, four in the object and three in the file. The inset
 // is wider than the 16 a ball is judged AT a block by, so a lane on the frame face is the frame's.
+// At ROW_H 56 the frames grow to 304 and the chip floor drops to 604.
 const LIST_Y = 262;                                               // the object frame top clears the panel
 const HEAD_H = 32, INSET = 18, ROW_H = 44, ROW_GAP = 10;
 const ROW_W = COL_W - 2 * INSET;
@@ -25,7 +26,7 @@ const CLUSTER = 0, RACK = 1, ZONE = 2, NODE = 3;
 
 const BOX_H = 80;
 const KUBE_Y = MID_Y - BOX_H / 2;
-// The running Pod over Kubelet on the centre line (NET.L-01).
+// The running Pod over Kubelet on the centre line (STO.L-05).
 const POD_Y = 60, POD_H = 104, POD_B = POD_Y + POD_H, POD_MY = POD_Y + POD_H / 2;
 
 // The three copies of the zone, stacked under Kubelet in the middle column.
