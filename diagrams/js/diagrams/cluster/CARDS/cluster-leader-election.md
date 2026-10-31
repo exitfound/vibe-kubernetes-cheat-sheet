@@ -14,4 +14,5 @@ CONTENT  Sources (v1.36): Leases, Lease v1, Coordinated Leader Election, kcm fla
          over "watch or periodically read". Expiry runs on the standby clock from the last change it
          saw (`observedTime`): "renewTime age" and "within a lease duration" are ruled out. Renew
          deadline 10s. `holderIdentity` has no marker. Coordinated election, lock release not drawn.
+         "only one ever acts" is ruled out: one at a time, no fencing.
 ```

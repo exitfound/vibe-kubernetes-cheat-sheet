@@ -61,7 +61,7 @@ const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 // Z-order: the Node frame, the blocks and the Pod, the head with its fields, the lanes, the
 // counterfactual caption, then the packet layer.
 export const SCENE = {
-  'aria-label': 'The CSIDriver object: one Pod app-0 with fsGroup 2000 mounts volume data from disk.csi.example.com and volume shared from nfs.csi.example.com. Each driver here has a cluster scoped CSIDriver object of the same name. The attach and detach controller reads attachRequired: true for the disk driver, so it writes VolumeAttachment csi-5e8b, and false for the NFS driver, so it writes none. Kubelet calls NodePublishVolume on both node plugins, passes Pod info such as the Pod name, namespace and UID only to the NFS driver because its podInfoOnMount is true. Neither driver advertises VOLUME_MOUNT_GROUP to apply fsGroup itself, so Kubelet changes the group of data to 2000 because the disk driver has fsGroupPolicy File, while None leaves shared as exported. If the NFS driver had no CSIDriver object, the controller and Kubelet would treat it as attachRequired true, a VolumeAttachment would be written that nothing marks attached, since that driver runs no external-attacher, and the Pod would wait in ContainerCreating.',
+  'aria-label': 'The CSIDriver object: one Pod app-0 with fsGroup 2000 mounts volume data from disk.csi.example.com and volume shared from nfs.csi.example.com. Each driver here has a cluster scoped CSIDriver object of the same name. The attach and detach controller reads attachRequired: true for the disk driver, so it writes VolumeAttachment csi-5e8b, and false for the NFS driver, so it writes none. Kubelet calls NodePublishVolume on both node plugins and passes Pod info such as the Pod name, namespace and UID only to the NFS driver because its podInfoOnMount is true. Neither driver advertises VOLUME_MOUNT_GROUP to apply fsGroup itself, so Kubelet changes the group of data to 2000 because the disk driver has fsGroupPolicy File, while None leaves shared as exported. If the NFS driver had no CSIDriver object, the controller and Kubelet would take attachRequired as true. Then a VolumeAttachment would be written that nothing marks attached, since that driver runs no external-attacher, and the Pod would wait in ContainerCreating.',
   parts: [
     P.defs(),
     P.node({ key: 'nodeFrame', x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -138,7 +138,7 @@ export const STEPS_SPEC = [
   {
     id: 'attach',
     duration: 4000,
-    narration: 'Each volume names its driver, and each driver here has a cluster scoped CSIDriver object of that exact name. The attach and detach controller reads attachRequired from it. The disk driver says true, so the controller writes VolumeAttachment csi-5e8b. The NFS driver says false, so no attach is needed.',
+    narration: 'Each volume names its driver, and each driver here has a cluster scoped CSIDriver object of that exact name. From that object the attach and detach controller reads attachRequired. The disk driver says true, so the controller writes VolumeAttachment csi-5e8b. The NFS driver says false, so no attach is needed.',
     chipsCued: fields(),
     labels: ATTACHED_LBL,
     sublabels: ATTACHED_SUB,
@@ -157,7 +157,7 @@ export const STEPS_SPEC = [
   {
     id: 'mount',
     duration: 5400,
-    narration: 'Kubelet reads both objects and calls NodePublishVolume on each node plugin, and podInfoOnMount true adds Pod info such as the Pod name, namespace and UID to the NFS call only. Neither driver applies fsGroup itself, so File makes Kubelet change the group of data to 2000, and None leaves shared as exported.',
+    narration: 'With csi-5e8b attached, Kubelet reads both objects and calls NodePublishVolume on each plugin. Kubelet adds Pod info such as name, namespace and UID only to the NFS call, where podInfoOnMount is true. Neither driver applies fsGroup itself, so with File Kubelet sets data to group 2000, while with None shared stays as exported. The Pod runs.',
     chipsCued: fields(),
     labels: ATTACHED_LBL,
     sublabels: MOUNTED_SUB,
@@ -180,7 +180,7 @@ export const STEPS_SPEC = [
   {
     id: 'missing',
     duration: 4200,
-    narration: 'Suppose instead the NFS driver ships no CSIDriver object: no field is set. The controller and Kubelet treat it as attachRequired true. The controller writes csi-c41d, but this driver runs no external-attacher, so nothing marks csi-c41d attached, shared stays unmounted and the Pod waits in ContainerCreating.',
+    narration: 'Suppose instead the NFS driver ships no CSIDriver object, and no field is set. Then the controller and Kubelet take attachRequired as true. The controller writes VolumeAttachment csi-c41d, but this driver runs no external-attacher, so nothing marks csi-c41d attached. Volume shared stays unmounted and the Pod waits in ContainerCreating.',
     chipsCued: fields(UNSET),
     labels: { vaD: 'VolumeAttachment csi-5e8b', vaN: 'VolumeAttachment csi-c41d', objN: 'No CSIDriver' },
     sublabels: { vaD: 'data on Node-1', vaN: 'attached: false', data: 'mounted, group 2000', shared: 'not mounted' },

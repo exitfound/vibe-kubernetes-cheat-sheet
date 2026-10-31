@@ -168,7 +168,7 @@ export const STEPS_SPEC = [
   {
     id: 'regulars-first',
     duration: 3400,
-    narration: 'Every container in spec.containers goes first. The Kubelet runs any preStop hook they declare and has the runtime send the stop signal to web and to redis, at different times and in an arbitrary order, so which of the two goes first is not something to rely on. No sidecar above has been signalled yet.',
+    narration: 'Every container in spec.containers goes first. The Kubelet runs any preStop hook they declare and has the runtime send the stop signal to web and to redis, at different times and in an arbitrary order that nothing should rely on. No sidecar above has been signalled yet.',
     chips: { declaredChip: DECLARED, stopChip: STOP_MAIN, gateChip: GATE_HELD, graceChip: GRACE },
     wires: { top: 'StopContainer · web and redis', spine: 'stop signal to containers[]' },
     opacity: stage(),
@@ -182,7 +182,7 @@ export const STEPS_SPEC = [
   {
     id: 'gate-holds',
     duration: 3500,
-    narration: 'That gate is the reason the order runs this way. While web and redis are still winding down, mesh-proxy is still carrying their outbound calls, log-agent is still tailing the file they write and otel-agent is still shipping what they emit. A sidecar stopped alongside the app would cut a path the app still needs.',
+    narration: 'While web and redis are still winding down, the gate holds so that mesh-proxy keeps carrying their outbound calls, log-agent keeps tailing the file they write and otel-agent keeps shipping what they emit. A sidecar stopped alongside the app would cut a path the app still needs.',
     chips: { declaredChip: DECLARED, stopChip: STOP_MAIN, gateChip: GATE_HELD, graceChip: GRACE },
     opacity: stage({ web: OPACITY.terminating, redis: OPACITY.terminating }),
     lit: ['containerProxy', 'containerLogship', 'containerOtel', 'gateChip'],
@@ -195,7 +195,7 @@ export const STEPS_SPEC = [
     id: 'gate-opens',
     // The three sweep steps share one shape: 4000 of motion then 800 still (M-19a).
     duration: 4800,
-    narration: 'The last container in spec.containers has fully terminated, so the gate opens and the sidecars follow, in the reverse of the order they are declared in. The row is walked from its end: initContainers[2] is otel-agent, so otel-agent is the first sidecar to be signalled.',
+    narration: 'The last container in spec.containers has fully terminated, so the gate opens and the sidecars follow, in the reverse of the order they are declared in. The Kubelet walks the row from its end, and initContainers[2] is otel-agent, so otel-agent is the first sidecar to be signalled.',
     chips: { declaredChip: DECLARED, stopChip: STOP_OTEL, gateChip: GATE_OPEN, graceChip: GRACE },
     wires: { top: 'containers[] exited · StopContainer · otel-agent', spine: 'stop signal to otel-agent' },
     opacity: stage({ web: OPACITY.terminated, redis: OPACITY.terminated, gate: OPACITY.terminated }),
@@ -214,7 +214,7 @@ export const STEPS_SPEC = [
   {
     id: 'reverse-sweep',
     duration: 4800,
-    narration: 'Next is initContainers[1], which is log-agent, while mesh-proxy at initContainers[0] is still running. That is what lets log-agent flush its last lines out through mesh-proxy on the way down, and it is the whole reason the row is walked backwards rather than forwards.',
+    narration: 'Next is initContainers[1], which is log-agent, while mesh-proxy at initContainers[0] is still running. The Kubelet walks the row backwards so that log-agent can flush its last lines out through mesh-proxy on the way down.',
     chips: { declaredChip: DECLARED, stopChip: STOP_LOG, gateChip: GATE_OPEN, graceChip: GRACE },
     wires: { top: 'otel-agent exited · StopContainer · log-agent', spine: 'stop signal to log-agent' },
     opacity: stage({ web: OPACITY.terminated, redis: OPACITY.terminated, gate: OPACITY.terminated, otel: OPACITY.terminated }),

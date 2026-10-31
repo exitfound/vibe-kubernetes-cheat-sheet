@@ -76,7 +76,7 @@ const nodeRow = (n, r, ips) => [
 // The list order IS the append order, which is the z-order: the frames in back, the two rows, the
 // Service, then wires, relations and notes, then chips, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'internalTrafficPolicy Cluster versus Local on a DaemonSet Service: two Nodes each run a client Pod and one node-agent Pod, and kube-proxy on each Node writes the Service rules its dataplane runs. With Cluster both agents are in both rule sets, so a call can be DNAT-ed to the agent on the other Node. With Local each Node keeps only its own agent and calls stay on their Node. When agent-2 is ready=false and not terminating the Node-2 rules drop its call, although agent-1 on Node-1 is ready.',
+  'aria-label': 'internalTrafficPolicy Cluster versus Local on a DaemonSet Service: two Nodes each run a client Pod and one node-agent Pod, and kube-proxy on each Node writes the Service rules its dataplane runs. With Cluster both agents are in both rule sets, so a call can be DNAT-ed to the agent on the other Node. With Local each Node keeps only its own agent and calls stay on their Node. When agent-2 is ready=false and not terminating, the Node-2 rules drop the call from the Node-2 client, although agent-1 on Node-1 is ready.',
   parts: [
     P.defs(),
     P.node({ key: 'node1', x: N1_X, y: NODE_Y, w: FRAME_W, h: NODE_H, label: 'Node-1' }),
@@ -138,7 +138,7 @@ export const STEPS_SPEC = [
   {
     id: 'cluster',
     duration: 4800,
-    narration: 'A DaemonSet runs one agent Pod per Node behind Service node-agent. With the default Cluster, kube-proxy on each Node writes both agents into its Service rules, so a call can be DNAT-ed to either one. Here both calls land on the agent of the other Node and cross the cluster network.',
+    narration: 'A DaemonSet runs one agent Pod per Node behind Service node-agent. With the default Cluster and no trafficDistribution, kube-proxy on each Node writes both agents into its Service rules, so a call can be DNAT-ed to either one. Here both calls cross the cluster network to the other agent.',
     chips: { policyChip: 'Cluster', rules1Chip: BOTH, rules2Chip: BOTH, resultChip: 'crossed Nodes' },
     wires: { a1: 'ready=true', a2: 'ready=true' },
     ...stage(),
@@ -162,7 +162,7 @@ export const STEPS_SPEC = [
   {
     id: 'local',
     duration: 4200,
-    narration: 'Set internalTrafficPolicy to Local. On the next sync, kube-proxy on each Node rewrites its rules: Node-1 keeps only agent-1 and Node-2 only agent-2. The same call to the same ClusterIP now stays on its own Node. This lets a Pod reach the node-local agent of a DaemonSet, such as a log shipper or a metrics agent.',
+    narration: 'Now internalTrafficPolicy is set to Local. On the next sync, kube-proxy on each Node rewrites its rules: Node-1 keeps only agent-1 and Node-2 only agent-2. The same call to the same ClusterIP now stays on its own Node. This lets a Pod reach the node-local agent of a DaemonSet, such as a log shipper or a metrics agent.',
     chips: { policyChip: 'Local', rules1Chip: 'agent-1', rules2Chip: 'agent-2', resultChip: 'stayed on its Node' },
     wires: { a1: 'ready=true', a2: 'ready=true' },
     ...stage(),

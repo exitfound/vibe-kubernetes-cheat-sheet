@@ -175,7 +175,7 @@ export const STEPS_SPEC = [
   {
     id: 'register',
     duration: 4400,
-    narration: 'A balancer implementation that targets Pods works from the Service instead. Here its controller watches the EndpointSlice of Service web, reads the endpoint 10.244.1.5:8080 and registers it with the balancer as a target, and the Node port rows stop being targets. The field allocateLoadBalancerNodePorts still reads true and 31000 is still allocated: the implementation chose Pod targets, not the field.',
+    narration: 'A balancer implementation that targets Pods works from the Service instead. Here its controller watches the EndpointSlice of Service web, reads the endpoint 10.244.1.5:8080 and registers it as a balancer target, and the Node port rows stop being targets. The field allocateLoadBalancerNodePorts still reads true and 31000 is still allocated, since the implementation, not the field, chose Pod targets.',
     ...stage(false, OLD_ROW),
     chips: { allocChip: 'true', hopsChip: '2', ...PORTS },
     sublabels: POD_MODE,
@@ -211,7 +211,7 @@ export const STEPS_SPEC = [
   {
     id: 'replace',
     duration: 5400,
-    narration: 'Pod web-1 is deleted and its replacement, Pod web-2, starts on Node-2 at 10.244.2.7. The EndpointSlice now lists 10.244.2.7:8080, so the controller registers the new address and 10.244.1.5:8080 stops being a target. How it health checks the new target, here a probe of 10.244.2.7:8080, is up to the implementation: the Kubernetes API does not define it.',
+    narration: 'Pod web-1 is deleted and its replacement, Pod web-2, starts on Node-2 at 10.244.2.7. The EndpointSlice now lists 10.244.2.7:8080, so the controller registers the new address and 10.244.1.5:8080 stops being a target. How the balancer health checks the new target, here a probe of 10.244.2.7:8080, is up to the implementation, because the Kubernetes API does not define it.',
     ...stage(true, NEW_ROW),
     chips: { allocChip: 'true', hopsChip: '1', ...PORTS },
     sublabels: REPLACED,
@@ -233,7 +233,7 @@ export const STEPS_SPEC = [
     id: 'no-nodeports',
     // No packet: a field changes, and the chips it leaves standing carry the beat.
     duration: 3800,
-    narration: 'With the balancer no longer using the Node ports, the Service can set spec.allocateLoadBalancerNodePorts false, which is meant only for balancers that route straight to Pods. No new Node port is allocated unless a port asks for a specific one. Ports already allocated are not freed automatically: 31000 stays until the nodePort entry is removed explicitly from every Service port.',
+    narration: 'With the balancer no longer using the Node ports, the Service can set spec.allocateLoadBalancerNodePorts false, which is meant only for balancers that route straight to Pods. No new Node port is allocated unless a port asks for a specific one. Allocated ports are not freed automatically, and 31000 stays until the nodePort entry is removed explicitly from every Service port.',
     ...stage(true, NEW_ROW),
     chips: { allocChip: 'false', hopsChip: '1', ...PORTS },
     sublabels: REPLACED,

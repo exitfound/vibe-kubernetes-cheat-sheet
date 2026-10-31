@@ -71,7 +71,7 @@ const DISK = Object.freeze({
 
 // One image to scale on the ruler, newest to oldest left to right, so the sweep eats from the right.
 const IMAGES = [
-  { key: 'segNginx',   label: 'nginx:1.27',    age: 'last used 12m', from: 0,  to: 31 },
+  { key: 'segNginx',   label: 'nginx:1.30',    age: 'last used 12m', from: 0,  to: 31 },
   { key: 'segRedis',   label: 'redis:7.2',     age: 'last used 6h',  from: 31, to: 58 },
   { key: 'segFluentd', label: 'fluentd:v1.17', age: 'last used 9d',  from: 58, to: 78 },
   { key: 'segEnvoy',   label: 'envoy:v1.31',   age: 'last used 41d', from: 78, to: 89 },
@@ -218,7 +218,7 @@ export const STEPS_SPEC = [
   {
     id: 'max-age',
     duration: 3300,
-    narration: 'Turn imageMaximumGCAge on, 168h here, and every pass runs it first, before the disk is even read: an image unused for longer than that goes whatever the usage reads. So fluentd:v1.17 goes although 78 percent is already under the low mark. Image age is not tracked across a Kubelet restart, which starts the full wait again.',
+    narration: 'With imageMaximumGCAge turned on, 168h here, every pass runs it first, before the disk is even read: an image unused for longer than that goes whatever the usage reads. So fluentd:v1.17 goes although 78 percent is already under the low mark. Image age is not tracked across a Kubelet restart, which starts the full wait again.',
     chips: AFTER_AGE,
     wires: { del: 'delete · unused past imageMaximumGCAge' },
     opacity: AGED,

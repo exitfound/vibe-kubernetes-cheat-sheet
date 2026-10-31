@@ -1,4 +1,4 @@
-/* ===== FONTS ===== */
+/* Fonts */
 /* Static faces, one file per weight, declared after the Google stylesheet so they win over its one
    variable file. Firefox writes a variable font's non-default weight into a PDF without its text, so
    no description, title or bold first word could be copied, and print needs the faces loaded early. */
@@ -19,7 +19,7 @@
 @font-face { font-family: 'Space Grotesk'; font-weight: 700; font-display: swap; src: url(https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj4PVnsqPMBTTA.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 @font-face { font-family: 'Space Grotesk'; font-weight: 700; font-display: swap; src: url(https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj4PVnskPMA.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 
-/* ===== VARIABLES ===== */
+/* Variables */
 :root {
   --bg-card:        #1a1538;
   --bg-card-hover:  #1e1a38;
@@ -36,6 +36,10 @@
   --accent:         #e0cdff;
   --accent-glow:    rgba(224, 205, 255, 0.16);
   --accent-border:  rgba(224, 205, 255, 0.28);
+
+  /* /cli/'s own category families. /diagrams/ has its own spectrum (diagrams/css/tokens.css), so a
+     name both apps use, Cluster or Workloads, is tinted differently in each: the taxonomies differ, and
+     --workloads-color is also the Commands colour across the site. */
 
   /* Group: Kubernetes, cool blue family */
   --installation-color:  #7d86ff;
@@ -93,11 +97,13 @@
   --hl-sep:   #919fb7;   /* -- | > */
 }
 
-/* ===== RESET ===== */
+/* Reset */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html {
   scroll-behavior: smooth;
   font-size: 16px;
+  /* One navy-to-plum diagonal under every page: the cool and warm ends of the palette, the ground the
+     hub aurora drifts over. */
   background: linear-gradient(135deg, #0c1022 0%, #110f1f 50%, #18091e 100%);
   background-attachment: fixed;
 }
@@ -112,7 +118,7 @@ html {
 }
 
 body {
-  font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
+  font-family: 'Space Grotesk', 'Onest', 'Space Grotesk Fallback', sans-serif;
   background: transparent;
   color: var(--text);
   min-height: 100vh;
@@ -123,11 +129,11 @@ body {
 }
 body.sidebar-collapsed { padding-left: 0; }
 
-/* ===== HEADER (app-only, the shared chrome is chrome.css) ===== */
-/* The PDF button makes four labelled actions, which the centred search runs into below a 1340px
-   header, so here it joins the row at 1340 rather than at chrome.css's 1180. */
+/* Header (app-only, the shared chrome is chrome.css) */
+/* The PDF button makes five labelled actions, which the centred search runs into below a 1504px
+   header, so here it joins the row at 1504 rather than at chrome.css's 1344. */
 @media (min-width: 901px) {
-  @container (max-width: 1340px) {
+  @container (max-width: 1504px) {
     .header-inner:has(.search-container) .logo { margin-right: 16px; }
     .search-container + .header-actions { margin-left: 16px; }
     .search-container {
@@ -158,7 +164,7 @@ body.sidebar-collapsed { padding-left: 0; }
 .search-count.active { opacity: 1; }
 .search-clear.visible { display: flex; }
 
-/* ===== NAV ===== */
+/* Nav */
 /* No border-bottom: through its 0.07 alpha the page bg used to peek between rows on scroll.
    Instead each nav extends its bg 1px downward via box-shadow (gap filler against sub-pixel
    rendering), and a soft lavender gradient ::before draws the separator like under the
@@ -227,7 +233,7 @@ body.sidebar-collapsed { padding-left: 0; }
 .top-btn { height: 33px; padding: 0 13px; font-size: 16px; font-weight: 600; border-radius: 8px; letter-spacing: -0.1px; }
 
 /* Mid row: category buttons (medium) */
-.cat-btn { height: 29px; padding: 0 13px; font-size: 15px; font-weight: 500; border-radius: 7px; opacity: 0.9; }
+.cat-btn { height: 29px; padding: 0 13px; font-size: 15px; font-weight: 500; border-radius: 8px; opacity: 0.9; }
 .cat-btn:hover,
 .cat-btn.active { opacity: 1; }
 
@@ -320,7 +326,7 @@ body.sidebar-collapsed { padding-left: 0; }
   box-shadow: 0 1px 0 0 rgba(17, 15, 31, 0.55);
 }
 
-/* ===== MAIN ===== */
+/* Main */
 .main {
   max-width: 1600px;
   margin: 0 auto;
@@ -328,7 +334,7 @@ body.sidebar-collapsed { padding-left: 0; }
   min-height: 100vh;
 }
 
-/* ===== SECTION ===== */
+/* Section */
 .section { margin-bottom: 44px; content-visibility: auto; contain-intrinsic-size: 0 700px; scroll-margin-top: 192px; }
 .section[hidden] { display: none; }
 .print-title { display: none; }
@@ -370,7 +376,7 @@ body.sidebar-collapsed { padding-left: 0; }
   justify-content: center;
   background: rgba(221, 202, 250, 0.1);
   border: 1px solid var(--accent-border);
-  border-radius: 7px;
+  border-radius: 8px;
   color: var(--accent);
   flex-shrink: 0;
 }
@@ -411,6 +417,10 @@ body.sidebar-collapsed { padding-left: 0; }
 /* The title opens the section's own page (/cli/section/<id>/): reads as the heading until hovered. */
 .section-page { color: inherit; text-decoration: none; }
 .section-page:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* In the app the title stays a link for crawlers but reads as plain text: /cli/ is one page,
+   navigated by the menus (app.js swallows the click). The static pages keep a real link. */
+.main:not(.page-cli) .section-page { cursor: auto; }
+.main:not(.page-cli) .section-page:hover { text-decoration: none; }
 
 .section-sub {
   font-size: 14px;
@@ -436,7 +446,7 @@ body.sidebar-collapsed { padding-left: 0; }
   justify-content: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 6px;
   color: var(--text-muted);
   cursor: pointer;
   transition: color 0.1s, border-color 0.1s, background 0.1s;
@@ -495,25 +505,26 @@ body.sidebar-collapsed { padding-left: 0; }
 .section[data-cat="troubleshooting-tools"]      .section-count { color: var(--ts-tools-color);      background: var(--ts-tools-glow);      border-color: var(--ts-tools-border); }
 
 /* Category-colored sub labels */
-.section[data-cat="installation"] .section-sub { color: var(--installation-color);  opacity: 0.75; }
-.section[data-cat="cluster"]      .section-sub { color: var(--cluster-color);       opacity: 0.75; }
-.section[data-cat="workloads"]    .section-sub { color: var(--workloads-color);     opacity: 0.75; }
-.section[data-cat="helm"]         .section-sub { color: var(--helm-color);          opacity: 0.75; }
-.section[data-cat="kustomize"]    .section-sub { color: var(--kustomize-color);     opacity: 0.75; }
-.section[data-cat="k9s"]          .section-sub { color: var(--k9s-color);           opacity: 0.75; }
-.section[data-cat="troubleshooting-kubernetes"] .section-sub { color: var(--ts-kubernetes-color); opacity: 0.75; }
-.section[data-cat="troubleshooting-tools"]      .section-sub { color: var(--ts-tools-color);      opacity: 0.75; }
+.section[data-cat="installation"] .section-sub { color: var(--installation-color);  opacity: 0.85; }
+.section[data-cat="cluster"]      .section-sub { color: var(--cluster-color);       opacity: 0.85; }
+.section[data-cat="workloads"]    .section-sub { color: var(--workloads-color);     opacity: 0.85; }
+.section[data-cat="helm"]         .section-sub { color: var(--helm-color);          opacity: 0.85; }
+.section[data-cat="kustomize"]    .section-sub { color: var(--kustomize-color);     opacity: 0.85; }
+.section[data-cat="k9s"]          .section-sub { color: var(--k9s-color);           opacity: 0.85; }
+.section[data-cat="troubleshooting-kubernetes"] .section-sub { color: var(--ts-kubernetes-color); opacity: 0.85; }
+.section[data-cat="troubleshooting-tools"]      .section-sub { color: var(--ts-tools-color);      opacity: 0.85; }
 
-/* ===== CARDS GRID ===== */
+/* Cards grid */
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
-/* ===== CARD ===== */
+/* Card */
 
-/* Neutral cool-purple, harmonized with page gradient */
+/* Neutral cool-purple on the page diagonal, with a faint top sheen that sets the title band apart
+   in a card dense with rows. */
 .card {
   background:
     linear-gradient(180deg, rgba(167,139,250,0.05) 0%, transparent 28%),
@@ -524,9 +535,6 @@ body.sidebar-collapsed { padding-left: 0; }
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 
-.card:hover {
-  transform: translateY(-2px);
-}
 .section[data-cat="installation"] .card:hover { border-color: var(--installation-color); }
 .section[data-cat="cluster"]      .card:hover { border-color: var(--cluster-color); }
 .section[data-cat="workloads"]    .card:hover { border-color: var(--workloads-color); }
@@ -575,7 +583,7 @@ body.sidebar-collapsed { padding-left: 0; }
 .section[data-cat="troubleshooting-kubernetes"] .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,87,87,0.22)   30%, rgba(255,87,87,0.22)   70%, transparent); }
 .section[data-cat="troubleshooting-tools"]      .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,102,140,0.22) 30%, rgba(255,102,140,0.22) 70%, transparent); }
 
-/* ===== COMMAND LIST ===== */
+/* Command list */
 .cmd-list { padding: 4px 0; }
 
 .cmd-item {
@@ -631,7 +639,7 @@ body.starred-mode .nav-sub { display: none !important; }
   line-height: 1.4;
 }
 
-/* ===== COPY BUTTON ===== */
+/* Copy button */
 .copy-btn {
   position: absolute;
   right: 8px;
@@ -644,7 +652,7 @@ body.starred-mode .nav-sub { display: none !important; }
   justify-content: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 6px;
   color: var(--text-muted);
   cursor: pointer;
   opacity: 0.7;
@@ -673,7 +681,8 @@ body.starred-mode .nav-sub { display: none !important; }
   opacity: 1;
 }
 
-/* ===== STAR BUTTON ===== */
+/* Star button */
+/* The star takes its section's category tint (--sec-*), the Starred nav button keeps the cyan. */
 .star-btn {
   position: absolute;
   right: 42px;
@@ -686,7 +695,7 @@ body.starred-mode .nav-sub { display: none !important; }
   justify-content: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 6px;
   color: rgba(255, 255, 255, 0.45);
   cursor: pointer;
   opacity: 0.8;
@@ -697,29 +706,29 @@ body.starred-mode .nav-sub { display: none !important; }
 .cmd-item:hover .star-btn { opacity: 1; }
 
 .star-btn:hover {
-  color: var(--starred-color);
-  border-color: var(--starred-border);
-  background: var(--starred-glow);
+  color: var(--sec-color, var(--starred-color));
+  border-color: var(--sec-border, var(--starred-border));
+  background: var(--sec-glow, var(--starred-glow));
 }
 
 .star-btn:focus-visible {
-  outline: 2px solid var(--starred-color);
+  outline: 2px solid var(--sec-color, var(--starred-color));
   outline-offset: 1px;
   opacity: 1;
 }
 
 .star-btn.starred {
   opacity: 1;
-  color: var(--starred-color);
-  filter: drop-shadow(0 0 5px var(--starred-glow));
+  color: var(--sec-color, var(--starred-color));
+  filter: drop-shadow(0 0 5px var(--sec-glow, var(--starred-glow)));
 }
 .star-btn.starred svg { fill-opacity: 1; }
 .star-btn.starred:hover {
-  background: var(--starred-glow);
-  border-color: var(--starred-border);
+  background: var(--sec-glow, var(--starred-glow));
+  border-color: var(--sec-border, var(--starred-border));
 }
 
-/* ===== SYNTAX HIGHLIGHTING ===== */
+/* Syntax highlighting */
 .hl-cmd  { color: var(--hl-cmd); font-weight: 600; }
 .hl-sub  { color: var(--hl-sub); }
 .hl-res  { color: var(--hl-res); }
@@ -729,7 +738,7 @@ body.starred-mode .nav-sub { display: none !important; }
 .hl-str  { color: var(--hl-str); }
 .hl-sep  { color: var(--hl-sep); }
 
-/* ===== SEARCH HIGHLIGHT ===== */
+/* Search highlight */
 mark {
   background: rgba(224, 205, 255, 0.28);
   color: inherit;
@@ -737,7 +746,7 @@ mark {
   padding: 0 1px;
 }
 
-/* ===== EMPTY STATE ===== */
+/* Empty state */
 .empty-state {
   grid-column: 1 / -1;
   display: flex;
@@ -763,7 +772,7 @@ mark {
 
 .empty-state p { font-size: 14px; }
 
-/* ===== TOAST ===== */
+/* Toast */
 .toast {
   position: fixed;
   bottom: 28px;
@@ -792,7 +801,7 @@ mark {
 }
 .toast.is-error svg { display: none; }
 
-/* ===== NEW SINCE LAST VISIT ===== */
+/* New since last visit */
 /* js/lib/fresh.js decides what is new for THIS browser. The pill is a filled lavender, distinct from
    the cyan star and from every category colour. */
 .new-pill,
@@ -814,13 +823,14 @@ mark {
   content: 'NEW';
   margin-left: 8px;
 }
+.cmd-item.is-new .cmd-desc:lang(ru)::after { content: 'НОВОЕ'; }
 .section-new {
   padding: 2px 8px;
   font-size: 12px;
   letter-spacing: 0.02em;
 }
 
-/* ===== RESPONSIVE ===== */
+/* Responsive */
 @media (max-width: 1024px) {
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 
@@ -838,6 +848,7 @@ mark {
     z-index: 1;
   }
   .nav-sub::after { background: linear-gradient(to right, transparent, rgba(17, 15, 31, 0.55)); }
+  .nav:not([data-more])::after { display: none; }
 }
 
 @media (max-width: 900px) {
@@ -871,6 +882,13 @@ mark {
   .sec-btn { min-height: 28px; }
 }
 
+/* A phone held sideways: the header and three sticky rows took over half the screen, so only the
+   group row stays pinned and the category and section rows scroll away with the page. */
+@media (max-width: 900px) and (max-height: 500px) {
+  .nav-mid, .nav-sub { position: relative; top: auto; }
+  .section { scroll-margin-top: 159px; }
+}
+
 @media (max-width: 400px) {
   .nav { top: 97px; }
   .nav-mid { top: 138px; }
@@ -878,7 +896,7 @@ mark {
   .section { scroll-margin-top: 220px; }
 }
 
-/* ===== PDF BOOK ===== */
+/* PDF book */
 /* The header PDF button's document (app.js, layBook): A4 sheets filled by script, each ending on a
    strip framed like a card with the sheet's number in it. The script measures on screen what the
    dialog prints, so nothing here sits under a media query, and these rules restate every print rule
@@ -958,7 +976,7 @@ mark {
 .toc-cards { font-size: 11px; line-height: 1.5; color: var(--text-muted); }
 .toc-cards a + a::before { content: ' · '; color: var(--text-dim); }
 
-/* ===== PRINT ===== */
+/* Print */
 /* Two looks. The header PDF button prints the book above in the site's own dark design, in a frame
    whose body is .print-dark. Ctrl+P gets a paper theme: the same tokens redefined for white, every hue kept and darkened until it reads
    on paper. Both print backgrounds without the dialog's "Background graphics" box. */

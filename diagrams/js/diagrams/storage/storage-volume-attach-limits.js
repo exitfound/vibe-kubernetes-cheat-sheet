@@ -52,7 +52,7 @@ const SLOT_X0 = (NODE_W - SLOT_ROW_W) / 2;
 const SLOT_Y0 = 34;
 const CNT_X = 24, CNT_Y = 98, CNT_W = NODE_W - 48, CNT_H = 30;
 
-// Sized against `allocatable.count` and `8 per node`.
+// Sized against `allocatable.count` and `8 per Node`.
 const CHIP_W = 232, CHIP_GAP = 16, CHIP_COUNT = 4;
 const CHIPS = chipStrip({ cx: CONTENT_CX, w: CHIP_W, gap: CHIP_GAP, count: CHIP_COUNT });
 const CHIPS_Y = NODE_Y + NODE_H + G_NODE_CHIPS;
@@ -120,7 +120,7 @@ const reportLane = (points) => P.lane({ points, dashed: true, dim: true });
 const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 
 export const SCENE = {
-  'aria-label': 'Node volume attach limits: a Node can carry a hard ceiling on how many volumes one CSI driver may have attached at once, reported by the node plugin as max_volumes_per_node, written into CSINode as allocatable.count, absent when the driver reports zero, and read by the Scheduler filter NodeVolumeLimits. With all three Nodes at eight of eight, Pod web-0 asks for one slot and stays Pending, and for a driver that attaches a slot frees when a detach completes and its VolumeAttachment is gone, not when a Pod dies.',
+  'aria-label': 'Node volume attach limits: a Node can carry a hard ceiling on how many volumes one CSI driver may have attached at once. The node plugin reports this ceiling as max_volumes_per_node. In CSINode the number is written as allocatable.count, and if the driver reports zero the field is absent. The NodeVolumeLimits filter in the Scheduler reads that number. With all three Nodes at eight of eight, Pod web-0 asks for one slot and stays Pending. For a driver that attaches, a slot frees when a detach completes and the VolumeAttachment is gone, not when a Pod dies.',
   parts: [
     P.defs(),
     nodeFrame(0, 'node-1'),
@@ -131,7 +131,7 @@ export const SCENE = {
     counter(2),
     P.box({
       key: 'csinode', x: CSI_X, y: CSI_Y, w: CSI_W, h: CSI_H,
-      label: 'CSINode (one per node)', sublabel: 'allocatable.count: 8',
+      label: 'CSINode (one per Node)', sublabel: 'allocatable.count: 8',
     }),
     P.box({
       key: 'sched', x: SCHED_X, y: SCHED_Y, w: SCHED_W, h: SCHED_H,
@@ -147,8 +147,9 @@ export const SCENE = {
     lane('wSchedPod', W_SCHED_POD),
     lane('wSchedCsi', W_SCHED_CSI),
     ...W_NODE_CSI.map(reportLane),
-    P.chip({ key: 'capChip', x: CHIPS.x(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'allocatable.count', value: '8 per node' }),
-    P.chip({ key: 'attChip', x: CHIPS.x(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'attached', value: '4 of 24' }),
+    P.chip({ key: 'capChip', x: CHIPS.x(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'allocatable.count', value: '8 per Node' }),
+    // `slots used`, not `attached`: the filter also counts a VolumeAttachment still attaching (web-0).
+    P.chip({ key: 'attChip', x: CHIPS.x(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'slots used', value: '4 of 24' }),
     P.chip({ key: 'podChip', x: CHIPS.x(2), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'Pod web-0', value: 'not created' }),
     P.chip({ key: 'blockChip', x: CHIPS.x(3), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'blocked by', value: 'nothing' }),
     P.packets(),
@@ -163,7 +164,7 @@ export const SCENE = {
 // All four chips go through setChip, so all four are chipsCued. The ceiling is not an argument:
 // eight per node is the premise of the card and never moves.
 const chips = (attached, pod, blocked) => ({
-  capChip: '8 per node', attChip: attached, podChip: pod, blockChip: blocked,
+  capChip: '8 per Node', attChip: attached, podChip: pod, blockChip: blocked,
 });
 
 // STO.S-01 as fields: the Pod and the three talking lanes are born mid-story, so every step states
@@ -250,7 +251,7 @@ export const STEPS_SPEC = [
   {
     id: 'cap',
     duration: 3500,
-    narration: 'The ceiling is not a Kubernetes setting. The CSI node plugin reports it as max_volumes_per_node in NodeGetInfo, and the Kubelet writes it into CSINode as allocatable.count, rewriting it on a period if its CSIDriver sets one. Zero means no ceiling. Real drivers report from a handful to a hundred and twenty seven.',
+    narration: 'The ceiling is not a Kubernetes setting. The CSI node plugin reports it as max_volumes_per_node in NodeGetInfo, and Kubelet writes it into CSINode as allocatable.count, rewriting it on a period if its CSIDriver sets one. Zero means no ceiling. Real drivers report from a handful to a few hundred.',
     chipsCued: chips('4 of 24', 'not created', 'nothing'),
     ...stage(),
     ...gauge([2, 1, 1]),
@@ -282,7 +283,7 @@ export const STEPS_SPEC = [
   {
     id: 'ask',
     duration: 3300,
-    narration: 'Now Pod web-0 is created and asks for one volume of its own. Before the Scheduler scores any Node it filters out the ones that cannot take the Pod at all, and one filter exists for this ceiling: NodeVolumeLimits. It skips a Pod with no claim and no migrated in-tree volume.',
+    narration: 'Now Pod web-0 is created and asks for one volume of its own. Before the Scheduler scores any Node it filters out the ones that cannot take the Pod at all, and one filter exists for this ceiling: NodeVolumeLimits. The filter skips a Pod with no claim and no migrated in-tree volume.',
     chipsCued: chips('24 of 24', 'Pending', 'nothing'),
     ...stage({ podOp: 1, podSub: 'Pending', linkPod: 1 }),
     ...gauge([8, 8, 8]),
@@ -335,7 +336,7 @@ export const STEPS_SPEC = [
     duration: 4400,
     // The senior edge, and the reason this is not simply a capacity-planning card. A slot is held by
     // an ATTACHMENT, not by a Pod, so the two are not freed at the same moment.
-    narration: 'Here a detach clears it. For a driver that attaches, the VolumeAttachment holds the slot, not the Pod, so deleting a Pod frees nothing until that object is gone, usually seconds to tens of seconds later. One completes on Node-3, the count drops to seven, and web-0 is requeued and placed there.',
+    narration: 'Here a detach unblocks web-0. For a driver that attaches, the VolumeAttachment holds the slot, not the Pod, so deleting a Pod frees nothing until that object is gone, usually seconds to tens of seconds later. One completes on Node-3, the count drops to seven, and web-0 is requeued and placed there.',
     chipsCued: chips('24 of 24', 'placed on node-3', 'nothing'),
     ...stage({ podOp: 1, podSub: 'placed on node-3', pvcSub: 'attaching to node-3', linkPod: 1, linkBack: 1, linkRead: 1 }),
     ...gauge([8, 8, { used: 8, fresh: true }]),

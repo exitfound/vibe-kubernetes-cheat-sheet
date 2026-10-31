@@ -61,10 +61,13 @@ const EMPTY = SLABS('all free', 'no rules', 'none', 'lo only');
 const WIRED = SLABS('all free', 'no rules', 'default via eth0', 'lo + eth0');
 const SHARED = SLABS('one shared space', 'no rules', 'default via eth0', 'lo + eth0');
 const PRIVATE = SLABS('one shared space', 'own chains', 'default via eth0', 'lo + eth0');
+// The shell names the Pod address only once CNI ADD in `door` has assigned it.
+const BARE = { netns: 'one private stack' };
+const ADDRESSED = { netns: 'one private stack · 10.244.1.5' };
 
 // The netns shell and the stack band sit as plain siblings inside podGroup, and no part kind emits
 // a lone podShell or a bare rect, so both are P.raw and hand their role to the primitive.
-const netnsShell = () => podShell({ x: SHELL_X, y: SHELL_Y, w: SHELL_W, h: SHELL_H, label: 'Pod NETNS', sublabel: 'one private stack · 10.244.1.5', containers: 0, role: 'network' });
+const netnsShell = () => podShell({ x: SHELL_X, y: SHELL_Y, w: SHELL_W, h: SHELL_H, label: 'Pod NETNS', sublabel: BARE.netns, containers: 0, role: 'network' });
 // `width`/`height`, not `w`/`h`: svg.js sets whatever key it is handed as an ATTRIBUTE, and an SVG
 // rect with no width renders nothing, so a band given `w`/`h` is in the DOM and invisible.
 const stackBand = () => rect({ class: 'netns-stack-band', x: BAND_X, y: BAND_Y, width: BAND_W, height: BAND_H, rx: 10,
@@ -73,14 +76,14 @@ const stackBand = () => rect({ class: 'netns-stack-band', x: BAND_X, y: BAND_Y, 
 // Z-order: host stack, then the pod group (shell, band, taps, then the boxes over them), then the
 // veth cable and the wire labels, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'Network namespaces: the container runtime creates one network namespace and the pause container holds it for the life of the Pod, the namespace is drawn as a stack of four layers with its own ports, packet rules, routing table and interfaces, every container in the Pod joins that same stack instead of getting one of its own, and on the usual plugins a single veth pair is the one link between it and the host namespace',
+  'aria-label': 'Network namespaces, where the container runtime creates one network namespace and the pause container holds it for the life of the Pod, the namespace is drawn as a stack of four layers with its own ports, packet rules, routing table and interfaces, every container in the Pod joins that same stack instead of getting one of its own, and on the usual plugins a single veth pair is the one link between it and the host namespace',
   parts: [
     P.defs(),
     P.box({ key: 'host', x: HOST_X, y: HOST_Y, w: HOST_W, h: HOST_H, label: 'Host NETNS', sublabel: 'ports · iptables · routes · NICs' }),
     P.group({
       key: 'podGroup',
       parts: [
-        P.raw({ make: netnsShell }),
+        P.raw({ key: 'netns', make: netnsShell }),
         P.raw({ make: stackBand }),
         // pause holds the namespace open and nothing travels this line, so it is a relation (A-06).
         P.relation({ key: 'tapPause', points: TAP_PAUSE }),
@@ -117,12 +120,14 @@ export const STEPS_SPEC = [
     duration: 1500,
     // The poster states the values the card STARTS on, because it previews the text of `open` (D-14).
     sublabels: EMPTY,
+    podSublabels: BARE,
   },
   {
     id: 'open',
     duration: 3400,
     narration: 'When the Pod sandbox starts, the runtime creates a brand new network namespace and the pause container holds it for the life of the Pod. Only a Pod that sets hostNetwork goes without one. The stack inside is empty: one loopback device, no routes, no rules and every port still free. Nothing reaches in or out yet.',
     sublabels: EMPTY,
+    podSublabels: BARE,
     // The one beat is pause holding the namespace open. No pod pulse, because nothing arrives and
     // nothing travels (M-27). The stack lights only when `door` turns its layers over.
     lit: ['pause'],
@@ -130,18 +135,19 @@ export const STEPS_SPEC = [
   {
     id: 'door',
     duration: 3400,
-    narration: 'The CNI plugin then joins the namespace to the outside with a veth pair, and the in-Pod end of that pair appears in this stack as eth0. A default route is written through it, so that one cable becomes the path between the Pod and everything outside it. Plugins that hand the Pod a second device are the exception.',
+    narration: 'The CNI plugin then joins the namespace to the outside with a veth pair, and the in-Pod end of that pair appears in this stack as eth0. A default route is written through eth0, so that one cable becomes the path between the Pod and everything outside. Plugins that hand the Pod other devices are the exception.',
     // S-13: the static block states the END. Neither value exists until the ball lands, so both are
     // wound back to what `open` left before the flow runs.
     sublabels: WIRED,
-    rewind: { sublabels: { slabRoutes: 'none', slabIface: 'lo only' } },
+    podSublabels: ADDRESSED,
+    rewind: { sublabels: { slabRoutes: 'none', slabIface: 'lo only' }, podSublabels: BARE },
     wires: { veth: 'veth pair' },
     // The host lights before the ball leaves (M-18a). It lands on the shell, so the whole namespace
     // pulses, then the two layers the cable brought turn over and light.
     lit: ['host'],
     flow: [
       F.segment({ from: VETH[0], to: VETH[1], name: 'hop', delay: BEAT.lead, pulse: 'podGroup' }),
-      F.set({ at: 'hop', plus: BEAT.afterPulse, lights: ['slabIface', 'slabRoutes'], sublabels: { slabRoutes: 'default via eth0', slabIface: 'lo + eth0' } }),
+      F.set({ at: 'hop', plus: BEAT.afterPulse, lights: ['slabIface', 'slabRoutes'], sublabels: { slabRoutes: 'default via eth0', slabIface: 'lo + eth0' }, podSublabels: ADDRESSED }),
     ],
   },
   {
@@ -149,14 +155,15 @@ export const STEPS_SPEC = [
     duration: 3000,
     narration: 'A second container does not get a stack of its own, it enters this one. Both of them sit on the same four layers, which is why a second eth0 and a second set of ports never appear, and why each of them reaches the other over the loopback without leaving the Pod.',
     sublabels: SHARED,
+    podSublabels: ADDRESSED,
     rewind: { sublabels: { slabPorts: 'all free' } },
     wires: { local: 'localhost' },
     lit: ['app'],
     // The hop enters the stack at the app tap and leaves it at the sidecar tap: the ball fades at
-    // the band face and re-emerges at the far tap (NET.A-01), and the port layer it passed through
-    // lights and turns over between the two.
+    // the band face and re-emerges at the far tap (NET.A-01). The port layer turns over, and the
+    // Interfaces layer lights with it because the hop runs over `lo`, as the narration says.
     flow: [
-      F.segment({ from: TAP_APP[0], to: TAP_APP[1], name: 'down', delay: BEAT.lead, lights: ['slabPorts'] }),
+      F.segment({ from: TAP_APP[0], to: TAP_APP[1], name: 'down', delay: BEAT.lead, lights: ['slabPorts', 'slabIface'] }),
       F.set({ at: 'down', sublabels: { slabPorts: 'one shared space' } }),
       F.segment({ from: TAP_SIDE[0], to: TAP_SIDE[1], after: 'down', lights: ['side'] }),
     ],
@@ -164,8 +171,9 @@ export const STEPS_SPEC = [
   {
     id: 'private',
     duration: 3000,
-    narration: 'Because the stack is a copy rather than a window, the routing table and the packet rules inside it belong to this Pod alone, and a port bound in here does not collide with the Node. Delete the Pod and the runtime calls CNI DEL to release the address and remove the veth, and the namespace goes with it.',
+    narration: 'Because the stack is separate, the routing table and packet rules inside it belong to this Pod alone, and a port bound here does not collide with the Node. When the Pod is deleted, the runtime calls CNI DEL to release the address and remove the veth, and the namespace goes with the Pod.',
     sublabels: PRIVATE,
+    podSublabels: ADDRESSED,
     // S-13 again: the static block states the END. `own chains` is the fourth layer's turn and it
     // is the only one no ball produces, so it waits on the pulse instead of standing at t=0.
     rewind: { sublabels: { slabRules: 'no rules' } },

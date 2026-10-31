@@ -50,7 +50,7 @@ const row = (key, x, i, label, opacity) => P.box({ key, x: x + INSET, y: rowY(i)
 
 // Z-order: the two frames and their rows, the Pod, Kubelet, the lanes, headers, chips, packets.
 export const SCENE = {
-  'aria-label': 'Downward API volume: Pod api-0 carries the labels cluster, rack and zone. Kubelet on Node-1 gets the Pod object and, before the container starts, writes a downwardAPI volume whose labels file holds the whole labels map, one key="value" line per label. It then starts the container with ZONE and NODE_NAME as environment variables, resolved once. When the zone label changes to west, Kubelet rewrites the labels file and the app reads west, while ZONE in the environment still says east until the container restarts. A subPath mount of the labels file would keep east until its container restarts too. Fields such as spec.nodeName, status.podIP, status.hostIP and spec.serviceAccountName reach a container only as env, the whole labels or annotations map only as a file, and a single key either way.',
+  'aria-label': 'Downward API volume: Pod api-0 carries the labels cluster, rack and zone. Kubelet on Node-1 gets the Pod object and, before the container starts, writes a downwardAPI volume whose labels file holds the whole labels map, one key="value" line per label. Kubelet then starts the container with ZONE and NODE_NAME as environment variables, resolved once. When the zone label changes to west, Kubelet rewrites the labels file and the app reads west, while ZONE in the environment still says east until the container restarts. A labels file mounted through subPath would keep east until its container restarts too. Fields such as spec.nodeName, status.podIP, status.hostIP and spec.serviceAccountName reach a container only as env, the whole labels or annotations map only as a file, and a single key either way.',
   parts: [
     P.defs(),
     P.box({ key: 'objBox', x: OBJ_X, y: LIST_Y, w: COL_W, h: LIST_H }),
@@ -119,7 +119,7 @@ export const STEPS_SPEC = [
   {
     id: 'get',
     duration: 3600,
-    narration: 'Pod api-0 asks for its labels two ways: a downwardAPI volume whose labels file takes fieldRef metadata.labels, and an env var ZONE that takes the zone key alone. NODE_NAME takes spec.nodeName. Kubelet on Node-1 gets the Pod object bound to its Node.',
+    narration: 'Pod api-0 asks for its labels two ways. The labels file in a downwardAPI volume takes fieldRef metadata.labels, and an env var ZONE takes the zone key alone. Another env var, NODE_NAME, takes spec.nodeName. Kubelet on Node-1 gets the Pod object bound to that Node.',
     chips: C_START,
     labels: L_EAST,
     sublabels: APP_IDLE,
@@ -132,7 +132,7 @@ export const STEPS_SPEC = [
   {
     id: 'write',
     duration: 3200,
-    narration: 'Before the container starts, Kubelet writes the volume. /etc/podinfo/labels holds the whole labels map, one key="value" line per label. An env var fieldRef cannot take the whole map, only one key.',
+    narration: 'Before the container starts, Kubelet writes the volume. /etc/podinfo/labels holds the whole labels map, one key="value" line per label. An env var fieldRef, by contrast, cannot take the whole map, only one key.',
     chips: C_FILE,
     labels: L_EAST,
     sublabels: APP_IDLE,
@@ -156,7 +156,7 @@ export const STEPS_SPEC = [
   {
     id: 'start',
     duration: 3600,
-    narration: 'Kubelet starts the app container and hands it ZONE=east and NODE_NAME=Node-1 as environment variables, resolved once as the container is created. The app now holds the zone twice, in its environment and in the labels file.',
+    narration: 'Kubelet starts the app container and hands it the environment variables ZONE=east and NODE_NAME=Node-1. Their values are resolved once, as the container is created. The app now holds the zone twice, in its environment and in the labels file.',
     chips: C_ENV,
     labels: L_EAST,
     sublabels: APP_ENV,
@@ -172,7 +172,7 @@ export const STEPS_SPEC = [
   {
     id: 'relabel',
     duration: 3200,
-    narration: 'Someone changes the label zone to west on the Pod object. A label change does not restart the container. Kubelet watches the Pods bound to Node-1, so the new object reaches it.',
+    narration: 'Someone changes the label zone to west on the Pod object. A label change does not restart the container. The new object reaches Kubelet, because Kubelet watches the Pods bound to Node-1.',
     chips: C_RELABEL,
     labels: L_RELABEL,
     sublabels: APP_ENV,
@@ -185,7 +185,7 @@ export const STEPS_SPEC = [
   {
     id: 'rewrite',
     duration: 4800,
-    narration: 'Kubelet rewrites the labels file and swaps it in through a ..data symlink, the way a ConfigMap volume is updated, so a read after the swap returns zone="west". ZONE in the environment still says east, and nothing changes it short of a container restart. A subPath mount of the labels file would keep zone="east" until its container restarts.',
+    narration: 'Kubelet rewrites the labels file and swaps the new version in through a ..data symlink, the way a ConfigMap volume is updated. So a read after the swap returns zone="west". ZONE in the environment still says east, and only a container restart can change it. A labels file mounted through subPath would keep zone="east" until its container restarts.',
     chips: C_REWRITE,
     labels: L_WEST,
     sublabels: APP_ENV,
@@ -202,7 +202,7 @@ export const STEPS_SPEC = [
   {
     id: 'split',
     duration: 3800,
-    narration: 'Not every field goes both ways. Fields such as spec.nodeName, status.podIP, status.hostIP and spec.serviceAccountName reach a container only as env, so no file in the volume can hold them. The whole labels or annotations map reaches it only as a file, and a single key goes either way.',
+    narration: 'Not every field goes both ways, though. Fields such as spec.nodeName, status.podIP, status.hostIP and spec.serviceAccountName reach a container only as env, so no file in the volume can hold them. The whole labels or annotations map, by contrast, reaches it only as a file, and a single key goes either way.',
     chips: C_REWRITE,
     labels: L_WEST,
     sublabels: APP_ENV,

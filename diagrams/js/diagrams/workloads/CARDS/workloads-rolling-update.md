@@ -14,7 +14,8 @@ CONTENT  Sources: Rolling Update Deployment (v1.36), the kubectl reference, depl
          ruled out. `available` follows Ready only at minReadySeconds 0. A scale write is
          `PUT .spec.replicas`, not `PATCH .scale`. `rollout complete` is lowercase: no Complete
          condition. `live` drops terminating Pods. The `spec` wire names only the create (T-22). No
-         step names the Pod picked for deletion.
+         step names the Pod picked for deletion. `set image app=v2.0` is ruled out: the reference
+         takes CONTAINER=IMAGE, so the narration reads `app=web:v2.0`.
          Doc vs code: the page reads create then scale to 1, the code creates RS-v2 at replicas 1 in
          one POST, so `spec` draws that create and no RS-v2 scale write exists until `repeat`.
          `surge` stays its own step, the ReplicaSet controller Pod create from the API: merged into

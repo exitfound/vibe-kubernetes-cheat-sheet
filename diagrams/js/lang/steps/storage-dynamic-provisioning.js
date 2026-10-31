@@ -1,0 +1,21 @@
+// Russian for storage-dynamic-provisioning: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "Dynamic provisioning: a claim finds no existing volume to bind to, so the binding controller copies the provisioner its StorageClass names onto the claim. That provisioner asks the storage backend to create a real disk and writes a PersistentVolume object already carrying a claimRef to the claim. Then the binding controller binds that brand new volume to the claim it was made for":
+    "Динамическое выделение: PVC не находит существующего тома для привязки, поэтому контроллер привязки копирует в PVC провизионер из StorageClass этого PVC. Этот провизионер просит бэкенд хранилища создать настоящий диск и записывает объект PersistentVolume, где уже стоит claimRef на этот PVC. Затем контроллер привязки привязывает совершенно новый том к PVC, для которого этот том и создан.",
+
+  "With static provisioning an administrator has to create the volume by hand before anyone can claim it. Here nobody did, so the binding controller finds no candidate to bind to. Under the default Immediate binding mode it turns to the class the claim names, and copies the provisioner that class names onto the claim as an annotation.":
+    "При статическом выделении администратор должен создать том вручную, прежде чем кто-то сможет его запросить. Здесь этого никто не сделал, поэтому контроллер привязки не находит ни одного кандидата. В режиме привязки по умолчанию, Immediate, контроллер обращается к классу, указанному в PVC, и копирует провизионер этого класса в PVC в виде аннотации.",
+
+  "The StorageClass names a provisioner and the parameters to build with. The external-provisioner sidecar watches for unbound claims whose volume.kubernetes.io/storage-provisioner annotation carries its own name, picks this one up, and reads both the size the claim asks for and the parameters its class carries.":
+    "StorageClass указывает провизионер и параметры, с которыми создавать том. Sidecar external-provisioner следит за непривязанными PVC, у которых в аннотации volume.kubernetes.io/storage-provisioner стоит имя этого sidecar. Sidecar подхватывает этот PVC и читает запрошенный в нём размер и параметры его класса.",
+
+  "The provisioner calls CreateVolume on the driver, which asks the storage backend for a real disk of the requested size. The backend carves one out and hands back the identifier it can be addressed by later. This is the only step here that touches real hardware: getting the disk onto a Node comes later, once a Pod uses the claim.":
+    "Провизионер вызывает у драйвера CreateVolume, и драйвер просит у бэкенда хранилища настоящий диск запрошенного размера. Бэкенд выделяет диск и возвращает идентификатор, по которому к диску можно обратиться позже. Из всех шагов здесь только этот касается настоящего железа, а доставить диск на Node предстоит позже, когда Pod начнёт использовать PVC.",
+
+  "A disk on its own is invisible to Kubernetes. The provisioner writes a PersistentVolume object carrying the identifier it just got back, and that object is the cluster representation of the disk. Only now does the volume exist as something a claim can be paired with.":
+    "Сам по себе диск для Kubernetes невидим. Провизионер записывает объект PersistentVolume с только что полученным идентификатором, и этот объект представляет диск в кластере. Только теперь появляется том, с которым можно связать PVC.",
+
+  "The new volume was built for this one claim, so the provisioner already stamped it with a claimRef pointing back at the claim. The binding controller still runs its usual match, and that pre-bound volume wins outright. The controller marks the volume Bound first, then writes volumeName on the claim and turns the claim Bound.":
+    "Новый том создан именно для этого PVC, поэтому провизионер уже поставил на томе claimRef, указывающий обратно на этот PVC. Контроллер привязки всё равно выполняет обычный подбор, и этот заранее привязанный том выигрывает безоговорочно. Контроллер сначала помечает том как Bound, затем записывает в PVC поле volumeName и переводит PVC в Bound.",
+};

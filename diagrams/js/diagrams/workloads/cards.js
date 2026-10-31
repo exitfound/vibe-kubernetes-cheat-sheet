@@ -14,7 +14,7 @@ export const CARDS = [
     title: 'Workload Controller Kinds',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'Six built-in kinds manage Pods for you, so which one does a workload want? Three questions separate them: whether a replica needs a stable identity, which is the StatefulSet, whether the count follows the matching Node set rather than a number you set, which is the DaemonSet, and whether the work ends, which is the Job. A Deployment reaches its Pods through a ReplicaSet and a CronJob through a Job, and Deployment replaces the legacy ReplicationController.',
+    desc: 'Deployment, ReplicaSet, StatefulSet, DaemonSet, Job and CronJob manage Pods for you, and at first they seem to do the same thing. Which one does your workload need, and which questions narrow it to one?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -27,7 +27,7 @@ export const CARDS = [
     title: 'ReplicaSet Reconcile and Ownership',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How does Kubernetes keep exactly the right number of identical Pods alive? A ReplicaSet runs a control loop comparing how many Pods it should have against how many it can see, then creates or deletes until the two match. It owns them through ownerReferences, adopts any matching Pod that no other controller already owns, and releases one whose labels stop matching. Deployments never manage Pods directly, they manage ReplicaSets.',
+    desc: 'A ReplicaSet replaces a deleted Pod, pulls in a bare Pod whose labels match its selector, and lets a Pod relabelled off the selector drop out and keep running. How does it keep count, and which Pods are its own?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -40,7 +40,7 @@ export const CARDS = [
     title: 'Deployment Rolling Update',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How do you move every Pod to a new version without taking the app offline? A Deployment rolls the change out gradually, bringing up new-version Pods within its surge budget and retiring old ones as replacements report Ready, so the Service stays backed. The maxSurge and maxUnavailable dials both default to 25%, which at 3 replicas rounds up to a surge of 1 and down to 0 unavailable, and only at maxUnavailable 0 does an old Pod stay until its replacement serves.',
+    desc: 'You ship a new image to a Deployment, and its Pods are swapped for new ones while the app keeps answering. How many may be extra or missing at any moment, and what has to happen before an old Pod may go?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -52,7 +52,7 @@ export const CARDS = [
     title: 'RollingUpdate or Recreate',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'Should a Deployment replace its Pods alongside the old ones or after them? The field .spec.strategy.type takes two values, and RollingUpdate, the default, surges to create the replacement and wait for it to report Ready before the old Pod is removed, so the two are briefly alive together. Recreate inverts that order, terminating every old Pod before the replacement is created, which buys one version running at a time and pays with a window where nothing serves.',
+    desc: 'A Deployment updates its Pods by the RollingUpdate or Recreate strategy. Under one two versions answer at once, under the other nothing serves for a while. Which is which, and in what order does each replace them?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -65,7 +65,7 @@ export const CARDS = [
     title: 'Deployment Rollback and Revision History',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'A rollout went bad, so how do you get back to what worked? A revision is not a snapshot the Deployment stores, it is a ReplicaSet with a revision annotation, kept at zero once it is old, so a rollback copies that template back and the matching ReplicaSet is scaled up and renumbered forward rather than a fifth being created. A pruned ReplicaSet takes its revision with it, so revisionHistoryLimit, 2 on this Deployment and 10 by default, caps how far back you can go.',
+    desc: 'A new version of a Deployment turns out broken, and you need an earlier working one back fast. Where exactly is the old version kept, does going back build a new ReplicaSet, and how far back can you still go?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -78,7 +78,7 @@ export const CARDS = [
     title: 'StatefulSet Ordered Rollout',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'Why does a StatefulSet start its Pods strictly one at a time? Under the default podManagementPolicy of OrderedReady, ordinal 0 has to be Running and Ready before ordinal 1 is even created, which is what lets a clustered system elect a primary before any follower appears. Each Pod also keeps a stable name and its own claim across rescheduling, and under that same policy a scale-down reverses the order, highest ordinal first, so ordinal 0 is the last to go.',
+    desc: 'By default a StatefulSet starts Pods one at a time, each waiting for the one before, and scales down in reverse. What exactly does each Pod wait for, and what stays behind when a Pod is replaced or removed?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -91,7 +91,7 @@ export const CARDS = [
     title: 'StatefulSet Update Strategy',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How does a change to the Pod template reach a StatefulSet that is already running? RollingUpdate deletes and recreates the Pods one at a time from the largest ordinal down, waiting for each to be Running and Ready before it touches the predecessor. A partition freezes every ordinal below it so you can stage a canary, maxUnavailable widens the window past one where its Beta gate is enabled, and OnDelete hands the trigger back to you.',
+    desc: 'You edit the template of a running StatefulSet, and its Pods are replaced one by one from the highest ordinal down, all, some or none. What sets how far the update goes, and who decides when a Pod is replaced?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -104,7 +104,7 @@ export const CARDS = [
     title: 'Pod Pending and Init States',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'A Pod is not Running yet, so which component is still holding it? The STATUS column answers that: Pending with no Node in the Node column means the Scheduler owns it, an Init:N/M counter or Init:CrashLoopBackOff means the Kubelet is working through the init containers, and PodInitializing means those are done and the app containers are being created. READY stays 0/1 through all of them, because that column asks a different question.',
+    desc: 'A new Pod is not Running yet, and kubectl shows its STATUS going from Pending to Init:0/2 and then to PodInitializing. Which component is holding it at each step, and where should you look when it seems stuck?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -119,7 +119,7 @@ export const CARDS = [
     title: 'Pod Scheduling Gates',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'Why has the Scheduler not even tried to place a Pod created a minute ago? Because spec.schedulingGates holds it out of the active queue: kubectl prints STATUS SchedulingGated, the PodScheduled condition is False with reason SchedulingGated, and scheduler_pending_pods counts it under queue gated rather than unschedulable. Entries come off in any order and none can be added after creation, so the Pod joins the active queue only once the list is empty.',
+    desc: 'A Pod was created a minute ago and still has no Node, yet the Scheduler has not even once tried to place it or marked it unschedulable. What is holding it back, and what lets the Scheduler make its first try?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -135,7 +135,7 @@ export const CARDS = [
     title: 'Pod Startup Conditions',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'When a Pod is not Ready, which of its conditions are still False? Five conditions climb in roughly this order, PodScheduled then PodReadyToStartContainers then Initialized then ContainersReady then Ready, and each one is written by a different act, while status.phase moves once on that whole climb. The Kubelet pulls images only once the sandbox behind the second condition is up, and Ready can lag ContainersReady whenever a readinessGate has not agreed.',
+    desc: 'A Pod is already on its Node and its containers seem to be starting, yet it still does not report Ready and gets no Service traffic. Which steps of its startup are unfinished, and who signs off each of them?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -150,7 +150,7 @@ export const CARDS = [
     title: 'Image Pull and Registry Auth',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'How does the Kubelet get a container image onto the Node before the container can run? It reads imagePullPolicy, which when you leave it unset defaults to Always for :latest or an untagged image and to IfNotPresent for any other tag or a digest, finds credentials through imagePullSecrets, and pulls only the layers the Node does not already hold by sha256 digest. A failed pull surfaces as ErrImagePull and retries on an exponential ImagePullBackOff.',
+    desc: 'A container cannot start until its image is on the Node, and a pull from a private registry may fail and back off between retries. Where does the Kubelet get credentials, and which layers must actually be pulled?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -165,7 +165,7 @@ export const CARDS = [
     title: 'Init Containers and Native Sidecars',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'How does a Pod start its containers when some of them must run before others? Regular init containers run strictly in order, each exiting 0 before the next begins, and a native sidecar (an initContainer with restartPolicy=Always, GA in 1.33) declared after them starts next and runs for the whole Pod lifetime. The main container is held back until that sidecar reports Started, and on shutdown the termination order reverses. The sidecar still counts in the init list.',
+    desc: 'Regular init containers finish one by one before the app starts, while a sidecar runs beside it as long as the Pod lives. In what order do they start, who waits for whom, and who restarts the sidecar when it crashes?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -180,7 +180,7 @@ export const CARDS = [
     title: 'Environment Before PID 1',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'How does a ConfigMap value reach a container before its process starts? At launch the Kubelet resolves env, envFrom and the downward API into one set of variables and hands it over in CreateContainer, adding variables per Service with a cluster IP in the namespace at that instant unless enableServiceLinks is false. That set is a copy taken once, so a later edit moves the object, never the running process, and only a restarted container reads the new value.',
+    desc: 'You edit a ConfigMap, yet the running container still sees the old value in its environment however long you wait. When does a container get its variables, why does the edit miss it, and what makes it read them again?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -195,7 +195,7 @@ export const CARDS = [
     title: 'Effective Pod Resource Requests',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'Four containers ask for cpu, so how much does the Scheduler reserve? Not their sum: regular init containers run one at a time so the tallest counts, plus any sidecar declared before it, while the app and the sidecar run together so theirs are added, and the Pod takes the higher of those two plus any RuntimeClass overhead. The Scheduler bins on it and the Kubelet sizes the Linux Pod cgroup from it, so a short init container holds its share for the whole Pod life.',
+    desc: 'A Pod with four containers reserves far less CPU than their requests add up to, and still holds all of it after one has finished. How is that amount worked out, and what do the Scheduler and the Kubelet do with it?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -209,7 +209,7 @@ export const CARDS = [
     title: 'Pod QoS Classes',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'When a Node runs low on memory, which Pods does Kubernetes sacrifice first? At creation the API reads the resources of a Pod and assigns a QoS class: Guaranteed when every container, or the Pod-level block, sets CPU and memory with requests equal to limits, BestEffort when none is set, Burstable in between. The class is fixed for the life of the Pod and picks the cgroup tier and the oom_score_adj, but not the eviction order, which goes by usage over request.',
+    desc: 'Three Pods differ only in CPU and memory requests and limits, which give each a QoS class. When the Node runs low on memory, two are evicted. Which class is each, when is it set, and does it decide the eviction order?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -223,7 +223,7 @@ export const CARDS = [
     title: 'DaemonSet Controller',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How does a DaemonSet decide how many Pods to run, when there is no replicas field to set? With no nodeSelector or affinity it runs one Pod on every eligible Node, and with a selector it matches each Node against it, so desiredNumberScheduled is computed from the cluster, not declared by you. Labelling a Node to match adds a Pod, removing the Node takes its Pod and nothing is rescheduled, and updateStrategy picks RollingUpdate with maxUnavailable or OnDelete.',
+    desc: 'A new Node joins the cluster and may get no Pod from the DaemonSet until someone labels it. How does a DaemonSet decide where its Pods run, how many it needs, and what happens when a Node leaves?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -237,7 +237,7 @@ export const CARDS = [
     title: 'Job Parallelism and Completions',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How does a Job run a batch of work to completion instead of serving forever? You give it completions, the number of successful runs you need, and parallelism, how many Pods may run at once, and it keeps launching Pods and retrying failures until that target is met. Once enough runs succeed it stops on its own and marks the batch complete. A failed Pod counts against backoffLimit, 6 by default, and exceeding that limit fails the Job instead.',
+    desc: 'A Job needs 5 successful completions, runs up to 3 Pods at a time, and one Pod fails. How does the Job still reach the finish, what does that one failure change for the Pods it creates next, and when would it give up?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -250,7 +250,7 @@ export const CARDS = [
     title: 'Automatic Cleanup for Finished Jobs',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'Who deletes a Job once it has finished? A Complete or Failed Job and its Pods stay in the API so the run is still inspectable, and .spec.ttlSecondsAfterFinished starts a clock when the Job finishes rather than when it was created. Once that many seconds pass the ttl-after-finished controller deletes the Job cascadingly, so the Pods go with it, while an unset field means this controller never touches the Job and 0 makes it eligible the moment it finishes.',
+    desc: 'A Job has finished its work, yet the Job and all its Pods are still there in the cluster. How long do they stay there, from which moment is the wait counted, and what removes the Pods along with the Job?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -264,7 +264,7 @@ export const CARDS = [
     title: 'CronJob Schedule and Concurrency',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How do you run a Job on a repeating schedule instead of on demand? A CronJob holds a cron expression and, each time the clock matches, creates a Job from its template, which runs a Pod. It also decides what happens when a run is still going at the next tick, prunes finished Jobs, and starts the latest run missed while it was down if startingDeadlineSeconds allows, warning when more than 100 ticks were missed. A CronJob never creates a Pod itself, its Jobs do.',
+    desc: 'A CronJob runs a backup every five minutes, and sometimes the previous run is still going when the next is due. What happens at each tick, why do some stay empty, and how many old runs does it keep?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -277,7 +277,7 @@ export const CARDS = [
     title: 'Pod Replacement Guarantees',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'What actually comes back when a Pod that a controller owns disappears? A ReplicaSet and a Job both create a replacement with a new name, the ReplicaSet at once and the Job after a back-off delay, counting the loss against backoffLimit. A StatefulSet returns the identical ordinal with the claim it already had, a DaemonSet a fresh name on the Node it lost one on, and a CronJob nothing of its own, because it owns Jobs rather than Pods and leaves the Pod to its Job.',
+    desc: 'What replaces a lost Pod depends on its owner, a ReplicaSet, StatefulSet, DaemonSet or Job from you or a CronJob. What does each bring back, what survives of the old Pod, and when does nothing return?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -292,7 +292,7 @@ export const CARDS = [
     title: 'Pod Lifecycle Phases',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'What single field tells you where a Pod is in its life? The status.phase field moves through Pending while any container has yet to start, scheduling and image pulls included, Running once every container exists and one is running, and then Succeeded or Failed once they have all exited and none will be restarted. It is deliberately coarse, so a container crash-looping inside a Running Pod never changes it. Phase says where a Pod is, not whether it is healthy.',
+    desc: 'A container inside a Pod keeps crashing and restarting, yet the phase of the Pod stays Running the whole time. What does that phase tell you, what does it hide, and when does the Pod leave Running for good?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -305,7 +305,7 @@ export const CARDS = [
     title: 'Pod Restart Policy',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'When a container in a Pod exits, what should happen next? The restartPolicy field is the Pod-level default a container can override: Always brings the container back whatever the exit code, OnFailure retries only a non-zero exit, and Never leaves it alone. It separates a Pod that runs forever from one that retries and one that finishes. The Job controller relies on OnFailure and Never, and the per-container backoff only starts after the first restart.',
+    desc: 'A container inside a running Pod exits, and sometimes it comes back, while at other times it stays down for good. What decides which of the two happens next, and what policy fits a long-lived app or a Job?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -317,7 +317,7 @@ export const CARDS = [
     title: 'CrashLoopBackOff and Restart Backoff',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'Why does a broken container restart slower and slower? The Kubelet backs off exponentially, doubling the wait from 10s up to a default 5 minute cap, so a crashing process cannot hot-loop and saturate the Node. During each wait the container reports Waiting with reason CrashLoopBackOff while the Pod phase stays Running, and a clean 10 minutes resets the backoff, so a new crash counts as a first one, restarted at once. CrashLoopBackOff is a symptom, never the cause.',
+    desc: 'Each time the Kubelet restarts a broken container, the pause before the next try grows longer, until it hits a ceiling. Why the slowdown, what does kubectl show during the wait, and what finally resets the pause?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -329,7 +329,7 @@ export const CARDS = [
     title: 'Container Restarts and lastState',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'A container crashed and restarted, so what killed it? The live state shows only the fresh Running instance, but Kubernetes keeps the previous termination beside it: lastState holds the exit code and reason, restartCount counts how often it has happened, and kubectl logs --previous reads the log stream of the instance that died. Together they are the whole post-mortem for a container you can no longer see, and only the last termination is kept.',
+    desc: 'A container crashed and restarted on its own, and now it runs as if nothing had ever gone wrong. Where can you still find out what killed it the last time around, and for how many restarts does that answer last?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -345,7 +345,7 @@ export const CARDS = [
     title: 'Ephemeral Debug Containers',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'A container is running but its image is distroless, so how do you get a look inside without replacing the Pod? An ephemeral container is added to the live Pod through the ephemeralcontainers subresource, the only writer of that list, and it arrives with no ports, no probes and no resources, and is never restarted. The kubectl debug command builds it, targetContainerName runs it in the namespaces of the container you name, and it can never be removed.',
+    desc: 'A container runs an image with no shell and no tools, so there is nothing to exec into, and restarting the Pod is not an option either. How do you look inside while it keeps running, and see its processes and files?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -360,7 +360,7 @@ export const CARDS = [
     title: 'Startup, Liveness and Readiness Probes',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'How does the Kubelet tell a slow boot from a hung container? Three probes answer that on their own periodSeconds: startupProbe gates the other two until the app is up, livenessProbe restarts the container per restartPolicy after failureThreshold consecutive failures, and readinessProbe flips the Pod endpoint to ready=false in the EndpointSlice without removing it or restarting anything. A probe never restarts a Pod, only the container that failed it.',
+    desc: 'A slow app can be killed mid boot, while another stays up but loses traffic. How does the Kubelet tell a slow start from a hang with startup, liveness and readiness probes, and what does each failure change?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -374,7 +374,7 @@ export const CARDS = [
     title: 'In-place Pod Resize',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'A running Pod is short on CPU, so does it have to be replaced to get more? In-place resize is stable in 1.35: you patch spec.containers[].resources through the resize subresource, and the Kubelet applies the new numbers to the running container, in place or by restarting it, as resizePolicy says per resource. The API server refuses an ask above the Node allocatable, the Kubelet raises PodResizePending when it cannot apply one now, and the QoS class never moves.',
+    desc: 'A running Pod is short on CPU, and you would rather not delete it and wait for a replacement just to give it more. Can its resources change while it keeps running, and what can still stand in the way of the change?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -389,7 +389,7 @@ export const CARDS = [
     title: 'postStart and preStop Hooks',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'Where do postStart and preStop actually sit in a container life, and why do they behave so differently? Drawn on one timeline, postStart opens on the same tick as the ENTRYPOINT with no ordering guarantee between them, while preStop holds back any signal until it returns or the grace window ends, and the SIGTERM drain gets what is left of that window. Kubelet owns both slots, and it is the runtime that runs an exec handler inside the container.',
+    desc: 'With postStart and preStop hooks a container can run a command right after it starts and another before it stops, yet they behave nothing alike. Where does each sit, who waits for it, and what does a slow hook cost?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -402,7 +402,7 @@ export const CARDS = [
     title: 'Graceful Pod Shutdown',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'Why does a deleted Pod still take traffic for a moment, and why does it not die on the spot? One DELETE stamps deletionTimestamp on the stored object and two tracks start: the control plane marks the endpoint terminating so kube-proxy stops choosing it while others stay ready, and the Kubelet runs preStop, has the runtime send the stop signal and spends the same 30s window. Neither waits for the other, preStop lines them up, and SIGKILL at 0s is the last resort.',
+    desc: 'You delete a Pod, yet it does not vanish at once and may keep serving requests for a moment longer. What happens between the delete and the time it is finally gone, and what if the app takes too long to exit?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -416,7 +416,7 @@ export const CARDS = [
     title: 'Container Termination Order',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'Which container in a multi-container Pod is stopped first, and why is it not the sidecar? Regular containers are signalled first, at different times and in no guaranteed order, and only once the last of them has terminated does the Kubelet signal the native sidecars, in the reverse of the order they are declared in. That keeps a proxy or a log agent alive while the app drains, and every stop is spent from one shared terminationGracePeriodSeconds.',
+    desc: 'A Pod with several app and sidecar containers is shutting down, and the sidecars have to outlive the app. In what order are they stopped, who goes last, and what happens if the grace period runs out first?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -429,7 +429,7 @@ export const CARDS = [
     title: 'Force Deletion and Stuck Terminating Pods',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'Why does a Pod sit in Terminating forever when its Node goes silent? The Kubelet never acknowledges the delete, so the API keeps the object and an identity-bound controller like StatefulSet refuses to create a replacement. Force deletion drops it from ETCD at once, but a merely partitioned Node may still be running the original container. So a partition is waited out, and only a Node confirmed dead has its Node object deleted or its Pods force-deleted.',
+    desc: 'A Node goes silent and its Pod hangs in Terminating indefinitely, while the StatefulSet will not start a replacement under the same name. Is it safe to force it out, and what can go wrong if the Node is still alive?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -442,7 +442,7 @@ export const CARDS = [
     title: 'Pod Garbage Collection',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'Who deletes a Pod once it has finished? The object outlives the containers: a Succeeded or Failed Pod stays in the API until something removes it, usually PodGC in kube-controller-manager. It deletes terminated Pods, evicted first, then oldest, once they exceed terminated-pod-gc-threshold, 12500 by default, and three more rules ignore the count and take orphans, unscheduled terminating Pods, and terminating ones on a non-ready Node tainted out-of-service.',
+    desc: 'Finished Pods pile up long after their containers exit, and most stay until their number passes a threshold. Who deletes them, which go first, and which Pods, finished or not, are deleted at any count?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [

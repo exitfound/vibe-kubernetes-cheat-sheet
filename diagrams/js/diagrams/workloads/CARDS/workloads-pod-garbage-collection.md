@@ -13,8 +13,8 @@ DEVIATES WL.A-03: no node() frame. These are records in the API, and a Node fram
          by its nearest Pod is green under every check and fades a run still carrying a ball.
 CONTENT  Sources: Garbage Collection of Pods, kube-controller-manager, Pod Disruption Conditions,
          node-shutdown (v1.36), podgc gc_controller.go. The sweep lands ON the threshold. Order is
-         `evicted first, then oldest`. `the object stays` holds for both phases. The desc says
-         `usually PodGC`: a human may delete first. Only the orphan RULE adds DeletionByPodGC, in
+         `evicted first, then oldest`. `the object stays` holds for both phases.
+         Only the orphan RULE adds DeletionByPodGC, in
          the Failed status patch. An unscheduled Pod that stays is held by a finalizer. The taint
          rule needs a non-ready Node and an operator who confirmed shutdown. `terminating`
          lowercase.

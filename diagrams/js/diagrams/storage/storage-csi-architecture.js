@@ -117,11 +117,11 @@ const frame = (x, y, w, h, label) => P.group({
 
 // Z-order: frames, blocks and disk, busses, routes and captions, chip strip, packets.
 export const SCENE = {
-  'aria-label': 'CSI driver architecture: the Kubernetes control plane deals only in objects and has no idea how any disk is made or attached, so a CSI driver typically ships in two halves, a controller plugin that runs as a Deployment or StatefulSet with the optional but recommended sidecars its driver uses, four drawn here, that each watch one kind of Kubernetes object and turn it into gRPC calls on a shared bus into a single vendor driver, which asks the cloud storage API to make a disk, and a node plugin that runs as a DaemonSet on every eligible Node, whose node-driver-registrar sidecar answers the local Kubelet with the driver name and socket path, after which Kubelet calls the CSI node driver, NodeStageVolume if the driver stages and then NodePublishVolume, and never mounts a vendor filesystem itself: only the node plugin mounts one for a Pod, and the container runtime only binds that mount into the container',
+  'aria-label': 'CSI driver architecture: the Kubernetes control plane deals only in objects and has no idea how any disk is made or attached, so a CSI driver typically ships in two halves. The first, the controller plugin, runs as a Deployment or StatefulSet with the optional but recommended sidecars the driver uses (four drawn here). Each sidecar watches one kind of Kubernetes object and turns such objects into gRPC calls on a shared bus into a single vendor driver, and the driver then asks the cloud storage API to make a disk. The second half, the node plugin, runs as a DaemonSet on every eligible Node with a node-driver-registrar sidecar that answers the local Kubelet with the driver name and socket path. After that Kubelet calls the CSI node driver, NodeStageVolume first if the driver stages and then NodePublishVolume, and never mounts a vendor filesystem itself. Only the node plugin mounts one for a Pod, and the container runtime only binds that mount into the container',
   parts: [
     P.defs(),
     frame(FRAME_X, CF_Y, CF_W, CF_H, 'CSI CONTROLLER PLUGIN  ·  Deployment or StatefulSet'),
-    frame(FRAME_X, NF_Y, NF_W, NF_H, 'CSI NODE PLUGIN  ·  DaemonSet, one per node'),
+    frame(FRAME_X, NF_Y, NF_W, NF_H, 'CSI NODE PLUGIN  ·  DaemonSet, one per Node'),
     P.box({ key: 'api', x: API_X, y: MID_Y, w: SIDE_W, h: MID_H, label: 'Kube-apiserver', sublabel: 'control plane, no driver' }),
     P.box({ key: 'prov', x: S_X[0], y: S_Y, w: S_W[0], h: S_H, label: 'External-provisioner', sublabel: 'watches PVC' }),
     P.box({ key: 'att', x: S_X[1], y: S_Y, w: S_W[1], h: S_H, label: 'External-attacher', sublabel: 'watches VolumeAttachment' }),
@@ -174,7 +174,7 @@ export const STEPS_SPEC = [
     id: 'core',
     duration: 2900,
     // No packet and no Pod, so the beat is the static highlight on the apiserver (M-27).
-    narration: 'The control plane deals only in objects: a PVC, a PersistentVolume, a VolumeAttachment. It has no idea how any particular disk is made or attached. That deliberate ignorance is what lets one Kubernetes talk to dozens of storage backends it was never taught about.',
+    narration: 'The control plane deals only in objects, such as a PVC, a PersistentVolume or a VolumeAttachment, and by design has no idea how any particular disk is made or attached. So one Kubernetes can talk to dozens of storage backends it was never taught about.',
     chipsCued: chips('objects only', 'idle', 'idle', 'sidecars'),
     lit: ['api'],
   },
@@ -182,14 +182,14 @@ export const STEPS_SPEC = [
     id: 'controller',
     duration: 3100,
     // The four sidecars light as one set: the sentence names all four as the actor.
-    narration: 'The controller plugin runs as a Deployment or a StatefulSet, with the sidecars its driver uses, optional but recommended. Each watches one kind of object: provisioner for claims, attacher for attachments, resizer for resizes, snapshotter for snapshots. All of them call one driver.',
+    narration: 'The controller plugin runs as a Deployment or StatefulSet with the sidecars the driver uses. They are optional but recommended. Each watches one object kind (provisioner for claims, attacher for attachments, resizer for resizes, snapshotter for snapshots), and all call one driver.',
     chipsCued: chips('objects only', 'sidecars as needed', 'idle', 'one object kind each'),
     lit: ['prov', 'att', 'res', 'snap'],
   },
   {
     id: 'translate',
     duration: 4400,
-    narration: 'Follow one sidecar. The external-provisioner picks up a Pending PVC whose storage-provisioner annotation, set by the binding controller, names its driver, and turns it into a gRPC call, CreateVolume. The driver, not the sidecar, speaks to the cloud API and asks it for a real disk.',
+    narration: 'Follow one sidecar. The external-provisioner picks up a Pending PVC whose storage-provisioner annotation (set once the claim needs a new volume) names the driver of this sidecar, and turns that PVC into a gRPC call, CreateVolume. The driver, not the sidecar, speaks to the cloud API and asks it for a real disk.',
     chipsCued: chips('PVC Pending', 'CreateVolume', 'idle', 'object -> gRPC'),
     lit: ['api'],
     // Three chained hops, the first BEAT.lead after the lit apiserver (M-18). Every tag rides
@@ -205,7 +205,7 @@ export const STEPS_SPEC = [
   {
     id: 'node',
     duration: 3300,
-    narration: 'The other half is the node plugin, a DaemonSet, so a copy runs on every eligible Node. Its node-driver-registrar sidecar leaves a socket where Kubelet looks for plugins, and answers Kubelet with the driver name and socket path. Kubelet then sends mount requests for this driver to this plugin.',
+    narration: 'The other half, the node plugin, is a DaemonSet, so a copy runs on each eligible Node. The node-driver-registrar sidecar of each copy leaves a socket where Kubelet looks for plugins and answers Kubelet with driver name and socket path. Kubelet then sends this plugin mount requests for this driver.',
     chipsCued: chips('objects only', 'idle', 'registered', 'registrar sidecar'),
     wires: { reg: 'plugin socket' },
     lit: ['reg'],
@@ -218,7 +218,7 @@ export const STEPS_SPEC = [
   {
     id: 'fstoucher',
     duration: 3700,
-    narration: 'Kubelet never mounts a vendor filesystem itself: it calls NodePublishVolume, after NodeStageVolume if the driver stages, and only the node plugin mounts it for a Pod. The runtime just binds that mount into the container. The controller makes no mount a Pod uses. The app writes through it.',
+    narration: 'Kubelet never mounts a vendor filesystem itself but calls NodePublishVolume (after NodeStageVolume if the driver stages), and only the node plugin mounts that filesystem for a Pod. The runtime binds that mount into the container, and the app writes through this bind. No mount a Pod uses comes from the controller plugin.',
     chipsCued: chips('objects only', 'no Pod mount', 'mounts the disk', 'no sidecar in path'),
     wires: { fs: '/var/lib/kubelet' },
     lit: ['kube'],
@@ -233,7 +233,7 @@ export const STEPS_SPEC = [
   {
     id: 'bridge',
     duration: 3300,
-    narration: 'So on the controller side the sidecars are the bridge. The control plane writes plain objects and runs no vendor driver. The sidecars translate the objects into gRPC calls, the driver runs them, and the node plugin does the privileged work, like the mount. Swap the driver, keep the objects.',
+    narration: 'On the controller side the sidecars are the bridge. The control plane writes plain objects and runs no vendor driver. The sidecars translate the objects into gRPC calls, the driver runs them, and the node plugin does the privileged work, like the mount. Another driver fits behind the same object kinds.',
     chipsCued: chips('objects only', 'translates', 'mounts the disk', 'the sidecars'),
     lit: ['api', 'prov', 'att', 'res', 'snap', 'drv', 'nd'],
   },

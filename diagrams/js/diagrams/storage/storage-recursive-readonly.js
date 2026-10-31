@@ -111,7 +111,7 @@ export const STEPS_SPEC = [
   {
     id: 'mount',
     duration: 4200,
-    narration: 'A volume is mounted readOnly, so why can a container still write under it? Pod rro mounts the Node directory /mnt at /data with readOnly: true. The Node also has a tmpfs mounted read-write at /mnt/tmpfs, and the container sees it at /data/tmpfs. The recursiveReadOnly field is not set, so it is Disabled, the default, and none of the five checks apply.',
+    narration: 'Pod rro mounts the Node directory /mnt at /data with readOnly: true. The Node also has a tmpfs mounted read-write at /mnt/tmpfs, and the container sees it at /data/tmpfs. The recursiveReadOnly field is not set, so it is Disabled, the default, and none of the five checks apply.',
     chips: OFF,
     sublabels: SUB_IDLE,
     opacity: STAGE,
@@ -142,7 +142,7 @@ export const STEPS_SPEC = [
   {
     id: 'below',
     duration: 4800,
-    narration: 'The app writes /data/tmpfs/x and it succeeds. On Linux a read-only mount is not recursively read-only by default, so the tmpfs mounted read-write below it stays writable, and x lands in the tmpfs on the Node.',
+    narration: 'The app writes /data/tmpfs/x and the write succeeds. On Linux a read-only mount is not recursively read-only by default, so the tmpfs mounted read-write below it stays writable, and x lands in the tmpfs on the Node.',
     chips: OFF,
     sublabels: { ...HOLDS_X, viewSub: 'write accepted', hostTmp: 'x written here' },
     rewind: { sublabels: SUB_IDLE },
@@ -159,7 +159,7 @@ export const STEPS_SPEC = [
   {
     id: 'enabled',
     duration: 5000,
-    narration: 'A Pod cannot change its volumeMounts, so the Pod is recreated with recursiveReadOnly: Enabled and mountPropagation left unset. The API server accepts that field only with readOnly: true and mountPropagation None or unset. All five checks hold on this Node, so the whole tree under /data is read-only. The same write to /data/tmpfs/x is refused, and the status reports Enabled.',
+    narration: 'A Pod cannot change its volumeMounts, so the Pod is recreated with recursiveReadOnly: Enabled and mountPropagation left unset. The API server accepts Enabled or IfPossible only with readOnly: true and mountPropagation None or unset. All five checks hold on this Node, so the whole tree under /data is read-only. The same write to /data/tmpfs/x is refused, and the status reports Enabled.',
     chips: ON,
     sublabels: { ...HOLDS_X, viewSub: 'write refused' },
     chain: 'all',
@@ -176,7 +176,7 @@ export const STEPS_SPEC = [
   {
     id: 'ifpossible',
     duration: 5600,
-    narration: 'Enabled is strict: if instead Node-1 had a kernel older than 5.12, or a CRI or OCI runtime without support, the container would not start. IfPossible falls back to Disabled there. Checks 1 and 2 hold but not all of 3 to 5, so the write to /data/tmpfs/x is accepted and lands in the Node tmpfs again, and the status, Disabled, is the only sign on the Pod.',
+    narration: 'Enabled is strict. If instead Node-1 had a kernel older than 5.12, or a CRI or OCI runtime without support, the container would not start. IfPossible, by contrast, falls back to Disabled there. Checks 1 and 2 hold but not all of 3 to 5, so the write to /data/tmpfs/x is accepted and lands in the Node tmpfs again, and the status, Disabled, is the only sign on the Pod.',
     chips: FELL_BACK,
     sublabels: { ...HOLDS_X, viewSub: 'write accepted', hostTmp: 'x written here' },
     wires: { branch: 'if instead Node-1 lacks kernel or runtime support' },

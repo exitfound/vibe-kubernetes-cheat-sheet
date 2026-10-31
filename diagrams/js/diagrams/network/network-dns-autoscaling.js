@@ -236,7 +236,7 @@ export const STEPS_SPEC = [
   {
     id: 'grow',
     duration: 3000,
-    narration: 'The cluster grows to 48 Nodes of 32 allocatable cores each. Nothing restarts and nothing is edited. The next poll simply counts 48 Nodes in total and 1536 cores, and the same two axes are read again against the same parameters.',
+    narration: 'The cluster grows to 48 Nodes of 32 allocatable cores each. Nothing restarts and nothing is edited. The next poll counts 48 Nodes in total and 1536 cores, and the same two axes are read again against the same parameters.',
     chips: { ...LINEAR, ...BIG, cReplicas: '2' },
     wires: { ...READ_SMALL, back: '48 Nodes, 1536 cores' },
     opacity: meters(1, 1, 2),

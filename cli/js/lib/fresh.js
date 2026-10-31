@@ -3,15 +3,30 @@
 // copied, departed keys drop. A diagram key is `id@revision`, so an edited card reads NEW again.
 
 const FRESH_DAYS = 14;
+
+// The older names of the /diagrams/ map, read once into `kube-how:diagram-seen:v2` and then removed.
+export const DIAGRAM_SEEN_LEGACY = ['kube-how:diagram-seen:v1', 'kube-how:scheme-seen:v1'];
 const DAY_MS = 864e5;
 
-export function readSeen(storageKey) {
+function parseSeen(storageKey) {
   try {
     const v = JSON.parse(localStorage.getItem(storageKey) || 'null');
     return v && typeof v === 'object' ? v : null;
   } catch (_) {
     return null;
   }
+}
+
+// The map under its current key, else the first `legacy` key's map with each key renamed through
+// `carry` (old key to new): an unchanged item keeps its stamp, a changed one reads NEW.
+export function readSeen(storageKey, legacy = [], carry = {}) {
+  const seen = parseSeen(storageKey);
+  if (seen) return seen;
+  for (const old of legacy) {
+    const v = parseSeen(old);
+    if (v) return Object.fromEntries(Object.entries(v).map(([k, st]) => [carry[k] ?? k, st]));
+  }
+  return null;
 }
 
 export const isFreshStamp = (stamp, now = Date.now()) => stamp > 0 && now - stamp < FRESH_DAYS * DAY_MS;
@@ -24,13 +39,14 @@ export function stampOf(seen, k) {
   return at > 0 ? seen[k.slice(0, at)] : undefined;
 }
 
-export function trackFresh(storageKey, keys) {
-  const seen = readSeen(storageKey);
+export function trackFresh(storageKey, keys, legacy = [], carry = {}) {
+  const seen = readSeen(storageKey, legacy, carry);
   const now = Date.now();
   const map = {};
   for (const k of keys) map[k] = !seen ? 0 : (stampOf(seen, k) ?? now);
   const save = () => { try { localStorage.setItem(storageKey, JSON.stringify(map)); } catch (_) {} };
   save();
+  for (const old of legacy) { try { localStorage.removeItem(old); } catch (_) {} }
   return {
     isNew: (k) => isFreshStamp(map[k], now),
     clear: (k) => { if (map[k] > 0) { map[k] = 0; save(); } },

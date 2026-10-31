@@ -63,7 +63,7 @@ const ghostLink = i => P.relation({ points: [[ghostX(i) + GHOST_W, GHOST_MID], [
 const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 
 export const SCENE = {
-  'aria-label': 'CSI ephemeral volumes: Pod web-0 declares a CSI volume inline, with a driver name, volumeAttributes and readOnly true, and no claim. No PVC, PV or VolumeAttachment is ever created, and no StorageClass is read. Kubelet checks that the CSIDriver object lists the Ephemeral lifecycle mode, then calls NodePublishVolume on the node plugin directly, with no attach and no stage, adding Pod info to the attributes because the CSIDriver sets podInfoOnMount. Here the driver is the Secrets Store driver: it mounts an empty tmpfs at the path Kubelet gave it, its attributes name a SecretProviderClass, whose provider fetches db-password from an external store, and the driver writes it into the tmpfs as a file. Only then does the container start and read it at /mnt/secrets. When the Pod is deleted and its containers have stopped, Kubelet calls NodeUnpublishVolume and the driver deletes the volume, so it lives and dies with the Pod.',
+  'aria-label': 'CSI ephemeral volumes: Pod web-0 declares a CSI volume inline, with a driver name, volumeAttributes and readOnly true, and refers to no claim. No PVC, PV or VolumeAttachment is ever created, and no StorageClass is read. Kubelet checks that the CSIDriver object lists the Ephemeral lifecycle mode, then calls NodePublishVolume on the node plugin directly, with no attach and no stage. Kubelet adds Pod info to the attributes because the CSIDriver sets podInfoOnMount. Here the driver is the Secrets Store driver, and it mounts an empty tmpfs at the path Kubelet gave it. The volume attributes point to a SecretProviderClass, whose provider fetches db-password from an external store, and the driver writes db-password into the tmpfs as a file. Only then does the container start and read db-password at /mnt/secrets. When the Pod is deleted and its containers have stopped, Kubelet calls NodeUnpublishVolume and the driver deletes the volume. So the volume lives and dies with the Pod.',
   parts: [
     P.defs(),
     P.node({ key: 'nodeFrame', x: RIGHT_X, y: NODE_Y, w: RIGHT_W, h: NODE_H, label: 'Node-1' }),
@@ -122,7 +122,7 @@ export const STEPS_SPEC = [
   {
     id: 'declare',
     duration: 3700,
-    narration: 'Pod web-0 declares a CSI volume inline: the driver name, a few volumeAttributes and readOnly true, which this driver requires. It names no claim, so no PVC or PV is created and no StorageClass is read, and an inline CSI volume is never attached, so no VolumeAttachment either. The Pod lands on Node-1 and Kubelet picks up its spec.',
+    narration: 'Pod web-0 declares a CSI volume inline, with the driver name, a few volumeAttributes and readOnly true, which this driver requires. The Pod names no claim, so no PVC or PV is created and no StorageClass is read. An inline CSI volume is never attached, so no VolumeAttachment either. The Pod lands on Node-1 and Kubelet picks up its spec.',
     sublabels: NOT_YET,
     podSublabels: WAIT,
     opacity: stage(),
@@ -135,7 +135,7 @@ export const STEPS_SPEC = [
   {
     id: 'gate',
     duration: 3800,
-    narration: 'Kubelet checks the CSIDriver object for this driver. It lists Ephemeral in volumeLifecycleModes, so inline use is allowed. With no such mode, or no CSIDriver at all, Kubelet refuses the mount. The attributes come straight from the Pod author, so removing the mode, or a webhook, is how an admin says no.',
+    narration: 'Kubelet checks the CSIDriver object of this driver. The object lists Ephemeral in volumeLifecycleModes, so an inline volume is allowed. With no such mode, or no CSIDriver at all, Kubelet refuses the mount. The attributes come straight from the Pod author, so an admin says no by removing the mode or with a webhook.',
     sublabels: NOT_YET,
     podSublabels: WAIT,
     opacity: stage(),
@@ -147,7 +147,7 @@ export const STEPS_SPEC = [
   {
     id: 'publish',
     duration: 3600,
-    narration: 'Kubelet calls NodePublishVolume on the node plugin directly, with no ControllerPublishVolume and no NodeStageVolume. The call carries the volumeAttributes plus Pod info, since this CSIDriver sets podInfoOnMount, and, with no PV to take a handle from, a volume id Kubelet hashes from the Pod UID and volume name.',
+    narration: 'Kubelet calls NodePublishVolume on the node plugin directly, with no ControllerPublishVolume and no NodeStageVolume. The call carries the volumeAttributes plus Pod info, since this CSIDriver sets podInfoOnMount. With no PV to take a handle from, Kubelet also adds a volume id, a hash of the Pod UID and volume name.',
     sublabels: NOT_YET,
     podSublabels: WAIT,
     opacity: stage(),
@@ -159,7 +159,7 @@ export const STEPS_SPEC = [
   {
     id: 'fetch',
     duration: 5000,
-    narration: 'The driver has to create the volume inside that one call. Here it is the Secrets Store driver: it mounts an empty tmpfs at the path Kubelet gave it. Its attributes name a SecretProviderClass, and the provider plugin that class names fetches db-password from the external store while the driver waits.',
+    narration: 'The driver has to create the volume inside that one call. Here it is the Secrets Store driver, and it mounts an empty tmpfs at the path Kubelet gave it. The volume attributes point to a SecretProviderClass, and the provider plugin that class names fetches db-password from the external store while the driver waits.',
     sublabels: EMPTY,
     podSublabels: WAIT,
     opacity: stage(),

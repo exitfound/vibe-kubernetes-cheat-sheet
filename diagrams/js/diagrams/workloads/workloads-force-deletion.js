@@ -183,7 +183,7 @@ export const STEPS_SPEC = [
   {
     id: 'force',
     duration: 4300,
-    narration: 'Running kubectl delete pod web-0 --grace-period=0 --force tells the API to drop the object from ETCD at once, as it carries no finalizer, with no wait for any acknowledgement. The slot empties and the identity is free. Notice what did not happen: Node-1 is cut off and cannot see the change, so nothing stops the container, and the record now reads zero while it may still be running.',
+    narration: 'Running kubectl delete pod web-0 --grace-period=0 --force tells the API to drop the object from ETCD at once, as it carries no finalizer, with no wait for any acknowledgement. The slot empties and the identity is free. But Node-1 is cut off and cannot see the change, so nothing stops the container, and the record now reads zero while it may still be running.',
     chips: { recordChip: '0 objects · dropped from ETCD', realityChip: '1 · Node-1, unconfirmed', identityChip: 'free', focusChip: 'record cleared, reality untouched' },
     wires: { req: 'DELETE .../pods/web-0 · gracePeriodSeconds=0', write: 'remove from ETCD' },
     labels: { obj: 'Pod A' },
@@ -218,14 +218,15 @@ export const STEPS_SPEC = [
     // The record leads the reality here, the one place on this card it does.
     rewind: { opacity: { obj: 0 }, labels: { obj: 'Pod A' }, sublabels: { obj: 'Terminating' }, chips: { recordChip: '0 objects · dropped from ETCD', realityChip: '1 · Node-1, unconfirmed', identityChip: 'free', focusChip: 'record cleared, reality untouched' } },
     flow: [
-      // The empty slot stands for BEAT.lead before the new object lands in it.
-      F.set({ delay: BEAT.lead, labels: { obj: 'Pod B' }, sublabels: { obj: 'Running' }, chips: { recordChip: '1 object · Pod B Running' }, lit: ['obj', 'recordChip'] }),
+      // The empty slot stands for BEAT.lead before the new object lands in it, Pending until the
+      // ball starts it on Node-2.
+      F.set({ delay: BEAT.lead, labels: { obj: 'Pod B' }, sublabels: { obj: 'Pending' }, chips: { recordChip: '1 object · Pod B Pending' }, lit: ['obj', 'recordChip'] }),
       F.fade({ target: 'obj', from: 0, to: 1, dur: FADE.in, delay: BEAT.lead, fill: 'both', easing: 'ease-out', name: 'created' }),
       F.route({ points: RECREATE, after: 'created', name: 'start' }),
       F.fade({ target: 'podNew', from: 0, to: 1, dur: FADE.in, at: 'start', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'podNew', at: 'start' }),
       // Held twice only once the second container is on screen (P-03, P-04).
-      F.set({ at: 'start', chips: { realityChip: '2 · Node-2 live, Node-1 unconfirmed', identityChip: 'held twice', focusChip: 'split-brain hazard' }, lit: ['realityChip', 'identityChip', 'focusChip'] }),
+      F.set({ at: 'start', sublabels: { obj: 'Running' }, chips: { recordChip: '1 object · Pod B Running', realityChip: '2 · Node-2 live, Node-1 unconfirmed', identityChip: 'held twice', focusChip: 'split-brain hazard' }, lit: ['obj', 'recordChip', 'realityChip', 'identityChip', 'focusChip'] }),
     ],
   },
 ];

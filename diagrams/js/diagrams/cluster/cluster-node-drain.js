@@ -47,7 +47,7 @@ const POD_OWNER = ['Deployment', 'Deployment', 'DaemonSet'];
 
 // List order is z-order.
 export const SCENE = {
-  'aria-label': 'Node drain: cordon, list-and-skip, eviction through the API with PDB gating, a 429 and a retry, and the DaemonSet Pod left standing',
+  'aria-label': 'Node drain step by step: cordon, list-and-skip, eviction through the API with PDB gating, a 429 and a retry, while the DaemonSet Pod stays put',
   parts: [
     P.defs(),
     // The request runs right to left: a kubectl left of the API would stand at 60..292, under the panel.
@@ -110,7 +110,7 @@ export const STEPS_SPEC = [
   {
     id: 'cordon',
     duration: 3800,
-    narration: 'The drain command PATCHes Node-1 with spec.unschedulable=true. The Scheduler stops placing new Pods on this Node unless they tolerate the node.kubernetes.io/unschedulable taint the way DaemonSet Pods do, and the status shows SchedulingDisabled. Already-running Pods stay put for now. Cordon is also exposed as a separate verb (kubectl cordon Node-1), drain just bundles it with the eviction loop.',
+    narration: 'The drain command PATCHes Node-1 with spec.unschedulable=true. The Scheduler stops placing new Pods on this Node unless they tolerate the node.kubernetes.io/unschedulable taint the way DaemonSet Pods do, and kubectl prints SchedulingDisabled. Already-running Pods stay put for now. Cordon is also exposed as a separate verb (kubectl cordon Node-1), and drain bundles it with the eviction loop.',
     chips: { cordonChip: CORDONED, pdbChip: '1', healthyChip: '2 of 2', lastChip: 'none' },
     wires: { req: 'PATCH Node-1 · spec.unschedulable=true' },
     // S-13: the static block states the end, the field turns over when the answer lands.

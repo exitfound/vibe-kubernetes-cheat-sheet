@@ -24,43 +24,25 @@
   <link rel="stylesheet" href="/cli/css/chrome.css">
   <link rel="stylesheet" href="/cli/css/styles.css">
   <style>
-    :root { --bg:#110f1f; --deep:#0c1022; --bright:#f9f8ff; --muted:#9b95b8; --cyan:#4fe5ff; }
+    :root { --bg:#110f1f; --deep:#0c1022; --bright:#f9f8ff; --cyan:#4fe5ff; }
     * { box-sizing:border-box; }
     html { min-height:100%; overflow-y:scroll; background:linear-gradient(135deg,var(--deep),var(--bg) 52%,#18091e); }
-    body { display:flex; min-height:100vh; flex-direction:column; margin:0; overflow-x:hidden; color:var(--text); font-family:'Space Grotesk','Space Grotesk Fallback',sans-serif; }
+    body { display:flex; min-height:100vh; flex-direction:column; margin:0; overflow-x:hidden; color:var(--text); font-family:'Space Grotesk','Onest','Space Grotesk Fallback',sans-serif; }
     body::before, body::after { position:fixed; z-index:-1; width:56vmax; height:56vmax; border-radius:50%; content:''; opacity:.38; pointer-events:none; }
     body::before { top:-35vmax; left:-20vmax; background:radial-gradient(circle,rgba(79,229,255,.18),transparent 65%); }
     body::after { right:-24vmax; bottom:-38vmax; background:radial-gradient(circle,rgba(196,168,255,.17),transparent 65%); }
     .header { flex-shrink:0; }
     .hub-headpad { flex:0 0 auto; }
-    main { display:grid; flex:1; min-height:calc(100vh - 146px); grid-template-columns:minmax(280px,360px) minmax(300px,470px); align-content:center; justify-content:center; gap:clamp(42px,7vw,112px); padding:56px 28px 46px; }
-    .game-shell { width:min(100%,360px); }
-    .game-label,.eyebrow,.score-label,.next-label { font-family:'JetBrains Mono','JetBrains Mono Fallback',monospace; font-size:12px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; }
-    .game-card { display:flex; gap:14px; padding:13px; border:1px solid var(--border); border-radius:13px; background:linear-gradient(145deg,rgba(32,26,67,.9),rgba(17,15,39,.94)); box-shadow:0 22px 55px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.04); }
-    .board-wrap { position:relative; width:min(100%,250px); flex:1; min-width:0; }
-    #board { display:block; width:100%; height:auto; border:1px solid rgba(125,134,255,.32); background:#12112a; image-rendering:pixelated; }
-    .game-side { display:flex; width:61px; flex-direction:column; gap:14px; padding-top:3px; }
-    .next-label,.score-label { color:var(--muted); font-size:10px; }
-    .next-label { margin:0 0 5px; }
-    #next { display:block; width:58px; height:58px; border:1px solid rgba(224,205,255,.22); background:rgba(11,9,25,.56); image-rendering:pixelated; }
-    .score { margin-top:auto; }
-    .score-value { display:block; margin-top:4px; color:var(--accent); font-family:'JetBrains Mono','JetBrains Mono Fallback',monospace; font-size:18px; font-weight:700; }
-    .game-over-restart { position:absolute; top:50%; left:50%; z-index:1; min-height:32px; padding:0 10px; border:1px solid rgba(224,205,255,.52); border-radius:6px; background:rgba(26,21,56,.96); color:var(--accent); font-family:'JetBrains Mono','JetBrains Mono Fallback',monospace; font-size:11px; font-weight:700; cursor:pointer; transform:translate(-50%,18px); }
-    .game-over-restart:hover { border-color:var(--accent); background:rgba(224,205,255,.14); color:var(--bright); }
-    .game-over-restart:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
-    .copy { align-self:center; max-width:470px; }
-    .eyebrow { margin:0 0 11px; color:var(--cyan); }
+    main { display:grid; flex:1; min-height:calc(100vh - 146px); align-content:center; justify-content:center; padding:56px 28px 46px; }
+    .copy { max-width:470px; text-align:center; }
     h1 { margin:0; color:var(--bright); font-size:clamp(52px,8vw,88px); letter-spacing:-.08em; line-height:.92; }
     h1 span { color:var(--accent); }
-    .message { max-width:390px; margin:23px 0 0; color:var(--text); font-size:clamp(22px,3vw,30px); font-weight:600; line-height:1.16; }
-    .ways { display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; }
+    .message { max-width:390px; margin:23px auto 0; color:var(--text); font-size:clamp(22px,3vw,30px); font-weight:600; line-height:1.16; }
+    .ways { display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; justify-content:center; }
     .ways a { display:inline-flex; align-items:center; min-height:40px; padding:0 16px; border:1px solid var(--border); border-radius:8px; background:rgba(26,21,56,.7); color:var(--accent); font-family:'JetBrains Mono','JetBrains Mono Fallback',monospace; font-size:13px; font-weight:700; text-decoration:none; transition:color .12s,border-color .12s,background .12s; }
     .ways a:hover { border-color:var(--accent); background:rgba(224,205,255,.14); color:var(--bright); }
     .ways a:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
-    /* One column: the way out comes first, the game below it (a phone has no arrow keys to play it). */
-    @media (max-width:760px) { main { grid-template-columns:minmax(0,360px); gap:38px; justify-items:center; padding:48px 18px 42px; } .copy { order:-1; text-align:center; } .message { margin-right:auto; margin-left:auto; } .ways { justify-content:center; } }
-    @media (min-width:1500px) { main { justify-content:start; padding-right:28px; padding-left:calc(50% - 320px); } }
-    @media (max-width:390px) { .game-card { padding:10px; gap:10px; } .game-side { width:55px; } #next { width:52px; height:52px; } .message { font-size:24px; } }
+    @media (max-width:390px) { main { padding:48px 18px 42px; } .message { font-size:24px; } }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition-duration:.01ms!important; } }
   </style>
 </head>
@@ -69,20 +51,20 @@
     // Before the first paint, as the old inline copy did: the sidebar.js module arrives later and re-applies.
     try { const v = localStorage.getItem('kube-how:sidebar-collapsed:v1'); if (v === '1') document.body.classList.add('sidebar-collapsed'); if (v === '0') document.body.classList.add('sidebar-shown') } catch (_) {}
   </script>
-  <aside class="sidebar" aria-label="Site switcher">
-    <a class="side-btn" id="sideHome" data-tooltip="Home" aria-label="Home" href="/"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.2 12 4l9 7.2"/><path d="M5.5 9.8V19a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9.8"/></svg></a>
+  <aside class="sidebar" aria-label="Site switcher" data-ru-label="Разделы сайта">
+    <a class="side-btn" id="sideHome" data-tooltip="Home" aria-label="Home" data-ru-tooltip="Главная" data-ru-label="Главная" href="/"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.2 12 4l9 7.2"/><path d="M5.5 9.8V19a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9.8"/></svg></a>
     <span class="side-sep" aria-hidden="true"></span>
-    <a class="side-btn" id="sideCli" data-tooltip="Commands" aria-label="Commands" href="/cli/"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></a>
-    <a class="side-btn" id="sideDiagram" data-tooltip="Diagrams" aria-label="Diagrams" href="/diagrams/"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="7" height="6" rx="1.2"/><rect x="15" y="12" width="7" height="6" rx="1.2"/><line x1="9" y1="9" x2="15" y2="15"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg></a>
-    <button class="side-toggle" id="sideToggle" type="button" data-tooltip="Hide sidebar" aria-label="Hide sidebar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <a class="side-btn" id="sideCli" data-tooltip="Commands" aria-label="Commands" data-ru-tooltip="Команды" data-ru-label="Команды" href="/cli/"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></a>
+    <a class="side-btn" id="sideDiagram" data-tooltip="Diagrams" aria-label="Diagrams" data-ru-tooltip="Диаграммы" data-ru-label="Диаграммы" href="/diagrams/"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="7" height="6" rx="1.2"/><rect x="15" y="12" width="7" height="6" rx="1.2"/><line x1="9" y1="9" x2="15" y2="15"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg></a>
+    <button class="side-toggle" id="sideToggle" type="button" data-tooltip="Hide sidebar" aria-label="Hide sidebar" data-ru-tooltip="Скрыть панель" data-ru-label="Скрыть панель"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
   </aside>
-  <button class="side-expand" id="sideExpand" type="button" data-tooltip="Show sidebar" aria-label="Show sidebar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button>
+  <button class="side-expand" id="sideExpand" type="button" data-tooltip="Show sidebar" aria-label="Show sidebar" data-ru-tooltip="Показать панель" data-ru-label="Показать панель"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button>
 
   <header class="header">
     <div class="header-inner">
-      <a class="logo" href="/" aria-label="Go to homepage">
+      <a class="logo" href="/" aria-label="Go to homepage" data-ru-label="На главную">
         <div class="logo-icon"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="kube.how logo"><defs><linearGradient id="hubFg" x1="4" y1="6" x2="28" y2="26" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#4fe5ff"/><stop offset="100%" stop-color="#c4a8ff"/></linearGradient></defs><circle cx="16" cy="16" r="9" fill="none" stroke="url(#hubFg)" stroke-width="1.6"/><circle cx="16" cy="16" r="2.8" fill="none" stroke="url(#hubFg)" stroke-width="1.5"/><g stroke="url(#hubFg)" stroke-width="1.6" stroke-linecap="round"><line x1="16" y1="11.4" x2="16" y2="3.4"/><line x1="19.25" y1="12.75" x2="24.91" y2="7.09"/><line x1="20.6" y1="16" x2="28.6" y2="16"/><line x1="19.25" y1="19.25" x2="24.91" y2="24.91"/><line x1="16" y1="20.6" x2="16" y2="28.6"/><line x1="12.75" y1="19.25" x2="7.09" y2="24.91"/><line x1="11.4" y1="16" x2="3.4" y2="16"/><line x1="12.75" y1="12.75" x2="7.09" y2="7.09"/></g><circle cx="16" cy="16" r="1.2" fill="#4fe5ff"/></svg></div>
-        <div><div class="logo-text">Kubernetes Reference Hub</div><div class="logo-sub">Commands &middot; Diagrams</div></div>
+        <div><div class="logo-text">Kubernetes Reference Hub</div><div class="logo-sub" data-ru="Команды · Диаграммы">Commands &middot; Diagrams</div></div>
       </a>
       <div class="header-actions" id="headerActions"></div>
     </div>
@@ -91,20 +73,43 @@
   <div class="hub-ruler" aria-hidden="true"><nav class="nav nav-top"><div class="nav-inner"><button class="nav-btn top-btn" data-group="all" tabindex="-1">All</button></div></nav></div>
 
   <main>
-    <section class="game-shell" aria-label="Tetris game">
-      <div class="game-card">
-        <div class="board-wrap"><canvas id="board" width="250" height="500" role="img" aria-label="Tetris game board"></canvas><button class="game-over-restart" id="restart" type="button" hidden>Restart</button></div>
-        <aside class="game-side" aria-label="Game status"><div><p class="next-label">Next</p><canvas id="next" width="58" height="58" aria-label="Next Tetris piece"></canvas></div><div class="score"><p class="score-label">Score</p><output class="score-value" id="score" aria-live="polite">0</output></div></aside>
-      </div>
-    </section>
     <section class="copy" aria-labelledby="page-title">
-      <p class="eyebrow">HTTP status not_found</p>
       <h1 id="page-title"><span>404</span></h1>
-      <p class="message">Page not found.</p>
-      <nav class="ways" aria-label="Sections"><a href="/cli/">Commands</a><a href="/diagrams/">Diagrams</a></nav>
+      <p class="message" data-ru="Страница не найдена.">Page not found.</p>
+      <nav class="ways" aria-label="Sections" data-ru-label="Разделы"><a href="/cli/" data-ru="Команды">Commands</a><a href="/diagrams/" data-ru="Диаграммы">Diagrams</a></nav>
     </section>
   </main>
-  <footer class="footer"><p class="disclaimer">Not affiliated with the CNCF or the Kubernetes project.</p><p>&copy; <span id="year"></span> <a href="/">kube.how</a></p></footer>
+  <footer class="footer"><p class="disclaimer" data-ru="Сайт не связан с CNCF и проектом Kubernetes.">Not affiliated with the CNCF or the Kubernetes project.</p><p>&copy; <span id="year"></span> <a href="/">kube.how</a></p></footer>
+  <script>
+    // Russian for the static chrome, swapped in before the first paint. [data-ru] replaces the inner
+    // HTML, [data-ru-tooltip|label|title|placeholder] that attribute, and the English is kept beside
+    // it as data-en*. One snippet on the four pages, same key, event and font as cli/js/lib/lang.js.
+    (function () {
+      const PARTS = [['ru', 'en', null], ['ruTooltip', 'enTooltip', 'data-tooltip'], ['ruLabel', 'enLabel', 'aria-label'],
+        ['ruTitle', 'enTitle', 'title'], ['ruPlaceholder', 'enPlaceholder', 'placeholder']];
+      const els = document.querySelectorAll('[data-ru], [data-ru-tooltip], [data-ru-label], [data-ru-title], [data-ru-placeholder]');
+      els.forEach(el => PARTS.forEach(([ru, en, attr]) => {
+        if (el.dataset[ru] != null) el.dataset[en] = attr ? el.getAttribute(attr) : el.innerHTML;
+      }));
+      const apply = (lang) => els.forEach(el => PARTS.forEach(([ru, en, attr]) => {
+        if (el.dataset[ru] == null) return;
+        const v = el.dataset[lang === 'ru' ? ru : en];
+        if (attr) el.setAttribute(attr, v); else el.innerHTML = v;
+        if (lang === 'ru') el.lang = 'ru'; else el.removeAttribute('lang');
+      }));
+      let lang = 'en';
+      try { if (localStorage.getItem('kube-how:lang:v1') === 'ru') lang = 'ru'; } catch (_) {}
+      if (lang === 'ru') {
+        apply(lang);
+        // Onest for the Cyrillic, asked for here, not once the modules run after parsing.
+        const font = document.createElement('link');
+        font.rel = 'stylesheet';
+        font.href = 'https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap';
+        document.head.append(font);
+      }
+      window.addEventListener('kube-how:lang', (e) => apply(e.detail));
+    })();
+  </script>
 
   <script type="module">
     import { setupSidebar } from '/cli/js/lib/sidebar.js'
@@ -113,36 +118,6 @@
     document.getElementById('year').textContent = new Date().getFullYear()
     alignLogo('.hub-ruler [data-group="all"]')
     setupHeader()
-  </script>
-  <script>
-    (() => {
-      const board=document.getElementById('board'), nextCanvas=document.getElementById('next'), ctx=board.getContext('2d'), nextCtx=nextCanvas.getContext('2d'), scoreEl=document.getElementById('score'), restartButton=document.getElementById('restart')
-      const COLS=10, ROWS=20, BOARD_WIDTH=250, BOARD_HEIGHT=500, NEXT_SIZE=58, COLORS=['#4fe5ff','#7d86ff','#c4a8ff','#ff668c','#ffd15c','#9afb50','#5cb1ff']
-      const PIECES=[[[1,1,1,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]],[[1,1],[1,1]],[[0,1,1],[1,1,0]],[[0,1,0],[1,1,1]],[[1,1,0],[0,1,1]]]
-      let grid,current,next,score,lastDrop=0,animation,running=true
-      const copyPiece=matrix=>matrix.map(row=>[...row])
-      const makePiece=()=>({matrix:copyPiece(PIECES[Math.floor(Math.random()*PIECES.length)]),color:COLORS[Math.floor(Math.random()*COLORS.length)],x:0,y:0})
-      function reset(){ grid=Array.from({length:ROWS},()=>Array(COLS).fill(null)); current=makePiece(); next=makePiece(); score=0; scoreEl.value=score; scoreEl.textContent=score; spawn(); running=true; restartButton.hidden=true; lastDrop=performance.now(); cancelAnimationFrame(animation); animation=requestAnimationFrame(tick) }
-      function spawn(){ current.x=Math.floor((COLS-current.matrix[0].length)/2); current.y=0; if(collides(current)) running=false }
-      function collides(piece,dx=0,dy=0,matrix=piece.matrix){ return matrix.some((row,y)=>row.some((value,x)=>{ if(!value)return false; const px=piece.x+x+dx,py=piece.y+y+dy; return px<0||px>=COLS||py>=ROWS||(py>=0&&grid[py][px]) })) }
-      function rotate(){ if(!running)return; const rotated=current.matrix[0].map((_,i)=>current.matrix.map(row=>row[i]).reverse()); for(const offset of [0,-1,1,-2,2])if(!collides(current,offset,0,rotated)){ current.matrix=rotated; current.x+=offset; return } }
-      function move(dx){ if(running&&!collides(current,dx,0))current.x+=dx }
-      function drop(){ if(!running)return; if(!collides(current,0,1)){ current.y++; return } lock() }
-      function lock(){ current.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value&&current.y+y>=0)grid[current.y+y][current.x+x]=current.color})); let cleared=0; grid=grid.filter(row=>{if(row.every(Boolean)){cleared++;return false}return true}); while(grid.length<ROWS)grid.unshift(Array(COLS).fill(null)); if(cleared){score+=[0,100,300,500,800][cleared];scoreEl.value=score;scoreEl.textContent=score} current=next;next=makePiece();spawn() }
-      function syncCanvasSize(){ const ratio=window.devicePixelRatio||1,boardWidth=Math.round(BOARD_WIDTH*ratio),boardHeight=Math.round(BOARD_HEIGHT*ratio),nextSize=Math.round(NEXT_SIZE*ratio);if(board.width!==boardWidth||board.height!==boardHeight){board.width=boardWidth;board.height=boardHeight}if(nextCanvas.width!==nextSize||nextCanvas.height!==nextSize){nextCanvas.width=nextSize;nextCanvas.height=nextSize}return ratio }
-      function cellBounds(canvas,x,y,cols,rows){return {left:Math.round(x*canvas.width/cols),top:Math.round(y*canvas.height/rows),right:Math.round((x+1)*canvas.width/cols),bottom:Math.round((y+1)*canvas.height/rows)}}
-      function drawCell(context,x,y,color){const box=cellBounds(board,x,y,COLS,ROWS),width=box.right-box.left,height=box.bottom-box.top;context.fillStyle=color;context.fillRect(box.left+1,box.top+1,width-2,height-2);context.fillStyle='rgba(255,255,255,.22)';context.fillRect(box.left+2,box.top+2,width-4,Math.max(1,Math.round(height*.08)));context.fillStyle='rgba(0,0,0,.16)';context.fillRect(box.left+2,box.bottom-Math.max(2,Math.round(height*.12)),width-4,Math.max(1,Math.round(height*.08))) }
-      function drawGrid(){ctx.fillStyle='rgba(141,142,150,.13)';for(let x=0;x<=COLS;x++){const left=Math.min(board.width-1,Math.round(x*board.width/COLS));ctx.fillRect(left,0,1,board.height)}for(let y=0;y<=ROWS;y++){const top=Math.min(board.height-1,Math.round(y*board.height/ROWS));ctx.fillRect(0,top,board.width,1)}}
-      function draw(){const ratio=syncCanvasSize();ctx.fillStyle='#12112a';ctx.fillRect(0,0,board.width,board.height);drawGrid();grid.forEach((row,y)=>row.forEach((color,x)=>{if(color)drawCell(ctx,x,y,color)}));if(running)current.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value)drawCell(ctx,current.x+x,current.y+y,current.color)}));if(!running){ctx.fillStyle='rgba(12,10,28,.78)';ctx.fillRect(0,0,board.width,board.height);ctx.fillStyle='#e0cdff';ctx.font=`700 ${Math.round(16*ratio)}px JetBrains Mono`;ctx.textAlign='center';ctx.fillText('GAME OVER',board.width/2,board.height/2-Math.round(14*ratio));restartButton.hidden=false}else restartButton.hidden=true;drawNext(ratio) }
-      function drawNext(ratio){const size=Math.round(13*ratio),width=next.matrix[0].length*size,height=next.matrix.length*size;nextCtx.fillStyle='#0f0d22';nextCtx.fillRect(0,0,nextCanvas.width,nextCanvas.height);const offsetX=Math.floor((nextCanvas.width-width)/2),offsetY=Math.floor((nextCanvas.height-height)/2);next.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value){nextCtx.fillStyle=next.color;nextCtx.fillRect(offsetX+x*size+1,offsetY+y*size+1,size-2,size-2)}})) }
-      function tick(time){if(running&&time-lastDrop>650){drop();lastDrop=time}draw();if(running)animation=requestAnimationFrame(tick)}
-      function handle(action){if(action==='left')move(-1);if(action==='right')move(1);if(action==='down')drop();if(action==='rotate')rotate();draw()}
-      restartButton.addEventListener('click',reset)
-      document.addEventListener('keydown',event=>{const actions={ArrowLeft:'left',ArrowRight:'right',ArrowDown:'down',ArrowUp:'rotate',' ':'rotate'};if(!actions[event.key])return;if(event.key===' '&&event.target.closest&&event.target.closest('button,a,input'))return;event.preventDefault();handle(actions[event.key])})
-      document.addEventListener('visibilitychange',()=>{lastDrop=performance.now()})
-      window.addEventListener('resize',()=>{if(!running)draw()})
-      reset()
-    })()
   </script>
 </body>
 </html>

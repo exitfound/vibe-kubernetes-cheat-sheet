@@ -18,6 +18,7 @@ CONTENT  Sources (v1.36): Node Status, Taint Nodes by Condition, Taint-Based Evi
          `node_lifecycle_controller.go`, `podtolerationrestriction`, apiserver `plugins.go`. Never
          "node controller" (gone after 1.29). `Up to five`: the Kubelet never sets
          NetworkUnavailable. `DaemonSet · hostNetwork` is needed. Ready False or Unknown writes
-         NoSchedule and NoExecute (NoExecute on the 300 s default). Docs give non-BestEffort Pods a
+         NoSchedule and NoExecute (NoExecute on the 300 s default). "Ready False is the one
+         condition" is ruled out: Unknown taints NoExecute too. Docs give non-BestEffort Pods a
          memory-pressure toleration, only PodTolerationRestriction (off) adds it.
 ```

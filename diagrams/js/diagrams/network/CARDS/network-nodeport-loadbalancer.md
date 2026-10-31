@@ -15,6 +15,6 @@ CONTENT  Sources: Service, Virtual IPs, Using Source IP (v1.36), the iptables pr
          `every Node proxies that same port`. KUBE-NODEPORTS comes `In its default iptables mode`.
          Node-2 is said to have the rule, which holds under Local as well as Cluster.
          `direct` puts the Cluster policy before the DNAT and forward, and orders no SNAT.
-         The balancer is `typically pointed at port 31000 on every Node`.
-         ipMode VIP delivery is a conditional, `would deliver`, on `client-hit`.
+         The balancer is `typically pointed at port 31000 on every Node`, ipMode VIP `would deliver`.
+         The aria-label forwards `to a Pod on another Node`: under Cluster any ready Pod is picked.
 ```

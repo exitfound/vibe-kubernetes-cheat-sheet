@@ -16,14 +16,12 @@ DEVIATES WL.L-06: no LAYOUT preset. A worklist chain in the right column and a t
          M-12: max-unavailable fires both routes at one explicit dur, PAIR_DUR, so the pair lands
          together. At canon speed they land 356ms apart and read as one at a time.
          A-13: no line is pinned to a slot. The window stands empty on most steps.
-CONTENT  Sources: Update Strategies, Partitioned Rolling Updates (v1.36), kube_features.go, source.
-         `from the largest ordinal to the smallest`, gated on Running and Ready, never on a probe.
-         Partition reads 0: SetDefaults_StatefulSet writes it. maxUnavailable 1 is the budget used,
-         written only with the gate on. The gate is Beta and off by default since 1.35.4, docs
-         agree. Paired recreation is Parallel only: OrderedReady deletes both, recreates web-0 then
-         web-1. podManagementPolicy is immutable, so its chip reads Parallel on every step, never
-         flips. No Recreate strategy exists. Only a spec.template edit records rev 4, never a type
-         change.
+CONTENT  Sources: Update Strategies, Partitioned Rolling Updates, Feature Gates (v1.36), source.
+         Largest ordinal to smallest, gated on Running and Ready, never on a probe. Partition 0 and
+         maxUnavailable 1 are defaults, the second written only with the gate on: Beta, off since
+         1.35.4. Pairing is Parallel only, OrderedReady recreates web-0 then web-1. The immutable
+         policy chip never flips. Two strategies in 1.36 (Recreate is Alpha from 1.37). Only a
+         template edit records rev 4. OnDelete says a deleted Pod comes back from rev 4.
 OPEN     CENTRE-LOW: the blocks below the panel centre on 210. Moving the window to the middle opens
          a CENTRE finding instead (L-16).
 ```

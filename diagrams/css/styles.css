@@ -5,12 +5,14 @@
 html {
   scroll-behavior: smooth;
   font-size: 16px;
+  /* One navy-to-plum diagonal under every page: the cool and warm ends of the palette, the ground the
+     hub aurora drifts over. */
   background: linear-gradient(135deg, #0c1022 0%, #110f1f 50%, #18091e 100%);
   background-attachment: fixed;
 }
 
 body {
-  font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
+  font-family: 'Space Grotesk', 'Onest', 'Space Grotesk Fallback', sans-serif;
   background: transparent;
   color: var(--text);
   min-height: 100vh;
@@ -30,10 +32,10 @@ body.sidebar-collapsed { padding-left: 0; }
   }
 }
 
-/* ===== HEADER (app-only, the shared chrome is /cli/css/chrome.css) ===== */
+/* Header (app-only, the shared chrome is /cli/css/chrome.css) */
 .search-input:not(:placeholder-shown) ~ .search-clear { display: flex; }
 
-/* ===== CATEGORY NAV ===== */
+/* Category nav */
 .cat-nav {
   position: sticky;
   top: 69px;
@@ -117,7 +119,7 @@ body.sidebar-collapsed { padding-left: 0; }
 .cat-btn.active[data-cat="storage"]   { color: var(--storage-color);   background: var(--storage-glow);   border-color: var(--storage-border); }
 .cat-btn.active[data-cat="workloads"] { color: var(--workloads-color); background: var(--workloads-glow); border-color: var(--workloads-border); }
 .cat-btn.active[data-cat="cluster"]   { color: var(--cluster-color);   background: var(--cluster-glow);   border-color: var(--cluster-border); }
-.cat-btn.active[data-cat="starred"]   { color: var(--starred-color);   background: var(--starred-glow);   border-color: var(--starred-border); }
+/* Starred has no tint, as on /cli/: its active button stays lavender. */
 
 /* Starred lives on the far right of the row, the "personal" zone, exactly as on /cli/. */
 .cat-btn.cat-starred { margin-left: auto; }
@@ -148,7 +150,7 @@ body.sidebar-collapsed { padding-left: 0; }
 .view-btn.active { color: var(--accent); background: rgba(221, 202, 250, 0.1); }
 .view-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-/* ===== SUB-CATEGORY NAV (mirrors CLI mid-row coordinates) ===== */
+/* Sub-category nav (mirrors CLI mid-row coordinates) */
 .cat-nav-sub {
   top: 110px;
 }
@@ -161,7 +163,7 @@ body.sidebar-collapsed { padding-left: 0; }
   height: 29px;
   padding: 0 13px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 8px;
   background: transparent;
   color: var(--text-nav);
   font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
@@ -194,7 +196,7 @@ body.sidebar-collapsed { padding-left: 0; }
 .cat-nav-sub[data-cat="workloads"] .subcat-btn.active { color: var(--workloads-color); background: var(--workloads-glow); border-color: var(--workloads-border); }
 .cat-nav-sub[data-cat="cluster"]   .subcat-btn.active { color: var(--cluster-color);   background: var(--cluster-glow);   border-color: var(--cluster-border); }
 
-/* ===== MAIN GRID ===== */
+/* Main grid */
 .main {
   max-width: 1600px;
   margin: 0 auto;
@@ -238,7 +240,7 @@ body.sidebar-collapsed { padding-left: 0; }
   justify-content: center;
   background: rgba(221, 202, 250, 0.1);
   border: 1px solid var(--accent-border);
-  border-radius: 7px;
+  border-radius: 8px;
   color: var(--accent);
   flex-shrink: 0;
 }
@@ -260,10 +262,10 @@ body.sidebar-collapsed { padding-left: 0; }
   color: var(--text-muted);
   margin-left: 2px;
 }
-.section[data-cat="network"]   .section-sub { color: var(--network-color);   opacity: 0.75; }
-.section[data-cat="workloads"] .section-sub { color: var(--workloads-color); opacity: 0.75; }
-.section[data-cat="storage"]   .section-sub { color: var(--storage-color);   opacity: 0.75; }
-.section[data-cat="cluster"]   .section-sub { color: var(--cluster-color);   opacity: 0.75; }
+.section[data-cat="network"]   .section-sub { color: var(--network-color);   opacity: 0.85; }
+.section[data-cat="workloads"] .section-sub { color: var(--workloads-color); opacity: 0.85; }
+.section[data-cat="storage"]   .section-sub { color: var(--storage-color);   opacity: 0.85; }
+.section[data-cat="cluster"]   .section-sub { color: var(--cluster-color);   opacity: 0.85; }
 
 .section-count {
   margin-left: auto;
@@ -369,13 +371,9 @@ body.sidebar-collapsed { padding-left: 0; }
   color: var(--accent);
   border: 1px solid var(--accent-border);
 }
-.card[data-cat="network"]   .card-cat,
 .diagram-dialog[data-cat="network"]   .card-cat { background: var(--network-glow);   color: var(--network-color);   border-color: var(--network-border); }
-.card[data-cat="storage"]   .card-cat,
 .diagram-dialog[data-cat="storage"]   .card-cat { background: var(--storage-glow);   color: var(--storage-color);   border-color: var(--storage-border); }
-.card[data-cat="workloads"] .card-cat,
 .diagram-dialog[data-cat="workloads"] .card-cat { background: var(--workloads-glow); color: var(--workloads-color); border-color: var(--workloads-border); }
-.card[data-cat="cluster"]   .card-cat,
 .diagram-dialog[data-cat="cluster"]   .card-cat { background: var(--cluster-glow);   color: var(--cluster-color);   border-color: var(--cluster-border); }
 .card-version {
   font-size: 11px;
@@ -407,7 +405,13 @@ body.sidebar-collapsed { padding-left: 0; }
 .view-compact .card-meta { margin-top: 0; flex-wrap: nowrap; }
 .view-compact .star-btn { margin: -6px -6px -6px 0; }
 
-/* ===== STAR BUTTON (mirrors /cli/) ===== */
+/* Star button (mirrors /cli/) */
+/* The star takes its card's category tint, as the dialog star does. The Starred filter and the empty
+   state keep the cyan --starred-color. */
+.card[data-cat="network"]   { --star-color: var(--network-color);   --star-glow: var(--network-glow);   --star-border: var(--network-border); }
+.card[data-cat="storage"]   { --star-color: var(--storage-color);   --star-glow: var(--storage-glow);   --star-border: var(--storage-border); }
+.card[data-cat="workloads"] { --star-color: var(--workloads-color); --star-glow: var(--workloads-glow); --star-border: var(--workloads-border); }
+.card[data-cat="cluster"]   { --star-color: var(--cluster-color);   --star-glow: var(--cluster-glow);   --star-border: var(--cluster-border); }
 .star-btn {
   margin: -4px -6px -4px auto;
   width: 30px;
@@ -427,23 +431,23 @@ body.sidebar-collapsed { padding-left: 0; }
 .star-btn svg { fill-opacity: 0; }
 .card:hover .star-btn { opacity: 1; }
 .star-btn:hover {
-  color: var(--starred-color);
-  border-color: var(--starred-border);
-  background: var(--starred-glow);
+  color: var(--star-color, var(--starred-color));
+  border-color: var(--star-border, var(--starred-border));
+  background: var(--star-glow, var(--starred-glow));
 }
 .star-btn:focus-visible {
-  outline: 2px solid var(--starred-color);
+  outline: 2px solid var(--star-color, var(--starred-color));
   outline-offset: 1px;
   opacity: 1;
 }
 .star-btn.starred {
   opacity: 1;
-  color: var(--starred-color);
-  filter: drop-shadow(0 0 5px var(--starred-glow));
+  color: var(--star-color, var(--starred-color));
+  filter: drop-shadow(0 0 5px var(--star-glow, var(--starred-glow)));
 }
 .star-btn.starred svg { fill-opacity: 1; }
 
-/* ===== EMPTY STATE ===== */
+/* Empty state */
 .empty {
   grid-column: 1 / -1;
   text-align: center;
@@ -460,7 +464,7 @@ body.sidebar-collapsed { padding-left: 0; }
 .empty-icon { color: var(--starred-color); opacity: 0.8; margin-bottom: 10px; }
 .empty-icon svg { width: 40px; height: 40px; fill-opacity: 0; }
 
-/* ===== DIALOG =====
+/* Dialog
    The <dialog> covers the whole viewport and draws nothing: a modal leaves everything outside it
    inert, so the flip arrows have to live INSIDE it to be clickable, and they sit in the 4vw gutters
    beside the panel. `.dialog-inner` is the panel, at exactly the 92vw x 92vh the dialog itself used
@@ -470,6 +474,9 @@ body.sidebar-collapsed { padding-left: 0; }
   max-width: 100vw;
   height: 100vh;
   max-height: 100vh;
+  /* The visible height on a tablet whose browser bars are showing, where they apply. */
+  height: 100dvh;
+  max-height: 100dvh;
   margin: 0;
   padding: 0;
   background: transparent;
@@ -486,7 +493,7 @@ body.sidebar-collapsed { padding-left: 0; }
   height: 92vh;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
 }
 /* The panel holds the opening focus (app.js openDiagram), which needs no ring of its own. */
@@ -501,7 +508,7 @@ body.sidebar-collapsed { padding-left: 0; }
 .diagram-dialog[data-cat="workloads"] .dialog-inner { border-top: 3px solid var(--workloads-color); }
 .diagram-dialog[data-cat="cluster"]   .dialog-inner { border-top: 3px solid var(--cluster-color); }
 
-/* ===== TINTED DIALOG =====
+/* Tinted dialog
    The whole modal collapses onto one category's colour ramp. A category declares only what is its
    own: the 3-stop ramp (deep / base / bright), the canvas it draws on, and the three hand-mixed
    surface fills. Every shade WITH an alpha is derived from those four in the shared block below,
@@ -755,15 +762,72 @@ body.sidebar-collapsed { padding-left: 0; }
   border-color: var(--accent-border);
 }
 .dialog-tool[hidden] { display: none; }
-/* Saving a frame is a desktop task (slides), and below 900 the button would cost the title its width. */
-@media (max-width: 900px) { .dialog-save { display: none; } }
+/* Saving a frame or the animation is a desktop task (slides), and below 900 the button would cost
+   the title its width. */
+@media (max-width: 900px) { .save-wrap { display: none; } }
+/* While the GIF records, the save button shows the percentage in place of its icon. */
+.dialog-save[aria-busy="true"] {
+  color: var(--accent);
+  cursor: progress;
+  font: 700 11px/1 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+}
+/* The save choice drops under its button with the look of the header dropdowns (chrome.css). */
+.save-wrap { position: relative; }
+.save-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 210px;
+  background: rgba(17, 15, 31, 0.97);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  z-index: 20;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+.save-menu[hidden] { display: none; }
+.save-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-nav);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.save-opt:hover { background: rgba(255, 255, 255, 0.06); color: var(--text-bright); }
+.save-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.save-opt-fmt {
+  font: 600 11px/1 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+/* The hidden copy of the card the GIF is recorded on: laid out like the real canvas, never seen. */
+.dialog-canvas.gif-canvas {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
 .dialog-tool:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 .dialog-star svg { width: 17px; height: 17px; fill-opacity: 0; }
 /* Inside the dialog every control, the star included, takes the category tint the dialog sets on
-   --accent. The grid star keeps the cyan --starred-color. */
+   --accent, as the grid star takes its card's. */
 .dialog-star.starred {
   color: var(--accent);
   filter: drop-shadow(0 0 5px var(--accent-glow));
@@ -1068,6 +1132,9 @@ body.sidebar-collapsed { padding-left: 0; }
   color: var(--text-bright);
 }
 .ctl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ctl-speed button:disabled,
+.dialog-tool:disabled { opacity: 0.4; cursor: not-allowed; }
+.load-retry { display: flex; margin-top: 10px; }
 .ctl-btn.primary {
   border-color: var(--accent-border);
   background: var(--accent-glow);
@@ -1156,7 +1223,7 @@ body.reduced-motion .reduced-notice { display: block; }
   .portrait-hint a { color: var(--accent); }
 }
 
-/* ===== MOBILE STUB =====
+/* Mobile stub
    The diagrams are not adapted to phones, so a phone gets this page instead of the grid. The query
    is written three times, here, as MOBILE_STUB in js/app.js (which sends a deep link to the card's
    static page) and in css/page.css (which hides its play links): change one, change all. PHONES ONLY: a touch screen at most 600 wide
@@ -1192,7 +1259,7 @@ body.reduced-motion .reduced-notice { display: block; }
   height: 76px;
   display: grid;
   place-items: center;
-  border-radius: 18px;
+  border-radius: 14px;
   border: 1px solid var(--accent-border);
   background: var(--accent-glow);
   color: var(--accent);
@@ -1226,7 +1293,7 @@ body.reduced-motion .reduced-notice { display: block; }
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text);
-  font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
+  font-family: 'Space Grotesk', 'Onest', 'Space Grotesk Fallback', sans-serif;
   font-size: 15px;
   font-weight: 600;
   text-decoration: none;
@@ -1243,7 +1310,7 @@ body.reduced-motion .reduced-notice { display: block; }
   background: rgba(92, 184, 92, 0.08);
 }
 
-/* ===== RESPONSIVE ===== */
+/* Responsive */
 @media (max-width: 1024px) {
   .cat-nav-inner::after {
     content: '';
@@ -1256,6 +1323,7 @@ body.reduced-motion .reduced-notice { display: block; }
     pointer-events: none;
     z-index: 1;
   }
+  .cat-nav-inner:not([data-more])::after { display: none; }
 }
 
 @media (max-width: 900px) {
@@ -1301,7 +1369,7 @@ body.reduced-motion .reduced-notice { display: block; }
   .ctl-btn { height: 30px; padding: 0 8px; }
 }
 
-/* ===== SECTION LINK ===== */
+/* Section link */
 /* Copy-link button beside the section title, mirrors /cli/: always shown in the muted text colour. */
 .section-actions {
   display: inline-flex;
@@ -1317,7 +1385,7 @@ body.reduced-motion .reduced-notice { display: block; }
   justify-content: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 6px;
   color: var(--text-muted);
   cursor: pointer;
   transition: color 0.1s, border-color 0.1s, background 0.1s;
@@ -1348,7 +1416,7 @@ body.reduced-motion .reduced-notice { display: block; }
   background: rgba(92, 184, 92, 0.08);
 }
 
-/* ===== NEW SINCE LAST VISIT ===== */
+/* New since last visit */
 /* js/lib/fresh.js decides what is new for THIS browser. A filled lavender pill, distinct from the
    cyan star and from every category colour, the same as on /cli/. */
 .new-pill,

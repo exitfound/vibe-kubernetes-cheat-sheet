@@ -28,8 +28,9 @@ const SCALE = 0.8;
 const SEC = (s) => s * SCALE;
 const CAP_S = 300;
 const CAP_Y = BASE_Y - SEC(CAP_S);
-// The immediate first restart, six doublings, one more at the cap, then the ghost after the healthy run.
-const DELAYS = [0, 10, 20, 40, 80, 160, 300, 300, 10];
+// The immediate first restart, six doublings, one more at the cap, then the ghost after the healthy run,
+// immediate again because the reset makes the next crash a first one.
+const DELAYS = [0, 10, 20, 40, 80, 160, 300, 300, 0];
 const BAR_X = (i) => CH_L + AXIS_IN + i * BAR_PITCH;
 const BAR_CX = (i) => BAR_X(i) + BAR_W / 2;
 const BAR_KEYS = DELAYS.map((_, i) => 'bar' + i);
@@ -96,7 +97,7 @@ export const SCENE = {
     P.chip({ key: 'delayChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'current backoff', value: '0s' }),
     P.raw({ make: () => { const r = rect({ x: CH_L, y: BASE_Y, width: CH_R - CH_L, height: 1.5 }); r.style.fill = RULE.axis; return r; } }),
     P.raw({ make: () => { const r = rect({ x: CH_L, y: CAP_Y, width: CH_R - CH_L, height: 1.5 }); r.style.fill = RULE.cap; return r; } }),
-    P.tag({ x: CH_L, y: CAP_Y - LBL_DY, anchor: 'start', text: '300s cap · per-node default' }),
+    P.tag({ x: CH_L, y: CAP_Y - LBL_DY, anchor: 'start', text: '300s cap · per-Node default' }),
     ...DELAYS.map(barGroup),
     P.tag({ x: CH_L, y: AXIS_CAP_Y, anchor: 'start', text: 'delay before each restart' }),
     // The reset step counterfactual (T-35), under the axis because the space above the ghost is taken.
@@ -138,10 +139,10 @@ export const STEPS_SPEC = [
   {
     id: 'first-crash',
     duration: 3600,
-    narration: 'The container process exits with a non-zero code and Kubelet observes the termination. With restartPolicy Always, Kubelet restarts it immediately the first time and arms a 10s base delay for the next one. Once the new container starts, restartCount becomes 1.',
+    narration: 'The container process exits with a non-zero code, and Kubelet notices it. With restartPolicy Always, Kubelet restarts the container immediately the first time and arms a 10s base delay for the next one. Once the new container starts, restartCount becomes 1.',
     chips: { stateChip: 'Running (restarted)', reasonChip: 'none', restartChip: '1', delayChip: '10s · base' },
     wires: { in: 'container exited, code 1', out: 'restart now, next wait 10s' },
-    opacity: { podGroup: 1, ...shown(0) },
+    opacity: { podGroup: 1, ...shown(1) },
     lit: ['stateChip', 'restartChip', 'delayChip'],
     // The pulse at 0 is the CRASH, so the chips turn over together on the restart (P-03, P-04).
     rewind: { chips: { stateChip: 'Running', restartChip: '0', delayChip: '0s' } },
@@ -151,12 +152,13 @@ export const STEPS_SPEC = [
       F.route({ points: [LANE_RESTART.from, LANE_RESTART.to], after: 'exit', name: 'restart', pulse: 'podGroup' }),
       F.set({ at: 'restart', chips: { stateChip: 'Running (restarted)', restartChip: '1', delayChip: '10s · base' } }),
       grow(0, { at: 'restart' }),
+      grow(1, { at: 'restart', plus: STAGGER }),
     ],
   },
   {
     id: 'backoff-named',
     duration: 3200,
-    narration: 'The fresh container crashes again almost immediately. This second restart is the one that waits 10s, and it arms a doubled 20s for the next one. While Kubelet holds off the third restart the container state is Waiting with reason CrashLoopBackOff, which surfaces in kubectl get pods.',
+    narration: 'The fresh container crashes again almost immediately. This second restart is the one that waits 10s, and it arms a doubled 20s for the next one. While Kubelet waits before the third restart, the container sits in Waiting with reason CrashLoopBackOff, which shows in kubectl get pods.',
     chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '2', delayChip: '20s · doubled' },
     wires: { in: 'container exited again', out: 'hold restart, 20s' },
     opacity: { podGroup: OPACITY.notready, ...shown(2) },
@@ -167,14 +169,13 @@ export const STEPS_SPEC = [
       exitReport({ delay: BEAT.afterPulse }),
       F.fade({ target: 'podGroup', from: 1, to: OPACITY.notready, dur: FADE.out, at: 'exit', fill: 'both', easing: 'ease-in' }),
       F.set({ at: 'exit', chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '2', delayChip: '20s · doubled' }, wires: { out: 'hold restart, 20s' } }),
-      grow(1, { at: 'exit' }),
-      grow(2, { at: 'exit', plus: STAGGER }),
+      grow(2, { at: 'exit' }),
     ],
   },
   {
     id: 'doubling',
     duration: 2900,
-    narration: 'The crashes keep coming and the backoff delay doubles with each restart, climbing 40s then 80s then 160s. The restartCount keeps incrementing on every attempt. The backoff is kept per container, and it stops a hot-looping process from saturating the Node.',
+    narration: 'The container keeps crashing, and the backoff delay doubles with each restart, climbing to 40s, then 80s, then 160s. The restartCount grows on every attempt. The backoff is kept per container, and it stops a hot-looping process from saturating the Node.',
     chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '5', delayChip: '160s · doubling' },
     wires: { out: 'hold restart, 160s' },
     opacity: { podGroup: OPACITY.notready, ...shown(5) },
@@ -189,7 +190,7 @@ export const STEPS_SPEC = [
   {
     id: 'cap',
     duration: 3200,
-    narration: 'The next doubling would exceed 300s, so the delay is clamped at the 300s ceiling, a per-node default since 1.35, and stays there. Kubelet now retries the container at most once every 5 minutes for as long as it keeps failing. The restartCount continues to climb at this slow cadence.',
+    narration: 'The next doubling would exceed 300s, so the delay is clamped at the 300s ceiling, a per-Node default since 1.35, and stays there. Kubelet now retries the container at most once every 5 minutes for as long as it keeps failing. The restartCount continues to climb at this slow cadence.',
     chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '7', delayChip: '300s · capped' },
     wires: { out: 'retry every 5 min' },
     opacity: { podGroup: OPACITY.notready, ...shown(7) },
@@ -203,7 +204,7 @@ export const STEPS_SPEC = [
   {
     id: 'reset',
     duration: 3200,
-    narration: 'The bug is fixed and the new container runs stably. After 10 minutes healthy Kubelet resets the backoff: a new crash counts as a first one, restarted at once, with the next wait back at 10s, not 300s. The container state returns to Running and the CrashLoopBackOff reason clears.',
+    narration: 'The bug is fixed and the new container runs stably. After 10 healthy minutes Kubelet resets the backoff. A new crash then counts as a first one: the container is restarted at once, and the next wait is 10s, not 300s. The container returns to Running and the CrashLoopBackOff reason clears.',
     chips: { stateChip: 'Running', reasonChip: 'none', restartChip: '8', delayChip: '0s · reset' },
     wires: { in: 'healthy run, backoff reset', next: 'if it crashes: restarted at once, then 10s' },
     // The ghost bar is the crash that has not come, so it rests at pending.

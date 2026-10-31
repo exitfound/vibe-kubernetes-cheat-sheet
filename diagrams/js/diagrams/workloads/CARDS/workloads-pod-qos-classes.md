@@ -16,8 +16,8 @@ DEVIATES WL.A-03: the three taps stop on the frame top border from outside, one 
          the rail and not on a Pod, and dimming them switches the whole drawing off.
 CONTENT  Sources (1.36): Pod QoS Classes, Node-pressure Eviction, `helper/qos`, kubelet `policy.go`.
          Pod-level resources (beta, on) replace the containers. Rule: CPU and memory, `above zero`.
-         Class set `at creation`, a resize that would change it is rejected. A and B `uncapped`.
-         `The resource fit looks only at requests`. A before B is stated `at equal Priority`.
+         Class set `at creation`, a resize that would change it is rejected. A and B get `no cap of
+         its own`. `The resource fit looks only at requests`. A before B `at equal Priority`.
          Guaranteed is `evicted last`, never `survives`. -997 also node-critical. Clamp 3..999 per
-         code (eviction page: 2). Strings name oom_score_adj, never oom_score, and no Scheduler.
+         code (eviction page: 2). oom_score_adj, never oom_score, never a cgroup file. No Scheduler.
 ```

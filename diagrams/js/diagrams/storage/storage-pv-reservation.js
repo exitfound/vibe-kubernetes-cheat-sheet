@@ -45,7 +45,7 @@ const over = (text) => ({ text, dx: 0, dy: -16 });
 const armPv = beside(-1, -8), armRes = beside(1, -8);
 
 export const SCENE = {
-  'aria-label': 'Reserving a PersistentVolume. PV pv-data is Released, its claimRef still naming the deleted claim app/data with that claim UID, so no claim can bind it. An administrator patches the claimRef to name app/restore with no UID, and the PV controller writes Available: the volume is reserved for that one claim, which does not exist yet. For a rival claim app/scratch with an empty storageClassName that would otherwise fit, the binder skips pv-data, and the rival gets FailedBinding. Then app/restore is created naming pv-data in volumeName with storageClassName set to an empty string, and the binder writes its UID into the claimRef and both turn Bound. The alternative, if instead the claimRef had only been cleared: volumeName alone reserves nothing, a volumeName bind is checked for class, size, access modes and volume mode but not node affinity, and a rival matched first takes the volume, so app/scratch ends Bound to pv-data and app/restore Pending with FailedBinding.',
+  'aria-label': 'Reserving a PersistentVolume. PV pv-data is Released, its claimRef still naming the deleted claim app/data with that claim UID, so no claim can bind it. An administrator patches the claimRef to name app/restore with no UID, and the PV controller writes Available: the volume is reserved for that one claim, which does not exist yet. For a rival claim app/scratch with an empty storageClassName that would otherwise fit, the binder skips pv-data, and the rival gets FailedBinding. Then app/restore is created naming pv-data in volumeName with storageClassName set to an empty string, and the binder writes its UID into the claimRef and both turn Bound. Had the claimRef only been cleared instead, it would go otherwise. A volumeName alone reserves nothing. A volumeName bind is checked for class, size, access modes and volume mode but not node affinity, and a rival matched first takes the volume. So app/scratch ends Bound to pv-data and app/restore stays Pending with FailedBinding.',
   parts: [
     P.defs(),
     P.box({ key: 'scratch', x: SCR_X, y: UP_Y, w: BOX_W, h: BOX_H, label: 'PVC app/scratch', sublabel: 'not created yet', opacity: 0 }),
@@ -173,7 +173,7 @@ export const STEPS_SPEC = [
   {
     id: 'named-only',
     duration: 4400,
-    narration: 'If instead the administrator had only cleared the claimRef, pv-data would be Available to any claim that fits it, and volumeName alone reserves nothing. A named volume with no claimRef is checked for class, size, access modes and volume mode, though not node affinity, but a rival matched first takes it: app/scratch binds, and app/restore gets FailedBinding.',
+    narration: 'If instead the administrator had only cleared the claimRef, pv-data would be Available to any claim that fits it, and volumeName alone reserves nothing. A named volume with no claimRef is checked for class, size, access modes and volume mode, not for node affinity. A rival matched first still takes the volume, so app/scratch binds and app/restore gets FailedBinding.',
     chipsCued: TAKEN,
     sublabels: subs('Bound to pv-data', 'Pending, FailedBinding'),
     wires: { ...BLANK, wVolName: 'volumeName', wIf: 'if instead claimRef were only cleared' },

@@ -161,7 +161,7 @@ export const STEPS_SPEC = [
   {
     id: 'prestop',
     duration: 4800,
-    narration: 'The Node side runs the preStop hook first, before any signal is sent. A short sleep here is the usual way to line the two tracks up: it holds PID 1 alive while kube-proxy finishes deregistering the endpoint, and in-flight requests complete during the pause. The five seconds the hook takes come out of the same 30s window.',
+    narration: 'The Kubelet on Node-1 runs the preStop hook first, before any signal is sent. A short sleep here is the usual way to line the two tracks up. It holds PID 1 alive while kube-proxy finishes deregistering the endpoint, and in-flight requests complete during the pause. The five seconds the hook takes come out of the same 30s window.',
     chips: { epChip: EP_TERM, graceChip: G25 },
     wires: { wireSignal: 'exec preStop · sleep 5', wireTraffic: 'in-flight request' },
     opacity: stage(),
@@ -197,7 +197,7 @@ export const STEPS_SPEC = [
   {
     id: 'expiry',
     duration: 4200,
-    narration: 'If a container is still running when the window reaches 0, the runtime sends SIGKILL to every process still alive in any container of the Pod, not just to PID 1. Whatever the app was still doing is lost, which is why the window has to cover the preStop pause plus the real drain time, and why a hook that outlives the window is cut short after a 2s extension, not waited for.',
+    narration: 'If a container is still running when the window reaches 0, the runtime sends SIGKILL to every process still alive in any container of the Pod, not just to PID 1. Whatever the app was still doing is lost, which is why the window has to cover the preStop pause plus the real drain time, and why a hook that outlives the window gets a 2s extension and is then cut short.',
     chips: { epChip: EP_TERM, graceChip: '0s · expired' },
     wires: { wireSignal: 'if alive at 0s: SIGKILL' },
     // Killed: the Pod and both lanes ending on it drop to the terminal shade (A-13).

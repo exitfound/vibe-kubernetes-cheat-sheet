@@ -161,12 +161,14 @@ export const STEPS_SPEC = [
     reducedLit: ['a1Box'],
     // The setting stands from entry. The pin is runtime state, written as the dataplane DNATs the first connection.
     rewind: { chips: { pinChip: AFFINITY } },
-    // Both connections land on the SAME Pod (a1, 10.244.2.7), so the second waits SAME_POD_GAP.
+    // Both connections land on the SAME Pod (a1, 10.244.2.7), so the second leaves the client
+    // SAME_POD_GAP later and is drawn whole, client to Pod.
     flow: [
       F.pulse({ pod: 'client' }),
       arrive('arr', BEAT.afterPulse),
       ...fan(FAN_A1, 'a1', 'fa1', 'arr'),
-      ...fan(FAN_A1, 'a1', 'fa2', 'arr', SAME_POD_GAP),
+      arrive('arr2', BEAT.afterPulse + SAME_POD_GAP),
+      ...fan(FAN_A1, 'a1', 'fa2', 'arr2'),
       F.set({ at: 'arr', chips: { pinChip: PINNED } }),
     ],
   },
@@ -190,7 +192,7 @@ export const STEPS_SPEC = [
   {
     id: 'fallback',
     duration: 3800,
-    narration: 'PreferSameZone is a preference, not a hard rule. When zone-a has no ready endpoint, kube-proxy finds none hinted for its zone and writes every ready endpoint in the cluster instead, which here is only the two in zone-b. The connection crosses zones rather than failing. Availability wins over locality.',
+    narration: 'PreferSameZone is a preference, not a hard rule. When zone-a has no ready endpoint, kube-proxy finds none hinted for its zone and writes every ready endpoint in the cluster instead, here only the two in zone-b, so the connection crosses zones rather than failing.',
     chips: { modeChip: 'PreferSameZone · fallback to all zones', pinChip: 'None' },
     // a1 and a2 are ready=false, so the rules kube-proxy rewrote hold neither of them.
     ...stage(ZONE_A),

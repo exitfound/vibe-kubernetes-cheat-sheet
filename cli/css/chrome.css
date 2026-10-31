@@ -2,14 +2,17 @@
    shortcuts sheet, scroll-to-top, footer and scrollbar. The one copy: every page links it BEFORE its
    own stylesheet, which supplies the tokens and may override a rule here. */
 
-/* ===== FONT STAND-INS =====
+/* Corner radii come from one scale on every page: 2 hairline bars and text marks, 4 badges and
+   chips, 6 small icon buttons, 8 buttons and fields, 10 cards and dropdowns, 14 panels, 50% dots. */
+
+/* Font stand-ins
    Local faces scaled to the web fonts' width and line metrics (measured), named after every font
    stack, so the text keeps its wrap while Space Grotesk and JetBrains Mono load and the swap shifts
    nothing (CLS). */
 @font-face { font-family: 'Space Grotesk Fallback'; src: local('Arial'), local('Liberation Sans'), local('Helvetica'); size-adjust: 108.12%; ascent-override: 90.64%; descent-override: 26.82%; line-gap-override: 0%; }
 @font-face { font-family: 'JetBrains Mono Fallback'; src: local('Courier New'), local('Liberation Mono'), local('Menlo'); size-adjust: 100%; ascent-override: 102%; descent-override: 30%; line-gap-override: 0%; }
 
-/* ===== SIDEBAR (site switcher) ===== */
+/* Sidebar (site switcher) */
 .sidebar {
   position: fixed;
   left: 0;
@@ -39,7 +42,7 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
   place-items: center;
   border: none;
   background: transparent;
-  border-radius: 7px;
+  border-radius: 8px;
   color: var(--text);
   text-decoration: none;
   cursor: pointer;
@@ -79,7 +82,7 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
   width: 30px;
   height: 46px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 10px;
   background: rgba(28, 22, 56, 0.97);
   color: var(--text-nav);
   transition: color 0.12s, background 0.12s, border-color 0.12s;
@@ -105,7 +108,7 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
   color: var(--text-bright);
   font-size: 12px;
   font-weight: 500;
-  font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
+  font-family: 'Space Grotesk', 'Onest', 'Space Grotesk Fallback', sans-serif;
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
@@ -133,7 +136,7 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
   place-items: center;
   border: 1px solid var(--border);
   border-left: none;
-  border-radius: 0 9px 9px 0;
+  border-radius: 0 10px 10px 0;
   background: rgba(28, 22, 56, 0.97);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -163,8 +166,9 @@ body.sidebar-collapsed .side-expand { display: grid; }
 
 /* Phones: tooltips never show on touch and the rail costs a tenth of the width, so it starts
    hidden here. A visitor who taps the tab gets body.sidebar-shown from sidebar.js, remembered
-   like the desktop choice. */
-@media (max-width: 680px) {
+   like the desktop choice. A phone held sideways is wider than 680, so it is caught by its height,
+   the same phone test as the /diagrams/ stub. */
+@media (max-width: 680px), (hover: none) and (pointer: coarse) and (max-height: 500px) {
   body:not(.sidebar-shown) { padding-left: 0; }
   body:not(.sidebar-shown) .sidebar { transform: translateX(-100%); }
   body:not(.sidebar-shown) .side-expand { display: grid; }
@@ -173,7 +177,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
   .side-expand,
   .side-expand:hover,
   .side-expand:focus-visible { width: 12px; }
-  .side-expand { border-radius: 0 7px 7px 0; }
+  .side-expand { border-radius: 0 8px 8px 0; }
   .side-expand svg { width: 11px; height: 11px; }
   .side-expand::before {
     content: '';
@@ -195,12 +199,13 @@ body.sidebar-collapsed .side-expand { display: grid; }
   white-space: nowrap;
 }
 
-/* ===== HEADER ===== */
+/* Header */
 .header {
   position: sticky;
   top: 0;
   z-index: 100;
   background: rgba(17, 15, 31, 0.95);
+  /* The blur keeps text scrolling underneath from showing through the last few percent as a crisp ghost. */
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border-subtle);
@@ -216,7 +221,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
   position: relative;
 }
 
-/* --- Logo --- */
+/* Logo */
 .logo {
   display: flex;
   align-items: center;
@@ -227,6 +232,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
   margin-top: 5px;
 }
 
+/* The logo strokes run cyan to lavender, the Commands and Diagrams colours of the hub's two halves. */
 .logo-icon {
   width: 64px;
   height: 64px;
@@ -250,7 +256,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
   font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
 }
 
-/* --- Header action buttons --- */
+/* Header action buttons */
 .header-actions {
   display: flex;
   gap: 6px;
@@ -273,7 +279,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
   border-radius: 8px;
   background: transparent;
   color: var(--text-nav);
-  font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
+  font-family: 'Space Grotesk', 'Onest', 'Space Grotesk Fallback', sans-serif;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -292,6 +298,20 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .action-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+/* The language switch: both codes always shown, the current one lit. */
+.lang-btn { gap: 0; }
+.lang-opt { color: var(--text-muted); transition: color 0.12s; }
+.lang-opt + .lang-opt { margin-left: 7px; padding-left: 7px; border-left: 1px solid var(--border); }
+.lang-btn[data-lang="en"] .lang-opt[data-lang="en"],
+.lang-btn[data-lang="ru"] .lang-opt[data-lang="ru"] { color: var(--text-bright); }
+.lang-btn:hover .lang-opt { color: var(--accent); }
+/* Beside a search on a phone the switch shows just the current code, as wide as an icon button. */
+@media (max-width: 900px) {
+  .search-container ~ .header-actions .lang-btn[data-lang="en"] .lang-opt[data-lang="ru"],
+  .search-container ~ .header-actions .lang-btn[data-lang="ru"] .lang-opt[data-lang="en"] { display: none; }
+  .search-container ~ .header-actions .lang-opt + .lang-opt { margin-left: 0; padding-left: 0; border-left: 0; }
 }
 
 .action-dropdown {
@@ -376,10 +396,9 @@ body.sidebar-collapsed .side-expand { display: grid; }
 }
 
 .dropdown-net {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--text-muted);
-  opacity: 0.6;
   letter-spacing: 0.3px;
 }
 
@@ -404,7 +423,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
   justify-content: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 6px;
   color: var(--text-muted);
   cursor: pointer;
   transition: color 0.1s, border-color 0.1s, background 0.1s;
@@ -424,7 +443,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
   background: rgba(92, 184, 92, 0.06);
 }
 
-/* --- Search --- */
+/* Search */
 .search-container {
   position: absolute;
   left: 50%;
@@ -439,7 +458,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
    Measured on the header, not the viewport, because the sidebar takes 38px of it when shown. */
 .header-inner { container-type: inline-size; }
 @media (min-width: 901px) {
-  @container (max-width: 1180px) {
+  @container (max-width: 1344px) {
     .logo { margin-right: 16px; }
     .search-container + .header-actions { margin-left: 16px; }
     .search-container {
@@ -455,7 +474,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
     }
   }
   /* Tighter still, the action buttons drop their labels, the same way they do below 900px. */
-  @container (max-width: 1010px) {
+  @container (max-width: 1092px) {
     .search-container ~ .header-actions { gap: 4px; }
     .search-container ~ .header-actions .action-btn-label { display: none; }
     .search-container ~ .header-actions .action-btn { padding: 0 9px; gap: 0; }
@@ -515,7 +534,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 }
 .search-clear:hover { color: var(--text); }
 
-/* ===== SCROLL TO TOP ===== */
+/* Scroll to top */
 .scroll-top-btn {
   position: fixed;
   bottom: 24px;
@@ -527,7 +546,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
   justify-content: center;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 10px;
   color: var(--text-muted);
   cursor: pointer;
   opacity: 0;
@@ -553,7 +572,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 }
 
 
-/* ===== FOOTER ===== */
+/* Footer */
 .footer {
   border-top: 1px solid var(--border-subtle);
   padding: 22px 24px;
@@ -562,12 +581,19 @@ body.sidebar-collapsed .side-expand { display: grid; }
   color: var(--text-muted);
 }
 
-.footer a { color: var(--accent); text-decoration: none; white-space: nowrap; }
-.footer a:hover { text-decoration: underline; }
+.footer a {
+  color: var(--accent);
+  white-space: nowrap;
+  /* Underlined at rest: the lavender alone sits too close to the grey prose to mark a link. */
+  text-decoration: underline;
+  text-decoration-color: rgba(224, 205, 255, 0.5);
+  text-underline-offset: 3px;
+}
+.footer a:hover { text-decoration-color: currentColor; }
 .footer p + p { margin-top: 4px; }
 .disclaimer { font-size: 13px; }
 
-/* ===== HUB FRAME =====
+/* Hub frame
    The hub and 404.html (body.hub-frame) have no nav rows, so their header and footer lines are
    brighter gradients: the header border goes transparent (same height as the other pages) and a 5px
    strip under it carries the line. .hub-ruler is an invisible nav row for alignLogo() to measure. */
@@ -597,14 +623,14 @@ body.hub-frame .footer::before { top: 0; }
 }
 .hub-ruler .nav { position: static; box-shadow: none; }
 
-/* ===== SCROLLBAR ===== */
+/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #110f1f; }
-::-webkit-scrollbar-thumb { background: #3a3260; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #3a3260; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 * { scrollbar-width: thin; scrollbar-color: #3a3260 #110f1f; }
 
-/* ===== KEYBOARD SHORTCUTS ===== */
+/* Keyboard shortcuts */
 /* The sheet opened by `?` or the sidebar keyboard button (js/lib/keys.js), and the `/` hint in the
    search field. Duplicated in cli/css/styles.css and diagrams/css/styles.css, like the sidebar. */
 .side-keys { margin-top: auto; }
@@ -648,7 +674,7 @@ body.hub-frame .footer::before { top: 0; }
   display: grid;
   place-items: center;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 8px;
   background: transparent;
   color: var(--text-dim);
   cursor: pointer;
@@ -700,7 +726,7 @@ body.hub-frame .footer::before { top: 0; }
   padding: 1px 6px;
   border: 1px solid var(--border);
   border-bottom-width: 2px;
-  border-radius: 5px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.04);
   font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
   font-size: 12px;
@@ -732,7 +758,7 @@ body.hub-frame .footer::before { top: 0; }
   .search-kbd { display: none; }
 }
 
-/* ===== RESPONSIVE ===== */
+/* Responsive */
 @media (max-width: 900px) {
   .logo-sub { font-size: 12px; }
   .header-inner {
@@ -764,6 +790,8 @@ body.hub-frame .footer::before { top: 0; }
 
 @media (hover: none) {
   .scroll-top-btn { min-width: 44px; min-height: 44px; }
+  /* iOS zooms the page into a focused field under 16px. */
+  .search-input { font-size: 16px; }
 }
 
 @media (max-width: 400px) {
@@ -771,7 +799,7 @@ body.hub-frame .footer::before { top: 0; }
   .logo-icon { width: 26px; height: 26px; }
 }
 
-/* ===== PRINT ===== */
+/* Print */
 /* The sidebar is fixed, so a printout would repeat it down the margin of every page. */
 @media print {
   .sidebar, .side-expand { display: none !important; }

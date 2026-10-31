@@ -13,9 +13,9 @@ DEVIATES L-23: Node-1 floors 46 under the agent, where its two lane pairs mirror
          M-12: every ball rides 15% over its base pace, the tagged legs `LEG_DUR` 1109 and every
          other hop 517, all registered in `PACING`, because the 700 floor makes these hops crawl.
 CONTENT  Sources, 1.36: NodeLocal DNSCache, DNS for Services and Pods, nodelocaldns.yaml at
-         release-1.36 (node-cache 1.26.7, CoreDNS 1.13.1). iptables drawn, deprecated IPVS one line.
-         169.254.20.10 is "here": the page asks only for a free link-local address. The agent dials
-         `kube-dns-upstream` over TCP, so CoreDNS shows its Pod IP. Held `between 5 and 30 seconds`,
-         negative 5. Per lookup `is a UDP query`, one conntrack entry A and AAAA share: the race.
-         "It never touches CoreDNS" is ruled out for example.com: its ndots:5 search tries do.
+         release-1.36 (node-cache 1.26.7). iptables drawn, IPVS one line. 169.254.20.10 is "here",
+         any free link-local fits. The agent dials `kube-dns-upstream` over TCP, so CoreDNS shows
+         its Pod IP. Held `between 5 and 30 seconds`, negative 5. Per lookup `is a UDP query`, one
+         conntrack entry A and AAAA share: the race. For example.com "never touches CoreDNS" and
+         "tries, which are cluster names" are ruled out: Node search domains go upstream.
 ```

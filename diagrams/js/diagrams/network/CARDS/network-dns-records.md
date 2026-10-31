@@ -15,4 +15,5 @@ CONTENT  Sources, 1.36: DNS for Services and Pods, Customizing DNS Service, kube
          `With pods enabled in CoreDNS`: the plugin default is disabled, kubeadm sets insecure.
          `Under the default ClusterFirst policy`: hostNetwork falls back to Default. kube-proxy
          writes rules and forwards nothing. `one A record per ready Pod`, `A stable way`.
+         Aria `CoreDNS answers with`, not `answers it`: SRV and Pod records use other names.
 ```

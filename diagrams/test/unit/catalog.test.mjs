@@ -17,11 +17,10 @@ const CARD_TOTAL = CATALOG_BASELINE.cards;
 const PER_CATEGORY = { cluster: 28, workloads: 32, network: 44, storage: 39 };
 const SUBCATEGORY_TOTAL = 15;   // unique across the four categories (D-07)
 
-// D-04 / D-05 bands. A tighter ceiling pushes qualifiers out and leaves false absolutes (T-20).
-const DESC_MIN = 400;
-const DESC_MAX = 470;
-const DESC_SENTENCES_MIN = 2;
-const DESC_SENTENCES_MAX = 4;
+// D-04 / D-05: a situation and the question it raises, four full lines at 1920. The mechanism is the
+// steps. The band fits the line, never the other way: a qualifier wins over a word of fill (T-20).
+const { DESC_CHARS, descCap } = await import(pathToFileURL(join(ROOT, 'js', 'data.js')).href);
+const { min: DESC_MIN, max: DESC_MAX } = DESC_CHARS;
 
 // D-01. No path field: dialog.js derives it from category + id.
 const ENTRY_KEYS = ['id', 'title', 'category', 'subcategory', 'desc', 'k8sVersion', 'tinted', 'sources'];
@@ -165,28 +164,36 @@ test(`D-06 card and poster are a bijection (${Object.keys(POSTERS).length} of ${
   }
 });
 
-test(`D-04 every desc is ${DESC_MIN} to ${DESC_MAX} characters`, () => {
-  const bad = [];
-  let seen = 0;
-  for (const s of DIAGRAMS) {
-    seen++;
-    const len = s.desc.length;
-    if (len < DESC_MIN || len > DESC_MAX) bad.push(`${s.id} ${len} chars`);
-  }
-  census('desc length', seen, CARD_TOTAL);
-  assert.deepEqual(bad, [], `${bad.length} desc(s) outside the hard band (target is 410-460, 3 sentences)`);
+// The band is a target (four full lines at 1920), reported and never failed. Only a desc past 1.5
+// times the mean desc fails.
+const DESC_CAP = descCap(DIAGRAMS.map(s => s.desc));
+
+test(`D-04 a desc aims for ${DESC_MIN} to ${DESC_MAX} characters (reported, not enforced)`, (t) => {
+  for (const s of DIAGRAMS)
+    if (s.desc.length < DESC_MIN || s.desc.length > DESC_MAX) t.diagnostic(`${s.id} ${s.desc.length} chars`);
 });
 
-test(`D-05 every desc is ${DESC_SENTENCES_MIN} to ${DESC_SENTENCES_MAX} sentences`, () => {
+test(`D-04 no desc runs past 1.5 times the mean length (${DESC_CAP} characters)`, () => {
   const bad = [];
   let seen = 0;
   for (const s of DIAGRAMS) {
     seen++;
-    const n = sentences(s.desc).length;
-    if (n < DESC_SENTENCES_MIN || n > DESC_SENTENCES_MAX) bad.push(`${s.id} ${n} sentences`);
+    if (s.desc.length > DESC_CAP) bad.push(`${s.id} ${s.desc.length} chars`);
+  }
+  census('desc length', seen, CARD_TOTAL);
+  assert.deepEqual(bad, [], `${bad.length} desc(s) past the cap`);
+});
+
+test('D-05 every desc is a situation then one question', () => {
+  const bad = [];
+  let seen = 0;
+  for (const s of DIAGRAMS) {
+    seen++;
+    const parts = sentences(s.desc);
+    if (parts.length < 2 || !parts.slice(0, -1).every(p => /\.$/.test(p)) || !/\?$/.test(s.desc)) bad.push(`${s.id}: ${s.desc}`);
   }
   census('desc sentences', seen, CARD_TOTAL);
-  assert.deepEqual(bad, [], `${bad.length} desc(s) outside 3 sentences with a tolerance of one`);
+  assert.deepEqual(bad, [], `${bad.length} desc(s) not situation sentence(s) followed by one question`);
 });
 
 test('R-srcdup no card shows two sources under one label', () => {

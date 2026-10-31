@@ -91,7 +91,7 @@ const stack = (el, refs) => {
 // The list order IS the append order, which is the z-order: Node frame, boundary, Pod and bridge
 // column, the lanes with end ticks and captions above them, the chip column, then the packet layer.
 export const SCENE = {
-  'aria-label': 'A veth pair drawn as one link with two ends: eth0 stands inside the Pod network namespace carrying 10.244.1.5, its peer stands in the Node root namespace carrying no address of its own and enslaved to the cni0 bridge which holds 10.244.1.1 instead, a packet entering one end leaves the other with no lookup in between, and every container in the Pod shares that one interface and that one address',
+  'aria-label': 'A veth pair drawn as one link with two ends. The eth0 end stands inside the Pod network namespace carrying 10.244.1.5, while its peer stands in the Node root namespace carrying no address of its own and enslaved to the cni0 bridge, which holds 10.244.1.1 instead. A packet entering one end leaves the other with no lookup in between, and every container in the Pod shares that one interface and that one address',
   parts: [
     P.defs(),
     P.node({ key: 'nodeEl', x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -135,7 +135,7 @@ export const STEPS_SPEC = [
   {
     id: 'pair',
     duration: 2700,
-    narration: 'One CNI ADD made this and exited. What it left is a single virtual link with two ends: eth0 stands inside the Pod network namespace and vethb3f8a2c7 stands in the Node root namespace. The @if2 after the host side name is the index of the other end.',
+    narration: 'One CNI ADD made this and exited, leaving a single virtual link with two ends: eth0 stands inside the Pod network namespace and vethb3f8a2c7 stands in the Node root namespace. The @if2 after the host side name is the index of the other end.',
     chips: { linkChip: 'two ends, one link', ipChip: 'allocated', hostChip: 'no address', pathChip: 'idle' },
     sublabels: { eth0: 'in pod netns', peer: 'in root netns', cni0: 'host bridge' },
     podSublabels: { podGroup: 'one netns, one address' },
@@ -146,7 +146,7 @@ export const STEPS_SPEC = [
   {
     id: 'address',
     duration: 2600,
-    narration: 'Of the two ends only the Pod end is configured with an address. Inside the namespace eth0 carries 10.244.1.5/24, and the host end carries none at all. An address belongs to a network namespace rather than to a cable or to a container, so the thing that has an address here is the Pod.',
+    narration: 'Of the two ends only the Pod end is configured with an address: inside the namespace eth0 carries 10.244.1.5/24, and the host end carries none. An address belongs to a network namespace rather than to a cable or to a container, so the thing that has an address here is the Pod.',
     chips: { linkChip: 'two ends, one link', ipChip: POD_IP, hostChip: 'no address', pathChip: 'idle' },
     sublabels: { eth0: POD_IP, peer: 'no address', cni0: 'host bridge' },
     podSublabels: { podGroup: POD_IP },
@@ -170,7 +170,7 @@ export const STEPS_SPEC = [
   {
     id: 'through',
     duration: 2800,
-    narration: 'The app sends, and the packet goes out eth0 because on the usual plugins that is the one interface in this namespace facing outward. It enters one end of the pair and leaves the other with no lookup and no decision in between. A veth pair is a point to point link and nothing more.',
+    narration: 'The app sends, and the packet goes out eth0 because on the usual plugins that is the one interface in this namespace facing outward. It enters one end of the pair and leaves the other with no lookup and no decision in between, since a veth pair is a point to point link.',
     chips: { linkChip: 'two ends, one link', ipChip: POD_IP, hostChip: 'no address', pathChip: 'veth, no lookup' },
     sublabels: { eth0: POD_IP, peer: 'no address', cni0: 'host bridge' },
     podSublabels: { podGroup: POD_IP },

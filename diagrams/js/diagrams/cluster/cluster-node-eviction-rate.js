@@ -49,7 +49,7 @@ const BRANCH_X = ZONE_A_CX, BRANCH_Y = JOG_Y - 16;
 
 // List order is z-order: lanes, captions, chips, packets, ladder, zones and slots, controller last.
 export const SCENE = {
-  'aria-label': 'Eviction rate limiting across two availability zones: the node-lifecycle-controller taints NotReady Nodes one at a time, at the normal rate while a zone is healthy, at the reduced secondary rate once the unhealthy share of that zone reaches the threshold, at no rate at all while every zone is fully down, and back on a per zone rate as soon as one zone recovers',
+  'aria-label': 'Eviction rate limiting across two availability zones. The node-lifecycle-controller taints NotReady Nodes one at a time, at the normal rate while a zone is healthy, and at the reduced secondary rate once the unhealthy share of that zone reaches the threshold. While every zone is fully down no taint is set at all, and as soon as one zone recovers each zone gets back its own rate',
   parts: [
     P.defs(),
     P.lane({ points: LANE_A, dim: true, dashed: true }),
@@ -146,7 +146,7 @@ export const STEPS_SPEC = [
   {
     id: 'normal-rate',
     duration: 4800,
-    narration: 'A healthy zone is worked at --node-eviction-rate, 0.1 Nodes per second by default, which is one Node every 10 seconds. The controller takes Node-17 off the front of the queue for us-east-1a. Its Ready condition reads Unknown rather than False, so the key is node.kubernetes.io/unreachable:NoExecute, and on that taint the taint-eviction-controller, also in the controller-manager, starts evicting the Pods on it. Node-18 waits its turn.',
+    narration: 'A healthy zone is worked at --node-eviction-rate, 0.1 Nodes per second by default, which is one Node every 10 seconds. The controller takes Node-17 off the front of the queue for us-east-1a. Its Ready condition reads Unknown rather than False, so the key is node.kubernetes.io/unreachable:NoExecute, and the taint-eviction-controller, also in the controller-manager, evicts its Pods once their toleration runs out. Node-18 waits its turn.',
     chips: { zoneAChip: A_HEALTHY, rateAChip: NORMAL, zoneBChip: B_HEALTHY, rateBChip: NORMAL },
     wires: { wA: TAINT_10 },
     // S-13: the static block states the end, so the tainted slot winds back until the ball lands.

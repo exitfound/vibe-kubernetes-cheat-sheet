@@ -76,7 +76,7 @@ const REQUEST = 'PATCH · application/apply-patch+yaml';
 
 // Parts order is z-order: the top row last, so a ball passes behind it.
 export const SCENE = {
-  'aria-label': 'Server-side apply and field ownership: the API records a field manager for every field an apply sets, keeps that ledger in managedFields on the object, refuses a second manager that tries to change a field it does not own until that apply is forced, and the client-side three-way merge it replaces stands in the corner',
+  'aria-label': 'Server-side apply and field ownership, where the API records a field manager for every field an apply sets, keeps that ledger in managedFields on the object, refuses a second manager that tries to change a field it does not own until that apply is forced, and the client-side three-way merge it replaces stands in the corner',
   parts: [
     P.defs(),
     P.relation({ points: API_TO_OBJ }),
@@ -166,7 +166,7 @@ export const STEPS_SPEC = [
   {
     id: 'first-apply',
     duration: 3100,
-    narration: 'You run kubectl apply --server-side, a PATCH sent with the content type application/apply-patch+yaml. Every apply has to name a field manager, and kubectl sends the name kubectl by default. The API records that name against every field the request sets, so all four fields of Deployment web end up owned by kubectl.',
+    narration: 'You run kubectl apply --server-side, a PATCH sent with the content type application/apply-patch+yaml. Every apply has to name a field manager, and kubectl sends the name kubectl by default. The API records that name against every field the request sets, so the four fields drawn for Deployment web end up owned by kubectl.',
     chips: chipsOf('kubectl · 201 Created', '1 entry · kubectl owns 4 fields', 'none'),
     labels: OWNED_ROWS.labels,
     sublabels: OWNED_ROWS.sublabels,
@@ -201,7 +201,7 @@ export const STEPS_SPEC = [
   {
     id: 'drop-a-field',
     duration: 3300,
-    narration: 'Delete spec.minReadySeconds from the file and apply again. The API compares the request against what you owned last time, so a field you stop sending is deleted from the live object, or reset to its default if it has one. That happens only when no other manager owns it too. If one does, you drop out of that entry and the value stays.',
+    narration: 'When spec.minReadySeconds is deleted from the file and the file is applied again, the API compares the request with what you owned last time, so a field you stop sending is deleted from the live object, or reset to its default if it has one. But that happens only if no other manager owns it too. If one does, you drop out of that entry and the value stays.',
     chips: chipsOf('kubectl · 200 OK', '1 entry · kubectl owns 3 fields', 'none'),
     labels: DROPPED_ROWS.labels,
     sublabels: DROPPED_ROWS.sublabels,
@@ -227,7 +227,7 @@ export const STEPS_SPEC = [
   {
     id: 'conflict',
     duration: 3300,
-    narration: 'A scaling controller applies spec.replicas 5 under the field manager name scale-controller, but kubectl owns that field at 3, so the API refuses the whole request with HTTP 409 and names the conflict. Nothing on the object changes. A plain update never fails this way, it takes the field quietly and your next apply is what finds out.',
+    narration: 'A scaling controller applies spec.replicas 5 under the field manager name scale-controller, but kubectl owns that field at 3, so the API refuses the whole request with HTTP 409 and names the conflict. Nothing on the object changes. A plain update never fails this way. It takes the field quietly, and your next apply is what finds out.',
     chips: chipsOf('scale-controller · 409 Conflict', '1 entry · kubectl owns 3 fields', 'spec.replicas · refused with 409'),
     labels: DROPPED_ROWS.labels,
     sublabels: DROPPED_ROWS.sublabels,
@@ -245,7 +245,7 @@ export const STEPS_SPEC = [
   {
     id: 'force',
     duration: 3450,
-    narration: 'Repeating it with --force-conflicts sets force=true in the query and the apply lands: spec.replicas becomes 5 and the field moves from kubectl to scale-controller. Controllers are told to force on objects they own, since they may not be able to resolve one. Two appliers setting the same value share the field, and the next change by either conflicts.',
+    narration: 'Sent again with force=true in the query (kubectl --force-conflicts), the apply lands: spec.replicas becomes 5 and the field moves from kubectl to scale-controller. Controllers are told to force on objects they own, since they may not be able to resolve a conflict. Two appliers setting the same value share the field, and the next change by either conflicts.',
     chips: chipsOf('scale-controller · 200 OK', '2 entries · kubectl 2 fields · scale-controller 1', 'spec.replicas · forced through'),
     labels: FORCED_ROWS.labels,
     sublabels: FORCED_ROWS.sublabels,
@@ -270,7 +270,7 @@ export const STEPS_SPEC = [
   {
     id: 'versus-merge',
     duration: 3400,
-    narration: 'This is what server-side apply replaces. Plain kubectl apply keeps your file in the kubectl.kubernetes.io/last-applied-configuration annotation, then runs a three-way merge across the annotation, the file and the live object on your own machine. Removals are found by reading the annotation, so a value another actor wrote is invisible to it.',
+    narration: 'This is what server-side apply replaces. Plain kubectl apply keeps your file in the kubectl.kubernetes.io/last-applied-configuration annotation, then runs a three-way merge across the annotation, the file and the live object on your own machine. Removals are found by reading the annotation, so a value another actor wrote is invisible to that check.',
     chips: chipsOf('scale-controller · 200 OK', '2 entries · kubectl 2 fields · scale-controller 1', 'spec.replicas · forced through'),
     labels: FORCED_ROWS.labels,
     sublabels: FORCED_ROWS.sublabels,

@@ -15,7 +15,7 @@ CONTENT  Sources (v1.36): DaemonSet, Rolling Update task, kubectl drain, DaemonS
          and drain code. desiredNumberScheduled counts MATCHING Nodes. numberReady is an integer,
          never `3 / 4`, back on Ready at the create arrival (P-02). nodeAffinity pins, never the
          Kubelet. Drain never evicts RUNNING Pods. node-removed: Node object first, PodGC (not the
-         controller) deletes. node-join: no `turns Ready`. desc: every ELIGIBLE Node, names
-         updateStrategy. The task page caps a rollout at one Pod per Node, the code lets maxSurge
-         add one: the card follows code.
+         controller) deletes. node-join: no `turns Ready`.
+         The task page caps a rollout at one Pod per Node, the API maxSurge field
+         allows a second: the card follows the API.
 ```

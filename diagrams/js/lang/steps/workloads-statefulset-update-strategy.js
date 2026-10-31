@@ -1,0 +1,24 @@
+// Russian for workloads-statefulset-update-strategy: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "StatefulSet update strategy: a template change becomes a new revision, and under RollingUpdate the controller deletes and recreates one Pod at a time from the largest ordinal to the smallest, waiting for each to be Running and Ready, with partition freezing every ordinal below its value, maxUnavailable widening the window once its feature gate is on, and OnDelete handing the update trigger back to you":
+    "Стратегия обновления StatefulSet: изменение шаблона становится новой ревизией, и при RollingUpdate контроллер удаляет и пересоздаёт Pod по одному, от наибольшего номера к наименьшему, ожидая, пока каждый станет Running и Ready, при этом partition замораживает все номера ниже своего значения, maxUnavailable расширяет окно, когда включён его feature gate, а OnDelete возвращает запуск обновления вам",
+
+  "The controller learns of your spec.template edit off its watch and saves the template as a ControllerRevision with the next revision number. Nothing has moved yet, and all four replicas still run the previous revision. The default spec.updateStrategy.type is RollingUpdate, and this is what turns a new revision into a rollout.":
+    "Контроллер узнаёт о вашей правке spec.template через watch и сохраняет этот шаблон как ControllerRevision со следующим номером ревизии. Ничего пока не сдвинулось, и все четыре реплики всё ещё работают на предыдущей ревизии. По умолчанию поле spec.updateStrategy.type равно RollingUpdate, и именно эта стратегия превращает новую ревизию в rollout.",
+
+  "Under RollingUpdate the controller deletes and recreates each Pod in the same order as Pod termination, from the largest ordinal to the smallest. So the walk opens at web-3 and never at web-0. The Pod comes back built from rev 3, and while it does, it is the only member of the set that is unavailable.":
+    "При RollingUpdate контроллер удаляет и пересоздаёт каждый Pod в том же порядке, что и при завершении Pod, от наибольшего номера к наименьшему. Поэтому обход начинается с web-3 и никогда с web-0. Pod возвращается собранным из rev 3, и пока это происходит, во всём наборе недоступен только он.",
+
+  "The control plane waits until the updated Pod is Running and Ready before it touches the predecessor, and where spec.minReadySeconds is set it waits that long again after the Pod turns ready. Only then does web-2 go. The second slot stays empty throughout, because the maxUnavailable budget is 1.":
+    "Control Plane ждёт, пока обновлённый Pod станет Running и Ready, прежде чем тронуть Pod с меньшим номером, а если задано поле spec.minReadySeconds, выжидает после готовности ещё и этот срок. Только тогда уходит web-2. Второй слот всё это время пуст, потому что бюджет maxUnavailable равен 1.",
+
+  "Setting spec.updateStrategy.rollingUpdate.partition to 2 draws a line through the set. Every ordinal at or above 2 is updated and every ordinal below it is left alone, and a Pod under the line is recreated at the previous revision even if you delete it. That is how a canary or a phased rollout is staged.":
+    "Значение 2 в поле spec.updateStrategy.rollingUpdate.partition проводит черту через набор. Все номера от 2 и выше обновляются, все ниже остаются как есть, и Pod под чертой пересоздаётся на предыдущей ревизии, даже если вы его удалите. Так готовят canary или поэтапный rollout.",
+
+  "If the MaxUnavailableStatefulSet feature gate is on and podManagementPolicy is Parallel, spec.updateStrategy.rollingUpdate.maxUnavailable goes to 2 and partition back to 0. Then web-1 and web-0 are replaced together, but OrderedReady still recreates them in order. Since 1.35.4 this Beta gate is off by default. Every replica now runs rev 3.":
+    "Если включён feature gate MaxUnavailableStatefulSet, а политика podManagementPolicy равна Parallel, поле spec.updateStrategy.rollingUpdate.maxUnavailable получает значение 2, а partition возвращается в 0. Тогда web-1 и web-0 заменятся вместе, а при OrderedReady они по-прежнему пересоздаются по порядку. С версии 1.35.4 этот gate стадии Beta по умолчанию выключен. Теперь все реплики работают на rev 3.",
+
+  "The other strategy hands the update trigger back to you. With spec.updateStrategy.type set to OnDelete a further edit to spec.template still records rev 4, but the controller updates nothing by itself. Each Pod keeps its revision until you delete it, and after the delete it comes back from rev 4.":
+    "Вторая стратегия возвращает запуск обновления вам. Если поле spec.updateStrategy.type равно OnDelete, следующая правка spec.template всё равно записывает rev 4, но контроллер сам ничего не обновляет. Каждый Pod остаётся на своей ревизии, пока вы его не удалите, а после удаления возвращается уже из rev 4.",
+};

@@ -55,7 +55,7 @@ const PODS = [
 
 // Append order is z-order: top lane and wire, chips, the drop, packets, ladder, Node frame and Pods.
 export const SCENE = {
-  'aria-label': 'Pod priority and preemption: Scheduler preempts the lowest-priority victim to make room for a high-priority Pod on a full Node',
+  'aria-label': 'The Scheduler preempts the lowest-priority victim on a full Node to make room there for a high-priority Pod',
   parts: [
     P.defs(),
     // One top lane on the centre line: every step sends Scheduler to API and none names an answer.
@@ -111,7 +111,7 @@ export const STEPS_SPEC = [
   {
     id: 'spec',
     duration: 4400,
-    narration: 'Pod NEW arrives at the API. The Priority admission plugin resolves spec.priorityClassName to a number, system-cluster-critical being 2000000000, and writes it into spec.priority. That plugin rejects a spec.priority differing from the one it computed, so with the plugin enabled, as it is by default, PriorityClass is the only route. The other built-in class, system-node-critical, is slightly higher.',
+    narration: 'Pod NEW arrives at the API. The Priority admission plugin resolves spec.priorityClassName to a number, 2000000000 for system-cluster-critical, and writes it into spec.priority. If the Pod sets a different spec.priority, the plugin rejects it. So while the plugin is enabled, as it is by default, PriorityClass is the only route. The other built-in class, system-node-critical, is slightly higher.',
     chips: { newPodChip: NEW_PRI, attemptChip: 'pending', victimChip: 'none', focusChip: 'priority resolved at admission' },
     wires: { req: 'PriorityClass admission · spec.priority=2e9' },
     opacity: STANDING,
@@ -122,7 +122,7 @@ export const STEPS_SPEC = [
   {
     id: 'attempt',
     duration: 4200,
-    narration: 'Scheduler takes Pod NEW off its queue and runs a scheduling cycle. Filter plugins drop every Node failing a predicate (taints, ports, requests against allocatable), and here all of them fail on capacity. Before that failure is recorded, the default preemptionPolicy=PreemptLowerPriority opens preemption mode. A class set to Never would leave Pod NEW queued as Unschedulable.',
+    narration: 'Scheduler takes Pod NEW off its queue and runs a scheduling cycle. Filter plugins drop every Node failing a predicate (taints, ports, requests against allocatable), and here all of them fail on capacity. But before that failure is recorded, the default preemptionPolicy=PreemptLowerPriority opens preemption mode. A class set to Never would leave Pod NEW queued as Unschedulable.',
     chips: { newPodChip: NEW_PRI, attemptChip: '0/1 nodes are available', victimChip: 'none', focusChip: 'no feasible Node · entering preempt mode' },
     wires: { req: 'filter · Insufficient cpu · Insufficient memory' },
     opacity: STANDING,
@@ -133,7 +133,7 @@ export const STEPS_SPEC = [
   {
     id: 'preempt',
     duration: 4800,
-    narration: 'Preemption scans the running Pods on each Node for a minimal victim set whose deletion lets Pod NEW fit, every victim at strictly lower priority, the more important ones reprieved first. Pod A at 100 is enough alone: freeing its 1 CPU and 1Gi memory matches the Pod NEW requests. Pod B at 1000, the most important candidate, is the first one reprieved. Pod C ties at 100 but started earlier, so it is tried before Pod A and kept.',
+    narration: 'Scheduler scans the running Pods on candidate Nodes for a minimal victim set whose deletion lets Pod NEW fit. Every victim has strictly lower priority, and the more important are reprieved first. Pod A at 100 is enough alone, since its freed 1 CPU and 1Gi memory match the Pod NEW requests. Pod B at 1000, the most important candidate, is reprieved first. Pod C ties at 100 but started earlier, so it is tried before Pod A and kept.',
     chips: { newPodChip: NEW_PRI, attemptChip: 'preempt mode', victimChip: 'Pod A · priority 100', focusChip: 'minimal victim set · lowest pri first' },
     wires: { req: 'preempt scan · Victim set: {Pod A}' },
     opacity: STANDING,
@@ -145,7 +145,7 @@ export const STEPS_SPEC = [
   {
     id: 'delete',
     duration: 5400,
-    narration: 'Scheduler patches Pod A with a DisruptionTarget condition, reason PreemptionByScheduler, then sends a standard DELETE, not an eviction, so PodDisruptionBudget gates are bypassed, though victim choice prefers PDB-friendly sets. Pod A enters Terminating for its terminationGracePeriodSeconds: preStop, SIGTERM, SIGKILL. In a separate status write Pod NEW is recorded Unschedulable with status.nominatedNodeName=Node-1, reserved but not guaranteed: a higher priority Pod can still take it.',
+    narration: 'Scheduler patches Pod A with a DisruptionTarget condition, reason PreemptionByScheduler, then sends a standard DELETE, not an eviction. So PodDisruptionBudget gates are bypassed, though victim choice prefers PDB-friendly sets. Pod A enters Terminating with preStop and SIGTERM, then SIGKILL if it outlives its grace period. In a separate status write Pod NEW is marked Unschedulable with status.nominatedNodeName=Node-1, reserved but not guaranteed: a higher priority Pod can still take it.',
     chips: { newPodChip: NEW_PRI, attemptChip: 'preempt · nominated Node-1', victimChip: 'Pod A · Terminating', focusChip: 'standard DELETE · PDB best effort' },
     wires: { req: 'PATCH DisruptionTarget · DELETE .../pods/pod-a' },
     // At entry these would have Pod A Terminating before the DELETE has left.
@@ -168,7 +168,7 @@ export const STEPS_SPEC = [
   {
     id: 'bind',
     duration: 2800,
-    narration: 'Pod A exited gracefully, its capacity back on Node-1. Scheduler retries Pod NEW on its nominated Node first, Filter passes, and it binds to Node-1. The controller owning Pod A creates a replacement, scheduled elsewhere or left Pending. This is not node-pressure eviction, covered separately, where Kubelet ranks by over-request first, then Priority, then how far over the request each sits.',
+    narration: 'Pod A exited gracefully, its capacity back on Node-1. Scheduler retries Pod NEW on its nominated Node first. Filter passes, and Pod NEW binds to Node-1. The controller owning Pod A creates a replacement, scheduled elsewhere or left Pending. This is not node-pressure eviction, covered separately, where Kubelet ranks by over-request first, then Priority, then how far each is over.',
     chips: { newPodChip: NEW_PRI, attemptChip: 'bound to Node-1', victimChip: 'Pod A · gone', focusChip: 'nominatedNodeName cleared' },
     wires: { req: 'POST .../pods/pod-new/binding · Node-1' },
     // victimChip is not wound back: Pod A left during the previous step's grace period.

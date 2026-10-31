@@ -1,0 +1,24 @@
+// Russian for workloads-pod-scheduling-gates: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "Pod scheduling gates: two named entries in spec.schedulingGates stand between a Pod and the active queue, a controller that owns them patches each one out and the API accepts removals in any order but never an addition, and the Pod joins the active queue only once the list is empty":
+    "Scheduling gates у Pod: две именованные записи в spec.schedulingGates стоят между Pod и активной очередью, контроллер-владелец снимает каждую патчем, API принимает их удаление в любом порядке, а добавление не принимает никогда, и Pod попадает в активную очередь, только когда список пуст",
+
+  "A Pod is created with two entries in spec.schedulingGates, and while they stand the Scheduler makes no attempt to place it. Each entry is an opaque criterion that some other component owns. A gate can only be set while the Pod is being created, by the client that posts it or by an admission plugin that mutates it on the way in.":
+    "Pod создан с двумя записями в spec.schedulingGates, и пока они стоят, Scheduler даже не пытается его разместить. За каждой записью стоит непрозрачный критерий, которым владеет какой-то другой компонент. Задать gate можно только при создании Pod, и делает это либо клиент, отправляющий Pod, либо admission plugin, меняющий Pod на входе.",
+
+  "While the list holds any entry the Pod never enters the active queue, so the Scheduler runs no cycle on it and no Node is ever filtered or scored. That is not the same as unschedulable, which means a scheduling attempt was made and failed. The metric scheduler_pending_pods separates the two by its queue label, and this Pod is counted under gated.":
+    "Пока в списке есть хоть одна запись, Pod не попадает в активную очередь, поэтому Scheduler не запускает для него цикл и ни одна Node не фильтруется и не оценивается. Это не то же самое, что unschedulable, ведь там попытка планирования была и провалилась. Различает их метрика scheduler_pending_pods по метке queue, и этот Pod учитывается в ней как gated.",
+
+  "The component that owns example.com/bar patches it out of the list. Entries come off in any order, and this one was second, so removing it says nothing about the other. Nothing else moves. STATUS still reads SchedulingGated and the PodScheduled condition is still False, because one entry left in the list is enough to hold the Pod out.":
+    "Компонент, которому принадлежит example.com/bar, патчем убирает эту запись из списка. Записи снимаются в любом порядке, а эта была второй, поэтому её удаление ничего не говорит о другой. Больше ничего не меняется. STATUS всё ещё показывает SchedulingGated, а условие PodScheduled всё ещё равно False, потому что одной оставшейся записи хватает, чтобы удерживать Pod.",
+
+  "After creation the API accepts a removal and refuses an addition. A component that lets its gate go cannot put it back, and a Pod created without gates can never get one. So anything that wants to hold a Pod with a gate has to put it on at creation.":
+    "После создания API принимает удаление записи, а добавление отклоняет. Компонент, отпустивший свой gate, уже не может вернуть его, а Pod, созданный без gates, не может получить gate никогда. Поэтому тот, кто хочет удерживать Pod через gate, должен поставить его ещё при создании.",
+
+  "The last entry goes the same way and the list is now empty. The empty list is the whole trigger. There is no separate signal and this Pod waits on nothing else, so the moment spec.schedulingGates has no entries left the Pod is ready to be considered for scheduling.":
+    "Последняя запись снимается так же, и список теперь пуст. Пустой список сам по себе и есть весь триггер. Отдельного сигнала нет, и этот Pod больше ничего не ждёт, поэтому, как только в spec.schedulingGates не остаётся записей, Pod уже можно рассматривать для планирования.",
+
+  "The Pod joins the active queue, and the Scheduler can now make its first attempt. Only the metric moves, to queue active. STATUS and the PodScheduled reason still read SchedulingGated, because the API server wrote that condition at creation and nothing rewrites it until the Scheduler finishes an attempt. Next comes the ordinary cycle: filter the Nodes, score, and bind.":
+    "Pod попадает в активную очередь, и Scheduler теперь может сделать первую попытку его разместить. Меняется только метрика, теперь в ней queue active. STATUS и reason условия PodScheduled всё ещё показывают SchedulingGated, потому что API Server записал это условие при создании и ничто его не перепишет, пока Scheduler не завершит попытку. Дальше обычный цикл: отфильтровать Node, оценить их и привязать Pod.",
+};

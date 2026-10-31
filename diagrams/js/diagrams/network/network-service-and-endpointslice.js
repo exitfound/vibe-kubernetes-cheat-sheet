@@ -55,7 +55,7 @@ const livePod = (key, x, ip) => P.pod({
 });
 
 export const SCENE = {
-  'aria-label': 'Service and EndpointSlice: the EndpointSlice controller watches the three Pods matching the Service selector and writes one endpoint per Pod, an address and its ready condition, into EndpointSlice web-x9f2k, which states the port once and by default holds up to 100 endpoints. When a Pod keeps failing its readiness probe and turns Ready=False, the controller rewrites its endpoint to ready=false without restarting the container, and kube-proxy builds Service rules from the one endpoint still ready',
+  'aria-label': 'Service and EndpointSlice: the EndpointSlice controller watches the three Pods matching the Service selector and writes one endpoint per Pod, an address and its ready condition, into EndpointSlice web-x9f2k, which states the port once and by default holds up to 100 endpoints. When a Pod keeps failing its readiness probe and turns Ready=False, the controller rewrites the endpoint of that Pod to ready=false, the container is not restarted, and kube-proxy builds Service rules from the one endpoint still ready',
   parts: [
     P.defs(),
     P.box({ key: 'service', x: BOX_X, y: SVC_Y, w: BOX_W, h: BOX_H, label: 'Service web', sublabel: 'selector app=web · lists no Pods' }),
@@ -179,7 +179,7 @@ export const STEPS_SPEC = [
   {
     id: 'consume',
     duration: 2800,
-    narration: 'The kube-proxy on every Node watches EndpointSlices, never the Pods. It writes Service rules for the ready endpoints, so traffic to web now reaches 10.244.1.5 alone. The slice is the contract between what is ready and where packets go.',
+    narration: 'The kube-proxy on every Node watches EndpointSlices, never the Pods. It writes Service rules for the ready endpoints, so traffic to web now reaches 10.244.1.5 alone.',
     chips: { ep1: EP1, ep2: EP2_DOWN, ep3: EP3 },
     wires: { budget: BUDGET_3 },
     sublabels: { kproxy: KP_RULES },

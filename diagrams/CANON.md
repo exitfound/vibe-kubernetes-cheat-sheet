@@ -124,7 +124,7 @@ tool that only prints numbers is not a `skill:` value. `R-01` to `R-12` are post
 | M-18 | A controller that self-initiates with no preceding hop or pulse waits `BEAT.lead` (800), so the lit source registers before the ball leaves. `lead` and `afterPulse` are one number, so no probe tells M-15 to M-18 apart | report:motion/BEAT | `lib/tokens.js`, `BEAT` |
 | M-18a | **The SENDER is cued before its ball leaves**, in one of two shapes and no third: a block that ACTS FIRST is named in that step's `lit`, a MID-CHAIN block is named in the `lights` of the hop before it | report:arrival/R4 | `test/report/arrival.test.mjs` |
 | M-19 | A step must OUTLAST its own motion: `span <= duration`. Fix an overrun by raising `duration`, never by shortening motion | test:duration/OVERRUN, test:spec-steps/M-19 | `test/render/duration.test.mjs` |
-| M-19a | The OTHER side of M-19: `duration` is a CEILING. A step with motion (an `F.set` timer counts) holds `HOLD.tail` past its last animation or `HOLD.perChar` per character, whichever is longer. A motionless step keeps `duration` | review | `lib/tokens.js`, `playedHold`. `.claude/skills/card-review/tools/deadair.mjs` |
+| M-19a | The OTHER side of M-19: `duration` is a CEILING. A step with motion (an `F.set` timer counts) holds `HOLD.tail` past its last animation or `HOLD.perChar` per character on screen, whichever is longer. A motionless step keeps `duration` | review | `lib/tokens.js`, `playedHold`. `.claude/skills/card-review/tools/deadair.mjs` |
 | M-20 | **Geometry changes are timing changes**, because `routeDur` is length-based. After ANY geometry change re-check the span of EVERY step, not just the one you moved | test:duration/OVERRUN, review | `test/render/duration.test.mjs` |
 | M-21 | A Pod materialises over `FADE.in` (600, ease-out) and dissolves over `FADE.out` (700, ease-in). A narrative-slow fade keeps an explicit duration with a justification at the call | report:motion/FADE | `lib/tokens.js`, `FADE` |
 | M-22 | A newborn construction reveals over `REVEAL_MS` (500), which runs BEFORE the ball leaves (`BEAT.lead` is 800), so a block and its lanes are fully present by the time anything is sent down them | report:motion/FADE | `lib/diagram-kit.js`, `REVEAL_MS` |
@@ -170,7 +170,7 @@ tool that only prints numbers is not a `skill:` value. `R-01` to `R-12` are post
 | C-21 | Networking is the one category whose colour appears as a LITERAL in `diagrams.css`: `.diagram-packet` and `.diagram-ripple` pin `#4fe5ff` because the tint stop washed the ball out. Do not fold those into tokens | review | `diagrams/css/diagrams.css` (`NET.C-01`) |
 | C-22 | Retinting a category touches the kit's `<CAT>_TINT`, `css/tokens.css`, the tinted block in `css/styles.css`, `POSTER_COLORS` and the folder `CLAUDE.md`. **All categories agree across all five. A mismatch is a regression** | review | this file, D-13 |
 | C-23 | A green above roughly 50 percent saturation goes acid on this canvas. If a new green shade is needed, move LIGHTNESS, not saturation | review | `js/diagrams/storage/CLAUDE.md` (`STO.C-01`) |
-| C-24 | The Lifecycle coral `#ff668c` is NOT reserved anywhere in `diagrams/`, `tokens.css` included. Outside it, `--ts-tools-color` in `cli/css/styles.css` and the root `404.html` game palette carry it, unrelated slots | test:files/C-24 | `test/unit/files.test.mjs` |
+| C-24 | The Lifecycle coral `#ff668c` is NOT reserved anywhere in `diagrams/`, `tokens.css` included. Outside it, `--ts-tools-color` in `cli/css/styles.css` carries it, an unrelated slot | test:files/C-24 | `test/unit/files.test.mjs` |
 
 ## T: text, narration and terminology
 
@@ -246,8 +246,8 @@ tool that only prints numbers is not a `skill:` value. `R-01` to `R-12` are post
 | D-01 | A `DIAGRAMS` entry is `id`, `title`, `category`, `subcategory`, `desc`, `k8sVersion`, `tinted: true`, `sources: [{ label, href }]`. There is no path field | test:catalog/D-01 | `js/diagrams/<cat>/cards.js` |
 | D-02 | `dialog.js` imports ``./diagrams/${category}/${id}.js``, so **the id MUST start with the category, which is the folder name** | test:catalog/D-02 | `test/unit/catalog.test.mjs` |
 | D-03 | A module on disk that no `DIAGRAMS` entry claims is unclaimed: nothing lints it and the grid never shows it | test:catalog/D-03 | `test/unit/catalog.test.mjs` |
-| D-04 | `desc` is 400 to 470 characters hard, 410 to 460 target | test:catalog/D-04 | `test/unit/catalog.test.mjs` |
-| D-05 | `desc` is 2 to 4 sentences, 3 target | test:catalog/D-05 | `test/unit/catalog.test.mjs` |
+| D-04 | `desc` aims for four full lines at 1920 (`fit.mjs`) and `DESC_CHARS`, one line more or less is fine but a section never spans more than one line, and it fails past 1.5x the mean length. The answer stays in the steps | test:catalog/D-04 | `test/unit/catalog.test.mjs` |
+| D-05 | `desc` is one or more sentences of a situation a reader would meet, then the question the card answers. It may name the actors and objects, the answer stays in the steps | test:catalog/D-05 | `test/unit/catalog.test.mjs` |
 | D-06 | Card and poster are an exact BIJECTION. A card with no poster draws `FALLBACK_POSTER`, a poster with no card is never rendered | test:catalog/D-06 | `test/unit/catalog.test.mjs` |
 | D-07 | **Every category key matches its label 1:1, and no subcategory key is shared between categories**, or a `subcategory` value cannot be read without also reading `category` | test:catalog/D-07 | `js/data.js` |
 | D-08 | `CATEGORY_LABEL`, `CATEGORY_ICONS` and `CATEGORY_TAGLINE` are PROJECTIONS of `CATEGORIES` through one `byKey(field)` helper, so a category is added in one place only | test:catalog/D-08 | `js/data.js` |
@@ -259,6 +259,7 @@ tool that only prints numbers is not a `skill:` value. `R-01` to `R-12` are post
 | D-14 | The poster-first model applies to every card: idle is a static poster, step 1 auto-plays after about 0.7s, the poster previews step 1's TEXT immediately, and `Next` from the last step wraps to poster then step 1 | test:skeleton/D-14 | `lib/timeline.js` |
 | D-15 | Search reads `title + desc + category + subcategory`, debounced 80ms. Grid keys: `/`, `Esc`, `Enter`, `?`. Dialog keys: `Space`, arrows, `Shift`+arrows, `R`, `L`, `F`, `Esc`. Letters, `/` and `?` use `keys.js`. Each key has a sheet row | review | `js/app.js`, `js/dialog.js`, `cli/js/lib/keys.js` |
 | D-16 | The hash holds the GRID as well as the card: `#at=<key>&q=<search>` is the grid's state, and `#diagram=<id>&step=<n>&at=<key>&q=<search>` carries it through an open card. A filter or search change resets the scroll | test:hash/D-16 | `js/app.js`, root `index.html` |
+| D-17 | `index.html` modulepreloads every module a card reaches through its static imports (the four kits and the lib under them), so opening a card fetches one file, not a four-deep chain. Every preload is imported by the grid or by a card | test:preload/D-17 | `index.html` |
 
 ## R: posters
 
@@ -364,6 +365,10 @@ first four, group E for `S-47` and group G for the FORM the last four state.
 | S-52 | **A record's labels come from "The record vocabulary" above, in that order, each at most once, `WHAT` first.** A note that fits none of them does not belong in the record | test:docs/G2 | `test/unit/docs.test.mjs` |
 | S-53 | **A line in the label column carries a label and no other word.** `S-52` ranks the labels it knows, so a word outside the vocabulary is invisible to it: this is the half that sees one. Prose belongs at the column at 9 | test:docs/G3 | `test/unit/docs.test.mjs` |
 | S-54 | **A `DEVIATES` entry opens on the id of the row it breaks**, as `L-03: ` or `L-03, M-12: `. A note that breaks no row is a comment on the constant it guards (`S-35`) | test:docs/G4 | `test/unit/docs.test.mjs` |
+| S-56 | **Every `/cli/` description has its Russian line in `cli/js/lang/ru.js`, keyed by the exact English**, and no line outlives its English. The Russian keeps the writing rules and every flag the English names | test:cli-i18n | `test/unit/cli-i18n.test.mjs`, `cli/js/lang/ru.js` |
+| S-57 | **Every card `desc` has its Russian line in `js/lang/ru.js`, keyed by the exact English**, and no line outlives its English. The Russian keeps the writing rules and every flag the English names | test:diagrams-i18n | `test/unit/diagrams-i18n.test.mjs`, `js/lang/ru.js` |
+| S-58 | **Every card's aria sentence and narration have their Russian lines in `js/lang/steps/<id>.js`, keyed by the exact English**, and no line outlives its English. The Russian keeps the writing rules, flags and numbers | test:steps-i18n | `test/unit/steps-i18n.test.mjs`, `js/lang/steps/` |
+| S-59 | **A Russian `desc` reads as the owner writes**: aims for `DESC_CHARS` and four lines at 1920 (`fit.mjs`), fails only past 1.5x the mean length, a capital at every sentence start, every field, path and number kept | test:diagrams-i18n/S-59, skill:fit | `.claude/skills/card-facts-ru/STYLE.md`, `js/lang/ru.js` |
 
 `S-51` to `S-54` hold at zero in every category, so a record off the form fails the gate.
 

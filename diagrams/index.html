@@ -17,7 +17,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://kube.how/diagrams/">
   <meta property="og:title" content="Kubernetes Diagrams, Animated Step by Step">
-  <meta property="og:description" content="Interactive animated diagrams of Kubernetes architecture: networking, control plane flow, storage and more.">
+  <meta property="og:description" content="Interactive animated diagrams of Kubernetes internals: control plane, scheduling, Pods, networking and storage, each explained step by step.">
   <meta property="og:image" content="https://kube.how/images/og-diagrams.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -25,7 +25,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Kubernetes Diagrams, Animated Step by Step">
-  <meta name="twitter:description" content="Interactive animated diagrams of Kubernetes architecture: networking, control plane flow, storage and more.">
+  <meta name="twitter:description" content="Interactive animated diagrams of Kubernetes internals: control plane, scheduling, Pods, networking and storage, each explained step by step.">
   <meta name="twitter:image" content="https://kube.how/images/og-diagrams.jpg">
   <meta name="twitter:image:alt" content="Kubernetes Diagrams: cluster, workloads, networking and storage diagrams over a search bar">
 
@@ -54,6 +54,21 @@
   <link rel="modulepreload" href="js/diagrams/workloads/posters.js">
   <link rel="modulepreload" href="js/diagrams/network/posters.js">
   <link rel="modulepreload" href="js/diagrams/storage/posters.js">
+  <!-- Every card imports its kit, and the kit the lib four levels deep: fetch the whole chain now, so
+       opening a card waits on one file. unit/preload.test.mjs holds this list to the kits' imports. -->
+  <link rel="modulepreload" href="js/diagrams/cluster/cluster-kit.js">
+  <link rel="modulepreload" href="js/diagrams/workloads/workloads-kit.js">
+  <link rel="modulepreload" href="js/diagrams/network/network-kit.js">
+  <link rel="modulepreload" href="js/diagrams/storage/storage-kit.js">
+  <link rel="modulepreload" href="js/lib/layout.js">
+  <link rel="modulepreload" href="js/lib/diagram-kit.js">
+  <link rel="modulepreload" href="js/lib/scene-spec.js">
+  <link rel="modulepreload" href="js/lib/step-spec.js">
+  <link rel="modulepreload" href="js/lib/svg.js">
+  <link rel="modulepreload" href="js/lib/primitives.js">
+  <link rel="modulepreload" href="js/lib/timeline.js">
+  <link rel="modulepreload" href="js/lib/tokens.js">
+  <link rel="modulepreload" href="js/lib/motion.js">
 
   <script type="application/ld+json">
   {
@@ -70,30 +85,30 @@
   </script>
 </head>
 <body>
-  <aside class="sidebar" aria-label="Site switcher">
-    <a class="side-btn" id="sideHome" data-tooltip="Home" aria-label="Home" href="/">
+  <aside class="sidebar" aria-label="Site switcher" data-ru-label="Разделы сайта">
+    <a class="side-btn" id="sideHome" data-tooltip="Home" aria-label="Home" data-ru-tooltip="Главная" data-ru-label="Главная" href="/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.2 12 4l9 7.2"/><path d="M5.5 9.8V19a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9.8"/></svg>
     </a>
     <span class="side-sep" aria-hidden="true"></span>
-    <a class="side-btn" id="sideCli" data-tooltip="Commands" aria-label="Commands" href="/cli/">
+    <a class="side-btn" id="sideCli" data-tooltip="Commands" aria-label="Commands" data-ru-tooltip="Команды" data-ru-label="Команды" href="/cli/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
     </a>
-    <a class="side-btn active" id="sideDiagram" data-tooltip="Diagrams" aria-label="Diagrams" aria-current="page" href="/diagrams/">
+    <a class="side-btn active" id="sideDiagram" data-tooltip="Diagrams" aria-label="Diagrams" data-ru-tooltip="Диаграммы" data-ru-label="Диаграммы" aria-current="page" href="/diagrams/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="7" height="6" rx="1.2"/><rect x="15" y="12" width="7" height="6" rx="1.2"/><line x1="9" y1="9" x2="15" y2="15"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
     </a>
-    <button class="side-btn side-keys" id="sideKeys" type="button" data-tooltip="Shortcuts (?)" aria-label="Keyboard shortcuts">
+    <button class="side-btn side-keys" id="sideKeys" type="button" data-tooltip="Shortcuts (?)" aria-label="Keyboard shortcuts" data-ru-tooltip="Сочетания клавиш (?)" data-ru-label="Сочетания клавиш">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="7" y1="14" x2="17" y2="14"/></svg>
     </button>
-    <button class="side-toggle" id="sideToggle" type="button" data-tooltip="Hide sidebar" aria-label="Hide sidebar">
+    <button class="side-toggle" id="sideToggle" type="button" data-tooltip="Hide sidebar" aria-label="Hide sidebar" data-ru-tooltip="Скрыть панель" data-ru-label="Скрыть панель">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
   </aside>
-  <button class="side-expand" id="sideExpand" type="button" data-tooltip="Show sidebar" aria-label="Show sidebar">
+  <button class="side-expand" id="sideExpand" type="button" data-tooltip="Show sidebar" aria-label="Show sidebar" data-ru-tooltip="Показать панель" data-ru-label="Показать панель">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
   </button>
 
   <header class="header">
-    <h1 class="sr-only">Kubernetes diagrams: animated architecture, step by step</h1>
+    <h1 class="sr-only" data-ru="Анимированные диаграммы Kubernetes: архитектура шаг за шагом">Kubernetes diagrams: animated architecture, step by step</h1>
     <div class="header-inner">
       <a class="logo" href="/">
         <div class="logo-icon">
@@ -112,7 +127,7 @@
         </div>
         <div>
           <div class="logo-text">Kubernetes Diagrams</div>
-          <div class="logo-sub">Animated Architecture</div>
+          <div class="logo-sub" data-ru="Архитектура в анимации">Animated Architecture</div>
         </div>
       </a>
 
@@ -121,9 +136,9 @@
           <circle cx="11" cy="11" r="8"/>
           <path d="m21 21-4.35-4.35"/>
         </svg>
-        <input type="text" id="searchInput" class="search-input" placeholder="Search diagrams..." aria-label="Search diagrams" autocomplete="off" spellcheck="false">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search diagrams..." aria-label="Search diagrams" data-ru-placeholder="Поиск диаграмм..." data-ru-label="Поиск диаграмм" data-ru-short="Поиск..." autocomplete="off" spellcheck="false">
         <kbd class="search-kbd" aria-hidden="true">/</kbd>
-        <button class="search-clear" id="searchClear" aria-label="Clear search">
+        <button class="search-clear" id="searchClear" aria-label="Clear search" data-ru-label="Очистить поиск">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -135,11 +150,11 @@
     </div>
   </header>
 
-  <nav class="cat-nav" aria-label="Category navigation">
+  <nav class="cat-nav" aria-label="Category navigation" data-ru-label="Навигация по категориям">
     <div class="cat-nav-inner" id="catNavInner"></div>
   </nav>
 
-  <nav class="cat-nav cat-nav-sub" id="catNavSub" aria-label="Sub-category navigation" hidden>
+  <nav class="cat-nav cat-nav-sub" id="catNavSub" aria-label="Sub-category navigation" data-ru-label="Навигация по подкатегориям" hidden>
     <div class="cat-nav-inner" id="catNavSubInner"></div>
   </nav>
 
@@ -149,12 +164,11 @@
     <div class="mobile-stub-icon" aria-hidden="true">
       <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
     </div>
-    <h2 class="mobile-stub-title" id="mobileStubTitle">Diagrams are desktop-only for now</h2>
-    <p class="mobile-stub-text">The animations need a wide screen and are not adapted for phones yet. Every diagram is also a page you can read here, step by step, or open this link on a computer to play them.</p>
+    <h2 class="mobile-stub-title" id="mobileStubTitle" data-ru="Диаграммы пока доступны только на компьютере">Diagrams are desktop-only for now</h2>
+    <p class="mobile-stub-text" data-ru="Анимациям нужен широкий экран, под телефоны они пока не адаптированы. Откройте эту ссылку на компьютере, чтобы посмотреть анимацию.">The animations need a wide screen and are not adapted for phones yet. Open this link on a computer to play them.</p>
     <div class="mobile-stub-actions">
-      <a class="mobile-stub-btn primary" href="/diagrams/card/">Read them as pages</a>
-      <button class="mobile-stub-btn" id="mobileStubCopy" type="button">Copy link</button>
-      <a class="mobile-stub-btn" href="/cli/">Browse commands</a>
+      <button class="mobile-stub-btn primary" id="mobileStubCopy" type="button" data-ru="Скопировать ссылку">Copy link</button>
+      <a class="mobile-stub-btn" href="/cli/" data-ru="Перейти к командам">Browse commands</a>
     </div>
   </section>
 
@@ -162,16 +176,47 @@
     <div class="grid" id="grid"></div>
   </main>
 
-  <button class="scroll-top-btn" id="scrollTopBtn" title="Scroll to top" aria-label="Scroll to top">
+  <button class="scroll-top-btn" id="scrollTopBtn" title="Scroll to top" aria-label="Scroll to top" data-ru-title="Наверх" data-ru-label="Наверх">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
       <polyline points="18 15 12 9 6 15"/>
     </svg>
   </button>
 
   <footer class="footer">
-    <p class="disclaimer">Not affiliated with the CNCF or the Kubernetes project.</p>
+    <p class="disclaimer" data-ru="Сайт не связан с CNCF и проектом Kubernetes.">Not affiliated with the CNCF or the Kubernetes project.</p>
     <p>&copy; <span id="year"></span> <a id="footerHomeLink" href="/">kube.how</a></p>
   </footer>
+
+  <script>
+    // Russian for the static chrome, swapped in before the first paint. [data-ru] replaces the inner
+    // HTML, [data-ru-tooltip|label|title|placeholder] that attribute, and the English is kept beside
+    // it as data-en*. One snippet on the four pages, same key, event and font as cli/js/lib/lang.js.
+    (function () {
+      const PARTS = [['ru', 'en', null], ['ruTooltip', 'enTooltip', 'data-tooltip'], ['ruLabel', 'enLabel', 'aria-label'],
+        ['ruTitle', 'enTitle', 'title'], ['ruPlaceholder', 'enPlaceholder', 'placeholder']];
+      const els = document.querySelectorAll('[data-ru], [data-ru-tooltip], [data-ru-label], [data-ru-title], [data-ru-placeholder]');
+      els.forEach(el => PARTS.forEach(([ru, en, attr]) => {
+        if (el.dataset[ru] != null) el.dataset[en] = attr ? el.getAttribute(attr) : el.innerHTML;
+      }));
+      const apply = (lang) => els.forEach(el => PARTS.forEach(([ru, en, attr]) => {
+        if (el.dataset[ru] == null) return;
+        const v = el.dataset[lang === 'ru' ? ru : en];
+        if (attr) el.setAttribute(attr, v); else el.innerHTML = v;
+        if (lang === 'ru') el.lang = 'ru'; else el.removeAttribute('lang');
+      }));
+      let lang = 'en';
+      try { if (localStorage.getItem('kube-how:lang:v1') === 'ru') lang = 'ru'; } catch (_) {}
+      if (lang === 'ru') {
+        apply(lang);
+        // Onest for the Cyrillic, asked for here, not once the modules run after parsing.
+        const font = document.createElement('link');
+        font.rel = 'stylesheet';
+        font.href = 'https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap';
+        document.head.append(font);
+      }
+      window.addEventListener('kube-how:lang', (e) => apply(e.detail));
+    })();
+  </script>
 
   <script type="module" src="js/app.js"></script>
 

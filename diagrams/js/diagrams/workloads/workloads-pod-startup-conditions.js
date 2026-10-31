@@ -139,7 +139,7 @@ export const STEPS_SPEC = [
   {
     id: 'scheduled',
     duration: 3800,
-    narration: 'The Scheduler picks Node-1 and posts a Binding, so the API writes spec.nodeName and adds PodScheduled=True to status.conditions. The Kubelet on that Node sees the bound Pod arrive on its watch and admits it. Nothing is running yet and status.phase is still Pending, which is why the phase field cannot tell you where a slow start is stuck.',
+    narration: 'The Scheduler picks Node-1 and posts a Binding, so the API writes spec.nodeName and adds PodScheduled=True to status.conditions. The Kubelet on that Node sees the bound Pod arrive on its watch and admits it. Nothing is running yet and status.phase is still Pending. That is why the phase field cannot tell you where a slow start is stuck.',
     chips: { timeChip: '12:00:03', epChip: EMPTY },
     wires: { req: 'watch · spec.nodeName=Node-1 · PodScheduled=True' },
     opacity: { podGroup: OPACITY.notready, ...climb(0), ...phase('pending'), ...corridor('down') },
@@ -178,7 +178,7 @@ export const STEPS_SPEC = [
   {
     id: 'initialized',
     duration: 3600,
-    narration: 'The init containers run in order and exit 0, so the Kubelet sets Initialized to True. On a Pod that declares no init container at all this rung is True before the sandbox even exists, so the climb is a rough order and not a fixed sequence. Even so, status.phase stays Pending until the app container is created and starts.',
+    narration: 'The init containers run in order and exit 0, so the Kubelet sets Initialized to True. The Pod IP is in status by now, so the EndpointSlice lists it as ready=false. With no init container this rung is True before the sandbox exists, so the order is rough. Even so, status.phase stays Pending until the app container starts.',
     chips: { timeChip: '12:00:22', epChip: NOTREADY },
     wires: { req: 'PATCH status · Initialized=True' },
     opacity: { podGroup: OPACITY.pending, ...climb(2), ...phase('pending'), ...corridor('up') },

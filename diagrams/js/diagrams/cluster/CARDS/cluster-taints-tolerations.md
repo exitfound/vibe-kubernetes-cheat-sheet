@@ -15,7 +15,7 @@ CONTENT  Sources (v1.36): Taints and Tolerations, scheduler config, Node and Tol
          key, value, effect (plus timeAdded). A toleration matches key and effect, then the operator
          (Equal by default): db-1's empty effect is `any effect`. 300 goes per built-in taint a Pod
          sets no toleration for. Filter says `untolerated taint`, never `NoFit`. Gt, Lt are alpha.
-         PreferNoSchedule is `scored down`. db-1 never evicted. Evictor per code, not doc bullet.
+         Node-1 is filtered and `scored down`, never the Pod. db-1 never evicted. Evictor per code.
 OPEN     `taint` lands its ball on the Node frame, which renders no arrival cue: the frame header
          and the two chips turning over carry it instead.
 ```

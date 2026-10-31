@@ -211,7 +211,7 @@ export const STEPS_SPEC = [
     id: 'slots',
     // Both slots are declared together, so their reveal is not staggered.
     duration: 4200,
-    narration: 'A container may declare two lifecycle handlers of its own. The lifecycle.postStart field is bound to the moment the container is created, and lifecycle.preStop to the moment it is asked to stop. Each handler is one of exec, a command run inside the container, httpGet, a request Kubelet issues against the Pod IP by default, or sleep, a fixed pause. Neither slot has run yet.',
+    narration: 'A container may declare two lifecycle handlers of its own. The lifecycle.postStart field is bound to the moment the container is created, and lifecycle.preStop to the moment it is asked to stop. Each handler is exec (a command run inside the container), httpGet (a request Kubelet issues against the Pod IP by default) or sleep (a fixed pause). Neither slot has run yet.',
     chips: { postStartChip: DECLARED, preStopChip: DECLARED, stateChip: 'Waiting' },
     wires: { req: ' ', via: ' ' },
     opacity: { ...railAt(1), podGroup: OPACITY.pending },
@@ -223,7 +223,7 @@ export const STEPS_SPEC = [
   {
     id: 'start',
     duration: 4000,
-    narration: 'The runtime creates the container and starts the ENTRYPOINT as PID 1. Kubelet fires postStart on that same moment, so the handler and the entrypoint run at once with no guarantee about which of them starts or finishes first. A handler that assumes the entrypoint is already listening is a race you wrote yourself.',
+    narration: 'The runtime creates the container and starts the ENTRYPOINT as PID 1. Kubelet fires postStart at that same moment, so the handler and the entrypoint run at once with no guarantee about which of them starts or finishes first. A handler that assumes the entrypoint is already listening races with it.',
     chips: { preStopChip: DECLARED, stateChip: 'Waiting' },
     chipsCued: { postStartChip: 'running (exec)' },
     wires: { req: 'CRI StartContainer · ExecSync postStart', via: 'ENTRYPOINT starts, postStart runs beside it' },
@@ -262,9 +262,9 @@ export const STEPS_SPEC = [
   {
     id: 'delete',
     duration: 4200,
-    narration: 'A delete opens the termination grace window. Kubelet runs preStop and waits until it returns or the window runs out: the signal comes after this handler, where the ENTRYPOINT never waited for postStart. PID 1 is still running and has had nothing delivered to it. Whatever preStop spends comes out of the same window the stop itself has to finish in.',
+    narration: 'A delete opens the termination grace window. Kubelet runs preStop and waits until it returns or the window runs out. The signal comes after this handler, while the ENTRYPOINT never waited for postStart. PID 1 is still running and has had nothing delivered to it. Whatever preStop spends comes out of the same window the stop itself has to finish in.',
     chips: { postStartChip: EXIT0, stateChip: 'Running' },
-    chipsCued: { preStopChip: 'running (sync)' },
+    chipsCued: { preStopChip: 'running (exec)' },
     wires: { req: 'CRI ExecSync · preStop', via: 'preStop handler runs in the container' },
     opacity: { ...railAt(4), podGroup: 1 },
     lit: ['kubelet'],
@@ -273,7 +273,7 @@ export const STEPS_SPEC = [
       ask(),
       ...deliver('exec'),
       ...draw(['tickDelete', 'graceBand', 'bandLabel', 'preStopBar', 'holdBar'], 'exec'),
-      F.set({ at: 'exec', chipsCued: { preStopChip: 'running (sync)' } }),
+      F.set({ at: 'exec', chipsCued: { preStopChip: 'running (exec)' } }),
     ],
   },
   {
@@ -290,7 +290,7 @@ export const STEPS_SPEC = [
     lit: ['runtime'],
     // Final state pinned on the static path too, so a cancel between steps does not flash to default.
     opacity: { ...railAt(5), podGroup: OPACITY.terminating },
-    rewind: { chips: { preStopChip: 'running (sync)', stateChip: 'Running' }, opacity: railAt(4) },
+    rewind: { chips: { preStopChip: 'running (exec)', stateChip: 'Running' }, opacity: railAt(4) },
     // The request for the signal cannot leave before the hook returns: that order is the mechanism.
     flow: [
       F.pulse({ pod: 'podGroup' }),

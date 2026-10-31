@@ -18,12 +18,12 @@
     <g id="row-1">
       <rect x="628" y="34" width="516" height="74" rx="10" fill="#1a1538" stroke="#2e274e" stroke-width="1.5"/>
       <text x="648" y="66" font-size="20" xml:space="preserve"><tspan fill="#83b3ff" font-weight="700">kubectl</tspan> <tspan fill="#ff8011">rollout</tspan> <tspan fill="#7af4f8">undo</tspan> <tspan fill="#ef8aa3">deploy/&lt;name&gt;</tspan></text>
-      <text x="648" y="93" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#9b95b8">Rollback to previous revision</text>
+      <text x="648" y="93" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#9b95b8">Roll back to the previous revision</text>
     </g>
     <g id="row-2">
       <rect x="628" y="120" width="516" height="74" rx="10" fill="#1a1538" stroke="#2e274e" stroke-width="1.5"/>
       <text x="648" y="152" font-size="20" xml:space="preserve"><tspan fill="#83b3ff" font-weight="700">kubectl</tspan> <tspan fill="#ff8011">describe</tspan> <tspan fill="#7af4f8">pod</tspan> <tspan fill="#9afb50" font-style="italic">&lt;name&gt;</tspan></text>
-      <text x="648" y="179" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#9b95b8">Full pod details, events and status</text>
+      <text x="648" y="179" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#9b95b8">Full Pod details, events and status</text>
     </g>
     <g fill="none" stroke="#9b95b8" stroke-width="1.8" stroke-linejoin="round">
       <path d="M1082 61 l3.1 6.3 6.9 1 -5 4.9 1.2 6.9 -6.2 -3.3 -6.2 3.3 1.2 -6.9 -5 -4.9 6.9 -1 z"/>

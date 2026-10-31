@@ -515,6 +515,8 @@ describe('the strings the scene draws', () => {
   const RAW_SHAPED_AS = {
     // A hand-forged g.diagram-box holding its own .diagram-box-sublabel.
     'network-flat-pod-network.bus': 'box',
+    // A bare podShell beside the stack band, holding its own .diagram-pod-sublabel.
+    'network-namespaces.netns': 'podShell',
   };
 
   test('every string a step writes lands on a part of the scene that can hold it', (t) => {

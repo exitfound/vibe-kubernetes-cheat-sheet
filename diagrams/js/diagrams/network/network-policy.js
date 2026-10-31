@@ -90,7 +90,7 @@ const policy = (key, cx, y, sublabel) => P.box({ key, x: cx - POL_W / 2, y, w: P
 // the two dashed systems, then the lanes ON TOP of the bars so the road runs visibly through them,
 // then the captions, the chips and the packet layer.
 export const SCENE = {
-  'aria-label': 'NetworkPolicy drawn as a checkpoint at each end of one road: while no policy selects them every Pod reaches every Pod and no road carries a checkpoint, a policy that selects a Pod for a direction raises one on that Pod in that direction and everything it does not explicitly allow dies there, an allow rule is what opens a hole in a checkpoint that was refusing everything, the same connection is then judged at two checkpoints that know nothing about each other so both the egress of the sender and the ingress of the receiver have to pass it, a Pod that no policy ever selected has no checkpoint of its own and still cannot be reached when the sender refuses at its, and both checkpoints are raised by the network plugin rather than by the API server',
+  'aria-label': 'NetworkPolicy drawn as a checkpoint at each end of one road. While no policy selects them, every Pod reaches every Pod and no road carries a checkpoint. A policy that selects a Pod for a direction raises one on that Pod in that direction, and everything it does not explicitly allow dies there. An allow rule opens a hole in a checkpoint that was refusing everything. The same connection is then judged at two checkpoints that know nothing about each other, so both the egress of the sender and the ingress of the receiver have to pass it. A Pod that no policy ever selected has no checkpoint of its own and still cannot be reached when the sender refuses at its. Both checkpoints are raised by the network plugin rather than by the API server',
   parts: [
     P.defs(),
     policy('npIngress', DEST_CX, IN_POL_Y, 'db-ingress · Ingress'),
@@ -153,7 +153,7 @@ export const STEPS_SPEC = [
   {
     id: 'open',
     duration: 3400,
-    narration: 'No policy selects any of these Pods, so no Pod has a boundary and nothing is refused anywhere. Both calls out of web-1 are served, the one to db-1 and the one to cache-1, and no rule exists anywhere that could have stopped either. This is the flat promise the network model opens with.',
+    narration: 'No policy selects any of these Pods, so no Pod has a boundary and nothing is refused anywhere. Both calls out of web-1, the one to db-1 and the one to cache-1, are served, and no rule exists that could have stopped either. This is the flat-network promise the network model opens with.',
     chips: { egChip: NONE, inChip: NONE, vChip: 'allowed' },
     ...gates({}),
     // The animated path says web-1 reached both by pulsing them, which no lights list can name.
@@ -169,7 +169,7 @@ export const STEPS_SPEC = [
   {
     id: 'isolate',
     duration: 3600,
-    narration: 'A NetworkPolicy selects db-1 for Ingress. That selection is the whole act: a boundary now stands on the way into db-1, and everything the policy does not explicitly allow is dropped there. This one allows nothing yet, so the call from web-1 crosses the wire, reaches the boundary and dies inside it.',
+    narration: 'A NetworkPolicy selects db-1 for Ingress, and that selection alone raises a boundary on the way into db-1: everything the policy does not explicitly allow is dropped there. This one allows nothing yet, so the call from web-1 crosses the wire, reaches the boundary and dies inside it.',
     chips: { egChip: NONE, inChip: 'allows nothing', vChip: 'dropped at db-1' },
     ...gates({ ingress: 1, policies: 1 }),
     // The bar is lit from entry rather than cued on arrival: it exists from the moment the policy
@@ -185,7 +185,7 @@ export const STEPS_SPEC = [
   {
     id: 'allow',
     duration: 3400,
-    narration: 'The same policy gains one ingress rule, from podSelector role=web. Isolation and permission are two different things: selecting the Pod is what raised the boundary, and a rule is what opens a hole in one that was refusing everything. The same call passes through now, and db-1 answers it.',
+    narration: 'The same policy gains one ingress rule, from podSelector role=web. Isolation and permission are two different things: selecting the Pod is what raised the boundary, and a rule is what opens a hole in one that was refusing everything. The same call passes through now and reaches db-1.',
     chips: { egChip: NONE, inChip: FROM_WEB, vChip: 'allowed' },
     ...gates({ ingress: 1, policies: 1 }),
     lit: ['npIngress', 'barIngress', 'inChip', 'vChip'],
@@ -215,7 +215,7 @@ export const STEPS_SPEC = [
   {
     id: 'either-side',
     duration: 3400,
-    narration: 'Now the same sender calls cache-1, which no policy has ever selected: nothing stands on the way into it and it would take a connection from anyone. It still never happens. The egress rules on web-1 name role=db and nothing else, so the call dies in the boundary it has to leave through.',
+    narration: 'Now the same sender calls cache-1, which no policy has ever selected: nothing stands on the way into it and it would take a connection from anyone. The call still never gets through. The egress rules on web-1 name role=db and nothing else, so the call dies in the boundary it has to leave through.',
     chips: { egChip: TO_DB, inChip: FROM_WEB, vChip: 'to cache-1 · dropped at web-1' },
     ...gates({ egress: 1, ingress: 1, policies: 2 }),
     lit: ['barEgress', 'egChip', 'vChip'],

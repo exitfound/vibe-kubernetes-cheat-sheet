@@ -107,7 +107,7 @@ export const STEPS_SPEC = [
   {
     id: 'wait-for-db',
     duration: 3600,
-    narration: 'Kubelet asks the runtime to Create and Start wait-for-db via CRI. Init containers run strictly sequentially: a regular one must exit with code 0 before the next can start. A non-zero exit shows Init:Error and is retried with backoff (Init:CrashLoopBackOff), or fails the Pod if its own or inherited restartPolicy is Never.',
+    narration: 'Kubelet asks the runtime to Create and Start wait-for-db via CRI. Init containers run strictly sequentially: a regular one must exit 0 before the next can start. A non-zero exit shows Init:Error and is retried with backoff (Init:CrashLoopBackOff), or fails the Pod if the container restartPolicy, own or inherited, is Never.',
     chips: { waitDbChip: RUNNING, migrateChip: WAITING, sidecarChip: WAITING, mainChip: WAITING },
     wires: { req: 'CreateContainer · StartContainer · wait-for-db' },
     lit: ['kubelet', 'waitDbChip'],
@@ -124,7 +124,7 @@ export const STEPS_SPEC = [
   {
     id: 'migrate-schema',
     duration: 3800,
-    narration: 'The wait-for-db container exits 0. Kubelet observes the exit via PLEG (Pod Lifecycle Event Generator) and then creates migrate-schema. The same rule applies, it must exit 0 before any later container can start. Each init container image is pulled lazily, just before that container is created, per its imagePullPolicy.',
+    narration: 'The wait-for-db container exits 0. Kubelet observes the exit via PLEG (Pod Lifecycle Event Generator) and then creates migrate-schema. It follows the same rule and must exit 0 before any later container can start. Each init container image is pulled lazily, just before that container is created, per its imagePullPolicy.',
     chips: { waitDbChip: DONE, migrateChip: RUNNING, sidecarChip: WAITING, mainChip: WAITING },
     wires: { req: 'wait-for-db exit 0 (PLEG) · StartContainer · migrate-schema' },
     // The Runtime acts first with the exit report, so it is lit at entry and the report waits BEAT.lead (M-18a).
@@ -177,7 +177,7 @@ export const STEPS_SPEC = [
   {
     id: 'running',
     duration: 3000,
-    narration: 'Pod is Running. The sidecar handles cross-cutting concerns (proxy, log shipping, credential rotation) alongside main. Kubelet restarts the sidecar independently if it crashes (because restartPolicy=Always on the init slot). On Pod termination that order runs backwards.',
+    narration: 'Pod is Running. The sidecar handles cross-cutting concerns (proxy, log shipping, credential rotation) alongside main. Kubelet restarts the sidecar independently if it crashes (because restartPolicy=Always on the init slot). On Pod termination the start order runs backwards.',
     chips: { waitDbChip: DONE, migrateChip: DONE, sidecarChip: RUNNING, mainChip: RUNNING },
     wires: { req: 'Pod Running · sidecar + main in parallel' },
     lit: ['sidecarChip', 'mainChip'],

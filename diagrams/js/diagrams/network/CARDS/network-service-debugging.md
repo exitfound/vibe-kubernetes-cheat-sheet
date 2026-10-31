@@ -14,7 +14,7 @@ DEVIATES NET.L-01: both Pods are 210 by 120 with a 170 by 52 box, the card's own
 CONTENT  Sources: Debug Services, Service, EndpointSlices (v1.36), endpointslice, pkg/proxy (1.36).
          A numeric targetPort lands in the endpoint as is, a named one follows the declared port.
          On `wrong-port` the packet reaches the Pod on a port nothing listens on, so `the app`.
-         publishNotReadyAddresses (`not-ready`, desc, aria-label) sets ready, never serving.
+         publishNotReadyAddresses (`not-ready`, aria-label) sets ready, never serving.
          A Service selecting nothing keeps a placeholder slice. The slice name is generated.
          What the client sees is unstated: reject, drop or nothing depends on the proxy mode.
 ```

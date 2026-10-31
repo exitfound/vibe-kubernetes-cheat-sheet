@@ -114,8 +114,11 @@ const APP_CONTROLLER_MEMBERS = {
   isPlaying:   { type: 'function', call: 'unconditional' },
   isLooping:   { type: 'function', call: 'unconditional' },
   step:        { type: 'function', call: 'unconditional' },
+  playStep:    { type: 'function', call: 'unconditional, a step dot plays its step' },
+  replay:      { type: 'function', call: 'unconditional, the replay button and R' },
   restart:     { type: 'function', call: 'unconditional' },
   destroy:     { type: 'function', call: 'unconditional, inside a try/catch on dialog close' },
+  _timeline:   { type: 'object',   call: 'the GIF save, which steps and seeks a hidden copy of the card' },
 };
 
 describe('the init contract', () => {

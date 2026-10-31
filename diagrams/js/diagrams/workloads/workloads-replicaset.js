@@ -90,7 +90,7 @@ const POD_NAMES = ['web-7xk2q', 'web-4tgzn', 'web-m9hcw', 'web-manual'];
 
 // Parts order is z-order: bands, lanes, packets, then Pods and actors so a ball runs under the bodies.
 export const SCENE = {
-  'aria-label': 'ReplicaSet controller: Pods it owns through ownerReferences sit in the owned band against a mark at spec.replicas, the reconcile loop creates when the band falls short of the mark and deletes when it runs past it, a matching Pod with no controller owner is adopted up out of the unowned band, and a relabelled Pod is released down into it',
+  'aria-label': 'ReplicaSet controller. The Pods it owns through ownerReferences sit in the owned band against a mark at spec.replicas, and the reconcile loop creates when the band falls short of the mark and deletes when it runs past it. The ReplicaSet adopts a matching Pod with no controller owner up out of the unowned band, and releases a relabelled Pod down into it',
   parts: [
     P.defs(),
     band(OWN_Y, OWN_H, 'owned · metadata.ownerReferences points at this ReplicaSet', 0.55),
@@ -182,7 +182,7 @@ export const STEPS_SPEC = [
   {
     id: 'own',
     duration: 5400,
-    narration: 'Every Pod the ReplicaSet manages carries a metadata.ownerReferences entry pointing back to it, with controller set to true. Those are the links drawn into the owned band, and they are what lets garbage collection remove the Pods when the ReplicaSet is deleted. This ReplicaSet is standalone: no Deployment owns it, so you scale it by editing its own spec.replicas, and it is what actually creates and deletes the Pods. One owned by a Deployment also selects on a pod-template-hash label.',
+    narration: 'Every Pod the ReplicaSet manages carries a metadata.ownerReferences entry pointing back to it, with controller set to true. The links in the owned band show that ownership, and those entries let garbage collection remove the Pods when the ReplicaSet is deleted. This ReplicaSet is standalone, no Deployment owns it, so to scale it you edit its own spec.replicas, and it is what creates and deletes the Pods. A ReplicaSet owned by a Deployment also selects on a pod-template-hash label.',
     chips: { selChip: 'matchLabels app=web', ownChip: 'controller=true', actChip: 'in sync' },
     wires: { req: 'Pod ownerReferences point at this RS · controller=true' },
     ...bands([...THREE, EMPTY]),
@@ -194,7 +194,7 @@ export const STEPS_SPEC = [
   {
     id: 'reconcile',
     duration: 5000,
-    narration: 'The controller runs a continuous reconcile loop. On every relevant change it compares the desired count against the Pods it owns and acts only on the difference. The mark on the band is spec.replicas, so a set that ends exactly on the mark needs nothing done. Because the loop is level-triggered it works off the current observed state rather than off one-time events, so a missed event or a controller restart still converges to the same result.',
+    narration: 'The controller runs a continuous reconcile loop. On every relevant change it compares the desired count against the Pods it owns and acts only on the difference. The mark on the band is spec.replicas, so if the set ends exactly on the mark nothing needs doing. The loop is level-triggered, which means it works off the current observed state rather than off one-time events. So a missed event or a controller restart still converges to the same result.',
     chips: { selChip: 'matchLabels app=web', ownChip: 'controller=true', actChip: 'balanced · no-op' },
     wires: { req: 'watch owned Pods · count meets the mark · no-op' },
     ...bands([...THREE, EMPTY]),
@@ -209,7 +209,7 @@ export const STEPS_SPEC = [
   {
     id: 'self-heal',
     duration: 5600,
-    narration: 'One Pod is lost: it was deleted, or its Node failed and the Pod was evicted once its default 300 second toleration ran out. A Pod being deleted no longer counts, so the owned band falls to two and a gap opens before the mark, and the controller creates a replacement to close it. It learns of the loss through its Pod watch and acts on the difference, not on the event. This self-healing is the whole point of a controller. A bare Pod created on its own has no owner watching it, so once gone it stays gone.',
+    narration: 'One Pod is lost. It was deleted, or its Node failed and the Pod was evicted once its default 300 second toleration ran out. A Pod being deleted no longer counts, so the owned band falls to two, a gap opens before the mark, and the controller creates a replacement to close that gap. The controller learns of the loss through its Pod watch and acts on the difference, not on the event. This is self-healing. A bare Pod created on its own, though, has no owner watching it, so once gone it stays gone.',
     chips: { selChip: 'matchLabels app=web', ownChip: 'controller=true', actChip: 'create +1' },
     wires: { req: 'owned count below the mark · create replacement Pod' },
     ...bands([...HEALED_THREE, EMPTY], { heal: 1 }),
@@ -235,7 +235,7 @@ export const STEPS_SPEC = [
   {
     id: 'adopt',
     duration: 4600,
-    narration: 'A standalone Pod is already running with the label app=web and no controller ownerReference, which is what the unowned band holds. The ReplicaSet matches Pods by selector and not by who created them, so it adopts this one: it PATCHes metadata.ownerReferences to point at itself. The Pod was already running, adoption only restamps its owner, and it crosses up into the owned band past the mark as a fourth replica.',
+    narration: 'A standalone Pod is already running with the label app=web and no controller ownerReference. That is exactly what the unowned band holds. The ReplicaSet matches Pods by selector and not by who created them, so it adopts this Pod and PATCHes metadata.ownerReferences to point at itself. Adoption only restamps the owner, so the Pod keeps running and crosses up into the owned band past the mark as a fourth replica.',
     chips: { selChip: 'matchLabels app=web', ownChip: 'PATCH · owner set', actChip: 'adopt +1' },
     wires: { req: 'PATCH ownerReferences · adopt web-manual (app=web)' },
     ...bands([...HEALED_THREE, OWNED], { heal: 1 }),
@@ -263,7 +263,7 @@ export const STEPS_SPEC = [
   {
     id: 'converge',
     duration: 4600,
-    narration: 'Adoption pushed the owned count to four, one past the mark. The same reconcile loop now deletes a Pod to return to exactly three. A ReplicaSet never settles above its desired count, no matter where the extra Pod came from. Picking the victim prefers pending and unschedulable Pods, then not ready ones, then the lowest controller.kubernetes.io/pod-deletion-cost, which is honored best effort, not guaranteed.',
+    narration: 'Adoption pushed the owned count to four, one past the mark. The same reconcile loop now deletes a Pod to return to exactly three. A ReplicaSet never settles above its desired count, no matter where the extra Pod came from. When picking the victim it prefers Pending and unschedulable Pods, then not ready ones, then the lowest controller.kubernetes.io/pod-deletion-cost value, honored best effort, not guaranteed.',
     chips: { selChip: 'matchLabels app=web', ownChip: 'controller=true', actChip: 'delete -1' },
     wires: { req: 'owned count past the mark · DELETE surplus Pod' },
     ...bands([...HEALED_THREE, { label: 'app=web', sub: 'surplus · deleting', opacity: 0, tap: 0 }], { heal: 1 }),
@@ -282,7 +282,7 @@ export const STEPS_SPEC = [
   {
     id: 'orphan',
     duration: 4500,
-    narration: 'The reverse of adoption. A Pod is relabelled so it no longer matches the selector, here app=web becomes app=debug. The ReplicaSet releases it by removing its ownerReference, and it drops into the unowned band still running. That leaves the owned band short of the mark, so the same loop creates a replacement to close the gap. Labels are the binding: change them and a Pod crosses between the two bands.',
+    narration: 'The reverse of adoption. A Pod is relabelled from app=web to app=debug, so it no longer matches the selector. The ReplicaSet releases it by removing its ownerReference, and it drops into the unowned band, still running. That leaves the owned band short of the mark, so the same loop creates a replacement to close the gap. Labels decide membership, so changing them moves a Pod between the two bands.',
     chips: { selChip: 'matchLabels app=web', ownChip: 'removed · released', actChip: 'release + create' },
     wires: { req: 'remove ownerReference · create replacement' },
     // tap3 stays up: the replacement in the slot owns it now.

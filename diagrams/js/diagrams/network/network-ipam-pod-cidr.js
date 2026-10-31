@@ -55,7 +55,7 @@ const POD = {
 // The list order IS the append order, which is the z-order: Node frames, their slice chips and their
 // Pods, then the control-plane column, then the dim wires above the blocks, then the packets.
 export const SCENE = {
-  'aria-label': 'IPAM and Pod CIDR allocation: the controller-manager carves a non-overlapping slice of the cluster pod CIDR for each Node, and a CNI IPAM that uses that slice draws every Pod IP on the Node out of it',
+  'aria-label': 'IPAM and Pod CIDR allocation, where the controller-manager carves a non-overlapping slice of the cluster pod CIDR for each Node, and a CNI IPAM that uses that slice draws every Pod IP it hands out on the Node from it',
   parts: [
     P.defs(),
     P.node({ key: 'node1', x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -132,7 +132,7 @@ export const STEPS_SPEC = [
   {
     id: 'ipam',
     duration: 2400,
-    narration: 'When a Pod is scheduled to Node-1, a CNI IPAM that uses the Node podCIDR draws its address strictly out of that slice, 10.244.1.0/24, so the Pod gets 10.244.1.5. Allocation never reaches outside the block a Node owns, which is exactly what stops two Nodes from colliding.',
+    narration: 'When a Pod is scheduled to Node-1, a CNI IPAM that uses the Node podCIDR draws the Pod address strictly from that slice, 10.244.1.0/24, so the Pod gets 10.244.1.5. Allocation never reaches outside the block a Node owns, which is what stops two Nodes from colliding.',
     chips: CARVED,
     podSublabels: { podA: 'IP 10.244.1.5' },
     opacity: LATER_HIDDEN,
@@ -148,7 +148,7 @@ export const STEPS_SPEC = [
   {
     id: 'unique',
     duration: 4200,
-    narration: 'Every other Node assigns the same way, out of its own slice. A Pod scheduled to Node-2 gets 10.244.2.8 from 10.244.2.0/24, a different /24 that can never overlap the addresses on Node-1. Node-3 holds 10.244.3.0/24 with no Pod scheduled on it yet, because a block is carved at Node registration. So every Pod IP is unique across the whole cluster, which is what lets any Pod be reached directly while routing only has to track which Node owns which /24.',
+    narration: 'Every other Node assigns the same way, out of its own slice. A Pod scheduled to Node-2 gets 10.244.2.8 from 10.244.2.0/24, a different /24 that can never overlap the addresses on Node-1. Node-3 holds 10.244.3.0/24 with no Pod scheduled on it yet, because a block is carved at Node registration. So every Pod IP drawn from these blocks is unique across the whole cluster, which is what lets any Pod be reached directly while routing only has to track which Node owns which /24.',
     chips: CARVED,
     podSublabels: { podA: 'IP 10.244.1.5', podB: 'IP 10.244.2.8' },
     // The Node-2 Pod and its arrow end the step present, which is what the static path shows. The

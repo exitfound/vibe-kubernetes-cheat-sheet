@@ -73,7 +73,7 @@ const AGENT_INNER = { ...POD_INNER, sublabel: 'Node eth0' };
 // The list order IS the append order, which is the z-order: the Node frame in back, then the blocks
 // inside and above it, then wires + the veth label, then chips, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'hostNetwork and hostPort: an ordinary Pod has its own network namespace, its own Pod IP and a veth pair into the bridge. A Pod with hostNetwork true has no network namespace of its own at all, so it has no veth and no Pod IP of its own, it runs in the Node network namespace and binds straight to the Node address, at the cost of the Node port space and its own isolation. A Pod with a hostPort keeps everything it had, and the CNI portmap plugin only adds a port mapping on the Node that rewrites the Node address and host port to the Pod IP and container port.',
+  'aria-label': 'hostNetwork and hostPort: an ordinary Pod has its own network namespace, its own Pod IP and a veth pair into the bridge. A Pod with hostNetwork true has no network namespace of its own at all, so it has no veth and no Pod IP of its own. It runs in the Node network namespace and binds straight to the Node address, but pays for that with the Node port space and its own isolation. A Pod with a hostPort keeps everything it had, and the CNI portmap plugin only adds a port mapping on the Node that rewrites the Node address and host port to the Pod IP and container port.',
   parts: [
     P.defs(),
     P.node({ key: 'theNode', x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -143,7 +143,7 @@ export const STEPS_SPEC = [
   {
     id: 'hostnetwork',
     duration: 3800,
-    narration: 'With hostNetwork true the Pod gets no network namespace of its own at all. It runs inside the Node network namespace, so there is no veth, no Pod IP and no bridge in the path: the container binds straight to the Node interfaces. A client that dials 192.168.1.20:80 is served by the Pod with no NAT anywhere, which is exactly how kube-proxy, the CNI agent and node-exporter run.',
+    narration: 'With hostNetwork true the Pod gets no network namespace of its own. It runs inside the Node network namespace, so there is no veth, no Pod IP of its own and no bridge in the path: the container binds straight to the Node interfaces. A client that dials 192.168.1.20:80 is served by the Pod with no NAT anywhere. That is how kube-proxy, the CNI agent and node-exporter run.',
     chips: { nsChip: 'the Node one', ipChip: '192.168.1.20 (Node)', vethChip: 'none', portChip: 'Node IP :80' },
     sublabels: { portmap: 'none' },
     podSublabels: { podApp: '10.244.1.5' },
@@ -175,7 +175,7 @@ export const STEPS_SPEC = [
   {
     id: 'hostport',
     duration: 4400,
-    narration: 'The hostPort field is the smaller hammer. The Pod keeps its own namespace, its Pod IP and its veth, and the CNI portmap plugin only adds a port mapping on the Node: anything arriving at 192.168.1.20:8080 is DNAT-ed to 10.244.1.5:80 and then delivered down the ordinary bridge and veth. The Pod is reachable from the LAN and its socket still only ever sees its own address and port.',
+    narration: 'The hostPort field is the smaller hammer. The Pod keeps its own namespace, its Pod IP and its veth, and the CNI portmap plugin only adds a port mapping on the Node. Anything arriving at 192.168.1.20:8080 is DNAT-ed to 10.244.1.5:80 and then delivered down the ordinary bridge and veth. The Pod is reachable from the LAN, and its socket still only ever sees its own address and port.',
     chips: { nsChip: 'own', ipChip: '10.244.1.5', vethChip: 'yes', portChip: 'Node IP :8080' },
     wires: { veth: 'veth pair' },
     sublabels: { portmap: PM_MAPPED },

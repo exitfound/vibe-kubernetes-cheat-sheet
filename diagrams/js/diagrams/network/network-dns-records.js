@@ -61,7 +61,7 @@ const ANS_WIRE = { dashed: true, dim: true };
 // The list order IS the append order, which is the z-order: the band, CoreDNS, the client and the
 // ladder, then the wires ABOVE them, then the chips, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'Kubernetes DNS records: a Service name is a fully qualified name made of Service, namespace, svc and the cluster domain, and CoreDNS answers it with an A record to the ClusterIP, an SRV record for named ports, multiple A records for a headless Service, or a per-Pod record',
+  'aria-label': 'Kubernetes DNS records: the full name of a Service is built from Service, namespace, svc and the cluster domain, and CoreDNS answers with an A record to the ClusterIP, an SRV record for named ports, multiple A records for a headless Service, or a per-Pod record',
   parts: [
     P.defs(),
     // FQDN band: the four segments of the name being asked. Built in the service form, rewritten per step.
@@ -157,7 +157,7 @@ export const STEPS_SPEC = [
   {
     id: 'a-record',
     duration: 7000,
-    narration: 'Ask for the name itself and you get an A record, or AAAA on IPv6, pointing at the Service ClusterIP, 10.96.0.20. This is the common case: a name in, the stable virtual IP out, which the Service rules kube-proxy writes then send on to one Pod. The address answered is the web Service, not the kube-dns ClusterIP the question was sent to.',
+    narration: 'A query for the name itself gets an A record, or AAAA on IPv6, pointing at the Service ClusterIP, 10.96.0.20. This is the common case: the name resolves to the stable virtual IP, and the Service rules kube-proxy writes send traffic on to one Pod. The address answered is the web Service, not the kube-dns ClusterIP the question was sent to.',
     chips: { qChip: 'web.default.svc.cluster.local  IN A', ansChip: ONE_REC },
     ...asking(NAME_SVC),
     lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],
@@ -175,7 +175,7 @@ export const STEPS_SPEC = [
   {
     id: 'headless-record',
     duration: 7000,
-    narration: 'If the Service is headless, the name does not change at all: the client asks exactly what it asked for the A record. What changes is the answer, one A record per ready Pod instead of a single virtual IP, here three of them, and the client chooses an endpoint itself.',
+    narration: 'If the Service is headless, the client asks the same name it asked for the A record and gets a different answer: one A record per ready Pod instead of a single virtual IP, here three of them, and the client chooses an endpoint itself.',
     chips: { qChip: 'web.default.svc.cluster.local  IN A', ansChip: THREE_REC },
     ...asking(NAME_HEADLESS),
     lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],
@@ -184,7 +184,7 @@ export const STEPS_SPEC = [
   {
     id: 'pod-record',
     duration: 7000,
-    narration: 'Finally a Pod has a record of its own, a form that predates the DNS spec, and here the name changes twice: the Pod IP written with dashes takes the place of the Service, and the subdomain flips from svc to pod. CoreDNS only serves it when the kubernetes plugin has pods enabled, which kubeadm sets to insecure by default, and in that mode it answers from the name without checking that such a Pod exists. A stable way to reach one specific replica is a StatefulSet Pod hostname under a headless Service.',
+    narration: 'Finally a Pod has a record of its own, a form that predates the DNS spec, and here the name changes twice: the Pod IP written with dashes takes the place of the Service, and the subdomain flips from svc to pod. CoreDNS only serves it when the kubernetes plugin has pods enabled, which kubeadm sets to insecure by default, and in that mode CoreDNS answers from the name without checking that such a Pod exists. A stable way to reach one specific replica is a StatefulSet Pod hostname under a headless Service.',
     chips: { qChip: '10-244-2-7.default.pod.cluster.local  IN A', ansChip: ONE_REC },
     ...asking(NAME_POD),
     lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],

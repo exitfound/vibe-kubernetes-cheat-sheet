@@ -19,7 +19,7 @@ CONTENT  Sources at 1.36: Garbage Collection, Owners and Dependents, Finalizers,
          ReplicaSet and Deployment removal. Step 7 completes the step 1 DELETE and ends the
          kubectl wait.
          "202 Accepted" is ruled out: 202 needs orphanDependents=false, kubectl gets 200 and waits.
-         nginx:1.27 stops on SIGQUIT. The desc leaves `blockOwnerDeletion` unqualified (T-20).
+         nginx:1.30 stops on SIGQUIT.
 OPEN     The `Control plane` frame label prints at (162, 114), under the panel on every viewport. It
          stays: the grid shared with cluster-architecture and cluster-object-create-path puts the
          frame at 150, and moving it moves all three cards.

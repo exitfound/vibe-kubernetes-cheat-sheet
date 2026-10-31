@@ -11,7 +11,7 @@ DEVIATES STO.L-05: the Pods are 220 by 408, each sized by the four mount rows it
          STO.L-03: the chips stand two by two at a 12 gap, since four in a row under the 740 frame
          leave 176 each, under the 183.5 floor of `peer group` / `plugin not in it`.
 CONTENT  1.36: Volumes, Mount propagation, core/v1 VolumeMount, v1.36.5 validation.go,
-         kubelet_pods.go, hostutil DoMakeRShared, containerd v2.2 ensureShared,
+         kubelet_pods.go, csi_mounter.go, hostutil DoMakeRShared, containerd v2.2 ensureShared,
          csi-driver-host-path, mount_namespaces(7). `rprivate by default`: the runtime may choose
          rslave. The runtime binds the plugin directories, its volumeMounts only set
          Bidirectional, which needs a shared source: `shared on a systemd host`, else Kubelet makes

@@ -4,7 +4,7 @@
 
 The diagram half of [kube.how](https://kube.how/): animated diagrams of how Kubernetes actually works inside. Each card opens a dialog that plays the mechanism step by step, with a narration panel explaining what moves and why, and the Kubernetes documentation it is based on. Live at **[kube.how/diagrams](https://kube.how/diagrams/)**.
 
-[← Back to the main README](../README.md)
+[← Back to the main README](../README.md) · [Русский](./README.ru.md)
 
 <p align="center">
   <img src="../.github/readme/diagrams-grid.webp" width="100%" alt="The Diagrams grid: Control Plane cards such as Cluster Architecture, Object Create Path and Admission Chain, each with a poster, a description and a k8s version label">
@@ -27,10 +27,11 @@ Every card is checked against the Kubernetes release it names (`k8s 1.36` on the
 - **Flip between diagrams** without closing the dialog, with the side arrows or `Shift` + `←` / `→`.
 - **Star a diagram** from its card or from inside the open diagram to collect it in the Starred view.
 - **Report a problem** from inside a diagram: the flag button opens a GitHub issue that already names the card and the step you are on.
-- **Save a frame** as a PNG for your slides with the download button in the dialog header.
+- **Save it for your slides** from the download button in the dialog header: the step on screen as a PNG, or the whole animation as a GIF.
 - **Two grid views**: detailed cards with the full description, or compact tiles that fit three to five times as many on a screen. The switch sits at the right end of the category row and is remembered.
 - **Search and filter** by category, or search across titles and descriptions. New diagrams since your last visit carry a `NEW` badge until you open them.
 - **Deep links**: `kube.how/diagrams/#diagram=<id>` opens a diagram, and the address follows the step you are on, so you can share it as is. The link icon beside a section title copies `kube.how/diagrams/#at=<section>`.
+- **English or Russian**: the language button at the right end of the header switches the card descriptions, the dialog buttons and the narration. Labels drawn inside a diagram stay English, as in the Kubernetes documentation.
 - **Reduced motion** is respected: with `prefers-reduced-motion` each step snaps to its end state.
 - **Desktop first**: on a phone the page shows a short notice with a link to the static pages, which read fine on any screen.
 
@@ -62,7 +63,8 @@ diagrams/
   js/dialog.js                 the card dialog, its player and keys
   js/data.js                   the category registry and the four card catalogues
   js/posters.js                the four poster maps, merged
-  js/lib/                      SVG helpers, primitives, timeline, motion, layout tokens, PNG export
+  js/lib/                      SVG helpers, primitives, timeline, motion, layout tokens, PNG and GIF export
+  js/lang/                     Russian descriptions and narration, loaded only while Russian is on
   js/diagrams/<category>/      one folder per category:
     cards.js                     the catalogue: id, title, description, version, sources
     posters.js                   the grid thumbnails

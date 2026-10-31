@@ -52,7 +52,7 @@ const PODS = [
 ];
 
 export const SCENE = {
-  'aria-label': 'Node restart and reboot: a Kubelet restart leaving the running containers in place, a container runtime restart usually doing the same, a reboot stopping every container first, the Node going Unknown with the unreachable taint after the grace period, then reporting NotReady with the not-ready taint until the Kubelet, the runtime and the network are ready, the Kubelet recreating the containers of the Pods still bound to it, and a standalone Pod deleted while the Node was away never coming back',
+  'aria-label': 'Node restart and reboot. A Kubelet restart leaves the running containers in place, a container runtime restart usually does the same, and a reboot stops every container first. After the grace period the Node goes Unknown with the unreachable taint, then reports NotReady with the not-ready taint until the Kubelet, the runtime and the network are ready, and then the Kubelet recreates the containers of the Pods still bound to it. A standalone Pod deleted while the Node was away never comes back',
   parts: [
     P.defs(),
     P.relation({ key: 'cri', points: CRI_RELATION, dash: '5 5' }),
@@ -128,7 +128,7 @@ export const STEPS_SPEC = [
   {
     id: 'three-events',
     duration: 3200,
-    narration: 'Three different events get run together under one word and they are not the same thing. A Kubelet restart leaves the already running containers in place, and so does a container runtime restart in the configuration most of them run with. A reboot is the most disruptive of the three: it is both of the others at once.',
+    narration: 'Three different events get run together under one word, and they end differently. A Kubelet restart leaves the already running containers in place, and so does a container runtime restart in the configuration most of them run with. A reboot, the most disruptive of the three, is both of the others at once.',
     chips: READY,
     opacity: stage(),
     // Packet-less and Pod-less, so the highlight alone carries the beat (M-27).
@@ -212,7 +212,7 @@ export const STEPS_SPEC = [
   {
     id: 'standalone',
     duration: 3900,
-    narration: 'Pod debug-shell went the same way, and nothing brings it back: a standalone Pod is not recreated after deletion. The static Pod is the opposite case, because deleting its mirror Pod through the API does not remove the static Pod the Kubelet runs. Run what has to survive a reboot under a controller.',
+    narration: 'Pod debug-shell went the same way, and nothing brings it back: a standalone Pod is not recreated after deletion. The static Pod is the opposite case, because deleting its mirror Pod through the API does not remove the static Pod the Kubelet runs. What has to survive a reboot belongs under a controller.',
     chips: { ...READY, boundChip: '1 · debug-shell deleted' },
     wires: { branch: BRANCH },
     opacity: stage({ web: GONE, dbg: GONE }),

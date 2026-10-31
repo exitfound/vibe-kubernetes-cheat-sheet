@@ -51,7 +51,7 @@ const B_OUT = [[PODB_X, BOT_Y], [BR_R, BOT_Y]];   // B    -> cni0 (reply)
 const A_IN  = [[BR_X, BOT_Y], [PODA_R, BOT_Y]];   // cni0 -> A    (reply)
 
 export const SCENE = {
-  'aria-label': 'Pod-to-Pod traffic on the same Node: both Pods draw from one podCIDR so the destination is on-link, ARP resolves its MAC through the cni0 bridge, which records the port the answer came in on, the data frame is then switched out that one port at layer 2, and no NAT and no encapsulation touch it',
+  'aria-label': 'Pod-to-Pod traffic on the same Node: both Pods draw from one podCIDR, so the destination is on-link. ARP resolves the destination MAC through the cni0 bridge, which records the port the answer came in on. The data frame is then switched out that one port at layer 2, and no NAT and no encapsulation touch it',
   parts: [
     P.defs(),
     P.chip({ key: 'srcChip', x: CHIP_X[0], y: CHIP_Y, w: CHIP_W[0], h: CHIP_H, name: 'src', value: '10.244.1.5' }),
@@ -112,7 +112,7 @@ export const STEPS_SPEC = [
   {
     id: 'onlink',
     duration: ONLINK_MS,
-    narration: 'Pod A and Pod B draw from the same Node subnet 10.244.1.0/24, so B is on-link. The route A finds for it carries no gateway: the frame will go straight onto the wire to B, with no router in between. What A still lacks is the MAC behind 10.244.1.6.',
+    narration: 'With the bridge plugin, both Pods draw from the Node subnet 10.244.1.0/24, so B is on-link. The route to B carries no gateway: the frame goes straight onto the wire, with no router in between. What A still lacks is the MAC behind 10.244.1.6.',
     chips: { pathChip: 'dst on-link', natChip: 'none', srcChip: SRC, dstChip: DST },
     labels: { fdb: FDB_TITLE },
     sublabels: { fdb: FDB_EMPTY },
@@ -132,7 +132,7 @@ export const STEPS_SPEC = [
   {
     id: 'arp',
     duration: 5600,
-    narration: 'A broadcasts an ARP request out eth0 asking who holds 10.244.1.6. The veth peer hands it to cni0, the Node Linux bridge, which learns the port A sits on and floods the request out every port but that one. B answers with a unicast reply carrying its MAC, and as that reply crosses cni0 the bridge learns the port B sits on too.',
+    narration: 'A broadcasts an ARP request out eth0 asking who holds 10.244.1.6. The veth peer hands it to cni0 (the Node Linux bridge). The bridge learns the port A sits on and floods the request out every port but that one. B answers with a unicast reply carrying its MAC, and as that reply crosses cni0 the bridge learns the port B sits on too.',
     chips: { pathChip: 'ARP who-has .6', natChip: 'none', srcChip: SRC, dstChip: DST },
     labels: { fdb: FDB_TWO },
     sublabels: { fdb: FDB_LEARNED },
@@ -160,7 +160,7 @@ export const STEPS_SPEC = [
   {
     id: 'forward',
     duration: 3600,
-    narration: 'With the MAC for B known and its port in the forwarding table, A sends the data frame as a unicast. It crosses the veth onto cni0, which now switches it out that one port instead of flooding. This is plain layer 2 forwarding inside the Node, so the packet never touches the physical NIC.',
+    narration: 'The MAC for B is known and the port of B is in the forwarding table, so A sends the data frame as a unicast. It crosses the veth onto cni0, which now switches it out that one port instead of flooding. This is plain layer 2 forwarding inside the Node, so the packet never touches the physical NIC.',
     chips: { pathChip: 'L2 bridge', natChip: 'none', srcChip: SRC, dstChip: DST },
     labels: { fdb: FDB_TWO },
     sublabels: { fdb: FDB_LEARNED },
@@ -183,7 +183,7 @@ export const STEPS_SPEC = [
   {
     id: 'no-nat',
     duration: NONAT_MS,
-    narration: 'B receives the packet with the source IP of A intact. Traffic addressed to a Pod IP is never rewritten: no SNAT, no DNAT, no overlay encapsulation, just one bridge hop between two veth ports. Every Pod IP is routable cluster-wide, which is the flat-network promise.',
+    narration: 'B receives the packet with the source IP of A intact. Traffic to a Pod IP on this Node is never rewritten: no SNAT, no DNAT, no overlay encapsulation, just one bridge hop between two veth ports. Every Pod IP is routable cluster-wide, which is the flat-network promise.',
     chips: { pathChip: 'L2 bridge', natChip: 'none · src preserved', srcChip: SRC, dstChip: DST },
     labels: { fdb: FDB_TWO },
     sublabels: { fdb: FDB_LEARNED },

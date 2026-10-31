@@ -16,4 +16,5 @@ CONTENT  Sources (v1.36, etcd 3.6.8): Raft, the Raft paper, etcd v3.6 API guaran
          Forwarding alone does not stop a split view: the read waits on the Leader quorum check
          (ReadIndex). CheckQuorum runs once per election timeout, so the step-down lands `within
          two`. A Follower checks the term of its entry 8 against the one the Leader sent for it.
+         "never diverging" is ruled out: Leader crashes can leave Follower logs inconsistent.
 ```

@@ -1,4 +1,4 @@
-/* ===== DIAGRAM PRIMITIVES ===== */
+/* Diagram primitives */
 
 svg.diagram {
   font-family: 'Space Grotesk', 'Space Grotesk Fallback', sans-serif;
@@ -16,6 +16,9 @@ svg.diagram {
 .diagram-pod-container {
   transition: fill 0.3s, stroke 0.3s, filter 0.3s, opacity 0.3s;
 }
+/* Set by the Timeline while it enters several steps at once (a replay, a jump, a loop): the rebuilt
+   state lands without a transition, so only the step that plays moves. Important beats the per-part rules. */
+.diagram-instant * { transition: none !important; }
 
 /* Pod */
 .diagram-pod-rect {

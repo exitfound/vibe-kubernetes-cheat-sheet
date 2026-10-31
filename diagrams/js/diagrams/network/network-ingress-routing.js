@@ -132,7 +132,7 @@ export const STEPS_SPEC = [
   {
     id: 'rules',
     duration: 3000,
-    narration: 'The controller watches the Ingress objects whose ingressClassName names its IngressClass. Ingress shop holds a TLS entry for shop.io and two rules, both with pathType Prefix: / goes to Service web and /api to Service api. The controller compiles them into its proxy config.',
+    narration: 'The controller watches Ingress objects whose ingressClassName names its IngressClass. Ingress shop has a TLS entry for shop.io and two rules, both with pathType Prefix. Rule / goes to Service web and /api to Service api. The controller compiles them into its proxy config.',
     chips: { hostChip: 'none', pathChip: 'none', tlsChip: 'none', servedChip: 'none', ...SPEC },
     ...branch('both'),
     lit: ['tlsRow', 'ruleA', 'ruleB'],
@@ -142,7 +142,7 @@ export const STEPS_SPEC = [
   {
     id: 'entry',
     duration: 3000,
-    narration: 'External traffic reaches the controller through a Service of its own, usually a LoadBalancer or NodePort. An HTTPS request for shop.io/ lands on the controller Pod, which serves the certificate from Secret shop-tls, the one its TLS entry names for that host, and terminates TLS.',
+    narration: 'External traffic reaches the controller through a Service of its own, usually a LoadBalancer or NodePort. An HTTPS request for shop.io/ lands on the controller Pod, which serves the certificate from Secret shop-tls, the one the Ingress TLS entry names for that host, and terminates TLS.',
     wires: { req: 'HTTPS shop.io/' },
     chips: { hostChip: 'shop.io', pathChip: '/', tlsChip: TERMINATED, servedChip: 'none', ...SPEC },
     ...branch('both'),
@@ -158,7 +158,7 @@ export const STEPS_SPEC = [
   {
     id: 'match-web',
     duration: 4400,
-    narration: 'Now it reads the Host header, shop.io, and the path, /. Only the / rule matches. The controller does not hand the request to the Service ClusterIP: it reads the Ready endpoints of Service web from its EndpointSlice and proxies straight to Pod IP 10.244.1.5.',
+    narration: 'Now the controller reads the Host header, shop.io, and the path, /. Only the / rule matches. The controller does not hand the request to the Service ClusterIP. Instead it reads the Ready endpoints of Service web from its EndpointSlice and proxies straight to Pod IP 10.244.1.5.',
     chips: { hostChip: 'shop.io', pathChip: '/', tlsChip: TERMINATED, servedChip: SERVED_WEB, ...SPEC },
     ...branch('web'),
     lit: ['ruleA'],
@@ -197,7 +197,7 @@ export const STEPS_SPEC = [
   {
     id: 'no-match',
     duration: 3400,
-    narration: 'A plain HTTP request for other.io/ arrives. No Ingress of this class names that host and Ingress shop sets no defaultBackend, so the Ingress API leaves the answer to the controller. This one hands it to its own default backend, which answers 404, and neither Service is looked up.',
+    narration: 'A plain HTTP request for other.io/ arrives. No Ingress of this class names that host and Ingress shop sets no defaultBackend, so the Ingress API leaves the answer to the controller. This one hands the request to its own default backend, which answers 404, and no Service endpoints are read.',
     wires: { req: 'HTTP other.io/', back: 'HTTP 404' },
     chips: { hostChip: 'other.io', pathChip: '/', tlsChip: 'none, plain HTTP', servedChip: SERVED_404, ...SPEC },
     ...branch('none'),

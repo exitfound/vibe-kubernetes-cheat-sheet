@@ -1,6 +1,6 @@
 ---
 name: card-facts
-description: Fact-check one diagram card against the Kubernetes documentation and the API reference, then check that the animation says the same thing as the text and that every chip, label, sublabel, wire string and aria-label carries a valid value. Builds a claim inventory from the live card, ranks the claims by risk, verifies each against a citable source, reconciles the picture with the narration step by step, and finishes by updating the CONTENT block of the card record and the catalog entry. Use when the user asks to verify the technical content of a card ("проверь техническую часть", "check the facts", "is this card technically correct", "verify against the docs", "проверь текст карточки по докам"), with the card id as the argument. For layout, geometry, motion and dead code use card-review instead. For all four skills run end to end over a SET of cards unattended, use card-cycle.
+description: Fact-check one diagram card against the Kubernetes documentation and the API reference, then check that the animation says the same thing as the text and that every chip, label, sublabel, wire string and aria-label carries a valid value. Builds a claim inventory from the live card, ranks the claims by risk, verifies each against a citable source, reconciles the picture with the narration step by step, and finishes by updating the CONTENT block of the card record and the catalog entry. Use when the user asks to verify the technical content of a card ("проверь техническую часть", "check the facts", "is this card technically correct", "verify against the docs", "проверь текст карточки по докам"), with the card id as the argument. For layout, geometry, motion and dead code use card-review instead. For the voice, length and parity of the Russian lines use card-facts-ru. For all four skills run end to end over a SET of cards unattended, use card-cycle.
 ---
 
 # Card facts
@@ -17,6 +17,7 @@ Truth only. One card, every user-visible string, three questions:
 | truth of a sentence, picture against sentence, validity of a chip or label, qualified absolutes (`T-19`), the `aria-label` | here |
 | the `CONTENT` block of the record, plus `cards.js` `desc`, `k8sVersion`, `sources` | here |
 | geometry, occlusion, timing, state, wires, dead code, dialog controls, the rest of the record | `card-review` |
+| the Russian of a line: voice, length, parity with the English | `card-facts-ru` |
 | the poster and its note | `card-poster` |
 
 A fix that needs a new drawn element, a moved lane or a re-placed label goes to `card-review`.
@@ -67,8 +68,9 @@ stated as the mechanism.
 
 - A dialog reader never sees it. A term the card draws but explains only in the `desc` is not
   explained.
-- It is bounded (`D-04`, `D-05`). `claims.mjs` prints its live length and sentence count.
-- A clause a fix needs never gives way to the band: something else in the sentence does (`T-20`).
+- It is a situation and a question (`D-04`, `D-05`): the answer stays in the steps, so the claim to
+  check is that the situation can happen as told, and that every actor and object it names is real. A situation true only sometimes says so («can», «may»).
+- `claims.mjs` prints its live length and sentence count.
 
 ## 2. Rank before you fetch
 
@@ -164,6 +166,12 @@ Re-read the changed sentences in the rendered panel (`T-31`).
 2. **`cards.js`**: `desc` if it carried the defect, `k8sVersion` if the release changed, `sources`
    if a page no longer supports the card. After a `desc` edit run `npm run test:unit` (`D-04`,
    `D-05`) and read the whole `desc` again (`T-31`).
+3. **The Russian lines**: a reworded narration, aria-label or `desc` takes its new Russian line in
+   `js/lang/steps/<card-id>.js` or `js/lang/ru.js` (`S-57`, `S-58`, `unit/steps-i18n.test.mjs`
+   names the missing and orphan lines). Write it through the `card-facts-ru` skill, never by patching the
+   old Russian: its anchors come from the new English, `parity.mjs` and `fit.mjs` check it, and a
+   second reader compares it with the English. The fact you fixed in the English is the anchor the
+   reader checks first. A Russian line whose English did not change is not this skill's to touch.
 
 If nothing changed, the `CONTENT` block still names the sources it was checked against.
 

@@ -4,7 +4,7 @@
 
 The command half of [kube.how](https://kube.how/): kubectl, kubeadm, k3s, k3d, KinD, Minikube, Helm, Kustomize and K9s commands, each with a short plain-English description, a one-click copy button and a star. Live at **[kube.how/cli](https://kube.how/cli/)**.
 
-[← Back to the main README](../README.md)
+[← Back to the main README](../README.md) · [Русский](./README.ru.md)
 
 <p align="center">
   <img src="../.github/readme/cli.webp" width="100%" alt="The Commands page: kubeadm install, manage and configure commands in three columns, each with syntax highlighting, a star and a copy button">
@@ -35,6 +35,7 @@ Every section has its own static page, for example [kube.how/cli/section/pod/](h
 - **Navigation**: the top row switches between groups, the rows below narrow it to a category and a section.
 - **Deep links**: the address follows you, so `kube.how/cli/#helm` or `kube.how/cli/#starred` open exactly that view.
 - **Save as PDF**: the PDF button in the header lays every command out as a printable book.
+- **English or Russian**: the language button at the right end of the header switches the descriptions and the interface. The commands stay as you type them, and with Russian on, search matches both languages.
 
 ### Keyboard
 
@@ -56,11 +57,13 @@ cli/
   js/app.js           renders the sections, search, stars, deep links and the PDF book
   js/data.js          every command: the one file to edit for content
   js/contacts.js      GitHub, Contacts and Sponsor buttons (optional: delete it to drop them)
+  js/lang/ru.js       Russian descriptions, loaded only while Russian is on
   js/lib/commands.js  the syntax highlighter and the order commands show in a group
   js/lib/chrome.js    shared header, dropdowns and logo alignment, used by every page
   js/lib/sidebar.js   shared left sidebar
   js/lib/keys.js      shared shortcuts sheet
   js/lib/fresh.js     shared "new since your last visit" badges
+  js/lib/lang.js      shared EN / RU switch
   css/chrome.css      shared chrome styles, linked by every page before its own stylesheet
   css/styles.css      tokens and the Commands app
   css/page.css        the static section pages

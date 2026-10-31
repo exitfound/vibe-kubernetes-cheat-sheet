@@ -151,7 +151,7 @@ export const STEPS_SPEC = [
   {
     id: 'remains',
     duration: 3200,
-    narration: 'A Pod whose containers have all exited for good is finished, and it is still an object. The phase reads Succeeded or Failed, nothing is running for it on any Node, and the API keeps the record: the object stays in the cluster until a human or a controller process explicitly removes it.',
+    narration: 'A Pod whose containers have all exited for good is finished, and it is still an object. The phase reads Succeeded or Failed, nothing is running for it on any Node, and the API keeps the record. The object stays in the cluster until a human or a controller process explicitly removes it.',
     chips: { countChip: '12498', thrChip: THRESHOLD },
     ...ST(),
     opacity: stage([LIVE, HELD, HELD, HELD]),
@@ -162,7 +162,7 @@ export const STEPS_SPEC = [
   {
     id: 'threshold',
     duration: 5000,
-    narration: 'PodGC is a control plane controller inside kube-controller-manager, and its first rule is a count. Terminated Pods are left alone while there are no more of them than terminated-pod-gc-threshold, which defaults to 12500. Over that, it deletes evicted ones first, then the oldest, until the count is back down to the threshold rather than under it. Set the flag to 0 or less and this rule is off.',
+    narration: 'PodGC is a control plane controller inside kube-controller-manager, and its first rule is a count. Terminated Pods are left alone while there are no more of them than terminated-pod-gc-threshold, which defaults to 12500. Over that, it deletes evicted ones first, then the oldest, until the count is back down to the threshold rather than under it. With the flag at 0 or less, this rule is off.',
     chips: { countChip: '12500', thrChip: THRESHOLD },
     wires: { req: 'DELETE .../pods/web-1' },
     ...ST(),

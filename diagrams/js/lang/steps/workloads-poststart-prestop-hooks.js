@@ -1,0 +1,21 @@
+// Russian for workloads-poststart-prestop-hooks: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "Container lifecycle hooks on one container timeline: the postStart slot opens on the same tick as the ENTRYPOINT with no ordering guarantee, the preStop slot holds SIGTERM back until it returns or the window ends, and the hook and the drain share one termination grace window":
+    "Хуки жизненного цикла на временной шкале одного контейнера: слот postStart открывается в тот же такт, что и ENTRYPOINT, без гарантии порядка, слот preStop задерживает SIGTERM, пока хук не завершится или не кончится окно, а хук и сворачивание работы делят одно окно termination grace",
+
+  "A container may declare two lifecycle handlers of its own. The lifecycle.postStart field is bound to the moment the container is created, and lifecycle.preStop to the moment it is asked to stop. Each handler is exec (a command run inside the container), httpGet (a request Kubelet issues against the Pod IP by default) or sleep (a fixed pause). Neither slot has run yet.":
+    "Контейнер может объявить два своих обработчика жизненного цикла. Поле lifecycle.postStart привязано к моменту создания контейнера, а lifecycle.preStop к моменту, когда контейнер просят остановиться. Обработчик бывает трёх видов: exec (команда внутри контейнера), httpGet (запрос, который Kubelet по умолчанию шлёт на IP Pod) или sleep (фиксированная пауза). Ни один слот ещё не сработал.",
+
+  "The runtime creates the container and starts the ENTRYPOINT as PID 1. Kubelet fires postStart at that same moment, so the handler and the entrypoint run at once with no guarantee about which of them starts or finishes first. A handler that assumes the entrypoint is already listening races with it.":
+    "Среда выполнения создаёт контейнер и запускает ENTRYPOINT как PID 1. В тот же момент Kubelet вызывает postStart, так что обработчик и entrypoint работают одновременно, и нет никакой гарантии, кто из них начнёт или закончит первым. Обработчик, который рассчитывает, что entrypoint уже слушает, вступает с ним в гонку.",
+
+  "The handler returns and Kubelet reads the exit code. Only now does the container report Running, because a postStart that hangs holds it out of that state. A non-zero exit makes Kubelet kill the container, and the Pod restartPolicy decides what happens next.":
+    "Обработчик завершается, и Kubelet читает код выхода. Только теперь контейнер сообщает Running, потому что зависший postStart держит его вне этого состояния. Если же код ненулевой, Kubelet убивает контейнер, а что будет дальше, решает restartPolicy Pod.",
+
+  "A delete opens the termination grace window. Kubelet runs preStop and waits until it returns or the window runs out. The signal comes after this handler, while the ENTRYPOINT never waited for postStart. PID 1 is still running and has had nothing delivered to it. Whatever preStop spends comes out of the same window the stop itself has to finish in.":
+    "Удаление открывает окно termination grace. Kubelet запускает preStop и ждёт, пока хук не завершится или не кончится окно. Сигнал придёт уже после этого обработчика, тогда как ENTRYPOINT никогда не ждал postStart. Процесс PID 1 всё ещё работает, и ему пока ничего не доставлено. Всё, что потратит preStop, вычитается из того же окна, в которое должна уложиться и сама остановка.",
+
+  "The handler returns, and only then does Kubelet ask the runtime for StopContainer, which delivers SIGTERM to PID 1, unless the image defines a different STOPSIGNAL. The signal lands where the hook left off, so a slow handler leaves the app less of the window to drain in. Graceful Pod Shutdown owns the rest of that window and the SIGKILL if anything is still alive at zero.":
+    "Обработчик завершается, и только тогда Kubelet просит у среды выполнения StopContainer, который доставляет SIGTERM процессу PID 1, если в образе не задан другой STOPSIGNAL. Сигнал приходит там, где закончился хук, так что медленный обработчик оставляет приложению меньшую часть окна на сворачивание работы. Остаток окна и SIGKILL, если на нуле что-то ещё живо, разбирает карточка Graceful Pod Shutdown.",
+};

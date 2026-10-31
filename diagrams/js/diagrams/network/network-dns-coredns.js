@@ -120,7 +120,7 @@ export const STEPS_SPEC = [
   {
     id: 'resolv',
     duration: 2200,
-    narration: 'The Kubelet configured the Pod /etc/resolv.conf when the Pod started. Its nameserver is the kube-dns Service ClusterIP, it lists the cluster search domains, and it sets ndots:5. The app asks for a name and knows nothing about CoreDNS.',
+    narration: 'When the Pod started, the Kubelet configured /etc/resolv.conf in it. Its nameserver is the kube-dns Service ClusterIP, it lists the cluster search domains, and it sets ndots:5. The app asks for a name and knows nothing about CoreDNS.',
     chips: { cacheChip: 'empty', ansChip: '-', fwdChip: 'not used', ...RESOLV },
     lit: ['rcNS', 'rcSearch', 'rcNdots'],
     // The client consults its own resolv.conf by PULSING, which no lights list can name.
@@ -177,7 +177,7 @@ export const STEPS_SPEC = [
   {
     id: 'answer',
     duration: 4100,
-    narration: 'The answer leaves the chain the way the query came in and travels home. The client now has an address and opens its connection to that ClusterIP, which is where the kube-proxy path takes over. While the record is inside its TTL the next lookup of this name that lands on this Pod is answered by that copy alone. Under kubeadm it goes to the kubernetes plugin every time.',
+    narration: 'The answer leaves the chain the way the query came in and returns to the client. The client now has an address and opens a connection to that ClusterIP, where the kube-proxy path takes over. Until the record TTL runs out, the next lookup of this name that lands on this Pod is answered by that copy alone. Under kubeadm the lookup goes to the kubernetes plugin every time.',
     chips: { cacheChip: 'answers within TTL', ansChip: '10.96.0.20', fwdChip: 'outside zone only', ...RESOLV },
     wires: { a: 'A 10.96.0.20' },
     lit: ['pCache', 'cacheChip', 'ansChip'],

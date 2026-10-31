@@ -1010,7 +1010,7 @@ test('H2 every npm script a CLAUDE.md runs is defined in diagrams/test/package.j
 });
 
 // Keys the code still names only to move them to their current name.
-const LEGACY_KEYS = new Set(['kube-how:scheme-seen:v1']);
+const LEGACY_KEYS = new Set(['kube-how:scheme-seen:v1', 'kube-how:diagram-seen:v1']);
 
 test('H3 the localStorage keys the guides name are the keys the code writes', (t) => {
   const code = ['index.html', '404.html', ...['cli/js', 'diagrams/js'].flatMap(d => treeSources(join(REPO, d)).map(([p]) => p))]

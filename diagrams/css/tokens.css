@@ -32,7 +32,8 @@
 
   /* Chrome per category, keyed off `data-cat`. Deliberately NOT the kit tint that paints the
      diagram (C-15): cluster is #7d86ff here, its pulse peak rgb(224, 214, 255) in cluster-kit.js.
-     Retint: C-22. */
+     Retint: C-22. These are not /cli/'s colours for the same names: each app keeps its own set
+     (cli/css/styles.css). */
   --network-color:    #4fe5ff;
   --network-glow:     rgba(79, 229, 255, 0.13);
   --network-border:   rgba(79, 229, 255, 0.28);
@@ -42,8 +43,8 @@
   --storage-border:   rgba(94, 202, 148, 0.28);
 
   --workloads-color:  #5bb8ff;
-  --workloads-glow:   rgba(75, 168, 255, 0.13);
-  --workloads-border: rgba(55, 158, 255, 0.28);
+  --workloads-glow:   rgba(91, 184, 255, 0.13);
+  --workloads-border: rgba(91, 184, 255, 0.28);
 
   --cluster-color:    #7d86ff;
   --cluster-glow:     rgba(125, 134, 255, 0.13);

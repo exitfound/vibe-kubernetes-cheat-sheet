@@ -52,7 +52,7 @@ const cloudGlyph = () => P.raw({
 
 // List order is z-order: the Node frame fill is 70% opaque, so the lane and the ball come after it.
 export const SCENE = {
-  'aria-label': 'Image pull policy and registry auth: Kubelet evaluates imagePullPolicy, resolves imagePullSecrets, asks the runtime whether the image is already on the Node, pulls missing layers by digest, then creates and starts the container',
+  'aria-label': 'Image pull policy and registry auth: Kubelet evaluates imagePullPolicy, resolves imagePullSecrets, asks the runtime whether the image is already on the Node, has the runtime pull missing layers by digest, then creates and starts the container',
   parts: [
     P.defs(),
     P.arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }),
@@ -120,7 +120,7 @@ export const STEPS_SPEC = [
   {
     id: 'auth',
     duration: 4700,
-    narration: 'A private registry needs credentials, so Kubelet reads Pod.spec.imagePullSecrets, which the ServiceAccount admission plugin fills from the Pod ServiceAccount when the Pod names none of its own. Each Secret of type kubernetes.io/dockerconfigjson holds a docker config, and Kubelet hands a matching entry to the runtime in the CRI PullImage request. For ECR, GCR or ACR a credential provider plugin can mint credentials instead.',
+    narration: 'A private registry needs credentials, so Kubelet reads Pod.spec.imagePullSecrets. If the Pod names none of its own, the ServiceAccount admission plugin fills it from the Pod ServiceAccount. Each Secret of type kubernetes.io/dockerconfigjson holds a docker config, and Kubelet hands a matching entry to the runtime in the CRI PullImage request. For ECR, GCR or ACR a credential provider plugin can mint credentials instead.',
     chips: chipRow(IMAGE, IFNOTPRESENT, 'not probed', CREATING),
     wires: { req: 'authConfig from Pod.spec.imagePullSecrets' },
     opacity: { podGroup: OPACITY.pending },
@@ -131,7 +131,7 @@ export const STEPS_SPEC = [
   {
     id: 'cache',
     duration: 5100,
-    narration: 'Kubelet asks the runtime, through the CRI ImageStatus call, whether this exact image is on the Node. Its layer store is keyed by sha256 digest and shared by every Pod on the Node. Only 2 of the 4 app:v2 layers came in with earlier images, so ImageStatus reports no image and the pull goes ahead. A present image the Kubelet pulled with credentials is still pulled again unless this Pod holds the same ones (KubeletEnsureSecretPulledImages, beta, on by default).',
+    narration: 'Kubelet asks the runtime through the CRI ImageStatus call whether this exact image is on the Node. The runtime layer store is keyed by sha256 digest and shared by all Pods on the Node. Only 2 of the 4 app:v2 layers came with earlier images, so ImageStatus reports no image and the pull goes ahead. A present image the Kubelet pulled with credentials is still pulled again unless this Pod holds the same ones (KubeletEnsureSecretPulledImages, beta, on by default).',
     chips: chipRow(IMAGE, IFNOTPRESENT, '2 of 4', CREATING),
     wires: { req: 'CRI ImageStatus · no image · the pull goes ahead' },
     opacity: { podGroup: OPACITY.pending },

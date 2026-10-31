@@ -182,7 +182,7 @@ export const STEPS_SPEC = [
   {
     id: 'loadbalancer',
     duration: 5200,
-    narration: `LoadBalancer adds one more layer. A cloud balancer gets the public address ${LB_IP} and typically forwards to Node port ${NODE_PORT}, into the same Service rules. Only a balancer that sends straight to Pods should turn that Node port off.`,
+    narration: `LoadBalancer adds one more layer. A cloud balancer gets the public address ${LB_IP} for Internet clients and typically forwards to Node port ${NODE_PORT}, into the same Service rules. Only a balancer sending straight to Pods should turn that port off.`,
     chips: { typeChip: 'LoadBalancer', ciChip: VIP, npChip: NODE_PORT, lbChip: LB_IP },
     ...layers(1, 1, 1, 'stack'),
     lit: ['internet', 'typeChip', 'lbChip'],

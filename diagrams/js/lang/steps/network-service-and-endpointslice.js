@@ -1,0 +1,18 @@
+// Russian for network-service-and-endpointslice: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "Service and EndpointSlice: the EndpointSlice controller watches the three Pods matching the Service selector and writes one endpoint per Pod, an address and its ready condition, into EndpointSlice web-x9f2k, which states the port once and by default holds up to 100 endpoints. When a Pod keeps failing its readiness probe and turns Ready=False, the controller rewrites the endpoint of that Pod to ready=false, the container is not restarted, and kube-proxy builds Service rules from the one endpoint still ready":
+    "Service и EndpointSlice, где контроллер EndpointSlice следит за тремя Pod, подходящими под selector Service, и записывает по одному эндпоинту на Pod (адрес и его условие ready) в EndpointSlice web-x9f2k. Порт в этом EndpointSlice указан один раз, и по умолчанию в нём помещается до 100 эндпоинтов. Когда Pod раз за разом проваливает readiness probe и переходит в Ready=False, контроллер переписывает эндпоинт этого Pod на ready=false, контейнер при этом не перезапускается, а kube-proxy строит правила Service по единственному эндпоинту, который всё ещё готов",
+
+  "The Service web holds a selector, app=web, and no list of backends. All three Pods carry that label, so all three match. Matching is not serving: 10.244.3.9 is failing its readiness probe, so its Ready condition is False.":
+    "Service web хранит selector, app=web, а списка бэкендов в нём нет. Эта метка есть у всех трёх Pod, так что подходят все три. Но подходить не значит обслуживать. Pod 10.244.3.9 проваливает readiness probe, поэтому его условие Ready равно False.",
+
+  "The EndpointSlice controller watches every matching Pod and writes one endpoint per Pod with an IP: its address and conditions, with the port stated once for the slice. 10.244.3.9 is listed with ready=false, so it stays out of the serving set. By default a slice holds up to 100 endpoints, and a bigger Service gets more slices.":
+    "Контроллер EndpointSlice следит за каждым подходящим Pod и для каждого Pod с IP записывает один эндпоинт (его адрес и условия), а порт указан один раз на весь EndpointSlice. Адрес 10.244.3.9 записан с ready=false, поэтому в обслуживающий набор не входит. По умолчанию в один EndpointSlice помещается до 100 эндпоинтов, а у Service покрупнее таких EndpointSlice несколько.",
+
+  "Readiness, not liveness, decides who serves. After 3 failed readiness probes in a row, the failureThreshold default, the Kubelet sets the Ready condition of 10.244.2.7 to False, and the controller sees that through its watch. It rewrites the endpoint to ready=false. The container is not restarted, and one passing probe by default turns the Pod and its endpoint ready again.":
+    "Кто обслуживает, решает readiness, а не liveness. После 3 проваленных readiness probe подряд (это значение failureThreshold по умолчанию) Kubelet переводит условие Ready у 10.244.2.7 в False, и контроллер видит это через свой watch. Контроллер переписывает эндпоинт на ready=false. Контейнер при этом не перезапускается, а по умолчанию хватает одной успешной пробы, чтобы Pod и его эндпоинт снова стали готовыми.",
+
+  "The kube-proxy on every Node watches EndpointSlices, never the Pods. It writes Service rules for the ready endpoints, so traffic to web now reaches 10.244.1.5 alone.":
+    "Компонент kube-proxy на каждой Node следит за EndpointSlice и никогда за Pod, а правила Service пишет для готовых эндпоинтов, так что трафик к web теперь доходит только до 10.244.1.5.",
+};

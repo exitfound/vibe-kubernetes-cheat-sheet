@@ -67,7 +67,7 @@ const column = (side, cx, head, sub, values) => P.group({
 // List order is z-order: the frame, the blocks, the columns and disks, the relations, lanes and
 // captions, then the packets.
 export const SCENE = {
-  'aria-label': 'Cloning a PVC: a new PersistentVolumeClaim clone-1 whose dataSource names the existing claim data-src is picked up by the external-provisioner, which holds it against its source row by row, the same namespace, the source Bound and not being deleted, the same volumeMode and at least the source size, while the StorageClass may differ if it names the same driver, then calls CreateVolume so the storage backend makes an exact duplicate server-side with no VolumeSnapshot object in between, after which clone-1 binds and keeps its copy when data-src is deleted',
+  'aria-label': 'Cloning a PVC: a new PersistentVolumeClaim clone-1 whose dataSource names the existing claim data-src is picked up by the external-provisioner, which holds it against its source row by row (the same namespace, the source Bound and not being deleted, the same volumeMode, at least the source size, and a StorageClass that may differ if it names the same driver). The provisioner then calls CreateVolume so the storage backend makes an exact duplicate server-side with no VolumeSnapshot object in between. After that clone-1 binds and keeps its copy when data-src is deleted',
   parts: [
     P.defs(),
     P.node({ key: 'frame', x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'Storage backend' }),
@@ -161,7 +161,7 @@ export const STEPS_SPEC = [
   {
     id: 'copy',
     duration: 4600,
-    narration: 'Every row passes, so the provisioner calls CreateVolume on the driver with the source volume as content. The backend makes an exact duplicate server-side, grown to 20Gi, which CSI lets a driver refuse. No VolumeSnapshot object is created, and on Ceph RBD no data passes through a Node.',
+    narration: 'Every row passes, so the provisioner calls CreateVolume on the driver with the source volume as content. The backend makes an exact duplicate server-side, grown to 20Gi, a growth CSI lets a driver refuse. No VolumeSnapshot object is created, and on Ceph RBD no data passes through a Node.',
     chipsCued: chips('Pending'),
     sublabels: { srcHead: 'the source claim' },
     wires: { callCap: 'CreateVolume', copyCap: 'exact duplicate' },
@@ -204,7 +204,7 @@ export const STEPS_SPEC = [
   {
     id: 'independent',
     duration: 3400,
-    narration: 'Nothing links the two afterwards: dataSource only seeded the volume. Delete data-src, and since its class reclaims with Delete its volume goes too, yet clone-1 keeps its copy untouched. That is the line against a snapshot restore: no VolumeSnapshot stays between them to restore from again.',
+    narration: 'Nothing links the two afterwards: dataSource only seeded the volume. When data-src is deleted, its volume goes too, since its class reclaims with Delete, yet clone-1 keeps its copy untouched. Unlike after a snapshot restore, no VolumeSnapshot stays between them to restore from again.',
     chipsCued: chips('Bound'),
     sublabels: { srcHead: 'deleted' },
     opacity: stage({ clone: 1, cloneDisk: 1, cloneRel: 1, src: OPACITY.terminated }),

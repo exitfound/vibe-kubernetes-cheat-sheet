@@ -3,8 +3,8 @@
 ### layout
 
 ```
-WHAT     The Kubelet as a CRI client: containerd materialises the pause container, pulls, creates
-         and starts, and CNI wires the sandbox namespace.
+WHAT     The Kubelet as a CRI client: containerd makes the netns, CNI wires it, pause starts, then
+         the Kubelet pulls, creates and starts the app inside that sandbox.
 DEVIATES L-03: the top row is 3 x 232 + 2 x 60 right-aligned on 1140, so the Kubelet starts at
          324, behind the panel at 1100x800 by 36 units. No glyph is lost.
          L-08a: the ladder is 430 wide and the chips start at 620, not LAYOUT.A. The 490..620
@@ -22,10 +22,9 @@ DEVIATES L-03: the top row is 3 x 232 + 2 x 60 right-aligned on 1140, so the Kub
          P-02: `status` reports the newest milestone, sandbox then image then container. The Pod
          sublabel keeps the IP after `cni`.
 CONTENT  Sources (v1.36): CRI api.proto, Container Runtimes, Network Plugins, Images, Pod Lifecycle,
-         kuberuntime, the image pull manager, kube_features.go at v1.36.0, docker-nginx Dockerfile
-         1.27.5. Order: sandbox and CNI, PodReadyToStartContainers, then pull, create, start per
-         container in turn. Row 3 `policy can skip`, the skip `unless it pulled that private image
-         with other credentials` (default NeverVerifyPreloadedImages). `No workload container`:
-         pause is one. PID names both fields, `by default` covers hostUsers, Ready names
-         readinessGates, the cgroup lands on Start, never Create.
+         kuberuntime, image pull manager, kube_features.go, containerd 2.2 sandbox_run.go, nginx 1.30.5.
+         One RunPodSandbox: NewNetNS, CNI, StartSandbox, so pause lands on `cni`, never step 1. Then
+         pull, create, start. `sandbox ready` waits for `cni`. Skip only `unless it pulled that
+         private image with other credentials`. `No workload`: pause is one. PID names both fields,
+         `by default` covers hostUsers, Ready names readinessGates, cgroup on Start.
 ```

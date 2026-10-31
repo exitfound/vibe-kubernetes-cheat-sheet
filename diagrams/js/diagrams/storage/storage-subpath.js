@@ -122,7 +122,7 @@ export const STEPS_SPEC = [
   {
     id: 'subpath',
     duration: 3400,
-    narration: 'The proxy container needs only app.conf, in /etc/nginx next to the files its image ships. A whole-volume mount there would hide them, so it sets subPath: app.conf. When the container starts, Kubelet resolves that path to the v1 file and bind-mounts the file itself.',
+    narration: 'The proxy container needs only app.conf, and in /etc/nginx, next to the files its image ships. Mounting the whole volume there would hide those files, so proxy sets subPath: app.conf. When the container starts, Kubelet resolves that path to the v1 file and bind-mounts the file itself.',
     chipsCued: { ...MOUNTS, proxyReads: 'app.conf v1', webReads: 'app.conf v1' },
     sublabels: { proxyBox: 'reads app.conf v1', webBox: 'reads app.conf v1' },
     opacity: STAGE,
@@ -134,7 +134,7 @@ export const STEPS_SPEC = [
   {
     id: 'update',
     duration: 5000,
-    narration: 'The ConfigMap changes. Kubelet does not edit the files in place: on its next sync it writes the new version into a fresh v2 directory, flips ..data to point at it, then deletes the v1 directory.',
+    narration: 'The ConfigMap changes, but Kubelet does not edit the files in place. On its next sync it writes the new version into a fresh v2 directory, flips ..data to point at that directory, then deletes the v1 directory.',
     chipsCued: { ...MOUNTS, proxyReads: 'app.conf v1', webReads: 'app.conf v1' },
     labels: GONE_LABEL,
     sublabels: { proxyBox: 'reads app.conf v1', webBox: 'reads app.conf v1', ...GONE_SUB },
@@ -162,7 +162,7 @@ export const STEPS_SPEC = [
     id: 'dir-v2',
     // The payoff beats hold past the Pod blink so the split can be read off the ledger.
     duration: 4000,
-    narration: 'The web container reads app.conf again. Its path still runs through ..data, so the same read now resolves into the v2 directory and web gets the new config without a restart.',
+    narration: 'The web container reads app.conf again. Its path to the file still runs through ..data, so the same read now resolves into the v2 directory and web gets the new config without a restart.',
     chipsCued: { ...MOUNTS, proxyReads: 'app.conf v1', webReads: 'app.conf v2' },
     labels: GONE_LABEL,
     sublabels: { proxyBox: 'reads app.conf v1', webBox: 'reads app.conf v2', ...GONE_SUB },
@@ -176,7 +176,7 @@ export const STEPS_SPEC = [
     id: 'pinned',
     // The payoff beats hold past the Pod blink so the split can be read off the ledger.
     duration: 4000,
-    narration: 'Proxy reads app.conf too. Its bind mount never goes through ..data and still holds the v1 file, readable although its directory is deleted, so proxy gets v1. The docs say it for ConfigMap, Secret, downward API and projected volumes: a subPath mount does not receive updates. Proxy sees v2 once its container restarts and Kubelet resolves the path again.',
+    narration: 'Proxy reads app.conf too. But its bind mount never goes through ..data and still holds the v1 file, readable although its directory is deleted. So proxy gets v1. For ConfigMap, Secret, downward API and projected volumes alike, the docs say a subPath mount does not receive updates. Proxy sees v2 once its container restarts and Kubelet resolves the path again.',
     chipsCued: { ...MOUNTS, proxyReads: 'still app.conf v1', webReads: 'app.conf v2' },
     labels: GONE_LABEL,
     sublabels: { proxyBox: 'still reads app.conf v1', webBox: 'reads app.conf v2', ...GONE_SUB },

@@ -115,7 +115,7 @@ export const STEPS_SPEC = [
   {
     id: 'arrive',
     duration: 4400,
-    narration: 'The client opens the connection to the edge, an Ingress or Gateway proxy Pod. Its packets carry the real source address, 198.51.100.9, and they arrive unchanged only because nothing on the way rewrote them. That is the assumption everything below rests on.',
+    narration: 'The client opens the connection to the edge, an Ingress or Gateway proxy Pod. Its packets carry the real source address, 198.51.100.9, and they arrive unchanged only because nothing on the way rewrote them.',
     chips: {
       ...L_QUIET, rSrc: 'none', rXff: 'none', rPre: 'none',
       readsChip: 'none', ipChip: 'seen at the edge', modeChip: 'L7 proxy',
@@ -137,7 +137,7 @@ export const STEPS_SPEC = [
   {
     id: 'terminate',
     duration: 4400,
-    narration: 'The edge does not forward those packets. It ends that connection and opens a new one of its own to the backend, so what the app receives is sourced from the proxy Pod, 10.244.0.9. Compare the two src rows: read from the socket, the client address is gone.',
+    narration: 'The edge does not forward those packets. It ends that connection and opens a new one of its own to the backend, so what the app receives is sourced from the proxy Pod, 10.244.0.9. The two src rows show it: read from the socket, the client address is gone.',
     chips: {
       ...L_QUIET, rSrc: '10.244.0.9', rXff: 'none', rPre: 'none',
       readsChip: 'socket', ipChip: 'lost', modeChip: 'L7 proxy',
@@ -173,7 +173,7 @@ export const STEPS_SPEC = [
   {
     id: 'forge',
     duration: 6400,
-    narration: 'A header is only data, and the client can send an X-Forwarded-For of its own claiming any address. An edge that keeps what arrived appends what it saw, so the row becomes a list: the forged value first, the address your own edge saw last. Trust that list from its last entry inwards.',
+    narration: 'A header is only data, and the client can send an X-Forwarded-For of its own claiming any address. An edge that keeps what arrived appends what it saw, so the row becomes a list with the forged value first and the address your own edge saw last. Trust that list from its last entry inwards.',
     chips: {
       lSrc: '198.51.100.9', lXff: '192.0.2.1', lPre: 'none',
       rSrc: '10.244.0.9', rXff: '192.0.2.1, 198.51.100.9', rPre: 'none',

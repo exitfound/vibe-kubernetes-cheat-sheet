@@ -17,7 +17,7 @@ export const CARDS = [
     title: 'Flat Pod Network Model',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'What does Kubernetes promise about the network? The model is one flat address space: every Pod gets a cluster-unique IP, any Pod reaches any other Pod on any Node with no NAT so the real source IP is preserved barring intentional segmentation, and the model promises the Node agent the Pods on its own Node. Only a few parts of this live in the core, the container runtime implements the model, almost always through a CNI plugin like Calico, Cilium or Flannel.',
+    desc: 'A Pod on one Node reaches a Pod on another with no address translation, so the receiver sees the real sender IP. What does the network model promise, what part of it is Kubernetes, and who does the rest?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -30,7 +30,7 @@ export const CARDS = [
     title: 'IPAM and Pod CIDR Allocation',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'How does every Pod in the cluster end up with a unique IP and no clashes? The cluster starts from one large pod CIDR, and the controller-manager, whenever it is started with --allocate-node-cidrs, carves a smaller non-overlapping slice out of it for each Node into node.spec.podCIDR. A CNI IPAM that uses that field then hands out addresses only from its own Node slice, which keeps every Pod IP unique cluster-wide and keeps routing down to a single route per Node.',
+    desc: 'Pods on many Nodes take IPs from one cluster range at once, yet no two get the same address. Who keeps two Nodes from handing out one IP, where does each Pod IP come from, and when does a Node get its range?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -44,7 +44,7 @@ export const CARDS = [
     title: 'Service CIDR and ClusterIP Allocation',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'Where does a Service ClusterIP come from when nobody assigns it? One ServiceCIDR object declares the range, and the allocator in the API server reads it as two bands: it draws from the dynamic band and falls back to the static one only when that runs out, so kube-dns on 10.96.0.10 is not reserved, only unlikely to be taken. The allocation is a write, an IPAddress object named after the address, and a second ServiceCIDR grows the range with nothing restarted.',
+    desc: 'You create a Service with no clusterIP set, and it still gets a virtual IP no other Service holds. Who picks it, what stops two Services from landing on one address, and what happens when the range fills up?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -59,7 +59,7 @@ export const CARDS = [
     title: 'Dual-Stack IPv4 and IPv6',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'What changes when a cluster runs IPv4 and IPv6 side by side? The CNI gives each Pod it wires one address per family on the same eth0, and a Service set to ipFamilyPolicy PreferDualStack gets one ClusterIP per family, ordered by ipFamilies. Where only one family exists, PreferDualStack falls back to a single ClusterIP while RequireDualStack fails the Service outright. A client resolves both A and AAAA records and connects over whichever family it prefers.',
+    desc: 'A cluster runs IPv4 and IPv6 side by side, and one Pod answers on an address of each family. How do Pods and Services get two addresses, which one does a client end up using, and where does each of them lead?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -73,7 +73,7 @@ export const CARDS = [
     title: 'Network Namespaces',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'What makes a Pod IP feel like a separate machine? A network namespace is a private copy of the Linux network stack, with its own interfaces, routing table, iptables rules and port space, invisible to every other Pod. Unless hostNetwork is set, the runtime creates one and the pause container holds it, and one veth pair is normally the only door out of it. A deleted Pod takes the namespace with it, so nothing of that stack outlives it on the Node.',
+    desc: 'A Pod usually acts like a separate machine, with its own address, routes and free ports. What gives a Pod this network stack, what does its second container get, and what is left of the stack once the Pod is deleted?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -88,7 +88,7 @@ export const CARDS = [
     title: 'kube-proxy: iptables vs IPVS',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'How does kube-proxy pick a backend, and why does the mode matter at scale? In iptables mode a packet to a ClusterIP walks KUBE-SERVICES into a per-Service chain that picks an endpoint by probability, then a per-endpoint chain DNATs it to the Pod. IPVS mode makes the same choice with an in-kernel hash table, trading the rule walk for constant-time lookup, though v1.35 deprecates it in favour of nftables. Either mode turns the ClusterIP into one chosen backend.',
+    desc: 'A cluster grows to thousands of Services, and in some kube-proxy modes each one can slow new connections. How do the iptables and IPVS modes find a backend, and what replaces the deprecated IPVS?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -101,7 +101,7 @@ export const CARDS = [
     title: 'Rule Resync and minSyncPeriod',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'How long after a Pod dies do the rules sending traffic to it disappear? Every Node runs a kube-proxy unless you replaced it, and it watches Services and EndpointSlices, not Pods, batching changes behind minSyncPeriod instead of rewriting the kernel per event, so deleting a 100-Pod Deployment costs about five updates, not a hundred. Staleness is the price, because one change can wait a full minSyncPeriod, while syncPeriod drives the cleanup no single change triggers.',
+    desc: 'A Pod has been deleted, yet for a short while kube-proxy rules can still send traffic to its old address. How long do those rules live on, what finally rewrites them, and what does the cluster gain by the wait?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -114,7 +114,7 @@ export const CARDS = [
     title: 'Connection Tracking and NAT',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'A connection is more than one packet, so how does NAT remember the backend it picked? The first packet matches no entry and walks the NAT rules, and conntrack stores it as one entry with an original and a reply tuple. Every later packet is translated straight off that entry, no rule read, and the reply is what flips it to ESTABLISHED. That is why a flow sticks to one backend while the entry lives, and why a busy Node can exhaust its conntrack table.',
+    desc: 'NAT rules on a Node send a new Service connection to one Pod, later packets usually follow, and replies come from the Service IP. How is the choice remembered, why do they skip NAT, and what limits that memory?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -127,7 +127,7 @@ export const CARDS = [
     title: 'The Netfilter Path a Packet Takes',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'Why must the DNAT that kube-proxy programs run before routing? A packet enters at PREROUTING, where conntrack records the flow and the nat table rewrites the Service address to a backend Pod, and only then does routing run, on the rewritten address. That decision is a fork: an address the Node owns goes to INPUT, everything else to FORWARD and POSTROUTING, where MASQUERADE waits. The reply is untangled by conntrack, walking no Service rule.',
+    desc: 'A packet from a Pod to a Service ClusterIP enters the Node kernel, which swaps its destination for a real Pod IP. Which netfilter hooks does it pass, why must that precede routing, and what happens to the reply?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -142,13 +142,14 @@ export const CARDS = [
     title: 'eBPF Dataplane',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'How does an eBPF dataplane route Services without iptables? The CNI agent attaches eBPF programs to kernel hooks and keeps Service and endpoint state in BPF maps. A connection to a ClusterIP is then looked up in constant time and rewritten to a backend at the socket, before the first packet is built: connect-time load balancing, not per-packet DNAT. As the agent implements Services itself, kube-proxy and its iptables chains can be removed entirely.',
+    desc: 'Some clusters route traffic to Services with no kube-proxy running and not one Service rule in iptables. What does the work instead, when is the backend picked, and why does it stay fast in big clusters?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
       { label: 'Virtual IPs and Service Proxies', href: 'https://kubernetes.io/docs/reference/networking/virtual-ips/' },
       { label: 'Cluster Architecture: kube-proxy', href: 'https://kubernetes.io/docs/concepts/architecture/#kube-proxy' },
       { label: 'Kubernetes Without kube-proxy (Cilium 1.19)', href: 'https://docs.cilium.io/en/v1.19/network/kubernetes/kubeproxy-free/' },
+      { label: 'Enabling the eBPF data plane (Calico)', href: 'https://docs.tigera.io/calico/latest/operations/ebpf/enabling-ebpf' },
       { label: 'eBPF', href: 'https://ebpf.io/what-is-ebpf/' },
     ],
   },
@@ -157,7 +158,7 @@ export const CARDS = [
     title: 'Packet Classification by Destination',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'A Pod sends to one address, so which machinery picks the packet up? The destination decides, because in the default iptables proxy mode two stations stand between the Pod and the wire in a fixed order. The nat table owns the Service range and rewrites a Service address to a backend Pod, then the route lookup sorts the result into the Pod range, routed to the Node owning that slice, or into no cluster range, taken by the default route and masqueraded to the Node IP.',
+    desc: 'A Pod sends a packet to one address, and the address alone decides if it goes to a Service, another Pod or the internet. What tells the three apart, in what order are the checks made, and what is done to each?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -171,7 +172,7 @@ export const CARDS = [
     title: 'How a NetworkPolicy Blocks a Pod',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'Every Pod can reach every Pod, so how do you stop one? A NetworkPolicy that selects a Pod for a direction raises a boundary on that Pod in that direction, and from then on everything it does not explicitly allow is dropped there. A connection has to clear a boundary at each end, the egress of the sender and the ingress of the receiver, and the network plugin is what raises them, so a policy nothing implements raises nothing.',
+    desc: 'By default any Pod can reach any other, and now a database must take calls from the web Pods alone. What stops all the others, where does a refused call die, and who actually enforces the rule you wrote?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -184,7 +185,7 @@ export const CARDS = [
     title: 'Containers Share Localhost',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'Why can an app and its sidecar reach each other over 127.0.0.1 with no network in between? Every container in a Pod joins the same network namespace, so they stand on the same loopback and the same eth0 and bind their ports in a single shared space. A loopback call never leaves the Pod, a bind of a pair another container holds comes back as address already in use, and from outside the Pod is one host whose container on that port answers.',
+    desc: 'An app and its sidecar run as separate containers, yet they talk over localhost and can clash over the same port. What exactly do the containers of one Pod share, and what does each of them still keep to itself?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -197,7 +198,7 @@ export const CARDS = [
     title: 'hostNetwork and hostPort',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'What are the two fields that put a Pod on the Node address itself? With hostNetwork true the Pod gets no network namespace of its own, no veth and no Pod IP, and binds the Node interfaces directly, which is how kube-proxy and a CNI agent run. A hostPort gives up far less: the Pod keeps its namespace, its IP and its veth, and the portmap plugin only adds a port mapping. Both spend a Node port, so only one such replica runs per Node.',
+    desc: 'Some Pods, like kube-proxy, answer right on their Node address via the field hostNetwork or hostPort. How does each field do it, what does the Pod give up, and why can no second copy run on that Node?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -211,7 +212,7 @@ export const CARDS = [
     title: 'Wiring a Pod via CNI',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'Who actually runs the CNI plugins, and in what order? The Kubelet asks the CRI runtime for a Pod sandbox, then the runtime, not the Kubelet, reads the plugin list from /etc/cni/net.d and runs each as an executable, handing every one after the first the previous result as prevResult. The bridge plugin delegates addressing to its own host-local IPAM plugin, the last plugin prints one result of interfaces, addresses, routes and DNS, and DEL runs the list in reverse.',
+    desc: 'A new Pod starts with only a loopback, and a moment later it has an address, a route and a working interface. Who sets it all up for the Pod, in what order, and who takes it apart again when the Pod is deleted?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -225,7 +226,7 @@ export const CARDS = [
     title: 'Pod IP and the veth Pair',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'What is a veth pair, and where does a Pod IP actually live? A veth pair is one virtual link with two ends, and in a Pod they stand in two different network namespaces: eth0 inside the Pod, and its peer in the Node root namespace, enslaved to the cni0 bridge and carrying no address of its own. The address sits on the Pod end because a namespace is what holds an address, which is why the pair and the IP are allocated per Pod and never per container.',
+    desc: 'Inside a Pod the network interface has an address, yet it is only one end of a virtual cable, and the end on the Node has none. How does a packet cross the cable, and why does the IP belong to the Pod, not a container?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -239,7 +240,7 @@ export const CARDS = [
     title: 'Pod-to-Pod on the Same Node',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'How does a packet get from one Pod to another when both run on the same Node? Both draw from the Node podCIDR, so the destination is on-link and the source needs no gateway: ARP resolves the peer MAC through the cni0 bridge, which records the port that answer came in on. The data frame then crosses a veth pair and is switched out that one port at layer 2, with no NAT and no encapsulation anywhere, so the real source IP arrives intact.',
+    desc: 'Two Pods on one Node talk, and with the bridge plugin the packet never touches the network card of the machine. How does it get across, how does the sender find the other Pod, and why is nothing rewritten?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -253,7 +254,7 @@ export const CARDS = [
     title: 'Pod-to-Pod Across Nodes',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'What happens when the destination Pod lives on a different Node? That address is off-subnet, so the route hands the frame to the CNI dataplane. An overlay plugin such as flannel wraps the frame in VXLAN over UDP to the remote Node IP, where the kernel decapsulates it and delivers it through its bridge, while a routed plugin advertises the Pod subnet of each Node so the frame travels unwrapped, trading the MTU overhead for an underlay aware of Pod IPs.',
+    desc: 'A packet goes from a Pod to a Pod on another Node, though the network between Nodes may know only Node addresses. How does it cross, what does an outer header around it cost, and can it go unwrapped?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -268,7 +269,7 @@ export const CARDS = [
     title: 'MTU Overhead and PMTU Blackholes',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'Why does ping keep answering while a large transfer hangs on the same path? A VXLAN outer header spends 50 of the 1500 bytes a link carries, so the CNI sets the Pod eth0 to 1450 and the wrapped frame fits the Node NIC exactly. When one tunnel hop further along the path carries less and the ICMP that would report it is filtered, nothing on the Node ever learns, so small packets keep crossing while large ones disappear.',
+    desc: 'Ping between two Pods answers, yet sending a lot of data between them can hang. Where do the big packets go, why does the sending Node never learn they are too big, and how is it fixed without ICMP?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -283,7 +284,7 @@ export const CARDS = [
     title: 'Pod Egress and SNAT',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'No route on the internet leads back to a Pod IP, so how does a Pod reach the internet and get a reply? On the way out the Node walks its POSTROUTING rules, which exempt ranges such as the pod CIDR and masquerade the rest, rewriting the source to the Node IP and storing the flow in conntrack. The reply comes back to that Node IP and walks no masquerade rule: the stored entry reverses the translation, so the Pod never learns its address changed.',
+    desc: 'A Pod opens a connection to a server on the internet and gets its answer, though no route out there leads back to a Pod address. How does the reply find its way home, and who rewrites the addresses on the way?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -297,7 +298,7 @@ export const CARDS = [
     title: 'ClusterIP, NodePort, LoadBalancer and the Rest',
     category: 'network',
     subcategory: 'services-endpoints',
-    desc: 'Kubernetes has four Service types plus a headless variant, so how do they relate? Three of them stack: ClusterIP is the internal base with a virtual IP, NodePort builds on it by opening the same port on every Node, and LoadBalancer usually builds on NodePort with a balancer from a cloud or an add-on. ExternalName and headless Services get no virtual IP and no Service rules: DNS answers with a CNAME or the Pod IPs, and the client connects by itself.',
+    desc: 'Kubernetes has several kinds of Service, and some get a virtual IP while others are answered by DNS alone. How do they build on each other, which ones open to clients outside the cluster, and which stand apart?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -312,7 +313,7 @@ export const CARDS = [
     title: 'ClusterIP via kube-proxy',
     category: 'network',
     subcategory: 'services-endpoints',
-    desc: 'No Pod owns a ClusterIP and no single host answers for it, so how does traffic to it reach a Pod? The kube-proxy on each Node watches the Service and its EndpointSlices and writes Service rules into the Node dataplane, and those rules, not kube-proxy, DNAT a packet sent to that address to one backing Pod. Connection tracking pins each connection to its backend and rewrites the reply back to the ClusterIP, so the client sees one address.',
+    desc: 'No Pod holds a Service ClusterIP and no single host answers for it, yet each connection to it reaches a Pod behind the Service. Who turns that address into a Pod IP, and why does a connection stay on one Pod?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -325,7 +326,7 @@ export const CARDS = [
     title: 'Debugging Service Traffic',
     category: 'network',
     subcategory: 'services-endpoints',
-    desc: 'A Service exists and its name resolves, so why does the app behind it never get the call? Three links must hold: the selector matches the Pod labels, a matching Pod is Ready (unless publishNotReadyAddresses is set) so the EndpointSlice serves it, and targetPort is the port the container listens on. Break either of the first two and no endpoint is serving, while a wrong targetPort lands where nothing listens. A named targetPort follows the port the Pod declares.',
+    desc: 'The Service exists and its name resolves, yet the app behind it never receives a single request from any client. Where along the path from the name to the Pod does the chain break, and how do you find it?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -339,7 +340,7 @@ export const CARDS = [
     title: 'Service and EndpointSlice',
     category: 'network',
     subcategory: 'services-endpoints',
-    desc: 'A Service is a stable name for a moving set of Pods, so which of them take traffic now? The EndpointSlice controller records the IP of each Pod matching the selector as one endpoint with its conditions, up to 100 per slice by default. When a failing readiness probe turns a Pod Ready=False, the container keeps running and its endpoint turns ready=false unless the Service sets publishNotReadyAddresses, and kube-proxy writes rules for the ready endpoints.',
+    desc: 'Every Pod matches the selector of a Service, yet one of them gets no traffic at all while its container keeps running. Who decides which Pods are serving right now, and how does every Node find out about it?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -353,7 +354,7 @@ export const CARDS = [
     title: 'Terminating Endpoints and Draining',
     category: 'network',
     subcategory: 'services-endpoints',
-    desc: 'When a rolling update deletes a backing Pod, why do requests keep flowing instead of failing? Here the replacement is Ready first, and on deletion the old endpoint turns ready=false and terminating=true, so kube-proxy rewrites the Service rules to send new connections to the ready Pods. A preStop sleep gives that rewrite time to land before SIGTERM, established TCP flows finish on their conntrack entries, and the Pod exits inside its grace period.',
+    desc: 'A rolling update can delete a Pod behind a Service without a single request to it failing, not even a long one that is still running. How does that Pod stop taking new traffic and still finish all of its work in time?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -368,7 +369,7 @@ export const CARDS = [
     title: 'Session Affinity and Traffic Distribution',
     category: 'network',
     subcategory: 'services-endpoints',
-    desc: 'Which backend does a Service connection reach, and can you steer it? By default kube-proxy writes every ready endpoint into the rules and the dataplane picks one per connection, ignoring zones. Two fields change that: sessionAffinity ClientIP pins a client IP to one Pod while that Pod stays in the rules and the client reconnects within 10800s by default, and trafficDistribution PreferSameZone keeps only same-zone endpoints, or all ready ones if that zone has none.',
+    desc: 'Two connections from the same client to one Service can land on Pods in different zones. Which backend does each one reach, how can you steer that choice, and what if the client zone has no ready Pod?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -381,7 +382,7 @@ export const CARDS = [
     title: 'Internal Traffic Cluster vs Local',
     category: 'network',
     subcategory: 'services-endpoints',
-    desc: 'What keeps a call from inside the cluster on the Node it started on? With internalTrafficPolicy Cluster and no trafficDistribution, kube-proxy on each Node writes every ready endpoint into its rules, so a call can be DNAT-ed to another Node. With Local it writes only the endpoints on its own Node, which lets a Pod reach its node-local DaemonSet agent, and it never falls back to another Node, so in iptables mode a Node with no local endpoint left drops the call.',
+    desc: 'A Pod calls a DaemonSet agent through a Service, and the call can land on the agent of another Node across the cluster network. How do you keep it local, and what happens to the call if the local agent is down?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -394,7 +395,7 @@ export const CARDS = [
     title: 'ExternalName and Services without Selectors',
     category: 'network',
     subcategory: 'services-endpoints',
-    desc: 'Most Services front Pods picked by a selector, so how do the two kinds without one reach outside? An ExternalName Service has no ClusterIP: CoreDNS answers with a CNAME and the client connects by itself, while TLS SNI and HTTP Host still carry the in-cluster name the server may not recognize. A selectorless Service keeps its virtual IP, and a hand-written EndpointSlice labelled kubernetes.io/service-name lists the address kube-proxy writes rules for.',
+    desc: 'A Service can lead out of the cluster as an ExternalName with a DNS name, or with no selector and hand-set endpoints. How does each reach the server, and why can TLS fail once the ExternalName resolves?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -407,7 +408,7 @@ export const CARDS = [
     title: 'NodePort and LoadBalancer',
     category: 'network',
     subcategory: 'external-traffic',
-    desc: 'How does traffic from outside the cluster reach a Pod? A NodePort opens the same port on every Node, so a client can dial any Node directly, even one with no backend, which by default DNATs the connection and forwards it across the cluster network to a Pod on another Node. A LoadBalancer puts one address in front: the cloud-controller-manager provisions an external balancer that typically forwards to that Node port, and the chosen Node DNATs to a Pod.',
+    desc: 'A client outside the cluster dials a NodePort Service on a Node with none of its Pods, and by default still gets an answer from a Pod on another Node. Who passes the connection on, and what does a load balancer add?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -420,7 +421,7 @@ export const CARDS = [
     title: 'External Traffic Cluster vs Local',
     category: 'network',
     subcategory: 'external-traffic',
-    desc: 'When external traffic lands on a Node, may that Node hand it to a Pod on another Node? With externalTrafficPolicy Cluster it may, so load spreads over every ready Pod, but SNAT replaces the client source IP even when the Node serves it itself. With Local a Node serves only its own Pods and keeps the client IP, drops traffic where it has none until a health check steers the balancer away, and an unweighted balancer splits load per Node, not per Pod.',
+    desc: 'Behind a load balancer the app sees a Node IP by default, not the client. Local instead of Cluster in the Service externalTrafficPolicy fixes that but can load Pods unevenly. What does each value cost?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -434,7 +435,7 @@ export const CARDS = [
     title: 'LoadBalancer without a Cloud',
     category: 'network',
     subcategory: 'external-traffic',
-    desc: 'Who gives a LoadBalancer Service its address when there is no cloud? MetalLB does it in-cluster: its controller allocates an address from a pool the operator declares, and its speakers then have to announce it to the router before any client traffic can arrive. In layer 2 mode one Node answers ARP and gratuitous ARPs move the address when it fails, while in BGP mode every Node advertises it and the router spreads connections by ECMP.',
+    desc: 'On bare metal a LoadBalancer Service just stays pending, as no cloud is there to give it an address. Who hands one out, how does the router learn where it lives, and what happens when the Node that holds it fails?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -449,7 +450,7 @@ export const CARDS = [
     title: 'LoadBalancer Straight to Pods',
     category: 'network',
     subcategory: 'external-traffic',
-    desc: 'How does a load balancer send traffic straight to Pods instead of through Node ports? A balancer implementation that targets Pods reads the Service endpoints, here an EndpointSlice, and registers each Pod IP and port, so a connection needs no second Node hop or Node SNAT, and a replaced Pod is registered at its new address. Setting allocateLoadBalancerNodePorts false then allocates no new Node port unless one is requested, and frees none already allocated.',
+    desc: 'Traffic from a load balancer can hop through a second Node before it reaches a Pod, losing the client address on the way. How can it go straight to the Pods instead, and what happens when one Pod is replaced?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -463,7 +464,7 @@ export const CARDS = [
     title: 'Ingress Controller Routing',
     category: 'network',
     subcategory: 'external-traffic',
-    desc: 'An Ingress on its own does nothing, so what actually serves the traffic? A controller Pod watches the Ingresses of its IngressClass, compiles their rules into proxy config and is usually reached through a Service of its own. It terminates TLS, matches Host and path, longest path wins, and commonly proxies straight to a Ready Pod IP from the EndpointSlice. The Ingress API stays GA but is frozen, and the Kubernetes project recommends Gateway instead.',
+    desc: 'You create an Ingress full of host and path rules, and on its own it serves nothing at all. What receives the traffic then, how does it usually pick a Pod, and what answers a request for a host that no rule names?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -477,7 +478,7 @@ export const CARDS = [
     title: 'Gateway API',
     category: 'network',
     subcategory: 'external-traffic',
-    desc: 'How does Gateway API decide whether a route may use a shared entry point? A GatewayClass names the implementation, a Gateway in the operator namespace admits routes only from its own namespace by default, and an HTTPRoute from another namespace is not Accepted until a listener allowedRoutes admits its namespace. A backendRef into a third namespace also needs a ReferenceGrant there, and until then a rule with no filters and only that backend returns HTTP 500.',
+    desc: 'A team attaches its HTTPRoute to a shared Gateway in another namespace and points it at a Service in a third. Yet the route fails or answers HTTP 500. Whose permissions does it need, and where is each written?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -492,7 +493,7 @@ export const CARDS = [
     title: 'Traffic Splitting with HTTPRoute',
     category: 'network',
     subcategory: 'external-traffic',
-    desc: 'How does a Gateway send a tenth of traffic to a new version? An HTTPRoute rule lists several backendRefs with weights, and each Service gets its weight divided by the sum of the weights whatever its Pod count, while a rule matching a test header can send only tagged requests there first. A backendRef that does not resolve keeps its share, which must get HTTP 500, and a weight of 0 on the old version completes the cutover.',
+    desc: 'A new version of the app is ready, and only a small share of requests should reach it at first, the rest staying on the old one. How does a Gateway split traffic, and what if the new backend vanishes?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -507,7 +508,7 @@ export const CARDS = [
     title: 'Preserving the Client IP',
     category: 'network',
     subcategory: 'external-traffic',
-    desc: 'Why does the backend see the proxy address instead of the real client? An edge proxy ends the connection the client opened and starts one of its own, so the socket names the proxy and the original address survives only if something writes it down. For HTTP that is X-Forwarded-For, which the client can also send, so the header becomes a list to be trusted from its last entry inwards, and for raw TCP the PROXY protocol prepends a preamble the backend must expect.',
+    desc: 'An Ingress or Gateway edge proxy forwards requests to the app from its own address. Where is the client address lost, how can it still arrive, and how far can the app trust a header like X-Forwarded-For?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -522,7 +523,7 @@ export const CARDS = [
     title: 'DNS Resolution via CoreDNS',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'When a Pod connects to a Service by name, who turns that name into an IP? The Kubelet configures a resolv.conf pointing at the kube-dns ClusterIP, so the query reaches a CoreDNS Pod where the plugin chain checks its cache first and falls through to the kubernetes plugin on a miss. That plugin answers the cluster zone from its own watch of Services and EndpointSlices, never querying the API per lookup, and returns an A record holding the ClusterIP.',
+    desc: 'An app connects to a Service by its short name alone, and the name becomes an address though the app knows nothing about DNS servers. Who answers the query, and where does the address come from?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -538,7 +539,7 @@ export const CARDS = [
     title: 'DNS Records and FQDN',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'What decides the shape of the DNS answer a cluster gives back? A Service name is really web.default.svc.cluster.local, built from the Service, its namespace, the literal svc that marks a Service record, and the cluster domain. It returns an A record holding the ClusterIP, or one A record per ready Pod when headless, while a named port publishes SRV under a _http._tcp prefix. With pods enabled in CoreDNS, a Pod is reachable at 10-244-2-7.default.pod.cluster.local.',
+    desc: 'A lookup for a Service can come back as one address, as a list of Pod addresses or with a port attached, and a single Pod can have a name too. What decides the shape of the answer the cluster DNS gives?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -552,7 +553,7 @@ export const CARDS = [
     title: 'Pod DNS Policy and dnsConfig',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'Where does the resolv.conf inside a Pod come from? The Kubelet configures it from its own clusterDNS settings, the resolver file its resolvConf setting names and the Pod spec, and dnsPolicy picks the source: ClusterFirst when unset, Default for the Node file, None for dnsConfig alone. A hostNetwork Pod left on ClusterFirst silently gets the Node file, and dnsConfig merges on top, appending nameservers up to three and overriding options by name.',
+    desc: 'Two Pods in one cluster can resolve the same name differently, because their /etc/resolv.conf files differ. Where do the lines in that file come from, and how much of them can the Pod spec change?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -567,7 +568,7 @@ export const CARDS = [
     title: 'Search Domains and ndots',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'Why can one lookup of an external name like api.example.com cost eight DNS queries from a Pod? With ndots:5 any name with fewer than five dots and no trailing dot is relative, so the resolver tries it with every search domain before trying it as written, and asks for A and AAAA each time. A Service in the same namespace answers on the first candidate, one in another namespace on the second, and a trailing dot skips the search list.',
+    desc: 'A Pod looks up one external name, api.example.com, and the cluster DNS gets eight queries for it, then eight more on the next call. Why does one lookup cost so many, and how do you cut them down to two?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -580,7 +581,7 @@ export const CARDS = [
     title: 'DNS and a Default Deny Egress Policy',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'Why does a Pod stop resolving names the moment it gets an egress policy? Once a NetworkPolicy selects a Pod for Egress, the Pod may open only the connections an egress rule allows, and a lookup to the cluster DNS Service is not one of them until a rule says so, so name resolution fails while the addresses the policy allows still connect. The rule that repairs it selects the DNS Pods by namespace and Pod labels, and it lists port 53 for both UDP and TCP.',
+    desc: 'A Pod gets an egress policy and suddenly stops resolving names, though connections to allowed addresses still go out, so it looks half broken. What is missing, and why does DNS need both UDP and TCP?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -595,7 +596,7 @@ export const CARDS = [
     title: 'NodeLocal DNSCache',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'Why does cluster DNS stall under load, and what does a cache on every Node change? Without one, each lookup from a ClusterFirst Pod is a UDP query that kube-proxy rules DNAT to a CoreDNS Pod, often on another Node, with a conntrack entry per lookup. In iptables mode NodeLocal DNSCache answers that ClusterIP on the Node with no DNAT or conntrack, sends cluster misses to CoreDNS over TCP and other names to Node resolvers, and caches answers for up to 30 seconds.',
+    desc: 'Under load, DNS lookups from Pods can stall for seconds, and some of them end in a timeout. What does a DNS cache on every Node change about the path a lookup takes, and what still goes to CoreDNS?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -609,7 +610,7 @@ export const CARDS = [
     title: 'DNS Horizontal Autoscaling',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'How does a cluster end up running the right number of CoreDNS replicas? When enabled, a separate kube-dns-autoscaler Deployment counts Nodes and their cores on every poll and takes its parameters from a ConfigMap, so nothing here watches CPU the way a HorizontalPodAutoscaler does. Linear mode divides each count by its per-replica figure, rounds up, keeps the larger, clamps it and writes it to the CoreDNS scale subresource. Ladder mode uses step tables instead.',
+    desc: 'A cluster grows from 16 Nodes to 48, and the CoreDNS replica count can grow from 2 to 6 along with it while nobody touches the Deployment. Who decides how many to run, and what does it count to get there?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -623,7 +624,7 @@ export const CARDS = [
     title: 'Headless Service',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'What does a Service with clusterIP None give you instead of a virtual IP? It gets no kube-proxy rules and no load balancing from the platform. A lookup of the Service name returns one A record per ready Pod, and the client connects to a Pod IP it picks itself. Under a StatefulSet each Pod also gets its own name, such as web-0.nginx.default.svc.cluster.local, which follows that replica even when it comes back with a new IP.',
+    desc: 'A StatefulSet replica comes back with a new IP, yet once ready, clients still reach it by the same DNS name. What does a Service with clusterIP None give instead of a virtual IP, and who picks between the replicas?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [

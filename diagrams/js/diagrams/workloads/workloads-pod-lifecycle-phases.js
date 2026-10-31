@@ -73,7 +73,7 @@ const PWIRE_X = RUN_X + RUN_W / 2, PWIRE_Y = RUN_Y - 16;
 
 // Z-order: edges first, then the packet layer, then everything a ball must run under.
 export const SCENE = {
-  'aria-label': 'Pod lifecycle phases: status.phase drawn as a coarse state machine, Pending to Running to a terminal Succeeded or Failed, plus a direct edge from Pending to Failed and a dashed relation from Running back to Pending under a RestartAllContainers rule, and CrashLoopBackOff sits inside Running as a container waiting reason that never moves the phase',
+  'aria-label': 'Pod lifecycle phases: status.phase drawn as a coarse state machine with edges from Pending to Running and from Running to a terminal Succeeded or Failed, a direct edge from Pending to Failed and a dashed relation from Running back to Pending under a RestartAllContainers rule, while CrashLoopBackOff sits inside Running as a container waiting reason and never moves the phase',
   parts: [
     P.defs(),
     // The Failed leg is drawn and never taken on this card, so it carries no arrowhead (A-05).
@@ -160,7 +160,7 @@ export const STEPS_SPEC = [
   {
     id: 'schedule',
     duration: 3300,
-    narration: 'The Pod is bound to a Node, so Kubelet picks it up, creates the sandbox and pulls the image, and the container sits in Waiting with reason ContainerCreating. The status.phase field stays Pending while any container is still waiting for its first start. The machine does not move at all on this step.',
+    narration: 'The Pod is bound to a Node, so Kubelet picks it up, creates the sandbox and pulls the image, and the container sits in Waiting with reason ContainerCreating. The status.phase field stays Pending while any container is still waiting for its first start, so the machine does not move at all here.',
     chips: fields('Pending', CREATING, '0'),
     sublabels: { containerBox: CREATING },
     podSublabels: { podGroup: 'restartPolicy: OnFailure' },
@@ -179,7 +179,7 @@ export const STEPS_SPEC = [
   {
     id: 'running',
     duration: 4300,
-    narration: 'Every container has been created and at least one is running, so status.phase takes its one healthy edge and moves from Pending to Running. A container crash-looping inside the Pod will not move the phase again, however long the loop lasts. A RestartAllContainers rule is the exception, it can send the Pod back to Pending. Running says where the Pod is in its life, not its health.',
+    narration: 'Every container has been created and at least one is running, so status.phase takes its one healthy edge from Pending to Running. A container that crash-loops inside the Pod will not move the phase again, however long that loop lasts. The exception is a RestartAllContainers rule, which can send the Pod back to Pending. Running says where the Pod is in its life, not whether it is healthy.',
     chips: fields('Running', 'Running', '0'),
     sublabels: { containerBox: 'Running · serving' },
     podSublabels: { podGroup: 'restartPolicy: OnFailure' },
@@ -201,7 +201,7 @@ export const STEPS_SPEC = [
   {
     id: 'crashloop',
     duration: 4100,
-    narration: 'The container exits with a non-zero code, Kubelet restarts it inside the same sandbox, and repeated fast failures push it into Waiting with reason CrashLoopBackOff while a backoff timer ticks. CrashLoopBackOff is a container-level waiting reason and never a phase of its own, so it is drawn inside Running. The machine has not moved and status.phase still reads Running.',
+    narration: 'The container exits non-zero, and Kubelet restarts it in the same sandbox. Repeated fast failures push the container into Waiting with reason CrashLoopBackOff while a backoff timer ticks. CrashLoopBackOff is a container-level waiting reason and never a phase of its own, so it is drawn inside Running. The machine has not moved, and status.phase still reads Running.',
     chips: fields('Running', BACKOFF, '4'),
     sublabels: { containerBox: BACKOFF },
     podSublabels: { podGroup: 'restartPolicy: OnFailure' },
@@ -220,7 +220,7 @@ export const STEPS_SPEC = [
   {
     id: 'recover',
     duration: 3600,
-    narration: 'The backoff timer elapses, Kubelet starts the container again and this time it runs, so the container state returns to Running and restartCount records how many restarts it took. The status.phase field never left Running through the whole episode. A reader watching only the phase would have seen nothing happen at all.',
+    narration: 'The backoff timer elapses, Kubelet starts the container again and this time it runs, so the container state returns to Running and restartCount records how many restarts it took. Through the whole episode status.phase never left Running, so a reader watching only the phase would have seen nothing happen.',
     chips: fields('Running', 'Running', '5'),
     sublabels: { containerBox: 'Running · restarted' },
     podSublabels: { podGroup: 'restartPolicy: OnFailure' },
@@ -240,7 +240,7 @@ export const STEPS_SPEC = [
   {
     id: 'terminal',
     duration: 4200,
-    narration: 'The container exits 0 and OnFailure does not restart a success, so every container is Terminated and status.phase becomes Succeeded. Under restartPolicy Never, with no container-level override, a non-zero exit is not restarted and the machine takes the edge to Failed. Both are terminal and absorbing, the Pod will not run again, and the fifth value Unknown was deprecated in 1.22.',
+    narration: 'The container exits 0 and OnFailure does not restart a success, so every container is Terminated and status.phase becomes Succeeded. Under restartPolicy Never with no container-level override, a non-zero exit brings no restart, and the machine takes the edge to Failed. Both are terminal and absorbing. The Pod will not run again. The fifth value, Unknown, was deprecated in 1.22.',
     chips: fields('Succeeded', TERMINATED, '5'),
     sublabels: { containerBox: TERMINATED },
     podSublabels: { podGroup: 'restartPolicy: OnFailure' },

@@ -100,7 +100,7 @@ const LANES = { 0: lane(0), 2: lane(2), 3: lane(3), 4: lane(4) };
 
 // The list order is the z-order: marks, runs and the CronJob sit above the packet layer.
 export const SCENE = {
-  'aria-label': 'CronJob schedule and concurrency: seven five-minute ticks drawn as a time axis, where each tick either creates one Job that runs its own Pod or stays empty for a named reason, skipped by concurrencyPolicy, missed past startingDeadlineSeconds, or held back while the CronJob is suspended, and where the oldest run is later pruned by the history limits',
+  'aria-label': 'CronJob schedule and concurrency: seven five-minute ticks drawn as a time axis, where each tick either creates a Job that runs its own Pod or stays empty for a named reason, skipped by concurrencyPolicy, missed past startingDeadlineSeconds, or held back while the CronJob is suspended, and where the oldest run is later pruned by the history limits',
   parts: [
     P.defs(),
     P.wire({ key: 'req', x: WL.CX, y: WIRE_Y }),
@@ -163,7 +163,7 @@ export const STEPS_SPEC = [
   {
     id: 'create',
     duration: 4500,
-    narration: 'At 12:00 the wall clock matches the schedule, and the controller creates one Job, backup-28394640, from spec.jobTemplate. That Job in turn starts its own Pod. The path is always CronJob then Job then Pod, never CronJob straight to Pod. The numeric suffix is the scheduled time in minutes since the Unix epoch, so a repeated create for one tick collides on the name instead of adding a second run.',
+    narration: 'At 12:00 the wall clock matches the schedule, and the controller creates a Job, backup-28394640, from spec.jobTemplate. That Job in turn starts its own Pod. The path is always CronJob then Job then Pod, never CronJob straight to Pod. The numeric suffix is the scheduled time in minutes since the Unix epoch, so a repeated create for one tick collides on the name instead of adding a second run.',
     chips: chips('created backup-28394640'),
     sublabels: { cronjob: 'schedule evaluator', job0Box: 'Running' },
     wires: { req: 'create Job backup-28394640 · from jobTemplate' },
@@ -183,7 +183,7 @@ export const STEPS_SPEC = [
   {
     id: 'forbid',
     duration: 5400,
-    narration: 'The 12:00 backup is slow and still Running when the 12:05 tick arrives. The spec.concurrencyPolicy field decides what happens to overlapping runs. With Forbid the controller skips this tick and records the Event JobAlreadyActive. The default Allow would let a second Job start alongside the first, and Replace would delete the still-running Job and start a fresh one in its place. Once the 12:00 run finishes, that skipped tick can still start if it is inside startingDeadlineSeconds.',
+    narration: 'The 12:00 run is slow and is still Running when the 12:05 tick arrives. The spec.concurrencyPolicy field decides what happens to overlapping runs. With Forbid the controller skips this tick and records the Event JobAlreadyActive. The default Allow would let a second Job start alongside the first, and Replace would delete the still-running Job and start a fresh one in its place. Once the 12:00 run finishes, that skipped tick can still start if it is inside startingDeadlineSeconds.',
     chips: chips('JobAlreadyActive · 12:05 skipped'),
     sublabels: { cronjob: 'schedule evaluator', job0Box: 'Running' },
     wires: { req: 'concurrencyPolicy=Forbid · skip this tick' },
@@ -193,7 +193,7 @@ export const STEPS_SPEC = [
   {
     id: 'next',
     duration: 4400,
-    narration: 'By 12:10 the 12:00 run has finished, so there is no overlap left to forbid and the schedule simply runs. The 12:10, 12:15 and 12:20 ticks each create a Job of their own, and each of those Jobs starts its own Pod. Runs are never reused and one tick never feeds another: each of these ticks gets a Job of its own, and the skipped 12:05 tick, by now past its deadline, gets none.',
+    narration: 'By 12:10 the 12:00 run has finished, so there is no overlap left to forbid and the schedule runs on. The 12:10, 12:15 and 12:20 ticks each create a Job of their own, and each of those Jobs starts its own Pod. Runs are never reused and no two ticks share a Job. The skipped 12:05 tick, by now past its deadline, gets no Job.',
     chips: chips('created backup-28394660'),
     sublabels: {
       cronjob: 'schedule evaluator', job0Box: 'Succeeded',

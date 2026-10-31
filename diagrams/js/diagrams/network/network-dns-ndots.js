@@ -131,7 +131,7 @@ export const STEPS_SPEC = [
   {
     id: 'resolvconf',
     duration: 4200,
-    narration: 'With the default ClusterFirst policy the Kubelet configures this resolv.conf: the kube-dns Service as nameserver, search domains built from the namespace and the cluster domain, and ndots:5. A name with fewer than 5 dots counts as relative, so the resolver tries it with every search domain first and as written last. Any search domains of the Node are appended after them.',
+    narration: 'With the default ClusterFirst policy the Kubelet configures a resolv.conf where the nameserver is the kube-dns Service, search domains come from the namespace and the cluster domain, and ndots:5 is set. A name with fewer than 5 dots counts as relative, so the resolver tries it with every search domain first and as written last. Node search domains, if any, go last in the list.',
     chips: { ...IDLE_ROWS, namesChip: '0', queriesChip: '0', ...RESOLV },
     lit: ['rcNS', 'rcNdots', ...TRY_KEYS],
     // No cue names the resolver box, so the static path shows here the pulse it cannot play.
@@ -150,7 +150,7 @@ export const STEPS_SPEC = [
   {
     id: 'crossns',
     duration: 8200,
-    narration: 'The name api.shop has one dot, still under 5. The first candidate, api.shop.default.svc.cluster.local, does not exist and comes back NXDOMAIN. The second, api.shop.svc.cluster.local, is that Service in the shop namespace and answers. This is what the search list is for: a name relative to the cluster resolves without its full suffix.',
+    narration: 'The name api.shop has one dot, still under 5. The first candidate, api.shop.default.svc.cluster.local, does not exist and comes back NXDOMAIN. The second, api.shop.svc.cluster.local, is that Service in the shop namespace, and this time an answer comes back. The search list exists so that a name relative to the cluster resolves without its full suffix.',
     ...endState(CROSS, CROSS_TRIES),
     reducedLit: ['podBox'],
     rewind: REWIND,
@@ -160,7 +160,7 @@ export const STEPS_SPEC = [
     id: 'external',
     // Never below the motion end, or auto-advance clips the walk.
     duration: 13700,
-    narration: 'The name api.example.com has two dots, so it is relative too, and no cluster suffix matches it. Three round trips end in NXDOMAIN before the name as written is asked and answered. Four names and eight queries for a single external lookup, paid again on every call, since the resolver inside the Pod keeps no cache. This is the real cost of ndots:5.',
+    narration: 'The name api.example.com has two dots, so it is relative too, and no cluster suffix matches it. Three round trips end in NXDOMAIN before the name as written is asked and answered. That makes four names and eight queries for a single external lookup, the cost of ndots:5, paid again on every call, since the resolver inside the Pod keeps no cache.',
     ...endState(EXTERNAL, EXTERNAL_TRIES),
     reducedLit: ['podBox'],
     rewind: REWIND,

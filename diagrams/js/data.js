@@ -33,6 +33,11 @@ export const DIAGRAMS = [
   ...STORAGE_CARDS,
 ];
 
+// D-04, S-59: the character band a card desc aims for, English and Russian, never enforced. fit.mjs
+// decides the lines at 1920. A desc fails only past descCap, 1.5 times the mean of its language. tools/pages/build.mjs keeps a desc of this size whole in its meta description and llms.txt.
+export const DESC_CHARS = Object.freeze({ min: 180, max: 220 });
+export const descCap = (texts) => Math.round(1.5 * texts.reduce((sum, t) => sum + t.length, 0) / texts.length);
+
 
 export const CATEGORY_LABEL = byKey('label');
 

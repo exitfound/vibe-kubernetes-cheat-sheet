@@ -53,7 +53,7 @@ const NODE_JOIN_DELAY = 200;                             // Node-4 fades in a be
 
 // Z-order: arrows, wire, board and rules, then lanes and the packet layer, then Nodes, captions, Pods and actors.
 export const SCENE = {
-  'aria-label': 'DaemonSet controller: counts the Nodes whose labels match the Pod template nodeSelector, creates one Pod pinned to each of them, adds a Pod when a Node starts matching, rolls a new image out one Node at a time under updateStrategy, and leaves the Pod of a deleted Node to garbage collection without rescheduling it',
+  'aria-label': 'DaemonSet controller: counts the Nodes whose labels match the Pod template nodeSelector, creates one Pod on each of them pinned to that Node, adds a Pod when a Node starts matching, rolls a new image out one Node at a time under updateStrategy, and does not reschedule the Pod of a deleted Node but leaves it to garbage collection',
   parts: [
     P.defs(),
     P.arrow({ x1: DS_X, y1: REQ_Y, x2: API_EDGE, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }),
@@ -123,7 +123,7 @@ export const STEPS_SPEC = [
   {
     id: 'match',
     duration: 3700,
-    narration: 'The controller reads no replica count, because a DaemonSet has no replicas field. It lists Nodes through the API and matches each one against the nodeSelector in its Pod template. All three Nodes carry logging=enabled, so desiredNumberScheduled counts three. Nothing is running yet.',
+    narration: 'The controller reads no replica count, because a DaemonSet has no replicas field. It lists Nodes through the API and matches each one against the nodeSelector in the DaemonSet Pod template. All three Nodes carry logging=enabled, so desiredNumberScheduled counts three. Nothing is running yet.',
     chips: { desiredChip: '3', currentChip: '0', readyChip: '0', focusChip: 'list Nodes, match the selector' },
     wires: { req: 'list Nodes · match nodeSelector · three of three' },
     opacity: fleet([1, 1, 1, 0], [0, 0, 0, 0], [1, 1, 1, 0], 0, 0),
@@ -160,7 +160,7 @@ export const STEPS_SPEC = [
   {
     id: 'node-join',
     duration: 3200,
-    narration: 'Node-4 joins the cluster, but it carries no logging=enabled label, so the nodeSelector in the Pod template does not select it. The controller sees the new Node object and leaves desiredNumberScheduled at three. Joining the cluster is not what earns a Node a Pod, matching the selector is.',
+    narration: 'Node-4 joins the cluster without a logging=enabled label, so the nodeSelector in the Pod template does not select it, and joining alone earns it no Pod. The controller sees the new Node object and leaves desiredNumberScheduled at three.',
     chips: { desiredChip: '3', currentChip: '3', readyChip: '3', focusChip: 'Node-4 joined, no match, no Pod' },
     wires: { req: 'watch Node added · nodeSelector does not match' },
     // Node-4 stays empty with no tap: a lane nothing is addressed to is an arrowhead over no traffic (A-05).
@@ -205,7 +205,7 @@ export const STEPS_SPEC = [
   {
     id: 'update',
     duration: 6700,
-    narration: 'The image is bumped from fluentd v1 to v2. RollingUpdate with maxUnavailable=1 replaces the Pods one Node at a time: numberReady drops to three while the Pod on Node-1 is recreated, and is back at four once the v2 Pod is Ready. Log collection keeps running on the rest. OnDelete would instead wait until you delete each Pod by hand.',
+    narration: 'The image is bumped from fluentd v1 to v2. RollingUpdate with maxUnavailable=1 replaces the Pods one Node at a time: numberReady drops to three while the Pod on Node-1 is recreated, and is back at four once the v2 Pod is Ready. Log collection keeps running on the other Nodes. OnDelete would instead wait until you delete each Pod by hand.',
     chips: { desiredChip: '4', currentChip: '4', readyChip: '4', focusChip: 'RollingUpdate · maxUnavailable=1' },
     wires: { req: 'delete the v1 Pod on Node-1 · then create v2' },
     // maxUnavailable=1: one Pod down at a time, and the v2 Pod is back before the next Node starts.
@@ -227,7 +227,7 @@ export const STEPS_SPEC = [
   {
     id: 'node-removed',
     duration: 4500,
-    narration: 'Node-2 leaves the cluster and its Node object is deleted, so desiredNumberScheduled drops back to three and the Pod on Node-2 is garbage collected, not recreated elsewhere as a Deployment replica would be. A drain would not have removed it: a drain never evicts running DaemonSet Pods.',
+    narration: 'Node-2 leaves the cluster and its Node object is deleted, so desiredNumberScheduled drops back to three and the Pod on Node-2 is garbage collected, not recreated elsewhere as a Deployment replica would be. A drain would not have removed this Pod, because a drain never evicts running DaemonSet Pods.',
     chips: { desiredChip: '3', currentChip: '3', readyChip: '3', focusChip: 'Node-2 gone, Pod not rescheduled' },
     wires: { req: 'Node-2 removed · delete its Pod · no reschedule' },
     // Node-2, its Pod, caption and tap go together (A-13, A-14).

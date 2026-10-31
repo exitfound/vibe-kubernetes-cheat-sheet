@@ -47,7 +47,7 @@ const PENDING = OPACITY.pending;                         // declared, waiting fo
 
 // List order is z-order: lanes, captions, chips, frame and Pods, the actor, then the packet layer LAST.
 export const SCENE = {
-  'aria-label': 'Node conditions and the taints they create: five conditions read off Node-1, and one control plane block writing two kinds of taint, the four pressure and network conditions each becoming a NoSchedule taint whose lane turns aside into a Pod that stays Pending and never enters the Node, Ready False or Unknown becoming a NoExecute taint whose lane lands on the Node frame itself, after which both web Pods blink and fade away once their default 300 second toleration runs out, and the DaemonSet Pod that tolerates both kinds staying where it is',
+  'aria-label': 'Node conditions and the taints they create. Five conditions are read off Node-1, and one control plane block writes two kinds of taint. The four pressure and network conditions each become a NoSchedule taint whose lane turns aside into a Pod that stays Pending and never enters the Node. Ready False or Unknown becomes a NoExecute taint whose lane lands on the Node frame itself. After that both web Pods blink and fade away once their default 300 second toleration runs out, and the DaemonSet Pod that tolerates both kinds stays where it is',
   parts: [
     P.defs(),
     P.lane({ key: 'neLane', points: NE_LANE, dim: true, dashed: true }),
@@ -70,12 +70,12 @@ export const SCENE = {
     P.pod({
       key: 'podA', id: 'podA', innerKey: 'podABox',
       x: POD_X(1), y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
-      inner: { ...POD_INNER, label: 'web-0', sublabel: 'nginx:1.27' },
+      inner: { ...POD_INNER, label: 'web-0', sublabel: 'nginx:1.30' },
     }),
     P.pod({
       key: 'podB', id: 'podB', innerKey: 'podBBox',
       x: POD_X(2), y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
-      inner: { ...POD_INNER, label: 'web-1', sublabel: 'nginx:1.27' },
+      inner: { ...POD_INNER, label: 'web-1', sublabel: 'nginx:1.30' },
     }),
     // The Pod a NoSchedule taint keeps out rests at pending, so its lane has a target (C-14, M-24).
     P.pod({
@@ -137,7 +137,7 @@ export const STEPS_SPEC = [
   {
     id: 'pressure',
     duration: 4900,
-    narration: 'MemoryPressure, DiskPressure, PIDPressure and NetworkUnavailable all go True here at once, and the control plane writes a NoSchedule taint for each onto the Node, such as node.kubernetes.io/memory-pressure. The taints spare running Pods (what the Kubelet evicts under pressure is the Node-pressure Eviction card) and hold web-2 out. Being BestEffort is not why: by default a Burstable or Guaranteed Pod gets no memory-pressure toleration either.',
+    narration: 'MemoryPressure, DiskPressure, PIDPressure and NetworkUnavailable all go True here at once, and the control plane writes a NoSchedule taint for each onto the Node, such as node.kubernetes.io/memory-pressure. The taints spare running Pods (what the Kubelet evicts under pressure is the Node-pressure Eviction card) but hold web-2 out. Being BestEffort is not why: by default a Burstable or Guaranteed Pod gets no memory-pressure toleration either.',
     chips: TAINTED,
     wires: { wNS: 'NoSchedule · no matching toleration' },
     opacity: stage(),
@@ -153,7 +153,7 @@ export const STEPS_SPEC = [
   {
     id: 'not-ready',
     duration: 4200,
-    narration: 'Ready False is the one condition whose taint reaches a Pod already there. The control plane writes node.kubernetes.io/not-ready with NoSchedule like the others, and again with NoExecute. Every Pod is given a 300 second toleration for that one unless it sets its own, so web-0 and web-1 go when that runs out, drawn here at once. The Node Failure and Pod Recovery card times it.',
+    narration: 'Ready is the one condition whose taint reaches a Pod already there. At False the control plane writes node.kubernetes.io/not-ready with NoSchedule like the others, and again with NoExecute. Every Pod is given a 300 second toleration for that taint unless it sets its own, so web-0 and web-1 go when it runs out, drawn here at once. The Node Failure and Pod Recovery card times it.',
     chips: { ...TAINTED, readyChip: R_FALSE, effectChip: E_BOTH },
     wires: { wNE: 'node.kubernetes.io/not-ready:NoExecute' },
     opacity: stage({ web: GONE }),
@@ -188,7 +188,7 @@ export const STEPS_SPEC = [
   {
     id: 'daemonset',
     duration: 3000,
-    narration: 'The node-exporter Pod is still there. DaemonSet Pods are created with NoExecute tolerations for not-ready and unreachable, so they are never evicted for those two, and NoSchedule tolerations are added for memory, disk and PID pressure, plus network-unavailable on a hostNetwork Pod like this one.',
+    narration: 'The node-exporter Pod is still there. DaemonSet Pods are created with NoExecute tolerations for not-ready and unreachable, so they are never evicted for those two. NoSchedule tolerations are added for memory, disk and PID pressure, plus network-unavailable on a hostNetwork Pod like this one.',
     chips: { ...TAINTED, readyChip: R_UNKNOWN, effectChip: E_BOTH },
     opacity: stage({ web: GONE }),
     // The effect chip does not move and takes no cue (P-09a).

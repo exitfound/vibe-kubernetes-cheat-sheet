@@ -144,7 +144,7 @@ export const STEPS_SPEC = [
   {
     id: 'classify',
     duration: 3600,
-    narration: 'The API server applies the rule and tags each Pod with its class on status.qosClass. Pod A becomes BestEffort (empty resources). Pod B becomes Burstable (requests only, no limits). Pod C becomes Guaranteed (requests equal limits everywhere). This tag is set once at creation and never changes for the rest of the Pod life.',
+    narration: 'The API server applies the rule and tags each Pod with its class on status.qosClass. Pod A becomes BestEffort (empty resources), Pod B Burstable (requests only, no limits) and Pod C Guaranteed (requests equal limits everywhere). This tag is set once at creation and never changes for the rest of the Pod life.',
     chips: { pod1Chip: 'BestEffort', pod2Chip: 'Burstable', pod3Chip: 'Guaranteed', focusChip: 'status.qosClass written' },
     wires: { req: 'status.qosClass · A=BestEffort · B=Burstable · C=Guaranteed' },
     sublabels: shapes('BestEffort', 'Burstable', 'Guaranteed'),
@@ -161,7 +161,7 @@ export const STEPS_SPEC = [
   {
     id: 'schedule',
     duration: 3900,
-    narration: 'Each Pod is now placed on a Node. The resource fit looks only at requests, ignoring both limits and the QoS class. Pod A asks for nothing, so CPU and memory never block it. Pod B competes for 500m CPU and 256Mi memory. Pod C competes for 1 CPU and 1Gi memory. Once a Node passes the checks, the Pod is bound to it via POST .../pods/{name}/binding.',
+    narration: 'Each Pod is now placed on a Node. The resource fit looks only at requests, ignoring both limits and the QoS class. Pod A asks for nothing, so CPU and memory never block it. Pod B competes for 500m CPU and 256Mi memory, and Pod C for 1 CPU and 1Gi memory. Once a Node passes the checks, the Pod is bound to it via POST .../pods/{name}/binding.',
     chips: { pod1Chip: 'BestEffort', pod2Chip: 'Burstable', pod3Chip: 'Guaranteed', focusChip: 'requests only, not the class' },
     wires: { req: 'POST .../pods/{name}/binding · requests only, not limits' },
     sublabels: shapes('BestEffort · no requests', 'Burstable · 500m / 256Mi', 'Guaranteed · 1 / 1Gi'),
@@ -185,7 +185,7 @@ export const STEPS_SPEC = [
     duration: 6000,
     narration: 'Kubelet on the chosen Node writes the Linux cgroup config for each Pod. The container memory cap (memory.max) and CPU cap (cpu.max) come from limits. Neither Pod A nor Pod B sets any, so neither gets a cap of its own. Kubelet also sets oom_score_adj per container, an offset the OOM killer adds to the kernel score of each process. BestEffort gets 1000 and Guaranteed gets -997, with node-critical Pods on -997 whatever their class, and Burstable in between, scaled by its memory request via 1000 - 1000*(request/capacity) and clamped to 3..999.',
     chips: { pod1Chip: 'BestEffort', pod2Chip: 'Burstable', pod3Chip: 'Guaranteed', focusChip: 'memory.max · oom_score_adj' },
-    wires: { req: 'cgroup v2 · memory.max + cpu.max + oom_score_adj' },
+    wires: { req: 'cgroup v2 memory.max + cpu.max · oom_score_adj' },
     sublabels: shapes('BestEffort · oom_score_adj=1000', 'Burstable · oom_score_adj~scaled', 'Guaranteed · oom_score_adj=-997'),
     opacity: { ...ALL_LIVE },
     lit: ['kubelet', 'focusChip'],

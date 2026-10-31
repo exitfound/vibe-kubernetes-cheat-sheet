@@ -77,7 +77,7 @@ const lane = (points, key) => P.lane({ key, points, dashed: true, dim: true });
 const spec = (cx, key, text) => P.tag({ key, x: cx, y: SPEC_Y, text });
 
 export const SCENE = {
-  'aria-label': 'Reclaim policy decides whether deleting a claim also destroys the real disk behind its PersistentVolume. The external-provisioner copies the policy from StorageClass gp3 onto both volumes as Delete, and an administrator patches the right one to Retain. Both claims are deleted and both volumes go to Released. Under Delete the provisioner calls DeleteVolume, the disk is destroyed and the PV removed. Under Retain it makes no call and the disk survives, but a new claim of the same class is not offered the Released volume and gets a new empty disk instead, and even deleting the retained PV by hand leaves its disk behind in the backend.',
+  'aria-label': 'Reclaim policy decides whether deleting a claim also destroys the real disk behind its PersistentVolume. The external-provisioner copies the policy from StorageClass gp3 onto both volumes as Delete, and an administrator patches the right one to Retain. Both claims are deleted and both volumes go to Released. Under Delete the provisioner calls DeleteVolume, the disk is destroyed and the PV removed. Under Retain the provisioner makes no call and the disk survives. However, a new claim of the same class is not offered the Released volume and gets a new empty disk instead. Even deleting the retained PV by hand leaves its disk behind in the backend.',
   parts: [
     P.defs(),
     P.box({ key: 'delPvc', x: DEL_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-a', sublabel: 'Bound' }),
@@ -184,7 +184,7 @@ export const STEPS_SPEC = [
   {
     id: 'patch',
     duration: 3300,
-    narration: 'The field is not frozen. An administrator runs kubectl patch pv on the right volume and sets its persistentVolumeReclaimPolicy to Retain. Only that one PV changes: the class and every other volume it made keep Delete. This is how you protect the data on a volume before you delete its claim.',
+    narration: 'The field can change later. An administrator runs kubectl patch pv on the right-hand volume and sets its persistentVolumeReclaimPolicy to Retain. Only that one PV changes: the class and every other volume it made keep Delete. This is how you protect the data on a volume before deleting its claim.',
     chipsCued: chips('Bound', 'holds data', 'Bound', 'holds data'),
     sublabels: SUBS('reclaim: Retain'),
     wires: { noCall: '', ret: 'patched to Retain' },
@@ -212,7 +212,7 @@ export const STEPS_SPEC = [
   {
     id: 'delete-branch',
     duration: 4200,
-    narration: 'The external-provisioner reads Delete on the left volume and calls DeleteVolume on the CSI driver. The backend destroys the real disk, and only then is the PV object removed. Convenient for scratch data and unforgiving for anything you meant to keep, because the disk is gone and Kubernetes keeps no copy of it.',
+    narration: 'The external-provisioner reads Delete on the left volume and calls DeleteVolume on the CSI driver. The backend destroys the real disk, and only then is the PV object removed. That suits scratch data and is unforgiving for anything you meant to keep, because the disk is gone and Kubernetes keeps no copy of it.',
     chipsCued: chips('removed', 'deleted', 'Released', 'holds data'),
     sublabels: SUBS('reclaim: Retain', 'Pending', 'deleted'),
     wires: { noCall: '', del: 'disk deleted, PV removed' },
@@ -244,7 +244,7 @@ export const STEPS_SPEC = [
   {
     id: 'retain-branch',
     duration: 3000,
-    narration: 'The same provisioner reads Retain on the right volume and makes no call at all, so the disk and every byte on it survive. The volume stays Released, still carrying the claimRef of a claim that no longer exists, and nothing in the cluster will touch it again on its own.',
+    narration: 'The same provisioner reads Retain on the right-hand volume and makes no call at all, so the disk and every byte on it survive. The volume stays Released, still carrying the claimRef of a claim that no longer exists, and nothing in the cluster will touch it again on its own.',
     chipsCued: chips('removed', 'deleted', 'Released', 'data intact'),
     sublabels: SUBS('reclaim: Retain', 'Pending', 'deleted'),
     wires: { noCall: 'no call', ret: 'nothing touched, data kept' },
@@ -268,7 +268,7 @@ export const STEPS_SPEC = [
     sublabels: SUBS('reclaim: Retain', 'Bound', 'deleted'),
     wires: { noCall: 'no call', del: 'new disk, new PV', ret: 'skipped: still Released' },
     opacity: stage(LEFT_NEW),
-    // The class sends first. The disk and the volume are each revealed by their own ball.
+    // The class sends first. The disk and the volume are each revealed, with its chip, by their own ball.
     lit: ['sc'],
     // The left lanes lead to blocks that do not exist yet, so each fades in as its call departs.
     rewind: {
@@ -286,9 +286,11 @@ export const STEPS_SPEC = [
       laneIn('lDelPolicy', 'mk'),
       F.reveal({ target: 'newDisk', at: 'mk' }),
       F.reveal({ target: 'newSpec', at: 'mk' }),
+      F.reveal({ target: 'newDiskChip', at: 'mk' }),
       F.set({ at: 'mk', chipsCued: { newDiskChip: 'new, empty' } }),
       F.route({ points: W_DEL_STAMP, after: 'mk', name: 'pv', tag: tagL('Delete') }),
       F.reveal({ target: 'newPv', at: 'pv' }),
+      F.reveal({ target: 'newChip', at: 'pv' }),
       F.light({ targets: ['newPv', 'newPvc'], at: 'pv' }),
       F.fade({ target: 'newBound', from: 0, to: 1, dur: REMOVE_MS, at: 'pv', fill: 'forwards', easing: 'ease-out' }),
       // The old disk is passed over the moment the new claim binds elsewhere, so its verdict waits for that.
@@ -299,7 +301,7 @@ export const STEPS_SPEC = [
   {
     id: 'cleanup',
     duration: 3600,
-    narration: 'Clean up by hand: deleting PV ret removes the object, and vol-bbb stays. Under Retain even deleting the PV leaves the disk, while under Delete a PV deleted before its claim still takes its disk once the claim goes. This one has to be deleted in the storage backend, or kept and given a new PV by hand before a claim can use it.',
+    narration: 'Clean up by hand: deleting PV ret removes the object, and vol-bbb stays. Under Retain even deleting the PV leaves the disk, while under Delete a PV deleted before its claim still takes its disk once the claim goes. The disk vol-bbb has to be deleted in the storage backend, or kept and given a new PV by hand before a claim can use it.',
     chipsCued: chips('removed', 'deleted', 'deleted', 'still billed', 'Bound', 'new, empty'),
     sublabels: SUBS('reclaim: Retain', 'Bound', 'deleted'),
     wires: { noCall: 'no call', del: 'new disk, new PV', ret: 'PV gone, disk still there' },

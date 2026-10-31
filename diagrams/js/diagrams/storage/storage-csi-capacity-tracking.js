@@ -76,7 +76,7 @@ const tag = (key, x, y, text, anchor = 'start') => P.tag({ key, x, y, text, anch
 
 // Z-order is the list order: frames, blocks, disks and Pods, the gauges, lanes and captions, chips.
 export const SCENE = {
-  'aria-label': 'CSI storage capacity tracking. Without it the Scheduler picks Node-1 with no view of its free space, the CSI controller then fails to create a 20Gi volume in a pool with 5Gi free, and scheduling starts over and can pick Node-1 again. With capacity tracking on, the external-provisioner in the CSI controller publishes one CSIStorageCapacity object per StorageClass and topology segment to the API server, 5Gi for Node-1 and 50Gi for Node-2, and because storageCapacity is true on the CSIDriver and the class binds WaitForFirstConsumer, the Scheduler checks the claim against them in its filter phase, so Node-1 is filtered out and the volume and the Pod land on Node-2.',
+  'aria-label': 'CSI storage capacity tracking. Without it the Scheduler picks Node-1 blind to the free space there, and then the CSI controller fails to create a 20Gi volume in a pool with 5Gi free. Scheduling then starts over, and the Scheduler can pick Node-1 again. With tracking on, the external-provisioner in the CSI controller publishes one CSIStorageCapacity object per StorageClass and topology segment to the API server, 5Gi for Node-1 and 50Gi for Node-2. Because storageCapacity is true on the CSIDriver and the class binds WaitForFirstConsumer, the Scheduler checks the claim against those objects in its filter phase. So Node-1 is filtered out and the volume and the Pod land on Node-2.',
   parts: [
     P.defs(),
     P.node({ key: 'node1', x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -157,7 +157,7 @@ export const STEPS_SPEC = [
   {
     id: 'blind-pick',
     duration: 3800,
-    narration: 'Without capacity tracking the Scheduler judges Nodes on CPU, memory, affinity and the rest, but not on free storage, and Node-1 wins. It records Node-1 as the selected Node on the claim and waits for a volume there before it binds the Pod. Only 5Gi is free in the Node-1 pool, but nothing tells the Scheduler that.',
+    narration: 'Without capacity tracking the Scheduler judges Nodes on CPU, memory, affinity and the rest, but not on free storage, and Node-1 wins. The Scheduler records Node-1 as the selected Node on the claim and waits for a volume there before it binds the Pod. Only 5Gi is free in the Node-1 pool, but nothing tells the Scheduler that.',
     chipsCued: chips('Pending', 'node-1', 'none', 'waiting for volume'),
     wires: { api: 'no capacity objects yet' },
     opacity: stage({ lanes: ['sel1'], podA: OPACITY.pending }),
@@ -173,7 +173,7 @@ export const STEPS_SPEC = [
   {
     id: 'blind-fail',
     duration: 6300,
-    narration: 'The external-provisioner calls CreateVolume for 20Gi on Node-1, and the driver answers ResourceExhausted because that pool has only 5Gi free. The driver reports topology, so the external-provisioner drops the selected Node and scheduling starts over. With the same inputs it can land on Node-1 again, and the Pod stays Pending.',
+    narration: 'The external-provisioner calls CreateVolume for 20Gi on Node-1, and the driver answers ResourceExhausted because that pool has only 5Gi free. The driver reports topology, so the external-provisioner drops the selected Node and scheduling starts over. With the same inputs the choice can land on Node-1 again, and the Pod stays Pending.',
     chipsCued: chips('Pending', 'none', 'none', 'provision fails'),
     wires: { api: 'no capacity objects yet' },
     opacity: stage({ lanes: ['cv1', 'rex'] }),
@@ -192,7 +192,7 @@ export const STEPS_SPEC = [
   {
     id: 'publish',
     duration: 3500,
-    narration: 'Turn on capacity tracking. The external-provisioner, started with --enable-capacity, calls GetCapacity for each topology segment and publishes one CSIStorageCapacity object per StorageClass and segment, by default only for WaitForFirstConsumer classes. A segment here is one Node: 5Gi for Node-1, 50Gi for Node-2.',
+    narration: 'Now capacity tracking is on. The external-provisioner, started with --enable-capacity, calls GetCapacity for each topology segment and publishes one CSIStorageCapacity object per StorageClass and segment, by default only for WaitForFirstConsumer classes. A segment here is one Node: 5Gi for Node-1, 50Gi for Node-2.',
     chipsCued: chips('Pending', 'none', '2 published', 'rescheduling'),
     opacity: stage({ lanes: ['write'], ledger: 1 }),
     lit: ['ctrl'],
@@ -207,7 +207,7 @@ export const STEPS_SPEC = [
   {
     id: 'filter',
     duration: 4100,
-    narration: 'The Scheduler uses those objects because storageCapacity is true on the CSIDriver, the class binds WaitForFirstConsumer and the claim still needs a new volume. Its filter phase compares the 20Gi claim with maximumVolumeSize when the driver reports it, else with capacity. 20Gi does not fit in 5Gi, so Node-1 is filtered out before scoring and Node-2 is the only candidate.',
+    narration: 'The Scheduler uses those objects because storageCapacity is true on the CSIDriver, the class binds WaitForFirstConsumer and the claim still needs a new volume. In its filter phase the Scheduler compares the 20Gi claim with maximumVolumeSize if the driver reports it, else capacity. 20Gi does not fit in 5Gi, so Node-1 is filtered out before scoring, leaving only Node-2.',
     chipsCued: chips('Pending', 'none', '2 published', 'node-1 filtered out'),
     opacity: stage({ lanes: ['read'], ledger: 1, req: 1, n1: OPACITY.notready }),
     rewind: { opacity: stage({ lanes: ['read'], ledger: 1 }), chips: { resChip: 'rescheduling' } },
@@ -224,7 +224,7 @@ export const STEPS_SPEC = [
   {
     id: 'success',
     duration: 5600,
-    narration: 'The Scheduler records Node-2 as the selected Node, the CSI controller creates the volume in the Node-2 pool, the claim binds, and only then is the Pod bound to Node-2 and started. It finds room on the first try because the Scheduler looked before it picked, though capacity that changes after it was published can still force a retry.',
+    narration: 'The Scheduler records Node-2 as the selected Node, the CSI controller creates the volume in the Node-2 pool, and the claim binds. Only then is the Pod bound to Node-2 and started. Room is found on the first try because the Scheduler checked capacity before it picked. However, capacity that changes after it was published can still force a retry.',
     chipsCued: chips('Running on node-2', 'node-2', '2 published', 'provisioned'),
     opacity: stage({ lanes: ['sel2', 'cv2'], ledger: 1, req: 1, n1: OPACITY.notready, podB: 1, vol: 1 }),
     lit: ['sched', 'ctrl'],

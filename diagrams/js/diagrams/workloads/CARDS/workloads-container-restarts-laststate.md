@@ -14,10 +14,9 @@ DEVIATES WL.L-02: the Node frame is 90..1110, not full width, a row under the na
          C-07: the previous instance rests at 0.4 while the Pod is at 1 and rises to 1 while the
          Pod is at notready, so the product never drops to 0.16 and loses its sublabel.
 CONTENT  Sources (v1.36): Pod lifecycle, core/v1 ContainerStatus, Determine the Reason for Pod
-         Failure, Logging Architecture, Assign Memory Resources. The message is part of Terminated,
-         not a slot. FallbackToLogsOnError needs an empty file AND an error exit. One dead container
-         is kept `by default`. The record leaves the live slot when the Kubelet turns to the
-         restart, not `until the container is started again`. The Kubelet `spots` the death. Codes
-         above 128 `usually` carry a signal. App #3 starts past the 10 minute backoff reset: no wait
-         to draw.
+         Failure, Logging Architecture, Assign Memory Resources, containerd CRI. The message is part
+         of Terminated, not a slot. FallbackToLogsOnError needs an empty file AND an error exit. One
+         dead container is kept `by default`. The record leaves the live slot when the Kubelet turns
+         to the restart. The Kubelet `spots` the death. Codes above 128 `usually` carry a signal,
+         the code narrows and the reason names. App #3 starts past the 10 minute backoff reset.
 ```

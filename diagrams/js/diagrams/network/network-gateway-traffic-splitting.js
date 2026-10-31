@@ -92,7 +92,7 @@ const v1PodX = (i) => V1_X + FRAME_PAD + i * (POD_W + POD_GAP);
 // The list order IS the append order, which is the z-order: frames and Pods, the Gateway with its
 // rule rows, then lanes and labels above them, then the chips, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Traffic splitting with HTTPRoute: a client sends requests to the Gateway shop, whose HTTPRoute holds two rules. The default rule has no match, so it takes every path, and lists weighted backendRefs, drawn as a bar split between Service web-v1 with three Pods and Service web-v2 with one Pod. A second rule matching the header traffic: test sends only tagged requests to web-v2. Each backend gets its weight divided by the sum of the weights, 90 and 10 of 100, whatever its Pod count. If web-v2 did not resolve, its share must get HTTP 500 rather than move to web-v1. Separately, requests to a Service with no ready endpoints should get 503. A weight of 0 on web-v1 sends every request to web-v2',
+  'aria-label': 'Traffic splitting with HTTPRoute: a client sends requests to the Gateway shop, whose HTTPRoute holds two rules. The default rule has no match, so it takes every path, and lists weighted backendRefs, drawn as a bar split between Service web-v1 with three Pods and Service web-v2 with one Pod. A second rule matching the header traffic: test sends only tagged requests to web-v2. Each backend gets its weight divided by the sum of the weights, 90 and 10 of 100, whatever its Pod count. If web-v2 did not resolve, its share must get HTTP 500 rather than move to web-v1. A weight of 0 on web-v1 sends every request to web-v2',
   parts: [
     P.defs(),
     // Each Service fades as ONE unit, its frame and Pods. Its leg stays at full.
@@ -227,7 +227,7 @@ export const STEPS_SPEC = [
   {
     id: 'weights',
     duration: 4600,
-    narration: 'The default rule now lists web-v1 with weight 90 and web-v2 with weight 10. A weight is a proportion, not a percentage: each backend gets its weight divided by the sum, 90 of 100 and 10 of 100, and the sum need not be 100. One request is drawn down each leg, but the split is far from even: whatever the replica counts, the one Pod of web-v2 gets about a tenth of the requests this rule matches, and three Pods share the rest.',
+    narration: 'The default rule now lists web-v1 with weight 90 and web-v2 with weight 10. A weight is a proportion, not a percentage. Each backend gets its weight divided by the sum, 90 of 100 and 10 of 100, and the sum need not be 100. One request is drawn per leg, but the split is far from even, as whatever the replica counts, the one Pod of web-v2 gets about a tenth of the requests this rule matches, and three Pods share the rest.',
     ...stage({}),
     chips: { requestChip: GET, matchedChip: DEFAULT_RULE, weightsChip: NINETY_TEN },
     wires: { r1Label: 'web-v2', w1Label: 'web-v1 · 90', w2Label: 'web-v2 · 10', ifLabel: '' },
@@ -252,7 +252,7 @@ export const STEPS_SPEC = [
   {
     id: 'invalid',
     duration: 5000,
-    narration: 'If instead web-v2 did not resolve, say its Service were deleted, the route would report ResolvedRefs False. The tenth of requests weighted to web-v2 must then get HTTP 500, and so must every request of the header rule, which lists web-v2 alone and has no filters. That tenth is not handed to web-v1, which still serves its 90 of 100.',
+    narration: 'If instead web-v2 did not resolve, say its Service were deleted, the route would report ResolvedRefs False. The tenth of requests weighted to web-v2 must then get HTTP 500, and so must every request of the header rule, which lists web-v2 alone and has no filters. That tenth would not be handed to web-v1, which still serves its 90 of 100.',
     ...stage({ v2: DIM }),
     chips: { requestChip: GET, matchedChip: DEFAULT_RULE, weightsChip: NINETY_TEN },
     wires: { r1Label: 'web-v2 · HTTP 500', w1Label: 'web-v1 · 90', w2Label: 'web-v2 · 10 · HTTP 500', ifLabel: 'if instead web-v2 did not resolve' },

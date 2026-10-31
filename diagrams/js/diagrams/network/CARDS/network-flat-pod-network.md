@@ -17,6 +17,7 @@ CONTENT  Sources: Cluster Networking, The Kubernetes Network Model, Pod Lifecycl
          Rule two keeps the doc's scope: `barring intentional segmentation such as a NetworkPolicy`.
          `Only a few parts` is the doc's. `the network probes`: an exec probe never dials the Pod.
          Pod IPs take one /24 per Node of 10.244.0.0/16, the slices `network-ipam-pod-cidr` carves.
+         Rule one says `not on hostNetwork`: such a Pod shares the Node IP, the doc line is absolute.
 OPEN     The riding tag crosses the band floor twice a step and sweeps the band sublabel on the way
          down: a tag that clears the band label on the rail has to sit outside the band.
          The Node-2 kubelet overhangs into Node-1. Its drop lands inside Node-2, and moving the box

@@ -17,7 +17,7 @@ export const CARDS = [
     title: 'Pod Volume Model',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'What is a Pod volume, and why does a file in it outlive the container that wrote it? A volume is declared once under spec.volumes and belongs to the Pod, and each container that wants it lists it in volumeMounts at a path of its own and optionally read-only, the usual way containers of one Pod share files. An init container can write a file and exit, the app can crash and restart, and an emptyDir like this one keeps the data until the Pod leaves its Node.',
+    desc: 'An init container writes a file and exits, then the app crashes and restarts, yet the other containers of the Pod still find the file. Who does it belong to, and how long does it last while containers come and go?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -30,7 +30,7 @@ export const CARDS = [
     title: 'Where Volume Data Lives',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'A Pod mounts five volumes, so where do their bytes live, and when does each one vanish? A write outside every volume lands in the container writable layer, emptyDir and hostPath sit on the Node storage, a Memory emptyDir sits in Node RAM, a ConfigMap is an API object that Kubelet copies in, and this claim points at network storage off the Node. Where the data lives decides whether it goes with the container, the Pod, the Node, or none of them.',
+    desc: 'A Pod keeps data in its container and five volumes, two emptyDir, a hostPath, a ConfigMap and a PVC. A container restart, a deleted Pod and a lost Node each take a part. Where do these six keep it, and how long?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -44,7 +44,7 @@ export const CARDS = [
     title: 'Container Filesystem Layers',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'Why does a file written in a container vanish when it is replaced, while one under a volume stays? With containerd and its default overlayfs snapshotter the root filesystem is one overlay mount: a file read takes the highest layer holding the path, and every change to that mount lands in the writable upperdir as a new file, a copied-up file or a whiteout. Image layers never change, the upperdir goes when the container is removed, and a volume at /data skips it all.',
+    desc: 'A file written inside a container is gone once that container is replaced by a fresh one from the same image, while a file in its mounted volume stays put. Where did the first file live, and why did it go?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -59,7 +59,7 @@ export const CARDS = [
     title: 'emptyDir Lifecycle',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'What happens to an emptyDir when a container restarts, or when its Pod is replaced on another Node? The Kubelet creates it empty when the Pod is assigned to a Node, every container that mounts it shares it, and a restart keeps it, but once the Pod leaves that Node it is deleted, and a replacement Pod gets a new, empty one. With medium: Memory it is a tmpfs that counts against the memory limit of the container writing to it.',
+    desc: 'A Pod keeps scratch files in its emptyDir through a container restart, but a replacement Pod gets a new, empty one. When is the volume created, when is it thrown away, and what changes if it lives in memory?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -74,7 +74,7 @@ export const CARDS = [
     title: 'hostPath Volumes',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'What does a hostPath volume hand a Pod, and why does it stay on one Node? The Kubelet checks the path by type (unset checks nothing, Directory must exist, DirectoryOrCreate makes it), then the runtime bind-mounts it into the container, so writes land on the Node disk, escape the ephemeral-storage limit and outlive the Pod. A replacement elsewhere finds a different directory or none, and since any path is allowed, Baseline and Restricted Pod Security forbid it.',
+    desc: 'A Pod writes into a directory of its Node, unchecked by its own disk limit, and the files outlive it, but a replacement on another Node finds a different directory or none. Why is the data stuck there?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -87,7 +87,7 @@ export const CARDS = [
     title: 'ConfigMap and Secret as Files',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'How does a ConfigMap or Secret volume change under a running app without showing a half-written file? Kubelet writes the keys the volume asks for as files in a hidden timestamped directory behind the ..data symlink. An update writes the new version beside it, renames a ..data_tmp link over ..data, atomic on Linux, and deletes the old one. It lands on the next Kubelet sync after the cache catches up, the app keeps running, and on Linux a Secret volume is tmpfs.',
+    desc: 'A ConfigMap is updated while the app reads its files from a volume, yet on Linux the app never catches a half-written file, and nobody restarts the app. How does the new version land at once, and how soon?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -103,7 +103,7 @@ export const CARDS = [
     title: 'Downward API Volume',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'How do Pod labels become a file that follows every relabel? Kubelet writes metadata.labels into a downwardAPI volume file, one key="value" line per label, and rewrites it when a label changes, while an env var taken from one label key keeps the value it had when the container started. A subPath mount of the file misses the rewrite. The whole labels or annotations map reaches a container only as a file, and fields such as nodeName, podIP and hostIP only as env.',
+    desc: 'Someone relabels a running Pod, and a file in its container picks up the new labels while an environment variable keeps the old value. Why does only the file follow, and which fields reach the app each way?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -116,7 +116,7 @@ export const CARDS = [
     title: 'Projected Volumes',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'How does one mounted directory hold a ConfigMap key, Pod metadata and a token that renews itself? A projected volume fills one mount from several sources, a ConfigMap, a Secret, downwardAPI, a serviceAccountToken, plus clusterTrustBundle and podCertificate, beta and off by default in 1.36. Kubelet replaces the audience-bound token at 80 percent of its lifetime or after 24 hours and the app re-reads it, while a legacy Secret token never expires.',
+    desc: 'An app reads config, Pod details and a token from one directory, and the token keeps changing on its own, even before it would expire. How do the three sources share one mount, and who renews the token?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -130,7 +130,7 @@ export const CARDS = [
     title: 'Image Volumes',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'How do you hand a Pod a model or toolset without baking it into the app image? An image volume names an OCI image or artifact, and before any container starts Kubelet asks the container runtime to resolve it by its pullPolicy, pulling it if needed with the same credentials as a container image. It is mounted read-only as one directory at the mountPath. A recreated Pod resolves it again, and IfNotPresent reuses the copy on the Node unless other credentials pulled it.',
+    desc: 'A Pod needs the weights of a large ML model or a toolset that ships apart from the app image but must be in place before the app starts. How do you hand it over without baking it in, and how does a newer version reach the Pod?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -143,7 +143,7 @@ export const CARDS = [
     title: 'subPath Mounts',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'Why does a config file mounted with subPath miss an update? A subPath mount places one path from a volume, here one file beside the files an image ships, and Kubelet resolves it when the container starts. The ..data symlink flip that updates a ConfigMap, Secret, downward API or projected volume never reaches that mount, so a whole-directory mount in the same Pod reads v2 while the subPath file stays at v1 until its container restarts.',
+    desc: 'A ConfigMap is updated, and one container of the Pod soon reads the new config while another keeps the old file until a restart, although both mount the same volume. Why does that file miss the update?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -157,7 +157,7 @@ export const CARDS = [
     title: 'Ephemeral Storage Limit Eviction',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'A Pod writes temp files, logs and scratch data to its Node, so why is it evicted while the Node disk is fine? The Kubelet periodically checks usage against limits.ephemeral-storage: a container counts its writable layer and logs, or only logs beside a separate image filesystem, and the Pod adds its disk emptyDir. Over the limit the whole Pod is evicted, not restarted, and stays Failed with reason Evicted while its controller, if any, makes a new one.',
+    desc: 'The Kubelet evicts a Pod for using too much disk, even though the disk on its Node still has plenty of free space. What is that usage measured against, then, and why is the Pod not just restarted in place?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -170,7 +170,7 @@ export const CARDS = [
     title: 'Recursive Read-Only Mounts',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'A volume is mounted readOnly, so why can a container still write under it? On Linux readOnly makes only that one mount read-only, so a tmpfs mounted read-write below a hostPath directory stays writable. Setting recursiveReadOnly: Enabled makes the whole tree read-only, and the API server requires readOnly true and mountPropagation None or unset. Without kernel and runtime support the container does not start, while IfPossible falls back to Disabled.',
+    desc: 'A Pod mounts a Node directory at /data with readOnly: true, yet its container still writes to a read-write tmpfs at /data/tmpfs. What does readOnly cover, and how do you make all mounts under /data read-only?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -183,7 +183,7 @@ export const CARDS = [
     title: 'PVC to PV Binding',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'A PersistentVolumeClaim is a request, not storage, so who hands it a real volume? The binding controller scans the Available volumes, drops the ones too small, of the wrong class or short on access mode, and binds the claim to the smallest one that fits by writing the link on both objects, the volume first. The pairing is exclusive, so with no dynamic provisioner behind the class a second claim like it stays Pending until a matching volume is added.',
+    desc: 'A PVC asks for storage, and out of several free volumes in the cluster only one ends up bound to it, while a second, identical claim stays Pending. Who picks that one volume, and by what rules does it choose?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -196,7 +196,7 @@ export const CARDS = [
     title: 'Default StorageClass',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'A PVC does not name a StorageClass, so where does it get one, and why does storageClassName: "" behave differently from leaving the field out? Left out, the DefaultStorageClass admission plugin writes in the class annotated as default at creation, and if none exists yet the PV binding controller writes it into the still unbound claim once one appears. An empty string asks for no class, so both leave it alone and it binds only to a classless volume.',
+    desc: 'A PVC without storageClassName can still end up with a StorageClass, while one with an empty string there never does. Who writes the class into the first, why not the second, and which wins if two classes are default?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -210,7 +210,7 @@ export const CARDS = [
     title: 'Dynamic Volume Provisioning',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'Binding only works if a matching volume already exists, so what happens when none does? The claim names a StorageClass, the class names a provisioner, and the binding controller copies that name onto the claim for the provisioner to pick up. The provisioner calls CreateVolume on the driver to carve a real disk out of the backend, then writes a PersistentVolume for it that already carries the claimRef. The disk is built to order.',
+    desc: 'A PVC asks for storage that no existing volume can give, and soon a new disk and a PV for it appear. Who builds them, and how does the claim end up bound to that new volume and not to some other one?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -223,7 +223,7 @@ export const CARDS = [
     title: 'Access Modes',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'ReadWriteOnce sounds like one Pod, so why can two Pods share the same volume? Because the mode is per Node, not per Pod: once a block disk is attached to a Node, any Pod there can mount it, while the attach and detach controller refuses a Pod elsewhere with Waiting for detach, formerly Multi-Attach error. ReadWriteOncePod narrows it to one Pod, and ReadWriteMany needs a backend like NFS. ReadOnlyMany is matched at binding and does not make the mount read-only.',
+    desc: 'A ReadWriteOnce disk is used by two Pods at once, yet a third Pod on another Node is refused. What does that mode actually limit, who enforces it, and what does it take to share one volume across several Nodes?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -236,7 +236,7 @@ export const CARDS = [
     title: 'Filesystem vs Block',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'Two claims for identical disks, one field apart, so why does only one come back with a filesystem? The volumeMode field is Filesystem unless you say otherwise, so the CSI node service runs mkfs on a blank device, mounts it, and the container finds a directory. Set it to Block and the raw device is published instead, so fsGroup, subPath and file permissions stop applying. The field is immutable and must match on the claim and its volume.',
+    desc: 'Two PVCs ask for identical disks, yet one container finds a ready directory and the other gets a bare device with no filesystem on it. What makes the difference, and can that be changed later on?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -249,7 +249,7 @@ export const CARDS = [
     title: 'Immediate vs WaitForFirstConsumer',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'Why can a Pod sit in Pending in a multi-zone cluster with a healthy disk right there? With volumeBindingMode Immediate the volume is provisioned the instant the claim exists, in any zone the class allows, and the Pod is stuck if no Node then both fits it and lies in that zone. WaitForFirstConsumer inverts the order so the Scheduler chooses the Node first. The field is set when the class is created, and it prevents this common multi-zone failure.',
+    desc: 'In a cluster spread over several zones, a Pod can sit in Pending even though its disk is healthy and ready. Why does the disk end up where the Pod cannot follow, and how do you make it wait for the Pod instead?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -262,7 +262,7 @@ export const CARDS = [
     title: 'CSI Storage Capacity',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'Why does a Pod get stuck Pending when the local storage pool on its chosen Node is full? Without capacity information the Scheduler picks that Node with no view of its free space, provisioning fails there, and the Node choice is reset so the Pod is placed blind again on the next pass. CSIStorageCapacity objects from a driver that opts in let the Scheduler see free space per topology segment and filter first, on classes that bind WaitForFirstConsumer.',
+    desc: 'The Scheduler can send a Pod to a Node with too little local storage for its volume, so creating the volume fails and scheduling starts over, at times on that Node again. How can the Scheduler see the free space first?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -276,7 +276,7 @@ export const CARDS = [
     title: 'Online Volume Expansion',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'Bumping a PVC to a bigger size grows nothing on its own, so what makes a Pod see more space? The API accepts the edit only if allowVolumeExpansion is true on the StorageClass, then one or two phases run: the external-resizer grows the disk, and Kubelet grows the filesystem, a step a driver may skip on a raw block volume. Where that filesystem grows online the room appears with no restart. Shrinking is refused: no safe general way exists to shrink a live filesystem.',
+    desc: 'You raise the storage request of a PVC from 5Gi to 20Gi, yet for a while df in its Pod still reports 5Gi. What has to happen before the extra room shows up, and why is shrinking it back afterwards refused outright?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -290,7 +290,7 @@ export const CARDS = [
     title: 'PVC Protection Finalizers',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'You run kubectl delete pvc and the claim sits in Terminating, so what is holding it? The kubernetes.io/pvc-protection finalizer, added at creation: while a Pod using the claim still exists the deletionTimestamp is set but the delete never completes, because pulling storage from a running Pod would break it. Terminating is only a display: the phase stays Bound, and only the last consuming Pod leaving frees it. The fix is finding that Pod, even a finished one.',
+    desc: 'A PVC has been deleted, yet it hangs in Terminating with no sign of going away, while the app that still uses it goes on writing to its disk. What is holding it, and what has to leave before the delete can finish?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -303,7 +303,7 @@ export const CARDS = [
     title: 'Reclaim Policy',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'You delete a PVC, so does the disk full of data go with it? One field on the PV decides, copied from the StorageClass when a provisioner makes the volume, Delete unless the class says otherwise, and patchable on a live PV. Delete destroys the backing disk and then the PV object, while Retain touches nothing and leaves an orphan: a new claim of the same class gets a fresh empty disk, and even deleting the PV by hand leaves the old disk in the backend.',
+    desc: 'A PVC is deleted, and sometimes its disk full of data goes with it, while other times the disk stays behind as an orphan nobody uses. What decides which one happens, and how do you keep the disk you need?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -318,7 +318,7 @@ export const CARDS = [
     title: 'PV Lifecycle Phases',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'What does the phase of a PersistentVolume track, and who moves it? The PV controller in kube-controller-manager writes it: a bound claim makes it Bound, a deleted claim makes it Released, as the stale claimRef stays. Under Delete a CSI volume leaves the row once DeleteVolume succeeds, Failed means reclamation failed, for instance when no plugin can delete it, and short of the deprecated Recycle the way back is clearing the claimRef by hand, old data included.',
+    desc: 'The status of a PV changes as claims come and go, and sometimes it sticks in Failed until someone steps in. Who moves it, what does each of its phases mean, and how does a retained volume get back to Available?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -332,7 +332,7 @@ export const CARDS = [
     title: 'Reserving a PersistentVolume',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'How do you hand a retained disk full of data to a new claim, and make sure no other claim grabs it first? An administrator points the claimRef of the Released PV at the new claim by name and namespace, with no UID, so the PV turns Available for that claim alone and the binder skips it for every other claim. The claim names the PV in volumeName with storageClassName set to an empty string and the binder pairs them, while volumeName alone reserves nothing.',
+    desc: 'A disk kept after its PVC was deleted still holds valuable data, and it has to go to one new claim before any other grabs it. How do you reserve a volume like that, and why is naming it in that claim not enough?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -346,7 +346,7 @@ export const CARDS = [
     title: 'CSI Architecture',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'Kubernetes core runs no storage vendor driver of its own, so how does an EBS or Ceph disk get mounted? A CSI driver typically ships in two halves: the controller plugin runs as a Deployment or StatefulSet whose sidecars each watch one kind of object and turn it into gRPC calls, and the node plugin is a DaemonSet that registers with Kubelet. Only the node plugin mounts a filesystem volume for a Pod, and the runtime just binds that mount into the container.',
+    desc: 'A cloud disk or a Ceph volume gets mounted into a Pod, though Kubernetes itself ships no driver for either. Who does the real work, from creating the disk to mounting it, and how does it talk to the cluster?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -360,7 +360,7 @@ export const CARDS = [
     title: 'CSIDriver Object',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'Two CSI drivers serve one Pod, so why does one volume get a VolumeAttachment and an fsGroup change while the other gets Pod info in its mount call instead? Each driver here has a cluster scoped CSIDriver object named exactly after it, whose fields tell the attach-detach controller whether to attach and tell Kubelet whether to pass Pod info and apply fsGroup. A driver with no such object gets the defaults, and attach is required.',
+    desc: 'A Pod mounts a disk and an NFS share through two CSI drivers. Only the disk is attached to the Node, and only the NFS driver is told which Pod the mount is for. Where does the cluster learn how to treat each driver?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -376,7 +376,7 @@ export const CARDS = [
     title: 'Attach and Mount Chain',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'A new claim is not a mounted disk, so what happens between the two? Up to four gRPC calls run in order: CreateVolume makes the disk, ControllerPublishVolume, where attach is required, attaches it to the Node, NodeStageVolume, if the driver stages, formats it if still blank and mounts it once at a global staging path, and NodePublishVolume mounts that into the Pod directory, usually by bind. When its last Pod goes, the other three undo in reverse and the disk stays.',
+    desc: 'A new PVC asks for a cloud disk, and before the app in its Pod can write a byte, the CSI driver is called several times. What does each call do, in what order, and which of them are undone when the Pod is deleted?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -390,7 +390,7 @@ export const CARDS = [
     title: 'VolumeAttachment',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'What records that a disk is attached to a Node, and who writes it? Not Kubelet: for a CSI driver that requires attach, the attach-detach controller writes a VolumeAttachment, and the external-attacher calls ControllerPublishVolume and sets status.attached true. Only then does Kubelet get it mounted. Deleting the object detaches, on a healthy Node once the Pod is gone and Kubelet has unmounted, and the object counts toward the Node attach limit until gone.',
+    desc: 'A cloud disk must be attached to a Node before a Pod mounts it, yet for a CSI volume the Kubelet attaches nothing. Who records the attachment, how does the Kubelet learn it is done, and what detaches the disk?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -405,7 +405,7 @@ export const CARDS = [
     title: 'Mount Namespaces and Propagation',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'How does a mount made inside the CSI node plugin container reach the host and then the app? Each container has its own mount namespace, and the plugin volumeMounts set mountPropagation Bidirectional on the Kubelet directories, so every mount it makes there is repeated in the host list, where a bind mount is the same files at a second path. The app container gets its own bind at /data, private by default, so later host mounts do not reach it.',
+    desc: 'A CSI plugin container mounts a disk on the Node, and the same files show up at /data in the app container of another Pod. How does the mount get there, and which setting lets it out of the plugin container?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -420,7 +420,7 @@ export const CARDS = [
     title: 'CSI Ephemeral Volumes',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'How do you mount a credential from an external store with no PV and no PVC? A CSI volume written inline in the Pod spec goes straight to the CSI node plugin: Kubelet calls NodePublishVolume, the driver creates the volume in that call and deletes it on NodeUnpublishVolume, with no StorageClass, no claim and no attach. Only a driver whose CSIDriver lists the Ephemeral mode may serve it, and since volumeAttributes come from the Pod author, an admin can drop that mode.',
+    desc: 'A Pod needs a credential from an external store mounted as files, with no PV or PVC created for it. How can a driver hand over a volume that lives as long as the Pod, and what in the cluster has to allow it first?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -434,7 +434,7 @@ export const CARDS = [
     title: 'fsGroup and Volume Ownership',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'A freshly formatted volume is owned by root, so why can a non-root container not write to it? The securityContext.fsGroup field names a GID, and on a volume that supports it Kubelet chowns the whole tree to that group before the container starts, unless a CSI driver does it. The default policy Always redoes that walk on every start, which can add minutes on a volume with millions of files. OnRootMismatch skips it once the top directory matches.',
+    desc: 'A non-root container can hit permission denied on its volume, and the usual fix, fsGroup in the Pod, can stretch each Pod start on a big volume to minutes. Who changes the group of the volume files, and how often?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -447,7 +447,7 @@ export const CARDS = [
     title: 'Node Volume Attach Limits',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'Why does a Pod stay Pending on max volume count while every Node has spare CPU and memory? Because a Node can have a second, invisible capacity: how many volumes one CSI driver may have attached at once. The node plugin reports it, Kubelet writes it into CSINode, and the Scheduler rejects any Node the Pod would push past it. If the driver attaches, a slot frees when the detach completes, not when the Pod dies, turning a rollout near the ceiling into a race.',
+    desc: 'A Pod stays Pending, its event saying all three Nodes exceed max volume count, though each still has spare CPU and memory. What limit is that, who sets it, and what has to happen before the Pod is placed?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -460,7 +460,7 @@ export const CARDS = [
     title: 'Multi-Attach Error',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'Why does a Pod hang in ContainerCreating with a Multi-Attach error, worded Waiting for detach since 1.36.4? An RWO disk attaches to one Node at a time, and by default RollingUpdate creates the replacement while the old Pod still holds the attachment. The controller will not write a second VolumeAttachment and the rollout will not remove the old Pod, so each waits on the other. Recreate breaks it by deleting first.',
+    desc: 'During a rollout the new Pod lands on another Node and hangs in ContainerCreating, while the old one still runs with the disk the new one needs. Who is waiting on whom, and what breaks the loop from outside?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -473,7 +473,7 @@ export const CARDS = [
     title: 'Detach on Node Failure',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'When a Node goes NotReady, why does its volume not move to a healthy Node? Nothing contends for it, the wait is on doubt: the old Pod cannot be confirmed dead, and detaching a disk it might still write to risks corruption. After the 300s toleration the Pod is marked for deletion but never confirmed gone, and only once its object is removed does a six minute force-detach clock start. The out-of-service taint skips both waits.',
+    desc: 'A Node stops answering, and its volume stays attached to it for minutes or longer while a replacement Pod waits on a healthy Node. What is the cluster waiting for, and how can an operator cut that wait short?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -488,7 +488,7 @@ export const CARDS = [
     title: 'StatefulSet volumeClaimTemplates',
     category: 'storage',
     subcategory: 'stateful-data',
-    desc: 'Why does every replica of a StatefulSet get its own disk, when Deployment replicas that name a claim all share that one? Each volumeClaimTemplate stamps out one PersistentVolumeClaim per ordinal with a deterministic name like data-web-0. Because that name comes from the Pod identity, a recreated Pod, even on another Node that can reach the volume, mounts the same claim and data. Scaling down leaves the claims behind, as the default retention policy is Retain.',
+    desc: 'Every replica of a StatefulSet gets a disk of its own and, once recreated, finds the same data on it again. How does each Pod find its own claim among the rest, and what stays behind when you scale down?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -503,7 +503,7 @@ export const CARDS = [
     title: 'StatefulSet PVC Retention',
     category: 'storage',
     subcategory: 'stateful-data',
-    desc: 'When a StatefulSet scales down or is deleted, which of its claims survive? The persistentVolumeClaimRetentionPolicy answers with two independent fields, whenScaled and whenDeleted, each Retain, the default, or Delete, and Delete gives the claim an ownerReference, to the removed Pod or to the StatefulSet, so the garbage collector deletes it after its owner. Deleting a claim only releases its PV, whose own reclaimPolicy decides whether the disk goes too.',
+    desc: 'A StatefulSet is scaled down or deleted, and its PVCs either stay behind with their data or get deleted soon after. Who decides that, what does a replica find when you scale back up, and does the disk go too?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -518,7 +518,7 @@ export const CARDS = [
     title: 'Generic Ephemeral Volumes',
     category: 'storage',
     subcategory: 'stateful-data',
-    desc: 'What if you want scratch space that behaves like emptyDir but has a fixed size on a real StorageClass? A generic ephemeral volume is an inline volumeClaimTemplate written on the Pod, and it gets a real PVC, provisioned and mounted like any other claim. Its lifetime is still the Pod: the PVC carries an ownerReference and is collected when the Pod goes, taking the disk with it unless its reclaim policy is Retain. It bridges scratch and the real machinery.',
+    desc: 'A Pod needs scratch space that goes away with it, but the space must have a fixed size on real storage instead of the Node disk. How do you get a volume like that, and what cleans it up after the Pod is gone?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -531,7 +531,7 @@ export const CARDS = [
     title: 'Volume Snapshots',
     category: 'storage',
     subcategory: 'stateful-data',
-    desc: 'How can a snapshot be ready in seconds, and why is it not always a backup? A VolumeSnapshot binds to a cluster-scoped VolumeSnapshotContent the way a PVC binds a PV, and on a copy-on-write backend the snapshot is a frozen map of the volume blocks, so only a block written later is kept twice and a restore gets a new, crash-consistent volume holding the older state. Here the volume, snapshot and restore share one Ceph RBD pool, and losing it loses all three.',
+    desc: 'A snapshot of a busy database volume can be ready in seconds, and it looks like the data is now safe. How can it be that fast, what does a restore from it actually bring back, and when is it not a real backup at all?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [
@@ -547,7 +547,7 @@ export const CARDS = [
     title: 'Cloning a PVC',
     category: 'storage',
     subcategory: 'stateful-data',
-    desc: 'What has to match before Kubernetes will clone a volume? A clone is an ordinary PVC whose dataSource names an existing claim, made only when the two fit: the same namespace and volumeMode, a size at least the source, and a source that is Bound and not being deleted, while the class may differ if its driver is the same. The storage system duplicates the volume server-side with no VolumeSnapshot in between, and afterwards nothing links the clone to its source.',
+    desc: 'A new PVC should start as a full copy of an existing one, but the copy is made only if the two claims line up, and otherwise the new one sits Pending. What has to match, and does anything link them afterwards?',
     k8sVersion: '1.36',
     tinted: true,
     sources: [

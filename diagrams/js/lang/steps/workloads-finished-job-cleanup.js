@@ -1,0 +1,21 @@
+// Russian for workloads-finished-job-cleanup: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "Automatic cleanup for finished Jobs: a Job that has completed and its two Pods stay in the API as records, and the ttl-after-finished controller inside kube-controller-manager deletes the Job once ttlSecondsAfterFinished has elapsed since the completion stamp, taking the Pods with it through their ownerReferences":
+    "Автоматическая очистка завершённых Job: отработавшая Job и два её Pod остаются в API как записи, а контроллер ttl-after-finished внутри kube-controller-manager удаляет Job, когда с отметки завершения пройдёт ttlSecondsAfterFinished, и Pod через свои ownerReferences уходят вместе с ней",
+
+  "Both Pods exit 0, so the Job condition becomes Complete and .status.completionTime is stamped at that instant. Finishing removes nothing. The Job object and both Pods stay in the API by default, so kubectl logs and kubectl describe still answer once the run is over. A CronJob prunes its finished Jobs by count, while a bare Job like this one has no such limit.":
+    "Оба Pod выходят с кодом 0, поэтому Job получает условие Complete и в тот же миг отметку .status.completionTime. Завершение ничего не удаляет. Объект Job и оба Pod по умолчанию остаются в API, так что kubectl logs и kubectl describe отвечают и после окончания запуска. CronJob чистит свои завершённые Job по их количеству, а у отдельной Job вроде этой такого лимита нет.",
+
+  "The ttl-after-finished controller inside kube-controller-manager watches Jobs, and it only looks at ones that have already finished. This Job now reports Complete, so it is picked up, while a Job that is still running is passed over whatever the spec says. With the field at 0, a Job is eligible the moment it finishes. With it unset, this controller never touches the Job.":
+    "Контроллер ttl-after-finished внутри kube-controller-manager следит за Job и смотрит только на уже завершённые. Эта Job теперь сообщает Complete, поэтому контроллер её подхватывает, а ещё работающую Job пропускает, что бы ни было в spec. Если задать поле равным 0, Job можно удалить сразу после завершения. Если же поле не задано, этот контроллер такую Job никогда не трогает.",
+
+  "The timer starts when the Job finishes, not when it was created. With ttlSecondsAfterFinished at 100, the Job becomes eligible for removal 100 seconds after the completion stamp of 12:00:31, which is 12:02:11. It is 12:01:04 now, 33 of those 100 seconds have gone, and nothing happens yet.":
+    "Таймер стартует, когда Job завершается, а не когда её создали. Если поле ttlSecondsAfterFinished равно 100, Job можно удалить через 100 секунд после отметки завершения 12:00:31, то есть в 12:02:11. Сейчас 12:01:04, из этих 100 секунд прошло 33, и пока ничего не происходит.",
+
+  "At 12:02:11 the controller compares its own clock against the timestamp stored in the Job, finds the TTL expired and deletes the Job through the API. That comparison makes the TTL sensitive to time skew: clocks should differ very little, but skew in the cluster can make the control plane clean a Job up at the wrong time.":
+    "В 12:02:11 контроллер сравнивает свои часы с отметкой времени в Job, видит, что TTL истёк, и удаляет Job через API. Из-за этого сравнения TTL чувствителен к рассинхрону часов. В норме часы расходятся совсем немного, но рассинхрон в кластере может заставить Control Plane убрать Job не в то время.",
+
+  "The delete asks for propagationPolicy Foreground, a cascading deletion. Both Pods carry an ownerReference back to Job pi, so the garbage collector deletes them first and removes the Job object only once they are gone. Neither Pod was counted or aged on its own here: they go because their owner is being deleted. The run leaves kubectl get pods and nothing of it remains on the Node.":
+    "Запрос на удаление указывает propagationPolicy Foreground, то есть каскадное удаление. У обоих Pod есть ownerReference на Job pi, поэтому сборщик мусора сначала удаляет их, а объект Job убирает, только когда их уже нет. Ни один Pod здесь не учитывался и не старел сам по себе, а уходят они потому, что удаляется их владелец. Запуск пропадает из kubectl get pods, и на Node от него ничего не остаётся.",
+};

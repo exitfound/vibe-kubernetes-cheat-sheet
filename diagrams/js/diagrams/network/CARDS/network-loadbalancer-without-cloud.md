@@ -11,9 +11,9 @@ DEVIATES NET.L-01: the Pods are 200 by 96. 96 is what the speaker chip stack lea
          M-12: every ball on an elbow leg takes `LEG_DUR` 1400, registered in `PACING`. At the 724
          to 831 of `routeDur` its tag retires before it is read.
          P-03: the `address pool` chip reads from `idle`, declared before anything is allocated.
-CONTENT  Sources: Service type LoadBalancer (v1.36), MetalLB v0.16.0 concepts, layer 2, BGP, source.
+CONTENT  Sources: Service type LoadBalancer (v1.36), MetalLB v0.16.1 concepts, layer 2, BGP, source.
          The controller allocates and the speakers announce: an allocated address is not reachable.
-         The caption is `for Service web`: the pool and the mode are MetalLB objects.
+         `for Service web`: pool and mode are MetalLB objects. A BGP remap breaks `most`, not all.
          `l2` hashes Node and address over the candidates only. `gratuitous ARPs`: a timed burst.
          Failure is seen through memberlist: `unreachable`, not NotReady, `usually` a few seconds.
          `bgp`: `multipath on`, `typically hashes`. The speaker peers per the docs, FRR-K8s or not.

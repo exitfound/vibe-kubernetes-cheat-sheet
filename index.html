@@ -201,8 +201,8 @@
     }
 
     .hub-panel:focus-visible {
-      outline: 1px solid var(--accent-border);
-      outline-offset: -1px;
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
     }
 
     .hub-panel > * { position: relative; }
@@ -315,6 +315,38 @@
       }
     }
 
+    /* A phone held sideways keeps the two panels side by side: stacked, the second one started below
+       the first screen. */
+    @media (max-width: 900px) and (max-height: 500px) and (orientation: landscape) {
+      .hub-split { flex-direction: row; }
+      .hub-panel { flex: 1 1 0; padding: 16px 20px; }
+      .hub-panel + .hub-panel::after {
+        bottom: 0;
+        right: auto;
+        width: 2px;
+        height: auto;
+        background: linear-gradient(to bottom, rgba(221, 202, 250, 0.06), rgba(221, 202, 250, 0.32) 50%, rgba(221, 202, 250, 0.06));
+      }
+    }
+
+    /* Four equal buttons stop fitting a phone once the language switch and the Russian labels are in,
+       so each takes its own width and the switch shows just the current code, as beside a search. */
+    @media (max-width: 480px) {
+      .header-actions { min-width: 0; }
+      .header-actions > * { flex: 1 1 auto; }
+      .header-actions > .action-btn { width: auto; }
+      .header-actions .action-btn { padding: 0 8px; }
+      .header-actions .action-btn svg { flex-shrink: 0; }
+      .lang-btn[data-lang="en"] .lang-opt[data-lang="ru"],
+      .lang-btn[data-lang="ru"] .lang-opt[data-lang="en"] { display: none; }
+      .lang-opt + .lang-opt { margin-left: 0; padding-left: 0; border-left: 0; }
+    }
+
+    /* The narrowest phones keep the labels and drop the icons, or the Russian labels get cut. */
+    @media (max-width: 359px) {
+      .header-actions .action-btn > svg { display: none; }
+    }
+
     @media (max-width: 400px) {
       .hub-panel { padding: 18px 20px; }
       .hub-panel h2 { font-size: 25px; }
@@ -326,27 +358,27 @@
 </head>
 <body class="hub-frame">
 
-  <aside class="sidebar" aria-label="Site switcher">
-    <a class="side-btn active" id="sideHome" data-tooltip="Home" aria-label="Home" aria-current="page" href="/">
+  <aside class="sidebar" aria-label="Site switcher" data-ru-label="Разделы сайта">
+    <a class="side-btn active" id="sideHome" data-tooltip="Home" aria-label="Home" data-ru-tooltip="Главная" data-ru-label="Главная" aria-current="page" href="/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.2 12 4l9 7.2"/><path d="M5.5 9.8V19a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9.8"/></svg>
     </a>
     <span class="side-sep" aria-hidden="true"></span>
-    <a class="side-btn" id="sideCli" data-tooltip="Commands" aria-label="Commands" href="/cli/">
+    <a class="side-btn" id="sideCli" data-tooltip="Commands" aria-label="Commands" data-ru-tooltip="Команды" data-ru-label="Команды" href="/cli/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
     </a>
-    <a class="side-btn" id="sideDiagram" data-tooltip="Diagrams" aria-label="Diagrams" href="/diagrams/">
+    <a class="side-btn" id="sideDiagram" data-tooltip="Diagrams" aria-label="Diagrams" data-ru-tooltip="Диаграммы" data-ru-label="Диаграммы" href="/diagrams/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="7" height="6" rx="1.2"/><rect x="15" y="12" width="7" height="6" rx="1.2"/><line x1="9" y1="9" x2="15" y2="15"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
     </a>
-    <button class="side-toggle" id="sideToggle" type="button" data-tooltip="Hide sidebar" aria-label="Hide sidebar">
+    <button class="side-toggle" id="sideToggle" type="button" data-tooltip="Hide sidebar" aria-label="Hide sidebar" data-ru-tooltip="Скрыть панель" data-ru-label="Скрыть панель">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
   </aside>
-  <button class="side-expand" id="sideExpand" type="button" data-tooltip="Show sidebar" aria-label="Show sidebar">
+  <button class="side-expand" id="sideExpand" type="button" data-tooltip="Show sidebar" aria-label="Show sidebar" data-ru-tooltip="Показать панель" data-ru-label="Показать панель">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
   </button>
 
   <header class="header">
-    <h1 class="sr-only">kube.how, the Kubernetes reference hub with CLI commands and animated architecture diagrams</h1>
+    <h1 class="sr-only" data-ru="kube.how, справочник по Kubernetes: команды CLI и анимированные диаграммы архитектуры">kube.how, the Kubernetes reference hub with CLI commands and animated architecture diagrams</h1>
     <div class="header-inner">
 
       <a class="logo" href="/">
@@ -375,7 +407,7 @@
         </div>
         <div>
           <div class="logo-text">Kubernetes Reference Hub</div>
-          <div class="logo-sub">Commands &middot; Diagrams</div>
+          <div class="logo-sub" data-ru="Команды · Диаграммы">Commands &middot; Diagrams</div>
         </div>
       </a>
 
@@ -400,8 +432,8 @@
       <div class="hub-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
       </div>
-      <h2>Commands</h2>
-      <p>Searchable cheat sheet for kubectl, Helm, Kustomize and K9s. Copy any command in one click.</p>
+      <h2 data-ru="Команды">Commands</h2>
+      <p data-ru="Шпаргалка с поиском по kubectl, Helm, Kustomize и K9s. Любая команда копируется в один клик.">Searchable cheat sheet for kubectl, Helm, Kustomize and K9s. Copy any command in one click.</p>
       <span class="hub-stat" id="hubStatCli"></span>
       <span class="hub-cta">
         kube.how/cli
@@ -413,8 +445,8 @@
       <div class="hub-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="7" height="6" rx="1.2"/><rect x="15" y="12" width="7" height="6" rx="1.2"/><line x1="9" y1="9" x2="15" y2="15"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>
       </div>
-      <h2>Diagrams</h2>
-      <p>Animated diagrams of Kubernetes architecture. Step through control plane, networking, storage and workload flows at your own pace.</p>
+      <h2 data-ru="Диаграммы">Diagrams</h2>
+      <p data-ru="Анимированные диаграммы архитектуры Kubernetes. Пошаговый разбор процессов Control Plane, сети, хранилища и рабочих нагрузок в своём темпе.">Animated diagrams of Kubernetes architecture. Step through Control Plane, networking, storage and workload flows at your own pace.</p>
       <span class="hub-stat" id="hubStatDiagram"></span>
       <span class="hub-cta">
         kube.how/diagrams
@@ -425,13 +457,42 @@
   </main>
 
   <footer class="footer">
-    <p class="disclaimer">Not affiliated with the CNCF or the Kubernetes project.</p>
+    <p class="disclaimer" data-ru="Сайт не связан с CNCF и проектом Kubernetes.">Not affiliated with the CNCF or the Kubernetes project.</p>
     <p>&copy; <span id="year"></span> <a href="/">kube.how</a></p>
   </footer>
+
+  <script>
+    (function () {
+      const PARTS = [['ru', 'en', null], ['ruTooltip', 'enTooltip', 'data-tooltip'], ['ruLabel', 'enLabel', 'aria-label'],
+        ['ruTitle', 'enTitle', 'title'], ['ruPlaceholder', 'enPlaceholder', 'placeholder']];
+      const els = document.querySelectorAll('[data-ru], [data-ru-tooltip], [data-ru-label], [data-ru-title], [data-ru-placeholder]');
+      els.forEach(el => PARTS.forEach(([ru, en, attr]) => {
+        if (el.dataset[ru] != null) el.dataset[en] = attr ? el.getAttribute(attr) : el.innerHTML;
+      }));
+      const apply = (lang) => els.forEach(el => PARTS.forEach(([ru, en, attr]) => {
+        if (el.dataset[ru] == null) return;
+        const v = el.dataset[lang === 'ru' ? ru : en];
+        if (attr) el.setAttribute(attr, v); else el.innerHTML = v;
+        if (lang === 'ru') el.lang = 'ru'; else el.removeAttribute('lang');
+      }));
+      let lang = 'en';
+      try { if (localStorage.getItem('kube-how:lang:v1') === 'ru') lang = 'ru'; } catch (_) {}
+      if (lang === 'ru') {
+        apply(lang);
+        // Onest for the Cyrillic, asked for here, not once the modules run after parsing.
+        const font = document.createElement('link');
+        font.rel = 'stylesheet';
+        font.href = 'https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap';
+        document.head.append(font);
+      }
+      window.addEventListener('kube-how:lang', (e) => apply(e.detail));
+    })();
+  </script>
 
   <script type="module">
     import { setupSidebar } from '/cli/js/lib/sidebar.js';
     import { setupHeader, alignLogo } from '/cli/js/lib/chrome.js';
+    import { getLang, LANG_EVENT, counted, newPill } from '/cli/js/lib/lang.js';
 
     setupSidebar();
 
@@ -440,24 +501,34 @@
     const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 200));
     idle(async () => {
       try {
-        const [{ SECTIONS }, { DIAGRAMS, CATEGORIES }, { readSeen, isFreshStamp, stampOf, hashKey }, { REV }] = await Promise.all([
+        const [{ SECTIONS }, { DIAGRAMS, CATEGORIES }, { readSeen, isFreshStamp, stampOf, hashKey, DIAGRAM_SEEN_LEGACY }, { REV, CARRY }] = await Promise.all([
           import('/cli/js/data.js'), import('/diagrams/js/data.js'), import('/cli/js/lib/fresh.js'), import('/diagrams/js/revisions.js'),
         ]);
         // What a visit would mark NEW: stamped and still fresh, or never seen at all. A browser that
         // has never opened the page has no baseline yet, so nothing counts as new for it.
-        // `legacy` is the key the app wrote before a rename, read until the app's first load moves it.
-        const countNew = (storageKey, keys, legacy) => {
-          const seen = readSeen(storageKey) || (legacy ? readSeen(legacy) : null);
+        const countNew = (storageKey, keys, legacy, carry) => {
+          const seen = readSeen(storageKey, legacy, carry);
           if (!seen) return 0;
           return keys.filter(k => { const st = stampOf(seen, k); return st === undefined || isFreshStamp(st); }).length;
         };
-        const pill = (n) => n ? `<span class="new-pill" title="New since your last visit">${n} new</span>` : '';
         const cmds = SECTIONS.flatMap(s => s.groups.flatMap(g => g.cmds));
         const cats = CATEGORIES.filter(c => c.key !== 'all').length;
-        document.getElementById('hubStatCli').innerHTML =
-          `${cmds.length} commands · ${SECTIONS.length} sections${pill(countNew('kube-how:cli-seen:v1', cmds.map(c => hashKey(c.cmd))))}`;
-        document.getElementById('hubStatDiagram').innerHTML =
-          `${DIAGRAMS.length} diagrams · ${cats} categories${pill(countNew('kube-how:diagram-seen:v1', DIAGRAMS.map(s => `${s.id}@${REV[s.id] || ''}`), 'kube-how:scheme-seen:v1'))}`;
+        const newCli = countNew('kube-how:cli-seen:v1', cmds.map(c => hashKey(c.cmd)));
+        const newDiagrams = countNew('kube-how:diagram-seen:v2', DIAGRAMS.map(s => `${s.id}@${REV[s.id] || ''}`), DIAGRAM_SEEN_LEGACY, CARRY);
+        // The counts follow the header language switch, Russian with its three plural forms.
+        const pill = (n) => newPill(n, 'new-pill');
+        const render = () => {
+          const ru = getLang() === 'ru';
+          for (const id of ['hubStatCli', 'hubStatDiagram']) {
+            if (ru) document.getElementById(id).lang = 'ru'; else document.getElementById(id).removeAttribute('lang');
+          }
+          document.getElementById('hubStatCli').innerHTML =
+            `${counted(cmds.length, ['command', 'commands', 'команда', 'команды', 'команд'])} · ${counted(SECTIONS.length, ['section', 'sections', 'секция', 'секции', 'секций'])}${pill(newCli)}`;
+          document.getElementById('hubStatDiagram').innerHTML =
+            `${counted(DIAGRAMS.length, ['diagram', 'diagrams', 'диаграмма', 'диаграммы', 'диаграмм'])} · ${counted(cats, ['category', 'categories', 'категория', 'категории', 'категорий'])}${pill(newDiagrams)}`;
+        };
+        render();
+        window.addEventListener(LANG_EVENT, render);
       } catch (_) {}
     });
 
@@ -563,8 +634,6 @@
         }
       }
 
-      // scale = elapsed time in 60fps-frame units (0 for a static frame), so
-      // motion speed stays identical on 60, 120 and 144Hz displays.
       function drawFrame(scale, now) {
         if (now - lastField > 150) {
           lastField = now;
@@ -643,12 +712,15 @@
         raf = requestAnimationFrame(loop);
       }
 
-      // ResizeObserver also catches the sidebar collapse, which shifts the
-      // split by 38px without firing a window resize.
+      const onResize = () => {
+        resize();
+        lastField = -1e9;
+        drawFrame(0, performance.now());
+      };
       if (window.ResizeObserver) {
-        new ResizeObserver(() => { resize(); start(); }).observe(canvas.parentElement);
+        new ResizeObserver(onResize).observe(canvas.parentElement);
       } else {
-        window.addEventListener('resize', () => { resize(); start(); });
+        window.addEventListener('resize', onResize);
       }
       document.addEventListener('visibilitychange', start);
       if (reduced.addEventListener) reduced.addEventListener('change', start);

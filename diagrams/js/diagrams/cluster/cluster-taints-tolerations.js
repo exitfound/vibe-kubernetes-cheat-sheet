@@ -67,7 +67,7 @@ const PODS = [
 
 // Append order is z-order: top lane, wires, chips, lanes, packet layer, Node and Pods, blocks last.
 export const SCENE = {
-  'aria-label': 'Taints and tolerations: a taint on Node-1 and the tolerations on the Pods it holds, the Scheduler filtering a Pod that tolerates nothing out of the placement decision under NoSchedule and merely scoring it down under PreferNoSchedule, and the taint-eviction-controller deleting the Pods that carry no matching toleration once a NoExecute taint is added, while the Pod that tolerates the key stays bound',
+  'aria-label': 'A taint on Node-1 and the tolerations on its Pods, the Scheduler that filters Node-1 out for a Pod with no tolerations under NoSchedule and merely scores it down under PreferNoSchedule, and the taint-eviction-controller that deletes the Pods with no matching toleration once a NoExecute taint is added, while the Pod with a toleration for this key stays bound',
   parts: [
     P.defs(),
     // ONE top lane: every step sends the Scheduler to the API and none names an answer.
@@ -127,7 +127,7 @@ export const STEPS_SPEC = [
   {
     id: 'taint',
     duration: 2600,
-    narration: 'A taint on the Node object carries a key, an optional value, and an effect. Node-1 takes dedicated=db:NoSchedule into spec.taints. Nothing on the Node stirs, because NoSchedule is a gate on the way in and says nothing about the Pods already bound here.',
+    narration: 'A taint on the Node object carries a key, an optional value, and an effect. Node-1 gets dedicated=db:NoSchedule in spec.taints. Nothing on the Node changes, because NoSchedule acts at scheduling time and says nothing about the Pods already bound to it.',
     chips: { taintsChip: NS, tolerChip: 'none', opChip: 'none', effectChip: NS, web2Chip: 'none', secondsChip: 'none' },
     wires: { drop: 'PATCH .../nodes/node-1 · spec.taints', taint: HDR_NS },
     // S-13: the taint does not exist until the PATCH lands, so the chips and the header rewind.
@@ -144,7 +144,7 @@ export const STEPS_SPEC = [
   {
     id: 'match',
     duration: 2400,
-    narration: 'A toleration is the matching field on the Pod. It matches when the keys are equal and the effects are equal, and the operator decides the value: Equal compares it, Exists ignores it. The toleration on Pod db-1 leaves the effect empty, which matches every effect on that key. Pod web-1 has none.',
+    narration: 'A toleration is the matching field on the Pod. It matches when the keys are equal and the effects are equal, and the operator decides the value. Equal compares it, Exists ignores it. The toleration on Pod db-1 leaves the effect empty, so it matches every effect on that key. Pod web-1 has none.',
     chips: { taintsChip: NS, ...CONTRACT, effectChip: NS, web2Chip: 'unscheduled' },
     wires: { taint: HDR_NS },
     opacity: STANDING,
@@ -154,7 +154,7 @@ export const STEPS_SPEC = [
   {
     id: 'noschedule',
     duration: 3100,
-    narration: 'Pod web-2 carries no toleration, so the TaintToleration filter plugin drops Node-1 before scoring and the Pod is recorded Unschedulable with a FailedScheduling event. Nothing reaches the Node, and Pod web-1 keeps running untouched, because it was bound before the taint arrived.',
+    narration: 'Pod web-2 carries no toleration, so the TaintToleration filter plugin drops Node-1 before scoring. Pod web-2 is marked Unschedulable and gets a FailedScheduling event. Nothing reaches the Node, and Pod web-1 keeps running untouched, because it was bound before the taint arrived.',
     chips: { taintsChip: NS, ...CONTRACT, effectChip: 'NoSchedule · gates entry', web2Chip: 'Pending · FailedScheduling' },
     wires: { req: 'filter TaintToleration · untolerated taint · Event FailedScheduling', taint: HDR_NS },
     // Both values are the OUTCOME of the cycle, so neither may stand before the Event lands.
@@ -170,7 +170,7 @@ export const STEPS_SPEC = [
   {
     id: 'prefer',
     duration: 2800,
-    narration: 'The taint is rewritten with PreferNoSchedule. The same mismatch is now scored rather than filtered: the plugin marks Node-1 down among the Nodes that fit but does not remove it, so Pod web-2 can still land here. The control plane tries to avoid that and does not guarantee it.',
+    narration: 'The taint is rewritten with PreferNoSchedule. The same mismatch is now scored rather than filtered. The plugin marks Node-1 down among the Nodes that fit but does not remove it, so Pod web-2 can still land here. The control plane tries to avoid that and does not guarantee it.',
     chips: { taintsChip: PNS, ...CONTRACT, effectChip: 'PreferNoSchedule · scores', web2Chip: 'bound to Node-1' },
     wires: { req: 'POST .../pods/web-2/binding', drop: 'bound · Node-1 scored down', taint: HDR_PNS },
     // The rewrite stands at entry. Where web-2 ends up turns over when the binding lands.
@@ -191,7 +191,7 @@ export const STEPS_SPEC = [
   {
     id: 'noexecute',
     duration: 2800,
-    narration: 'A second taint, dedicated=db:NoExecute, is added. This effect is the only one that reaches Pods already running: the taint-eviction-controller deletes Pod web-1 and Pod web-2, since neither tolerates it. Pod db-1 does, and with no tolerationSeconds set this taint never evicts it.',
+    narration: 'A second taint, dedicated=db:NoExecute, is added. This effect is the only one that acts on Pods already running, so the taint-eviction-controller deletes Pod web-1 and Pod web-2, since neither tolerates it. Pod db-1 does, and with no tolerationSeconds this taint never evicts it.',
     chips: { taintsChip: BOTH, ...CONTRACT, effectChip: 'NoExecute · evicts', web2Chip: 'Terminating · evicted' },
     wires: { evict: 'DELETE Pods with no matching toleration', drop: 'evicted · web-1 and web-2', taint: HDR_BOTH },
     rewind: { chips: { web2Chip: 'bound to Node-1' } },
@@ -213,7 +213,7 @@ export const STEPS_SPEC = [
   {
     id: 'seconds',
     duration: 3400,
-    narration: 'A NoExecute toleration may carry tolerationSeconds, which holds the Pod that many seconds after the taint lands and then lets the eviction through. A Pod is given 300 for each built-in not-ready or unreachable taint it sets no toleration for, which is the few minutes on the Node Failure and Pod Recovery card.',
+    narration: 'A NoExecute toleration may carry tolerationSeconds, and then the Pod stays that many seconds after the taint lands before eviction. If a Pod sets no toleration for a built-in not-ready or unreachable taint, it gets 300 seconds per such taint. That is the few minutes on the Node Failure and Pod Recovery card.',
     chips: { taintsChip: BOTH, ...CONTRACT, effectChip: 'NoExecute · evicts', web2Chip: 'gone', secondsChip: '300 on built-in taints' },
     wires: { taint: HDR_BOTH },
     // The evicted Pods finished terminating during the step before, so they hold the terminated shade.

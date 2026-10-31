@@ -85,7 +85,7 @@ const POD_STATE0 = (i) => (i < SLOT_N ? 'Ready' : 'starting');
 
 // Z-order: regions, lanes and captions, packets, then Pods, totals and the actor row.
 export const SCENE = {
-  'aria-label': 'Deployment rolling update: ReplicaSet RS-v1 owns three Pods in the left region and the right region holds the three slots RS-v2 fills, maxSurge 1 lets the fleet run up to 4 live Pods while a new Pod starts, and maxUnavailable 0 holds every old Pod until its replacement is Ready, one at a time until the whole fleet has crossed to RS-v2',
+  'aria-label': 'Deployment rolling update. ReplicaSet RS-v1 owns three Pods in the left region, and the right region holds the three slots RS-v2 fills. The setting maxSurge 1 lets the fleet run up to 4 live Pods while a new Pod starts, and maxUnavailable 0 holds every old Pod until its replacement is Ready, one at a time until the whole fleet has crossed to RS-v2',
   parts: [
     P.defs(),
     region('regV1', WL.COL_L.x, WL.COL_L.w),
@@ -227,7 +227,7 @@ export const STEPS_SPEC = [
   {
     id: 'spec',
     duration: 3200,
-    narration: 'You run kubectl set image deployment/web app=v2.0, which PATCHes .spec.template. The Deployment hashes that template into a new pod-template-hash and creates a second ReplicaSet, RS-v2, already at replicas 1, the one surge slot the 25% maxSurge allows. RS-v1 still owns all 3 live Pods.',
+    narration: 'You run kubectl set image deployment/web app=web:v2.0, which PATCHes .spec.template. The Deployment hashes that template into a new pod-template-hash and creates a second ReplicaSet, RS-v2, already at replicas 1, the one surge slot the 25% maxSurge allows. RS-v1 still owns all 3 live Pods.',
     chips: DIALS,
     wires: { req: 'create RS-v2 · replicas 1 · new pod-template-hash', v1Cap: V1.full, v2Cap: V2.one, fleetCap: FLEET.patched },
     ...slots(READY, READY, READY, null, null, null),
@@ -243,7 +243,7 @@ export const STEPS_SPEC = [
   {
     id: 'surge',
     duration: 3900,
-    narration: 'RS-v2 wants 1 replica and owns no Pod yet, so the ReplicaSet controller creates one through the API, in the RS-v2 column. No old Pod has to leave first, because the create already spent the surge slot: the fleet runs to 4 live Pods, one over .spec.replicas, while the new one starts.',
+    narration: 'RS-v2 wants 1 replica and owns no Pod yet, so the ReplicaSet controller creates one through the API, in the RS-v2 column. No old Pod has to leave first, because that create already spent the surge slot. While the new Pod starts, the fleet runs to 4 live Pods, one over .spec.replicas.',
     chips: DIALS,
     wires: { act: 'create Pod · RS-v2 wants 1', v1Cap: V1.full, v2Cap: V2.one, fleetCap: FLEET.surged },
     ...slots(READY, READY, READY, START, null, null),
@@ -266,7 +266,7 @@ export const STEPS_SPEC = [
   {
     id: 'ready',
     duration: 3200,
-    narration: 'The new Pod passes its readinessProbe and RS-v2 reports Ready 1. At the default minReadySeconds 0 it counts as available at once. With maxUnavailable 0 the Deployment may not touch RS-v1 until a replacement is Ready, which is what keeps 3 Pods serving throughout.',
+    narration: 'The new Pod passes its readinessProbe and RS-v2 reports Ready 1. At the default minReadySeconds 0 the Pod counts as available at once. Since maxUnavailable is 0, the Deployment may not touch RS-v1 until a replacement is Ready, and that is exactly what keeps 3 Pods serving throughout.',
     chips: DIALS,
     wires: { req: 'watch: RS-v2 Ready 0 → 1', v1Cap: V1.full, v2Cap: V2.ready, fleetCap: FLEET.serving },
     ...slots(READY, READY, READY, READY, null, null),
@@ -286,7 +286,7 @@ export const STEPS_SPEC = [
   {
     id: 'drain',
     duration: 4500,
-    narration: 'Only now does the Deployment scale RS-v1 from 3 to 2 through the API, and RS-v1 deletes one old Pod, which enters graceful termination. Terminating Pods do not count as available, so the 3 that maxUnavailable 0 requires are the 2 old Ready Pods plus the new one.',
+    narration: 'Only now does the Deployment scale RS-v1 from 3 to 2 through the API, and the ReplicaSet controller deletes one old RS-v1 Pod, which starts graceful termination. Terminating Pods do not count as available, so the 3 Pods that maxUnavailable 0 requires are the 2 old Ready Pods plus the new one.',
     chips: DIALS,
     wires: { req: 'scale RS-v1 replicas: 3 → 2', v1Cap: V1.two, v2Cap: V2.ready, fleetCap: FLEET.drained },
     ...slots(GOING, READY, READY, READY, null, null),
@@ -309,7 +309,7 @@ export const STEPS_SPEC = [
   {
     id: 'repeat',
     duration: 6600,
-    narration: 'The same trio runs again for the second replica. RS-v2 goes to 2 and the new Pod starts in the next slot, and only once it reports Ready does RS-v1 drop to 1 and let another old Pod go. The window of live Pods has slid one slot to the right and never narrowed below 3.',
+    narration: 'The same trio runs again for the second replica. RS-v2 grows to 2 and the new Pod starts in the next slot, and only once that Pod reports Ready does RS-v1 drop to 1 and let another old Pod go. The window of live Pods has slid one slot to the right and never narrowed below 3.',
     chips: DIALS,
     wires: { req: 'scale RS-v2 replicas: 1 → 2', v1Cap: V1.one, v2Cap: V2.two, fleetCap: FLEET.drained2 },
     ...slots(LEFT, LEFT, READY, READY, READY, null),
@@ -337,7 +337,7 @@ export const STEPS_SPEC = [
   {
     id: 'converged',
     duration: 6600,
-    narration: 'The last replica crosses the same way. RS-v2 reaches 3 Ready and RS-v1 ends at replicas 0, kept up to revisionHistoryLimit so kubectl rollout undo can roll back. With no old Pod running the rollout is complete: Available=True and Progressing NewReplicaSetAvailable.',
+    narration: 'The last replica crosses the same way. RS-v2 reaches 3 Ready and RS-v1 ends at replicas 0, kept up to revisionHistoryLimit so kubectl rollout undo can roll back. No old Pod is running any more, so the rollout is complete, with Available=True and Progressing NewReplicaSetAvailable.',
     chips: DIALS,
     wires: { req: 'scale RS-v2 replicas: 2 → 3', v1Cap: V1.zero, v2Cap: V2.all, fleetCap: FLEET.complete },
     ...slots(LEFT, LEFT, LEFT, READY, READY, READY),

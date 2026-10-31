@@ -68,7 +68,7 @@ const segment = ({ key, x, w, label = '', sublabel = '' }) =>
 
 // The list order is the z-order: the three blocks go last.
 export const SCENE = {
-  'aria-label': 'Node Allocatable: the Kubelet carves kubeReserved, systemReserved and the hard eviction threshold out of the Node capacity, and what is left is the only number the Scheduler sums Pod requests against',
+  'aria-label': 'The Kubelet carves kubeReserved, systemReserved and the hard eviction threshold out of the Node capacity, and what is left, Node Allocatable, is the only number the Scheduler sums Pod requests against',
   parts: [
     P.defs(),
     P.relation({ points: KUBELET_TO_NODE }),
@@ -146,7 +146,7 @@ export const STEPS_SPEC = [
   {
     id: 'capacity',
     duration: 5200,
-    narration: 'Node-1 has 16Gi of memory as its kernel counts it, a little under the RAM installed, and the Kubelet reports that total into status.capacity on the Node object. Capacity is the total the Node has, and it says nothing about who may use it. With nothing reserved beyond the Kubelet default eviction margin, 100Mi on a Linux Node, Pods can take nearly all of it, and competing with the daemons that keep the machine alive is exactly the problem the rest of this card solves.',
+    narration: 'Node-1 has 16Gi of memory as its kernel counts it, a little under the RAM installed, and the Kubelet reports that total into status.capacity on the Node object. Capacity is the total the Node has, and it says nothing about who may use it. With nothing reserved beyond the Kubelet default eviction margin, 100Mi on a Linux Node, Pods can take nearly all of it and compete with the daemons that keep the machine alive.',
     chips: { capChip: CAP, allocChip: 'not computed', fitChip: 'not evaluated', enforceChip: ENFORCE },
     wires: { ka: 'PATCH status.capacity' },
     opacity: NONE,
@@ -221,7 +221,7 @@ export const STEPS_SPEC = [
   {
     id: 'overcommit',
     duration: 4600,
-    narration: 'Only requests are summed, plus any Pod overhead a RuntimeClass adds. Limits may add up far past Allocatable, which is what kubectl describe node means when it warns that total limits may be over 100 percent. Three Pods requesting 4Gi each fit inside 14Gi while their 8Gi limits total 24Gi. By default the Kubelet enforces Allocatable across Pods alone, and it enforces it by evicting once their real usage passes it.',
+    narration: 'Only requests are summed, plus any Pod overhead a RuntimeClass adds. Limits may add up far past Allocatable, which is what kubectl describe node means when it warns that total limits may be over 100 percent. Three Pods requesting 4Gi each fit inside 14Gi while their 8Gi limits total 24Gi. By default the Kubelet enforces Allocatable across Pods alone, by evicting once their real usage passes it.',
     chips: { capChip: CAP, allocChip: ALLOC, fitChip: FITS, enforceChip: ENFORCE },
     // The strip draws requests only: the 24Gi of limits is deliberately not drawn.
     wires: { req: '3 Pods · requests 12Gi of 14Gi' },

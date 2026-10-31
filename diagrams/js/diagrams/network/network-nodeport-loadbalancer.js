@@ -67,7 +67,7 @@ const LEG_DUR = 1500;
 // The list order IS the append order, which is the z-order: Node frames, their rule chips and the
 // backend Pods in back, then the actor tier, then the wires, then the Service row and the packets.
 export const SCENE = {
-  'aria-label': 'NodePort and LoadBalancer: a NodePort Service opens the same port on every Node, so a client can dial any Node directly, even Node-2 which runs no backend and by default forwards the connection to the Pod on Node-3, while a LoadBalancer has the cloud-controller-manager provision an external balancer that typically targets that Node port on every Node, giving clients one address in front of them',
+  'aria-label': 'NodePort and LoadBalancer: a NodePort Service opens the same port on every Node, so a client can dial any Node directly, even Node-2 which runs no backend and by default forwards the connection to a Pod on another Node, while a LoadBalancer has the cloud-controller-manager provision an external balancer that typically targets that Node port on every Node, giving clients one address in front of them',
   parts: [
     P.defs(),
     P.node({ key: 'node1', x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -138,7 +138,7 @@ export const STEPS_SPEC = [
   {
     id: 'nodeport',
     duration: 3350,
-    narration: 'Setting type NodePort on Service web makes the control plane allocate one port from the Node port range, here 31000, and every Node proxies that same port into the Service. In its default iptables mode kube-proxy writes a KUBE-NODEPORTS rule for 31000 on each Node, Node-2 included, although it runs no backend Pod.',
+    narration: 'With type NodePort set on Service web, the control plane allocates one port from the Node port range, here 31000, and every Node proxies that same port into the Service. In its default iptables mode kube-proxy writes a KUBE-NODEPORTS rule for 31000 on each Node, Node-2 included, though Node-2 runs no backend Pod.',
     chips: service('NodePort', true, NONE),
     ...balancer(false),
     // A packet-less step: the reservation lands with the step and the highlight is its beat (M-27).
@@ -147,7 +147,7 @@ export const STEPS_SPEC = [
   {
     id: 'direct',
     duration: 3450,
-    narration: 'No balancer is needed to use it. A client that can reach a Node dials Node-2 on port 31000 directly. Node-2 has no backend, so under the default externalTrafficPolicy Cluster its rule DNATs the connection to a ready Pod, here 10.244.3.9 on port 8080, and forwards it across the cluster network to Node-3. Node-2 SNATs it as well.',
+    narration: 'No balancer is needed to use that port. A client that can reach a Node dials Node-2 on port 31000 directly. Node-2 has no backend, so under the default externalTrafficPolicy Cluster its rule DNATs the connection to a ready Pod, here 10.244.3.9 on port 8080, and forwards it across the cluster network to Node-3. Node-2 SNATs it as well.',
     chips: service('NodePort', true, NONE),
     ...balancer(false),
     lit: ['client'],
@@ -177,7 +177,7 @@ export const STEPS_SPEC = [
   {
     id: 'client-hit',
     duration: 3900,
-    narration: 'An external client now dials 203.0.113.7 on port 80 and the balancer picks a Node. A balancer that targets Node ports sends the connection to Node-1 on 31000, as drawn. One that preserves the destination, which ipMode VIP declares, would deliver it still addressed to 203.0.113.7:80, and kube-proxy catches that with its load balancer IP rule.',
+    narration: 'An external client now dials 203.0.113.7 on port 80 and the balancer picks a Node. A balancer that targets Node ports sends the connection to Node-1 on 31000, as drawn. One that preserves the destination, which is what ipMode VIP declares, would deliver it still addressed to 203.0.113.7:80, and kube-proxy would catch it with its load balancer IP rule.',
     chips: service('LoadBalancer', true, LB_IP),
     ...balancer(true),
     lit: ['client'],
@@ -190,7 +190,7 @@ export const STEPS_SPEC = [
   {
     id: 'dnat',
     duration: 3100,
-    narration: 'On Node-1 the KUBE-NODEPORTS rule for 31000 DNATs the connection to the local Pod 10.244.1.5:8080. The balancer only chose the Node: under the default Cluster policy the rule picks from every ready Pod, so it could as well have picked 10.244.3.9. One external address has reached a private Pod.',
+    narration: 'On Node-1 the KUBE-NODEPORTS rule for 31000 DNATs the connection to the local Pod 10.244.1.5:8080. The balancer chose only the Node, while under the default Cluster policy the rule picks from every ready Pod, so it could just as well have picked 10.244.3.9.',
     chips: service('LoadBalancer', true, LB_IP),
     ...balancer(true),
     lit: ['np1'],

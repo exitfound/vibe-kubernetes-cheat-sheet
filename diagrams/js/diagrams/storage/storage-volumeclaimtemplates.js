@@ -48,7 +48,7 @@ const podBlock = i => P.pod({
 
 // Z-order: blocks, then lanes, the mint spine and captions, then the chip strip, then packets.
 export const SCENE = {
-  'aria-label': 'StatefulSet volumeClaimTemplates: unlike Deployment replicas, which all share any claim their template names, a StatefulSet mints one PersistentVolumeClaim per ordinal with a deterministic name derived from the Pod identity, so a Pod that is deleted and recreated mounts the very same claim and disk, the claim outlives the Pod, and by default scaling down leaves the claims behind',
+  'aria-label': 'StatefulSet volumeClaimTemplates. Deployment replicas all share any claim their template names, while a StatefulSet mints one PersistentVolumeClaim per ordinal, each with a deterministic name derived from the Pod identity. So a Pod that is deleted and recreated mounts the same claim and disk, the claim outlives the Pod, and by default scaling down leaves the claims behind',
   parts: [
     P.defs(),
     P.box({ key: 'src', x: SRC_X, y: SRC_Y, w: SRC_W, h: SRC_H, label: 'StatefulSet web', sublabel: 'volumeClaimTemplates: data' }),
@@ -208,7 +208,7 @@ export const STEPS_SPEC = [
   {
     id: 'rebind',
     duration: 6900,
-    narration: 'Delete web-1 and the StatefulSet recreates it, possibly on another Node that can reach PV web-1. The claim data-web-1 is not deleted with the Pod and stays Bound to PV web-1. The new Pod derives the same claim name from its ordinal, so it mounts the very same disk and data.',
+    narration: 'When web-1 is deleted, the StatefulSet recreates it, possibly on another Node that can reach PV web-1. The claim data-web-1 is not deleted with the Pod and stays Bound to PV web-1. The new Pod derives the same claim name from its ordinal, so it mounts the same disk and data.',
     // The naming chip holds the PATTERN, which does not change here.
     chipsCued: chips('3', '3 in use', 'data-web-N', 'retained'),
     sublabels: claimLabels(BOUND),
@@ -234,7 +234,7 @@ export const STEPS_SPEC = [
   {
     id: 'scale',
     duration: 3300,
-    narration: 'Scale web down to two and Pod web-2 is removed, but claim data-web-2 stays Bound with its data. That is the default whenScaled policy, Retain, which the StatefulSet PVC Retention card covers. Scale back up and web-2 reuses the same claim, but a scale-down nobody cleans up leaves disks behind.',
+    narration: 'When web is scaled down to two, Pod web-2 is removed, but claim data-web-2 stays Bound with its data. That is the default whenScaled policy, Retain, which the StatefulSet PVC Retention card covers. Scaled back up, web-2 reuses the same claim, but a scale-down nobody cleans up leaves disks behind.',
     // on scale-down holds the POLICY, unchanged. The leak is carried by the PVC count and the idle sublabel.
     chipsCued: chips('2', '3 (1 idle)', 'data-web-N', 'retained'),
     sublabels: claimLabels(['Bound', 'Bound', 'kept, no Pod']),

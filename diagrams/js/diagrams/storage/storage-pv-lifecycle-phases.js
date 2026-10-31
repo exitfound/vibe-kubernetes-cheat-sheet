@@ -53,7 +53,7 @@ const gapMid = cx => cx + ST_W / 2 + GAP / 2;
 // above the ball: it departs under the sender's sublabel and lands clear in the gap over the target.
 const beside = (side, dy) => (text) => ({ text, dx: side * (16 + 3 * text.length), dy });
 const hopTag = beside(1, -8);
-// DeleteVolume leaves the provisioner's left wall, so its tag leads on the left and under the ball,
+// The delete leaves the provisioner's left wall, so its tag leads on the left and under the ball,
 // clear of the provisioner text at departure and landing under the Released floor.
 const deleteTag = beside(-1, 16);
 const REMOVE_MS = 500;
@@ -62,7 +62,7 @@ const lane = (points, key) => P.lane({ key, points, dashed: true, dim: true });
 const relation = (points, key) => P.relation({ key, points, dash: '5 5' });
 
 export const SCENE = {
-  'aria-label': 'The phase of a PersistentVolume as a status field on a row of four places, Available, Bound, Released and Failed, written by one PV controller in response to events. A new claim makes it write Bound, deleting the claim makes it write Released. Under Delete the external-provisioner removes a CSI volume and there is no phase left to write. A hand-made NFS volume set to Delete has no plugin to delete it, so the controller writes Failed. Apart from the deprecated Recycle policy, the way back is an administrator removing the stale claimRef, after which the controller writes Available with the old data still on the volume.',
+  'aria-label': 'The phase of a PersistentVolume as the status.phase field on a row of four places, Available, Bound, Released and Failed, written by one PV controller in response to events. When a new claim arrives the controller writes Bound, and after the claim is deleted it writes Released. Under Delete the external-provisioner removes a CSI volume and there is no phase left to write. A hand-made NFS volume set to Delete has no plugin to delete it, so the controller writes Failed. Apart from the deprecated Recycle policy, the way back is an administrator removing the stale claimRef, after which the controller writes Available with the old data still on the volume.',
   parts: [
     P.defs(),
     // Each phase carries the claimRef condition that defines it, because the name alone does not say
@@ -153,7 +153,7 @@ export const STEPS_SPEC = [
   {
     id: 'release',
     duration: 3400,
-    narration: 'The claim is deleted. Its claimRef now names a claim that no longer exists, so the controller writes Released, not Available. That stale reference stays on the PV, and it is exactly what stops any other claim from binding. What happens next depends on the reclaim policy.',
+    narration: 'The claim is deleted. The PV claimRef now names a claim that no longer exists, so the controller writes Released, not Available. That stale reference stays in place, and it is exactly what stops any other claim from binding. What happens next depends on the reclaim policy.',
     chipsCued: chips('Released', 'default/data stale', 'Retain', 'none'),
     wires: { ...BLANK, wRelease: 'claim deleted' },
     // The claim is gone by the end of the step, so its absence is the static end state.
@@ -190,10 +190,11 @@ export const STEPS_SPEC = [
       opacity: { ...Object.fromEntries(BOARD.map(k => [k, 1])), lProv: 1 },
       chips: { phaseChip: 'Released', claimRefChip: 'default/data stale' },
     },
-    // Released takes the call through an F.set, not `lights`: the dim below takes the stroke off
-    // again, and the static path must not show a lit phase on a board with no PV behind it.
+    // The ball is the PV delete, landing on the PV this row is the phase of. DeleteVolume goes to the
+    // driver, which is not drawn, so only the narration names it. Released lights through an F.set,
+    // not `lights`: the dim below unlights it, and no phase may stay lit with no PV behind it.
     flow: [
-      F.route({ points: W_PROV, delay: BEAT.lead, name: 'del', tag: deleteTag('DeleteVolume') }),
+      F.route({ points: W_PROV, delay: BEAT.lead, name: 'del', tag: deleteTag('delete PV') }),
       F.set({ on: 'stReleased', lit: ['stReleased'], at: 'del' }),
       writeLands('del', 'none, PV deleted', { claimRefChip: 'gone with the PV' }),
       ...[...BOARD, 'lProv'].map(target => F.fade({ target, to: OPACITY.notready, dur: REMOVE_MS, at: 'del', plus: 400, fill: 'forwards', unlight: [target] })),
@@ -220,7 +221,7 @@ export const STEPS_SPEC = [
   {
     id: 'recover',
     duration: 3600,
-    narration: 'Short of the deprecated Recycle policy, which scrubs a volume and frees it on its own, the way back is by hand. An administrator removes the stale claimRef, and the controller writes Available, from Released or from Failed alike. A matching claim can now bind it, with the previous data still on it.',
+    narration: 'Short of the deprecated Recycle policy, which scrubs a volume and frees it on its own, the way back is by hand. Under Retain, an administrator removes the stale claimRef and the controller writes Available, as it would from Failed. A matching claim can now bind it, with the previous data still on it.',
     chipsCued: chips('Available', 'cleared', 'Retain', 'none'),
     wires: { ...BLANK, wBack: 'claimRef cleared by hand' },
     opacity: stage({ admin: 1 }),

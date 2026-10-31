@@ -1,6 +1,8 @@
-// The header every page shares: GitHub, Contacts and Sponsor (data in ../contacts.js), the copy
-// helper and its icons, and the logo centred over the nav's "All" button. The one copy, imported by
-// the hub, /cli/, /diagrams/, 404.html and the static pages.
+// The header every page shares: GitHub, Contacts and Sponsor (data in ../contacts.js), the language
+// switch, the copy helper and its icons, and the logo centred over the nav's "All" button. The one
+// copy, imported by the hub, /cli/, /diagrams/, 404.html and the static pages.
+
+import { getLang, setLang, LANG_EVENT } from './lang.js';
 
 export const COPY_ICON  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
 export const CHECK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
@@ -36,7 +38,7 @@ export function copyText(text, done, failed) {
   }
 }
 
-// ── Logo ──────────────────────────────────────────────────────
+// Logo
 // Centres the logo icon over the nav's "All" button, named by `allSelector` (the hub and 404.html
 // measure an invisible ruler nav). Skipped at <=900px, where the nav wraps.
 export function alignLogo(allSelector) {
@@ -58,7 +60,53 @@ export function alignLogo(allSelector) {
   document.fonts?.ready.then(() => requestAnimationFrame(align));
 }
 
-// ── Header actions ────────────────────────────────────────────
+// Search placeholder
+// Shortens the placeholder when a narrow field would cut it, the aria-label keeps the full name.
+// `data-ru-placeholder` and `data-ru-short` give the Russian pair. Returns the refit.
+export function fitSearchPlaceholder(input) {
+  const enFull = input.dataset.enPlaceholder || input.placeholder;
+  const ctx = document.createElement('canvas').getContext('2d');
+  const fit = () => {
+    const ru = getLang() === 'ru';
+    const full = (ru && input.dataset.ruPlaceholder) || enFull;
+    const short = (ru && input.dataset.ruShort) || 'Search...';
+    const cs = getComputedStyle(input);
+    ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const room = input.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    // Under even the short one, the field shows no placeholder: its magnifier and aria-label still name it.
+    input.placeholder = ctx.measureText(full).width <= room ? full : ctx.measureText(short).width <= room ? short : '';
+  };
+  window.addEventListener(LANG_EVENT, fit);
+  // The field itself is watched: the sidebar toggling changes its width with no window resize.
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(input);
+  else window.addEventListener('resize', fit);
+  // Onest arrives after the first switch to Russian, so every later font load refits too.
+  document.fonts?.ready.then(fit);
+  document.fonts?.addEventListener?.('loadingdone', fit);
+  return fit;
+}
+
+// Nav fade
+// The right-edge fade on a scrolling nav row shows only while buttons sit past that edge, as
+// [data-more] on the row and its parent. Rows rebuilt by script are watched for new buttons.
+export function watchNavFade(scrollers) {
+  for (const el of scrollers) {
+    if (!el) continue;
+    const sync = () => {
+      const more = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+      el.toggleAttribute('data-more', more);
+      el.parentElement.toggleAttribute('data-more', more);
+    };
+    el.addEventListener('scroll', sync, { passive: true });
+    if (window.ResizeObserver) new ResizeObserver(sync).observe(el);
+    else window.addEventListener('resize', sync);
+    new MutationObserver(sync).observe(el, { childList: true, subtree: true });
+    document.fonts?.ready.then(sync);
+    sync();
+  }
+}
+
+// Header actions
 let copyTimer;
 
 function renderHeaderActions(container, CONTACTS, SPONSOR, GITHUB) {
@@ -73,21 +121,21 @@ function renderHeaderActions(container, CONTACTS, SPONSOR, GITHUB) {
 
   if (CONTACTS && CONTACTS.enabled) {
     const links = CONTACTS.links.map(l => `
-      <a class="dropdown-link" href="${escapeHtml(l.href)}" target="_blank" rel="noopener" role="menuitem">
+      <a class="dropdown-link" href="${escapeHtml(l.href)}" target="_blank" rel="noopener">
         ${l.icon} ${escapeHtml(l.label)}
       </a>`).join('');
     html += `
       <div class="action-wrap" data-anchor="contacts">
-        <button class="action-btn" aria-label="Contacts" aria-expanded="false" aria-haspopup="true">
+        <button class="action-btn" aria-label="Contacts" aria-expanded="false">
           ${CONTACT_ICON}<span class="action-btn-label">Contacts</span>
         </button>
-        <div class="action-dropdown" role="menu">${links}</div>
+        <div class="action-dropdown">${links}</div>
       </div>`;
   }
 
   if (SPONSOR && SPONSOR.enabled) {
     const donate = `
-      <a class="dropdown-copy-row dropdown-donate" href="${escapeHtml(SPONSOR.donate.href)}" target="_blank" rel="noopener" role="menuitem" aria-label="${escapeHtml(SPONSOR.donate.label)}">
+      <a class="dropdown-copy-row dropdown-donate" href="${escapeHtml(SPONSOR.donate.href)}" target="_blank" rel="noopener" aria-label="${escapeHtml(SPONSOR.donate.label)}">
         <span class="dropdown-coin">${escapeHtml(SPONSOR.donate.coin)}<span class="dropdown-net">${escapeHtml(SPONSOR.donate.net)}</span></span>
         <span class="dropdown-addr">${escapeHtml(SPONSOR.donate.addr)}</span>
         <span class="dropdown-go">${SPONSOR.donate.icon}</span>
@@ -100,10 +148,10 @@ function renderHeaderActions(container, CONTACTS, SPONSOR, GITHUB) {
       </div>`).join('');
     html += `
       <div class="action-wrap" data-anchor="sponsor">
-        <button class="action-btn" aria-label="Sponsor" aria-expanded="false" aria-haspopup="true">
+        <button class="action-btn" aria-label="Sponsor" aria-expanded="false">
           ${SPONSOR_ICON}<span class="action-btn-label">Sponsor</span>
         </button>
-        <div class="action-dropdown" role="menu">
+        <div class="action-dropdown">
           ${donate}
           <div class="dropdown-divider"></div>
           ${wallets}
@@ -112,12 +160,39 @@ function renderHeaderActions(container, CONTACTS, SPONSOR, GITHUB) {
   }
 
   container.innerHTML = html;
+  const menuLabels = [...container.querySelectorAll('.action-wrap > .action-btn')].map(btn => ({
+    btn, span: btn.querySelector('.action-btn-label'), en: btn.getAttribute('aria-label'),
+  }));
+  // The rows of the Sponsor menu speak only through aria-label: their visible text is a code or an address.
+  const rowLabels = [...container.querySelectorAll('.dropdown-donate, .dropdown-copy-btn')].map(el => ({
+    el, en: el.getAttribute('aria-label'),
+  }));
+  const relabel = () => {
+    const ru = getLang() === 'ru';
+    for (const { btn, span, en } of menuLabels) {
+      const text = ru ? MENU_RU[en] || en : en;
+      btn.setAttribute('aria-label', text);
+      span.textContent = text;
+      if (text !== en) btn.lang = 'ru'; else btn.removeAttribute('lang');
+    }
+    for (const { el, en } of rowLabels) {
+      const text = ru ? rowRu(en) : en;
+      el.setAttribute('aria-label', text);
+      if (text !== en) el.lang = 'ru'; else el.removeAttribute('lang');
+    }
+  };
+  relabel();
+  window.addEventListener(LANG_EVENT, relabel);
 
   container.querySelectorAll('.action-wrap').forEach(wrap => {
     wrap.querySelector('.action-btn').addEventListener('click', e => {
       e.stopPropagation();
       if (wrap.classList.contains('open')) closeAllDropdowns();
       else openDropdown(wrap);
+    });
+    // Tabbing past the last row closes the dropdown instead of leaving it open behind the focus.
+    wrap.addEventListener('focusout', e => {
+      if (wrap.classList.contains('open') && e.relatedTarget && !wrap.contains(e.relatedTarget)) closeAllDropdowns();
     });
   });
 
@@ -155,8 +230,25 @@ function writeHash(hash) {
   if (location.pathname + location.search + location.hash !== target) history.replaceState(null, '', target);
 }
 
+// Anchored to its button's right edge, a dropdown on a narrow screen can start left of the viewport,
+// or under the sidebar when it is shown (the sidebar sits above the header), so it is shifted right
+// by the overhang and narrowed to the room left beside the sidebar.
+const EDGE = 14;
+function clampDropdown(wrap) {
+  const drop = wrap.querySelector('.action-dropdown');
+  drop.style.right = '';
+  drop.style.maxWidth = '';
+  const side = document.querySelector('.sidebar');
+  const minLeft = Math.max(0, side ? side.getBoundingClientRect().right : 0) + EDGE;
+  const room = window.innerWidth - minLeft - EDGE;
+  if (drop.offsetWidth > room) drop.style.maxWidth = `${room}px`;
+  const overhang = minLeft - drop.getBoundingClientRect().left;
+  if (overhang > 0) drop.style.right = `${parseFloat(getComputedStyle(drop).right) - overhang}px`;
+}
+
 function openDropdown(wrap) {
   closeAllDropdowns();
+  clampDropdown(wrap);
   wrap.classList.add('open');
   wrap.querySelector('.action-btn').setAttribute('aria-expanded', 'true');
   hashBeforeOpen = ANCHORS.includes(location.hash.slice(1)) ? '' : location.hash;
@@ -178,7 +270,35 @@ function closeAllDropdowns() {
   if (open && location.hash === `#${open.dataset.anchor}`) writeHash(hashBeforeOpen);
 }
 
-// Fills #headerActions. Deleting ../contacts.js leaves the header without its actions.
+// The rightmost header button: EN and RU side by side, the current one lit, a click switches.
+function renderLangSwitch(container) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'action-btn lang-btn';
+  btn.innerHTML = '<span class="lang-opt" data-lang="en">EN</span><span class="lang-opt" data-lang="ru" lang="ru">RU</span>';
+  const sync = () => {
+    const lang = getLang();
+    btn.dataset.lang = lang;
+    // The name starts with the visible "EN RU", so voice control can find the button by what it shows.
+    const label = lang === 'ru' ? 'Switch to English' : 'Switch to Russian';
+    btn.title = label;
+    btn.setAttribute('aria-label', `EN RU, ${label[0].toLowerCase()}${label.slice(1)}`);
+  };
+  btn.addEventListener('click', () => setLang(getLang() === 'ru' ? 'en' : 'ru'));
+  window.addEventListener(LANG_EVENT, sync);
+  sync();
+  container.append(btn);
+}
+
+// The two menu buttons follow the language switch, GitHub is a name.
+const MENU_RU = {
+  'Contacts': 'Контакты',
+  'Sponsor': 'Поддержать',
+};
+const rowRu = (en) => en.replace(/^Copy (\S+) address$/, 'Копировать адрес $1').replace(/^Donate via /, 'Поддержать через ');
+
+// Fills #headerActions. Deleting ../contacts.js leaves the header without its actions but the
+// language switch.
 export async function setupHeader() {
   const container = document.getElementById('headerActions');
   if (!container) return;
@@ -192,13 +312,22 @@ export async function setupHeader() {
   document.addEventListener('click', closeAllDropdowns);
   document.addEventListener('keydown', e => {
     // The page's own Esc (clear the search) skips itself while a dropdown is open.
-    if (e.key === 'Escape' && document.querySelector('#headerActions .action-wrap.open')) {
+    const open = document.querySelector('#headerActions .action-wrap.open');
+    if (e.key === 'Escape' && open) {
+      // Focus inside the dropdown would fall to <body> once it hides, so it goes back to the button.
+      const inside = open.contains(document.activeElement);
       closeAllDropdowns();
+      if (inside) open.querySelector('.action-btn').focus();
     }
+  });
+  window.addEventListener('resize', () => {
+    const open = document.querySelector('#headerActions .action-wrap.open');
+    if (open) clampDropdown(open);
   });
   try {
     const mod = await import('../contacts.js');
     renderHeaderActions(container, mod.CONTACTS, mod.SPONSOR, mod.GITHUB);
     openFromHash(initial);
   } catch (_) {}
+  renderLangSwitch(container);
 }

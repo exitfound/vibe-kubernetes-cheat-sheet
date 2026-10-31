@@ -86,7 +86,7 @@ const ORDER_CREATE = 'Create web-6b8d5-r7hjn';
 const ORDER_TERMINATE = 'Terminate web-7f9c8-tp8vd';
 
 export const SCENE = {
-  'aria-label': 'Deployment strategy: .spec.strategy.type takes two values and each issues the same create and the same terminate in the opposite order. RollingUpdate, where the 25% maxSurge default resolves to 1 at this single replica, creates Pod web-6b8d5-r7hjn first, waits for it to report Ready and only then terminates Pod web-7f9c8-tp8vd, so both Pods are up across the handover window. Recreate terminates web-7f9c8-tp8vd first, waits for the removal to succeed and only then creates web-6b8d5-r7hjn, so the same window holds no Pod serving at all. Both tracks end with one Pod web-6b8d5-r7hjn Ready',
+  'aria-label': 'Deployment strategy. The field .spec.strategy.type takes two values, and each issues the same create and the same terminate in the opposite order. RollingUpdate, where the 25% maxSurge default resolves to 1 at this single replica, creates Pod web-6b8d5-r7hjn first, waits for it to report Ready and only then terminates Pod web-7f9c8-tp8vd, so both Pods are up across the handover window. Recreate terminates web-7f9c8-tp8vd first, waits for the removal to succeed and only then creates web-6b8d5-r7hjn, so the same window holds no Pod serving at all. Both tracks end with one Pod web-6b8d5-r7hjn Ready',
   parts: [
     P.defs(),
     busPath('trunk', TRUNK),
@@ -192,7 +192,7 @@ export const STEPS_SPEC = [
     id: 'field',
     // Pure reading time: one cue at BEAT.lead, then the narration holds.
     duration: 4900,
-    narration: 'A Deployment replaces its Pods, and .spec.strategy.type decides in which order. The field takes two values and no third, RollingUpdate and Recreate, and a Deployment with no strategy set gets RollingUpdate. Both tracks start from the same place: Pod web-7f9c8-tp8vd on app v1.0 is Ready, and .spec.template has just been changed to v2.0. Each track will issue the same two orders, one create and one terminate, and only their sequence differs.',
+    narration: 'A Deployment replaces its Pods, and .spec.strategy.type decides in which order. The field has two values and no third, RollingUpdate and Recreate, and a Deployment with no strategy set gets RollingUpdate. Both tracks start from the same state, where Pod web-7f9c8-tp8vd on app v1.0 is Ready and .spec.template has just changed to v2.0. Each track will issue the same two orders, one create and one terminate, and only their sequence differs.',
     chips: { strategyChip: 'RollingUpdate', orderChip: ORDER.none, servingChip: SERVING.old },
     wires: { capA: CAP.old, capB: CAP.old },
     sublabels: { podAnewBox: POD.none, podAoldBox: POD.ready, podBoldBox: POD.ready, podBnewBox: POD.none },
@@ -206,7 +206,7 @@ export const STEPS_SPEC = [
   {
     id: 'rollingCreate',
     duration: 4400,
-    narration: 'RollingUpdate starts by creating. At .spec.replicas 1 the 25% defaults resolve to maxSurge 1 and maxUnavailable 0, so the controller may run one Pod above the count and may not lose the one it has. Its first order is therefore Create web-6b8d5-r7hjn: the Pod appears on app v2.0 and starts, and web-7f9c8-tp8vd keeps serving beside it. Nothing is removed until the newcomer reports Ready.',
+    narration: 'RollingUpdate starts by creating. At .spec.replicas 1 the 25% defaults resolve to maxSurge 1 and maxUnavailable 0, so the controller may run one Pod above the count but may not lose the one it already has. Its first order is therefore Create web-6b8d5-r7hjn. The Pod appears on app v2.0 and starts, and web-7f9c8-tp8vd keeps serving beside it. Nothing is removed until the newcomer reports Ready.',
     chips: { strategyChip: 'RollingUpdate', orderChip: ORDER.a1, servingChip: SERVING.old },
     wires: { capA: CAP.starting, capB: CAP.old },
     sublabels: { podAnewBox: POD.starting, podAoldBox: POD.ready, podBoldBox: POD.ready, podBnewBox: POD.none },
@@ -236,7 +236,7 @@ export const STEPS_SPEC = [
   {
     id: 'rollingTerminate',
     duration: 5200,
-    narration: 'Pod web-6b8d5-r7hjn reports Ready, and at the default minReadySeconds 0 that readiness alone releases the second order, Terminate web-7f9c8-tp8vd. Across the handover window both Pods were up, which is what buys the update its uptime and is also its bill: for that span two versions answered at the same moment. Pod web-7f9c8-tp8vd finishes terminating and the track ends where it started, one Pod serving, now on v2.0.',
+    narration: 'Pod web-6b8d5-r7hjn reports Ready, and at the default minReadySeconds 0 that readiness alone releases the second order, Terminate web-7f9c8-tp8vd. Both Pods were up across the whole handover window. That gives the update its uptime, and it also means two versions answered at the same moment for that span. Pod web-7f9c8-tp8vd finishes terminating, and the track ends where it started, with one Pod serving, now on v2.0.',
     chips: { strategyChip: 'RollingUpdate', orderChip: ORDER.a2, servingChip: SERVING.aFresh },
     wires: { capA: CAP.done, capB: CAP.old },
     sublabels: { podAnewBox: POD.ready, podAoldBox: POD.going, podBoldBox: POD.ready, podBnewBox: POD.none },
@@ -265,7 +265,7 @@ export const STEPS_SPEC = [
   {
     id: 'recreateTerminate',
     duration: 5000,
-    narration: 'Recreate inverts the sequence. Its first order on an upgrade is Terminate, aimed at every existing Pod, which at .spec.replicas 1 means web-7f9c8-tp8vd alone and at any larger count means all of them. Pod web-7f9c8-tp8vd leaves, and the controller now waits: it creates nothing until the removal has succeeded, so the same handover window holds nobody, and that is real downtime.',
+    narration: 'Recreate inverts the sequence. The first order Recreate issues on an upgrade is Terminate, aimed at every existing Pod. At .spec.replicas 1 that means web-7f9c8-tp8vd alone, and at any larger count all of them. Pod web-7f9c8-tp8vd leaves, and the controller waits. It creates nothing until the removal has succeeded, so the same handover window holds no Pod at all, and that is real downtime.',
     chips: { strategyChip: 'Recreate', orderChip: ORDER.b1, servingChip: SERVING.bNone },
     wires: { capA: CAP.done, capB: CAP.nobody },
     sublabels: { podAnewBox: POD.ready, podAoldBox: POD.going, podBoldBox: POD.going, podBnewBox: POD.none },
@@ -297,7 +297,7 @@ export const STEPS_SPEC = [
   {
     id: 'recreateCreate',
     duration: 5400,
-    narration: 'Only once web-7f9c8-tp8vd is gone does the second order go out, Create web-6b8d5-r7hjn. The Pod appears on app v2.0 and starts, and the outage lasts until it reports Ready: the removal plus a cold start. What that buys is a clean cut, no moment at which two versions answer together, and the track ends as the other did, one Pod serving on v2.0.',
+    narration: 'Only once web-7f9c8-tp8vd is gone does the second order go out, Create web-6b8d5-r7hjn. The Pod appears on app v2.0 and starts, and the outage lasts until that Pod reports Ready, so it is the removal plus a cold start. In return the cut is clean, with no moment at which two versions answer together. The track ends as the other did, with one Pod serving on v2.0.',
     chips: { strategyChip: 'Recreate', orderChip: ORDER.b2, servingChip: SERVING.bFresh },
     wires: { capA: CAP.done, capB: CAP.done },
     sublabels: { podAnewBox: POD.ready, podAoldBox: POD.going, podBoldBox: POD.going, podBnewBox: POD.ready },
@@ -324,7 +324,7 @@ export const STEPS_SPEC = [
   {
     id: 'converged',
     duration: 5000,
-    narration: 'Both tracks end in the same state, one Pod web-6b8d5-r7hjn Ready on app v2.0: on an update that completes the field changes the path and not the result. RollingUpdate spent the window with two Pods up and two versions live, Recreate spent it with nobody serving. Pick Recreate when the two versions must never run at once, which is what lets a ReadWriteOnce volume change Nodes, since it attaches to one Node at a time, and keep the default otherwise.',
+    narration: 'Both tracks end in the same state, one Pod web-6b8d5-r7hjn Ready on app v2.0. On an update that completes, the field changes the path and not the result. RollingUpdate spent the window with two Pods up and two versions live, and Recreate with not a single Pod serving. Recreate fits when the two versions must never run at once, as when a ReadWriteOnce volume, which attaches to one Node at a time, has to change Nodes. Otherwise the default is the better fit.',
     chips: { strategyChip: 'RollingUpdate or Recreate', orderChip: ORDER.both, servingChip: SERVING.both },
     wires: { capA: CAP.done, capB: CAP.done },
     sublabels: { podAnewBox: POD.ready, podAoldBox: POD.going, podBoldBox: POD.going, podBnewBox: POD.ready },

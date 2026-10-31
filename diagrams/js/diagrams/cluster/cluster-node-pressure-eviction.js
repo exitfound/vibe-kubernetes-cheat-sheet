@@ -108,7 +108,7 @@ export const STEPS_SPEC = [
   {
     id: 'detect',
     duration: 2700,
-    narration: 'Kubelet derives memory.available from cAdvisor stats as capacity minus the working set, and it has dropped to 500Mi. Eviction manager polls these stats every 10s and compares against the --eviction-hard thresholds. The threshold is breached.',
+    narration: 'Kubelet derives memory.available from cAdvisor stats as capacity minus the working set, and it has dropped to 500Mi. The eviction manager polls these stats every 10s, compares them against the --eviction-hard thresholds and finds one breached.',
     chips: { memChip: '500Mi', thresholdChip: THRESHOLD, pressureChip: 'False', victimChip: 'none' },
     opacity: LIVE,
     lit: ['kubelet', 'memChip', 'thresholdChip'],
@@ -133,7 +133,7 @@ export const STEPS_SPEC = [
   {
     id: 'rank',
     duration: 3600,
-    narration: 'Eviction manager ranks running Pods by three things in order: whether each is using more of the starved resource than it requested, then Pod Priority, then how far over the request it sits. QoS class does not decide that order, it only estimates it, because the class comes from declared requests and limits while the ranking reads live usage. See the Pod QoS Classes card.',
+    narration: 'Eviction manager ranks running Pods by three things in order: whether each is using more of the starved resource than it requested, then Pod Priority, then how far over the request it sits. QoS class does not decide that order and only estimates it, because the class comes from declared requests and limits while the ranking reads live usage. See the Pod QoS Classes card.',
     chips: { memChip: '500Mi', thresholdChip: THRESHOLD, pressureChip: 'True', victimChip: 'BestEffort Pod selected' },
     opacity: LIVE,
     lit: ['kubelet', 'victimChip'],

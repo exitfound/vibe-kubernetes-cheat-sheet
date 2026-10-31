@@ -121,7 +121,7 @@ export const STEPS_SPEC = [
   {
     id: 'held',
     duration: 3900,
-    narration: 'While the list holds any entry the Pod never enters the active queue, so the Scheduler runs no cycle on it and no Node is ever filtered or scored. That is not the same as unschedulable, which means a scheduling attempt was made and failed. The metric separates the two: scheduler_pending_pods carries a queue label and this Pod is counted under gated.',
+    narration: 'While the list holds any entry the Pod never enters the active queue, so the Scheduler runs no cycle on it and no Node is ever filtered or scored. That is not the same as unschedulable, which means a scheduling attempt was made and failed. The metric scheduler_pending_pods separates the two by its queue label, and this Pod is counted under gated.',
     chips: { statusChip: GATED, condChip: COND_GATED, gatesChip: '2 entries', metricChip: Q_GATED },
     wires: { route: 'not in the active queue · no cycle runs' },
     opacity: { ...route(false), ...gates(2) },
@@ -135,7 +135,7 @@ export const STEPS_SPEC = [
   {
     id: 'remove-one',
     duration: 4200,
-    narration: 'The component that owns example.com/bar patches it out of the list. Entries come off in any order, and this one was second, so removing it says nothing about the other. Nothing else moves: STATUS still reads SchedulingGated and PodScheduled is still False, because one entry left in the list is enough to hold the Pod out.',
+    narration: 'The component that owns example.com/bar patches it out of the list. Entries come off in any order, and this one was second, so removing it says nothing about the other. Nothing else moves. STATUS still reads SchedulingGated and the PodScheduled condition is still False, because one entry left in the list is enough to hold the Pod out.',
     chips: { statusChip: GATED, condChip: COND_GATED, gatesChip: '1 entry', metricChip: Q_GATED },
     wires: { req: 'PATCH · remove example.com/bar' },
     opacity: { ...route(false), ...gates(1) },
@@ -158,13 +158,13 @@ export const STEPS_SPEC = [
   {
     id: 'one-way',
     duration: 3300,
-    narration: 'There is no way back. After creation the API accepts a removal and refuses an addition, so a component that lets its gate go cannot take it again, and a Pod created without gates can never be given one. Whatever wants to hold a Pod with a gate has to put it on at creation or lose the chance.',
+    narration: 'After creation the API accepts a removal and refuses an addition. A component that lets its gate go cannot put it back, and a Pod created without gates can never get one. So anything that wants to hold a Pod with a gate has to put it on at creation.',
     chips: { statusChip: GATED, condChip: COND_GATED, gatesChip: '1 entry', metricChip: Q_GATED },
     wires: { req: 'PATCH · an addition is refused, removal only' },
     opacity: { ...route(false), ...gates(1) },
     sublabels: { apiEl: 'refuses the addition', ownerEl: 'tries to put example.com/bar back', schedEl: 'no attempt on this Pod', gateA: HOLDS, gateB: REMOVED },
     // The controller sources the round trip, so it does not light again on the return (WL.A-01).
-    lit: ['ownerEl', 'gateA'],
+    lit: ['ownerEl'],
     flow: [
       request(),
       F.top({ from: API_R, to: OWN_X, y: RESP_Y, after: 'req' }),
@@ -173,7 +173,7 @@ export const STEPS_SPEC = [
   {
     id: 'remove-last',
     duration: 4000,
-    narration: 'The last entry goes the same way and the list is now empty. Emptying it is the whole trigger: there is no separate signal and this Pod waits on nothing else, so the moment spec.schedulingGates has no entries left it is ready to be considered for scheduling.',
+    narration: 'The last entry goes the same way and the list is now empty. The empty list is the whole trigger. There is no separate signal and this Pod waits on nothing else, so the moment spec.schedulingGates has no entries left the Pod is ready to be considered for scheduling.',
     chips: { statusChip: GATED, condChip: COND_GATED, gatesChip: 'empty', metricChip: Q_GATED },
     wires: { req: 'PATCH · remove example.com/foo' },
     opacity: { ...route(false), ...gates(0) },
@@ -191,7 +191,7 @@ export const STEPS_SPEC = [
   {
     id: 'queued',
     duration: 4100,
-    narration: 'The Pod joins the active queue, and the Scheduler can now make its first attempt at it. Only the metric moves, to queue active. STATUS and PodScheduled still read SchedulingGated, because the API server wrote that condition at creation and nothing rewrites it until the Scheduler finishes an attempt. What follows is the ordinary cycle: filter the Nodes, score, and bind.',
+    narration: 'The Pod joins the active queue, and the Scheduler can now make its first attempt. Only the metric moves, to queue active. STATUS and the PodScheduled reason still read SchedulingGated, because the API server wrote that condition at creation and nothing rewrites it until the Scheduler finishes an attempt. Next comes the ordinary cycle: filter the Nodes, score, and bind.',
     chips: { statusChip: GATED, condChip: COND_GATED, gatesChip: 'empty', metricChip: 'queue="active"' },
     wires: { route: 'enqueue · the Pod joins the active queue' },
     opacity: { ...route(true), ...gates(0) },

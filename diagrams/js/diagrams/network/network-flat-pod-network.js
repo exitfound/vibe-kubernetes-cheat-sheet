@@ -130,7 +130,7 @@ const SUB = '.diagram-pod-sublabel';
 const IFACE_SUB = '.diagram-box-sublabel';
 
 export const SCENE = {
-  'aria-label': 'The Kubernetes network model, drawn as four Pods across three Nodes: every Pod attaches to one flat cluster-wide address space, any Pod reaches any other Pod on any Node with no NAT barring intentional segmentation, the model promises the Kubelet only the Pods on its own Node, and the container runtime on each Node implements the model, almost always through a CNI plugin',
+  'aria-label': 'The Kubernetes network model, drawn as four Pods across three Nodes, where every Pod attaches to one flat cluster-wide address space, any Pod reaches any other Pod on any Node with no NAT barring intentional segmentation, the model promises the Kubelet only the Pods on its own Node, and the container runtime on each Node implements the model, almost always through a CNI plugin',
   parts: [
     P.defs(),
     P.raw({ key: 'bus', make: busBand }),
@@ -192,7 +192,7 @@ export const STEPS_SPEC = [
   {
     id: 'pod-ip',
     duration: 2200,
-    narration: 'Rule one: every Pod gets its own IP, unique across the entire cluster. A Pod sees that same address as the one other Pods use to reach it, so there is no port mapping and no rewriting to reason about.',
+    narration: 'Rule one: every Pod not on hostNetwork gets its own IP, unique across the entire cluster. A Pod sees that same address as the one other Pods use to reach it, so there is no port mapping and no rewriting to reason about.',
     chips: { ipChip: 'unique, cluster-wide', natChip: 'none', reachChip: 'any to any' },
     sublabels: { ...BAND, ...REAL_IFACE },
     podSublabels: REAL_IPS,
@@ -238,7 +238,7 @@ export const STEPS_SPEC = [
   {
     id: 'same-node',
     duration: 2800,
-    narration: 'Same address space on one Node too. Pod 10.244.1.5 reaches its neighbour 10.244.1.6, both on Node-1, with the same flat addressing and no NAT. The traffic never leaves the Node, but to the Pods it is the very same model, no special case to reason about.',
+    narration: 'The address space is the same within one Node. Pod 10.244.1.5 reaches its neighbour on Node-1, Pod 10.244.1.6, with the same flat addressing and no NAT. The traffic never leaves the Node, and for the Pods it is the same model, with no special case.',
     // natChip carries the same value in from the step before, so only reachChip is cued (P-05).
     chips: { ipChip: 'unique, cluster-wide', natChip: 'none, src 10.244.1.5', reachChip: 'same-Node direct' },
     sublabels: { ...BAND, ...REAL_IFACE },
@@ -258,7 +258,7 @@ export const STEPS_SPEC = [
   {
     id: 'node-agent',
     duration: 2800,
-    narration: 'Rule three is narrower, and it is about the guarantee and not the reach: the model promises the Kubelet only the Pods on its own Node. It talks to Pod 10.244.2.7 on Node-2 to run the network probes that say whether that Pod is live and ready. Other Nodes are outside the promise.',
+    narration: 'Rule three is narrower, and it is about the guarantee and not the reach: the model promises the Kubelet only the Pods on its own Node. The Kubelet on Node-2 talks to Pod 10.244.2.7 to run the network probes that say whether that Pod is live and ready. Other Nodes are outside the promise.',
     chips: { ipChip: 'unique, cluster-wide', natChip: 'none', reachChip: 'agent to local Pod' },
     sublabels: { ...BAND, ...REAL_IFACE },
     podSublabels: REAL_IPS,
@@ -277,7 +277,7 @@ export const STEPS_SPEC = [
   {
     id: 'cni',
     duration: 2600,
-    narration: 'Only a few parts of this live in the core. The container runtime on each Node implements the model, almost always through a CNI plugin such as Calico, Cilium or Flannel. Here the plugin lights up the whole fabric. Swap it and the model stays the same.',
+    narration: 'Only a few parts of this live in the core. The container runtime on each Node implements the model, almost always through a CNI plugin such as Calico, Cilium or Flannel. Here the plugin lights the whole network. With another plugin in its place the model stays the same.',
     chips: { ipChip: 'unique, cluster-wide', natChip: 'none', reachChip: 'any to any' },
     // At most 30 characters, or the rail tooth at CX cuts through the sublabel.
     sublabels: { bus: 'built by the container runtime', ...REAL_IFACE },

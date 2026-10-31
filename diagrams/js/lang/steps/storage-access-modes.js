@@ -1,0 +1,27 @@
+// Russian for storage-access-modes: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "Access modes decide who can mount a volume at once. ReadWriteOnce means a single Node, so two Pods on that same Node can both use this block disk, while the attach and detach controller refuses a Pod on another Node. ReadWriteOncePod narrows that to one single Pod, and Kubernetes enforces it through the Scheduler and Kubelet. ReadWriteMany needs a backend that can deliver it, such as a shared filesystem, because this single-attach block disk cannot be attached to many Nodes. ReadOnlyMany lets many Nodes mount a volume but does not make the mount read-only. That takes readOnly: true in the Pod.":
+    "Режимы доступа определяют, кто может смонтировать том одновременно. ReadWriteOnce означает одну Node, поэтому два Pod на этой Node могут вместе использовать этот блочный диск, а Pod на другой Node получает отказ от контроллера attach и detach. ReadWriteOncePod сужает доступ до одного Pod, и Kubernetes следит за этим через Scheduler и Kubelet. Для ReadWriteMany нужен бэкенд, способный его обеспечить, например общая файловая система, потому что этот блочный диск с одним подключением нельзя подключить ко многим Node. ReadOnlyMany позволяет многим Node смонтировать том, но не делает монтирование доступным только для чтения. Для этого в Pod нужно поле readOnly: true.",
+
+  "Pod app-1 mounts the volume. The disk is attached to one Node, Node-1, and ReadWriteOnce lets a Pod there read and write it. So far this looks exactly like a per-Pod lock, but that is not what ReadWriteOnce means.":
+    "Pod app-1 монтирует том. Диск подключён к одной Node, Node-1, и ReadWriteOnce позволяет Pod на этой Node читать диск и писать на него. Пока что это выглядит точь-в-точь как блокировка на один Pod, но ReadWriteOnce означает не это.",
+
+  "Pod app-2 sits on the same Node and it can mount the volume too. ReadWriteOnce is per Node, not per Pod. Once the disk is attached to Node-1, any number of Pods scheduled onto Node-1 can share it.":
+    "Pod app-2 размещён на той же Node и тоже может смонтировать том. ReadWriteOnce действует на уровне Node, а не Pod. Раз диск подключён к Node-1, его могут делить сколько угодно Pod, размещённых на Node-1.",
+
+  "Pod app-3 is placed on Node-2, asks for the same volume and is refused. The volume is ReadWriteOnce and already attached to Node-1, so the attach and detach controller will not attach it to Node-2 as well. Pod app-3 gets a Waiting for detach warning and cannot start while Node-1 holds the disk.":
+    "Pod app-3 размещён на Node-2, просит тот же том и получает отказ. Том в режиме ReadWriteOnce уже подключён к Node-1, поэтому контроллер attach и detach не подключит его ещё и к Node-2. Pod app-3 получает предупреждение Waiting for detach и не может запуститься, пока Node-1 держит диск.",
+
+  "ReadWriteOncePod is the only mode that limits access to one Pod, so now even app-2 on Node-1 is refused. Kubernetes enforces it itself: scheduling will not place a second Pod that uses the claim, though a higher-priority one can preempt the holder, and Kubelet refuses the mount to a Pod that lands on the Node anyway.":
+    "Только ReadWriteOncePod ограничивает доступ одним Pod, поэтому теперь отказ получает даже app-2 на Node-1. Kubernetes следит за этим сам. Планирование не разместит второй Pod с этим PVC, хотя Pod с более высоким приоритетом может вытеснить владельца, а если второй Pod всё же попадёт на Node, Kubelet откажет ему в монтировании.",
+
+  "ReadWriteMany asks for the volume on many Nodes at once, and this block disk cannot attach to more than one Node, so nobody gets it. Kubernetes accepts the mode on the claim but binds it only to a volume that offers ReadWriteMany, and the driver of this disk refuses to create one.":
+    "ReadWriteMany просит том сразу на многих Node, а этот блочный диск нельзя подключить больше чем к одной Node, поэтому том не получает никто. Kubernetes принимает этот режим в PVC, но привязывает PVC только к PV с режимом ReadWriteMany, а создать такой PV драйвер этого диска отказывается.",
+
+  "Point the claim at a shared filesystem instead (PV nfs on NFS or CephFS), and ReadWriteMany works: Kubernetes lets it be used on both Nodes at once, and all three Pods mount it together. Kubernetes always allowed the mode, and this backend can deliver it.":
+    "Если же направить PVC на общую файловую систему (PV nfs на NFS или CephFS), ReadWriteMany работает. Kubernetes разрешает использовать том на обеих Node сразу, и все три Pod монтируют его вместе. Kubernetes всегда разрешал ReadWriteMany, и этот бэкенд может его обеспечить.",
+
+  "ReadOnlyMany lets PV nfs be used on both Nodes too, but it does not make the mount read-only. Kubernetes uses the mode to match the claim to a volume at binding, and app-1 and app-3 still mount it read/write. A read-only mount comes from readOnly: true, on the claim in the Pod volumes or on a volumeMount.":
+    "ReadOnlyMany тоже позволяет использовать PV nfs на обеих Node, но запись в смонтированный том не запрещает. Kubernetes использует этот режим при привязке, чтобы подобрать для PVC том, а app-1 и app-3 по-прежнему монтируют этот том на чтение и запись. Монтирование только для чтения даёт поле readOnly: true, заданное в ссылке на PVC в volumes Pod или в volumeMount.",
+};

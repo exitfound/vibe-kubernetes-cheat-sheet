@@ -12,7 +12,7 @@ DEVIATES WL.A-03: no Node frame. The slots are ticks and not places, so a frame 
          M-19a: the three mute steps stand about 75 percent still. That is reading time for the
          longest narrations, and no ball may travel when no Job is created (M-10).
 CONTENT  Sources: CronJob, CronJob v1 (v1.36), controller utils.go and cronjob_controllerv2.go.
-         A repeated create collides on the name. The desc says `a Job`, never `one Job`. A Forbid
+         A repeated create collides on the name. Say `a Job`, never `one Job`. A Forbid
          skip can still start inside startingDeadlineSeconds. Past 100 misses, counted inside the
          deadline when set, it warns and still starts the latest tick, and resume starts only the
          latest tick: the doc says otherwise on both, the code rules. A tick past the deadline or

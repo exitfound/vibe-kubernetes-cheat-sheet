@@ -95,7 +95,7 @@ const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 // Z-order: the node frame, then the blocks and the disk, then the Pod, then the lanes and their
 // captions, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'The VolumeAttachment object. For a CSI volume that requires attach, the attach and detach controller in kube-controller-manager, not Kubelet, writes VolumeAttachment csi-7f3a, its name a hash of the volume handle, driver and Node, its spec naming the driver, vol-1 and Node-1, its status.attached reading false. The external-attacher for that driver adds its finalizer, calls ControllerPublishVolume and writes that field true, and Kubelet cannot get vol-1 mounted until then. On a healthy Node, once the Pod is gone and Kubelet has unmounted, the controller deletes the object, and deleting it is what detaches: the attacher calls ControllerUnpublishVolume and lifts its finalizer.',
+  'aria-label': 'The VolumeAttachment object. For a CSI volume that requires attach, the attach and detach controller in kube-controller-manager, not Kubelet, writes VolumeAttachment csi-7f3a, its name a hash of the volume handle, driver and Node, its spec naming the driver, vol-1 and Node-1, its status.attached reading false. The external-attacher for that driver adds its finalizer, calls ControllerPublishVolume and writes that field true, and Kubelet cannot get vol-1 mounted until then. On a healthy Node, once the Pod is gone and Kubelet has unmounted, the controller deletes the object, and deleting it is what detaches. The attacher then calls ControllerUnpublishVolume and lifts its finalizer.',
   parts: [
     P.defs(),
     P.node({ x: COL_L_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -164,7 +164,7 @@ export const STEPS_SPEC = [
   {
     id: 'decide',
     duration: 3500,
-    narration: 'It is not Kubelet that decides a CSI volume needs attaching. The attach and detach controller in kube-controller-manager sees a Pod bound to a Node with a volume not attached there and takes the job on, if the driver requires attach. With attachRequired false no VolumeAttachment is written.',
+    narration: 'The attach and detach controller in kube-controller-manager, not Kubelet, decides that a CSI volume needs attaching. It sees a Pod bound to a Node with a volume not attached there and takes the job on, if the driver requires attach. With attachRequired false no VolumeAttachment is written.',
     chipsCued: chips('none', 'no object', 'no', 'blocked'),
     sublabels: { va: NOT_CREATED },
     wires: { disk: DISK_NONE },
@@ -174,7 +174,7 @@ export const STEPS_SPEC = [
   {
     id: 'write',
     duration: 3400,
-    narration: 'The controller writes csi-7f3a, its name a hash of volume handle, driver and Node. Its spec names that driver, vol-1 and Node-1, and status.attached reads false because nothing has set it yet. It is the one cluster record that vol-1 belongs on Node-1. Nothing physical has happened yet.',
+    narration: 'The controller writes VolumeAttachment csi-7f3a, its name a hash of volume handle, driver and Node. Its spec names that driver, vol-1 and Node-1, and status.attached reads false because nothing has set it yet. It is the one cluster record that vol-1 belongs on Node-1. Nothing physical has happened yet.',
     chipsCued: chips('csi-7f3a', 'false', 'no', 'blocked'),
     sublabels: { va: ATTACHED_FALSE },
     wires: { write: 'create', disk: DISK_NONE },
@@ -227,7 +227,7 @@ export const STEPS_SPEC = [
   {
     id: 'status',
     duration: 3700,
-    narration: 'When the backend confirms the attach, the attacher writes status.attached true back onto the same VolumeAttachment. That one field is the signal everything downstream waits for. The object did not move and nothing was recreated: its status changed in place.',
+    narration: 'When the backend confirms the attach, the attacher writes status.attached true back onto the same VolumeAttachment, changing its status in place with nothing recreated. Everything downstream waits for that one field.',
     chipsCued: chips('csi-7f3a', 'true', 'yes', 'blocked'),
     sublabels: { va: ATTACHED_TRUE },
     wires: { disk: DISK_ON_NODE },
@@ -246,7 +246,7 @@ export const STEPS_SPEC = [
   {
     id: 'mount',
     duration: 4200,
-    narration: 'Kubelet has been blocked all along. It waits for vol-1 to be listed as attached in the Node status, which the controller writes only after status.attached turns true, then checks that same field on the object before it has vol-1 mounted for the Pod at /data. The Pod starts: the object gated the mount.',
+    narration: 'Kubelet has been blocked all along. It first waits for vol-1 to be listed as attached in the Node status, and the controller adds vol-1 to that list only after status.attached turns true. Kubelet then checks that same field on the object before it has vol-1 mounted for the Pod at /data. Only then does the Pod start.',
     chipsCued: chips('csi-7f3a', 'true', 'yes', 'mounted'),
     sublabels: { va: ATTACHED_TRUE },
     wires: { disk: DISK_MOUNTED },
@@ -268,7 +268,7 @@ export const STEPS_SPEC = [
   {
     id: 'detach',
     duration: 7100,
-    narration: 'Deleting the object is what tears the attach down. On a healthy Node, once the Pod is gone and Kubelet reports vol-1 unmounted, the controller deletes it. The attacher sees the deletion mark, calls ControllerUnpublishVolume, and once vol-1 is detached it lifts its finalizer and the object goes.',
+    narration: 'Deleting the object is what tears the attach down. On a healthy Node, once the Pod is gone and Kubelet reports vol-1 unmounted, the controller deletes the object. The attacher sees the deletion mark, calls ControllerUnpublishVolume, and once vol-1 is detached it lifts its finalizer and the object goes.',
     chipsCued: chips('deleted', 'no object', 'no', 'unmounted'),
     sublabels: { va: 'deleted after detach' },
     wires: { disk: 'detached from Node-1' },

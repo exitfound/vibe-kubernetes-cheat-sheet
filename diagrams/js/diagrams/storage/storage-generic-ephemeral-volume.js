@@ -57,7 +57,7 @@ const W_UP_LOW     = [[UP_X, PV_TOP], [UP_X, ROW_BOTTOM]];
 
 // Z-order: the Pod, the row blocks and the disk, the column lanes and captions, chips, packets.
 export const SCENE = {
-  'aria-label': 'Generic ephemeral volumes: an inline volumeClaimTemplate on the Pod under ephemeral is turned by the ephemeral volume controller in kube-controller-manager into a real PVC named app-0-scratch, then provisioned and mounted over CSI like any ordinary claim, so unlike emptyDir it has a fixed size on a class you pick and can be snapshotted if the driver supports it, but the PVC carries an ownerReference to the Pod and is garbage-collected once the Pod is deleted, so the claim lives only as long as the Pod, and the external-provisioner then calls DeleteVolume on the disk unless the class says Retain',
+  'aria-label': 'Generic ephemeral volumes: an inline volumeClaimTemplate on the Pod under ephemeral is turned by the ephemeral volume controller in kube-controller-manager into a real PVC named app-0-scratch, then provisioned and mounted over CSI like any ordinary claim, so unlike emptyDir it has a fixed size on a class you pick and can be snapshotted if the driver supports it, but the PVC carries an ownerReference to the Pod and is garbage-collected once the Pod is deleted, so the claim lives only as long as the Pod. The external-provisioner then calls DeleteVolume on the disk unless the class says Retain',
   parts: [
     P.defs(),
     // The GROUP is the pulse target, not the shell.
@@ -118,7 +118,7 @@ export const STEPS_SPEC = [
   {
     id: 'mint',
     duration: 3300,
-    narration: 'When the Pod is created, the ephemeral volume controller turns that inline template into a real PVC in the same namespace, named after the Pod and the volume, app-0-scratch, with an ownerReference back at the Pod. A claim of that name the Pod does not own is left alone, and the Pod cannot start.',
+    narration: 'When the Pod is created, the ephemeral volume controller turns the inline volumeClaimTemplate into a real PVC in the same namespace, named after the Pod and the volume, app-0-scratch, with an ownerReference back at the Pod. A claim of that name the Pod does not own is left alone, and the Pod cannot start.',
     chipsCued: chips('Pending', 'Pending', 'CSI dynamic', 'tied to Pod'),
     wires: { owner: 'ownerReference' },
     sublabels: { pvc: 'owned by Pod' },
@@ -162,7 +162,7 @@ export const STEPS_SPEC = [
   {
     id: 'mount',
     duration: 4200,
-    narration: 'The claim binds to the new PV, then the volume is attached and mounted at /scratch inside the container over CSI, exactly as for any ordinary PVC. The Pod starts and writes to a real, dynamically provisioned volume. Nothing about this path is a shortcut.',
+    narration: 'The claim binds to the new PV, then the volume is attached and mounted at /scratch inside the container over CSI, exactly as for any ordinary PVC. The Pod starts and writes to a real, dynamically provisioned volume.',
     chipsCued: chips('Running', 'Bound', 'real disk, fast-ssd', 'tied to Pod'),
     wires: { owner: 'ownerReference', mount: 'attach and mount' },
     sublabels: { pvc: 'Bound' },
@@ -199,7 +199,7 @@ export const STEPS_SPEC = [
   {
     id: 'gc',
     duration: 6400,
-    narration: 'Delete the Pod and the ownerReference does the rest. Garbage collection removes the PVC, and under the default Delete reclaim policy the external-provisioner calls DeleteVolume, so the disk and its PV go too. The scratch data lived as long as the Pod. A class set to Retain would keep the disk.',
+    narration: 'Once the Pod is deleted, the ownerReference does the rest. Garbage collection removes the PVC, and under the default Delete reclaim policy the external-provisioner calls DeleteVolume, so the disk and its PV go too, and the scratch data with them. A class set to Retain would keep the disk.',
     // The chip names what BACKS the volume, so it reports the backing's fate, not the policy.
     chipsCued: chips('deleted', 'deleted by GC', 'deleted with claim', 'ended with Pod'),
     wires: { owner: 'cascade delete' },

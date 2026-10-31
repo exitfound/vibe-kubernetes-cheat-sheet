@@ -46,7 +46,7 @@ const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 // The list order IS the append order, which is the z-order: map + program + client + pods, then
 // wires + labels ABOVE, then chips, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'An eBPF dataplane can replace kube-proxy: an eBPF program at the socket hook reads a BPF Service map and rewrites the connection to a backend Pod at connect time, with no per-packet iptables rule walk and no DNAT',
+  'aria-label': 'An eBPF dataplane can replace kube-proxy. An eBPF program at the socket hook reads a BPF Service map and rewrites the connection to a backend Pod at connect time, with no per-packet iptables rule walk and no DNAT',
   parts: [
     P.defs(),
     P.box({ key: 'bpfmap', x: HOOK_X, y: MAP_Y, w: HOOK_W, h: MAP_H, label: 'BPF maps', sublabel: 'service + endpoints' }),
@@ -169,7 +169,7 @@ export const STEPS_SPEC = [
   {
     id: 'no-kube-proxy',
     duration: 2400,
-    narration: 'Because the whole dataplane is eBPF programs plus maps, kube-proxy and its iptables chains can be removed entirely, which Cilium offers, as does Calico in its eBPF mode. Lookups stay constant-time as the cluster grows to thousands of Services.',
+    narration: 'Because the agent implements Services with eBPF programs and maps, kube-proxy and its iptables chains can be removed entirely, which Cilium offers, as does Calico in its eBPF mode. Lookups stay constant-time as the cluster grows to thousands of Services.',
     chips: { svcChip: MAP_HIT, modeChip: 'connect-time', kpChip: 'not needed' },
     opacity: { w2: 1 },
     lit: ['hook', 'bpfmap', 'kpChip'],

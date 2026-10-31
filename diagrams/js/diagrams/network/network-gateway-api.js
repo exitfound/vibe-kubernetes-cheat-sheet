@@ -52,7 +52,7 @@ const fieldTag = (i, text) => P.tag({ x: LAD_CX + 10, y: seamCY(i) + 4, anchor: 
 // The list order IS the append order, which is the z-order: the ladder, the grant and the rail,
 // then relations and lanes, the captions, the chips, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Gateway API: a ladder of references on the right, with each condition beside the object that reports it. The cluster-scoped GatewayClass example names the controller that implements it in controllerName and reads Accepted True. Gateway shared-gw in namespace infra uses it and declares an HTTPS listener on 443 whose allowedRoutes admits only its own namespace by default. HTTPRoute web in namespace shop names the Gateway in parentRefs and is not Accepted, reason NotAllowedByListeners, until allowedRoutes selects shop. Its backendRef to Service web in namespace web then reports ResolvedRefs False, reason RefNotPermitted, and a client request matching the rule gets HTTP 500. ReferenceGrant from-shop in namespace web allows the reference, and the next request reaches the proxy, which here forwards it to Pod web by its endpoint',
+  'aria-label': 'Gateway API: a ladder of references on the right, with each condition beside the object that reports it. The cluster-scoped GatewayClass example names the controller that implements it in controllerName and reads Accepted True. Gateway shared-gw in namespace infra uses it and declares an HTTPS listener on 443 whose allowedRoutes admits only its own namespace by default. HTTPRoute web in namespace shop names the Gateway in parentRefs and is not Accepted, reason NotAllowedByListeners, until allowedRoutes selects shop. The route then reports ResolvedRefs False, reason RefNotPermitted, for its backendRef to Service web in namespace web, and a client request matching the rule gets HTTP 500. ReferenceGrant from-shop in namespace web allows the reference, and the next request reaches the proxy, which here forwards it to Pod web by its endpoint',
   parts: [
     P.defs(),
     box('gwClass', LAD_X, rungY(0), 'GatewayClass example', 'example.com/gateway-controller'),
@@ -149,7 +149,7 @@ export const STEPS_SPEC = [
   {
     id: 'rejected',
     duration: 3000,
-    narration: 'HTTPRoute web is created in namespace shop: parentRefs names shared-gw, and one rule sends shop.io/ to Service web in namespace web. The listener admits routes from infra alone, so the route reads Accepted False, reason NotAllowedByListeners.',
+    narration: 'HTTPRoute web is created in namespace shop. Its parentRefs names shared-gw, and one rule sends shop.io/ to Service web in namespace web. The listener admits routes from infra alone, so the route reads Accepted False, reason NotAllowedByListeners.',
     ...stage(2),
     chips: { classChip: 'True', allowChip: 'from: Same', acceptChip: REJECTED, refsChip: 'none' },
     lit: ['route'],
@@ -162,7 +162,7 @@ export const STEPS_SPEC = [
   {
     id: 'admitted',
     duration: 3500,
-    narration: 'Gateway shared-gw is edited: allowedRoutes becomes from Selector, matching namespace shop, and the route turns Accepted True. Its backendRef points into namespace web, where no ReferenceGrant allows it, so ResolvedRefs reads False, reason RefNotPermitted, and the implementation configures no backend for the rule.',
+    narration: 'In Gateway shared-gw, allowedRoutes is edited to from Selector, matching namespace shop, and the route turns Accepted True. But its backendRef points into namespace web, where no ReferenceGrant allows it, so ResolvedRefs reads False, reason RefNotPermitted, and the implementation configures no backend for the rule.',
     ...stage(3),
     chips: { classChip: 'True', allowChip: SEL, acceptChip: 'True', refsChip: NOT_PERMITTED },
     lit: ['gw'],
@@ -190,7 +190,7 @@ export const STEPS_SPEC = [
   {
     id: 'grant',
     duration: 3000,
-    narration: 'ReferenceGrant from-shop is created in namespace web, allowing HTTPRoutes in namespace shop to reference its Services. The backendRef resolves and ResolvedRefs turns True, so the rule now has a backend: Service web, which selects Pod web.',
+    narration: 'ReferenceGrant from-shop is created in namespace web, allowing HTTPRoutes in namespace shop to reference its Services. The backendRef resolves and ResolvedRefs turns True, so the rule now has a backend, Service web, which selects Pod web.',
     ...stage(5),
     chips: { classChip: 'True', allowChip: SEL, acceptChip: 'True', refsChip: 'True' },
     lit: ['grant'],
@@ -203,7 +203,7 @@ export const STEPS_SPEC = [
   {
     id: 'request',
     duration: 6000,
-    narration: 'The same request now matches Host and path against a configuration built from the Gateway and the HTTPRoute, and the rule has a backend. An implementation may send it to the Service IP or to the backing EndpointSlices, and here the proxy forwards straight to Pod web at 10.244.1.5.',
+    narration: 'The same request now matches Host and path against a configuration built from the Gateway and the HTTPRoute, and the rule has a backend. An implementation may send it to the Service IP or to the backing EndpointSlices, and here the proxy forwards it straight to Pod web at 10.244.1.5.',
     ...stage(6),
     chips: { classChip: 'True', allowChip: SEL, acceptChip: 'True', refsChip: 'True' },
     lit: ['client'],

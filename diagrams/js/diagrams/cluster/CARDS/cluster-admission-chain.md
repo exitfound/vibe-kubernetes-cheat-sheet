@@ -14,5 +14,5 @@ CONTENT  Sources: Admission Controllers, Dynamic Admission Control, Mutating Adm
          LimitRanger is named on mutating and validating. Row 3 is `required fields and values
          checked`, never types or OpenAPI. Rows 2 and 4 read `plugins, policies and webhooks`, false
          below 1.36. Webhooks use HTTPS. Persist reaches "every watch that MATCHES". Step 1 has no
-         built-in label, and every caller has an identity.
+         built-in label, and every caller has an identity. A timeout is a webhook failurePolicy.
 ```

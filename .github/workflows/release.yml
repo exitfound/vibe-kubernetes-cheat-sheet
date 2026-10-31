@@ -98,7 +98,7 @@ jobs:
             compose.yaml \
             configs/ \
             .dockerignore \
-            -x "diagrams/test/*" "*CLAUDE.md" "*CARDS.md" "*CANON.md" "*README.md" "*/CARDS/*"
+            -x "diagrams/test/*" "*CLAUDE.md" "*CARDS.md" "*CANON.md" "*README.md" "*README.ru.md" "*/CARDS/*"
 
       - name: Create Release on GitHub
         env:

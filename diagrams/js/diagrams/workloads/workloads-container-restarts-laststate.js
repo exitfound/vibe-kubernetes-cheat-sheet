@@ -140,7 +140,7 @@ export const STEPS_SPEC = [
   {
     id: 'crash',
     duration: 4500,
-    narration: 'The process hits its memory limit and the kernel kills it. Kubelet spots the dead container and writes state as Terminated: a record carrying exitCode 137, reason OOMKilled, startedAt and finishedAt. It holds the live slot only until Kubelet turns to the restart, not until the new container runs.',
+    narration: 'The process hits its memory limit and the kernel kills it. Kubelet spots the dead container and writes state as Terminated: a record carrying exitCode 137, reason OOMKilled, startedAt and finishedAt. The record holds the live slot only until Kubelet turns to the restart, not until the new container runs.',
     chips: { restartChip: '1' },
     ...record(TERM_137, TERM_1, DEAD_2, KEPT_1),
     wires: { exit: 'exit 137', write: 'PATCH status · state Terminated' },
@@ -158,7 +158,7 @@ export const STEPS_SPEC = [
   {
     id: 'message',
     duration: 3400,
-    narration: 'A container can leave a note. Whatever it writes to terminationMessagePath, default /dev/termination-log, becomes the message field of that Terminated record. The terminationMessagePolicy defaults to File, and FallbackToLogsOnError takes the log tail instead when the file is empty after a failed exit.',
+    narration: 'A container can leave a note. Whatever it writes to terminationMessagePath, by default /dev/termination-log, goes into the message field of that Terminated record. The terminationMessagePolicy defaults to File, and FallbackToLogsOnError takes the log tail instead when the file is empty after a failed exit.',
     chips: { restartChip: '1' },
     ...record(TERM_137, TERM_1, DEAD_2, KEPT_1),
     opacity: ground(OPACITY.notready),
@@ -168,7 +168,7 @@ export const STEPS_SPEC = [
   {
     id: 'restart',
     duration: 5300,
-    narration: 'Kubelet starts a fresh container in the same Pod and reports it. The record rolls over: state is Running again, the Terminated record moves into lastState, and what lastState held before is dropped. The restartCount becomes 2. On the Node the dead instance stays, container GC keeps one per container by default.',
+    narration: 'Kubelet starts a fresh container in the same Pod and reports it. The records roll over. The state reads Running again, the Terminated record moves into lastState, and what lastState held before is dropped. The restartCount becomes 2. The dead instance stays on the Node, because container GC keeps one per container by default.',
     chips: { restartChip: '2' },
     ...record(RUN_3, TERM_137, LIVE_3, KEPT_2),
     wires: { out: 'restart', write: 'PATCH status · Running, roll lastState' },
@@ -192,7 +192,7 @@ export const STEPS_SPEC = [
   {
     id: 'read',
     duration: 3500,
-    narration: 'This is where to look. The live state says Running, so the container is fine right now and explains nothing. Running kubectl describe pod prints both records, State and Last State, and Last State holds the answer: a Terminated record with exitCode 137 and reason OOMKilled, which is why the previous instance died.',
+    narration: 'The live state reads Running, so the container is fine right now and the answer is not here. Running kubectl describe pod prints both records, State and Last State, and the answer is in Last State. It holds a Terminated record with exitCode 137 and reason OOMKilled, which explains why the previous instance died.',
     chips: { restartChip: '2' },
     ...record(RUN_3, TERM_137, LIVE_3, KEPT_2),
     wires: { corr: 'kubectl describe' },
@@ -206,7 +206,7 @@ export const STEPS_SPEC = [
   {
     id: 'exitcodes',
     duration: 3500,
-    narration: 'The exitCode names the cause. 0 is Completed, a clean exit. 1 is a generic application Error. Codes above 128 usually carry a signal: 137 is 128 plus 9 for SIGKILL, paired with reason OOMKilled when the kernel did it, and 143 is 128 plus 15 for SIGTERM. The number narrows the cause, the reason beside it names it.',
+    narration: 'The exitCode narrows the cause, and the reason beside it names that cause. 0 is Completed, a clean exit, and 1 is a generic application Error. Codes above 128 usually carry a signal number. So 137 is 128 plus 9 for SIGKILL, and if the kernel killed the process, the reason is OOMKilled. 143 is 128 plus 15 for SIGTERM.',
     chips: { restartChip: '2' },
     ...record(RUN_3, TERM_137, LIVE_3, KEPT_2),
     opacity: ground(1),

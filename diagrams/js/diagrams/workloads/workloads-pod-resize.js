@@ -155,7 +155,7 @@ export const STEPS_SPEC = [
   {
     id: 'policy',
     duration: 4100,
-    narration: 'The resizePolicy field answers, per resource, whether the container survives the change. NotRequired is the default and applies the new value to the running container. RestartContainer restarts it, which memory often needs because many applications cannot grow their allocation on the fly. Change two resources whose policies differ and RestartContainer takes precedence.',
+    narration: 'The resizePolicy field answers, per resource, whether the container survives the change. NotRequired is the default and applies the new value to the running container. RestartContainer restarts it, which memory often needs because many applications cannot grow their allocation on the fly. When two resources whose policies differ change together, RestartContainer takes precedence.',
     chips: { specChip: NEW, statusChip: OLD, policyChip: POLICY, condChip: 'none' },
     sublabels: { containerBox: CG_OLD },
     opacity: { podGroup: 1, ...branchAt(ASIDE) },

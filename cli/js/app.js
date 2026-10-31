@@ -1,9 +1,10 @@
 import { STAR_ICON, LINK_ICON, DOCS_ICON, SECTIONS } from './data.js';
 import { setupSidebar } from './lib/sidebar.js';
-import { setupHeader, alignLogo, copyText, escapeHtml, COPY_ICON, CHECK_ICON } from './lib/chrome.js';
+import { setupHeader, alignLogo, fitSearchPlaceholder, watchNavFade, copyText, escapeHtml, COPY_ICON, CHECK_ICON } from './lib/chrome.js';
 import { setupKeysHelp, isSlash } from './lib/keys.js';
 import { hl, sortCmds } from './lib/commands.js';
 import { trackFresh, hashKey } from './lib/fresh.js';
+import { getLang, LANG_EVENT, counted as countIn, newPill } from './lib/lang.js';
 
 setupSidebar();
 
@@ -13,7 +14,50 @@ await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0))
 
 document.getElementById('year').textContent = new Date().getFullYear();
 
-// ── Constants ────────────────────────────────────────────────
+// Language
+// Only the descriptions follow the header switch. The Russian is keyed by the English text, so a
+// reworded description shows in English until lang/ru.js follows (unit/cli-i18n.test.mjs fails).
+let lang = getLang();
+let RU = null;
+// A failed fetch leaves the descriptions in English instead of the page empty.
+const loadRu = async () => {
+  try { RU ??= (await import('./lang/ru.js')).RU; } catch (err) { console.error('lang/ru.js:', err); }
+};
+if (lang === 'ru') await loadRu();
+const tr = (en) => (lang === 'ru' && RU?.[en]) || en;
+const langAttr = (en) => tr(en) === en ? '' : ' lang="ru"';
+
+// The interface follows the switch too, all but the section, category and group names. The static
+// parts of index.html carry their Russian as data-ru* (the page's swap snippet), the rendered ones
+// read it here.
+const UI_RU = {
+  'Toggle star': 'Добавить в избранное или убрать',
+  'Copy command': 'Скопировать команду',
+  'Copied to clipboard': 'Скопировано в буфер обмена',
+  'Copy failed': 'Не удалось скопировать',
+  'No starred commands yet': 'Избранных команд пока нет',
+  'Click the star icon next to a command to save it here.': 'Нажмите на звёздочку рядом с командой, чтобы сохранить её здесь.',
+  'Try a different keyword or clear the search.': 'Попробуйте другой запрос или очистите поиск.',
+};
+const ui = (en) => (lang === 'ru' && UI_RU[en]) || en;
+// A count with its noun in the language on screen (`counted` in lib/lang.js).
+const counted = (n, forms) => countIn(n, forms, lang);
+const COMMANDS = ['command', 'commands', 'команда', 'команды', 'команд'];
+// The section header's three actions: [tooltip, aria-label], the label naming the section.
+const sectionActions = (title) => lang === 'ru' ? {
+  link: ['Скопировать ссылку на секцию', `Скопировать ссылку на секцию ${title}`],
+  docs: ['Официальная документация', `Документация ${title}`],
+  report: ['Сообщить о проблеме в секции', `Сообщить о проблеме в секции ${title}`],
+} : {
+  link: ['Copy link to this section', `Copy link to the ${title} section`],
+  docs: ['Official documentation', `${title} documentation`],
+  report: ['Report a problem in this section', `Report a problem in the ${title} section`],
+};
+// Russian names are tagged so a screen reader voices them in Russian under the page's lang="en".
+const ruLang = () => (lang === 'ru' ? ' lang="ru"' : '');
+const named = ([title, label]) => `title="${escapeHtml(title)}" aria-label="${escapeHtml(label)}"${ruLang()}`;
+
+// Constants
 const SCROLL_THRESHOLD = 300;
 const TOAST_DURATION   = 2000;
 const COPY_RESET_DELAY = 1500;
@@ -22,7 +66,7 @@ const STARRED_KEY      = 'kube-how:starred:v1';
 const ISSUES_URL       = 'https://github.com/exitfound/vibe-kubernetes-cheat-sheet/issues/new';
 const REPORT_ICON      = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4.5L17 13H4"/></svg>`;
 
-// ── Starred commands (persisted) ─────────────────────────────
+// Starred commands (persisted)
 // Old command string to its rewrite, so a star saved under the old string follows its command.
 const STAR_RENAMES = {
   "apt-get update && apt-get install -y apt-transport-https ca-certificates curl": "apt-get update && apt-get install -y apt-transport-https ca-certificates curl gpg",
@@ -93,7 +137,7 @@ function persistStarred() {
 
 function isStarred(cmd) { return starred.has(cmd); }
 
-// ── Search helpers ────────────────────────────────────────────
+// Search helpers
 function escapeRe(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -124,7 +168,7 @@ function applyMark(el, q) {
   walk(el);
 }
 
-// ── Navigation data ───────────────────────────────────────────
+// Navigation data
 const GROUPS = {
   kubernetes:      ['installation', 'cluster', 'workloads'],
   tools:           ['helm', 'kustomize', 'k9s'],
@@ -192,11 +236,9 @@ function reportUrl(section) {
 const fresh = trackFresh('kube-how:cli-seen:v1', SECTIONS.flatMap(s => s.groups.flatMap(g => g.cmds.map(c => hashKey(c.cmd)))));
 const isNewCmd = (raw) => fresh.isNew(hashKey(raw));
 
-function newChip(n) {
-  return n ? `<span class="section-new" title="New since your last visit">${n} new</span>` : '';
-}
+function newChip(n) { return newPill(n, 'section-new', lang); }
 
-// ── Rendering ─────────────────────────────────────────────────
+// Rendering
 function renderSection(section) {
   const cat   = categoryOfSection(section.id) ?? 'all';
   const group = groupOfCategory(cat) ?? 'all';
@@ -204,24 +246,24 @@ function renderSection(section) {
     .map((g, gi) => renderCard(g, gi))
     .join('');
   const total = section.groups.reduce((n, g) => n + g.cmds.length, 0);
-  const label = total === 1 ? 'command' : 'commands';
+  const act = sectionActions(section.title);
   const freshCount = section.groups.reduce((n, g) => n + g.cmds.filter(c => isNewCmd(c.cmd)).length, 0);
 
   return `
     <section class="section" data-section="${escapeHtml(section.id)}" data-cat="${cat}" data-group="${group}">
       <div class="section-header">
         <div class="section-icon">${section.icon}</div>
-        <h2 class="section-title"><a class="section-page" href="/cli/section/${escapeHtml(section.id)}/">${escapeHtml(section.title)}</a></h2>
+        <h2 class="section-title"><a class="section-page" href="/cli/section/${escapeHtml(section.id)}/" tabindex="-1">${escapeHtml(section.title)}</a></h2>
         <span class="section-sub">${escapeHtml(section.sub)}</span>
         <span class="section-actions">
-          <button class="section-action section-link" type="button" title="Copy link to this section" aria-label="Copy link to the ${escapeHtml(section.title)} section">${LINK_ICON}</button>
-          ${section.docs ? `<a class="section-action" href="${escapeHtml(section.docs)}" target="_blank" rel="noopener" title="Official documentation" aria-label="${escapeHtml(section.title)} documentation">${DOCS_ICON}</a>` : ''}
-          <a class="section-action" href="${escapeHtml(reportUrl(section))}" target="_blank" rel="noopener" title="Report a problem in this section" aria-label="Report a problem in the ${escapeHtml(section.title)} section">${REPORT_ICON}</a>
+          <button class="section-action section-link" type="button" ${named(act.link)}>${LINK_ICON}</button>
+          ${section.docs ? `<a class="section-action section-docs" href="${escapeHtml(section.docs)}" target="_blank" rel="noopener" ${named(act.docs)}>${DOCS_ICON}</a>` : ''}
+          <a class="section-action section-report" href="${escapeHtml(reportUrl(section))}" target="_blank" rel="noopener" ${named(act.report)}>${REPORT_ICON}</a>
         </span>
         <span class="section-meta">
           ${newChip(freshCount)}
           ${section.version ? `<span class="section-version">${escapeHtml(section.version)}</span>` : ''}
-          <span class="section-count">${total} ${label}</span>
+          <span class="section-count" data-total="${total}"${lang === 'ru' ? ' lang="ru"' : ''}>${counted(total, COMMANDS)}</span>
         </span>
       </div>
       <div class="cards-grid">${groups}</div>
@@ -230,7 +272,7 @@ function renderSection(section) {
 
 
 function renderCard(group, gi) {
-  const desc = group.desc ? `<div class="card-desc">${escapeHtml(group.desc)}</div>` : '';
+  const desc = group.desc ? `<div class="card-desc" data-en="${escapeHtml(group.desc)}"${langAttr(group.desc)}>${escapeHtml(tr(group.desc))}</div>` : '';
   const cmds = sortCmds(group.cmds).map(c => renderCmd(c)).join('');
   return `
     <div class="card" data-card="${gi}">
@@ -243,15 +285,15 @@ function renderCard(group, gi) {
 function renderCmd(item) {
   const starredCls = isStarred(item.cmd) ? ' starred' : '';
   return `
-    <div class="cmd-item${isNewCmd(item.cmd) ? ' is-new' : ''}" data-raw="${escapeHtml(item.cmd)}" data-desc="${escapeHtml(item.desc)}">
+    <div class="cmd-item${isNewCmd(item.cmd) ? ' is-new' : ''}" data-raw="${escapeHtml(item.cmd)}" data-desc="${escapeHtml(tr(item.desc))}" data-en="${escapeHtml(item.desc)}">
       <div class="cmd-code">${hl(item.cmd)}</div>
-      <div class="cmd-desc">${escapeHtml(item.desc)}</div>
-      <button class="star-btn${starredCls}" title="Toggle star" aria-label="Toggle star" aria-pressed="${isStarred(item.cmd)}">${STAR_ICON}</button>
-      <button class="copy-btn" title="Copy command" aria-label="Copy command">${COPY_ICON}</button>
+      <div class="cmd-desc"${langAttr(item.desc)}>${escapeHtml(tr(item.desc))}</div>
+      <button class="star-btn${starredCls}" title="${ui('Toggle star')}" aria-label="${ui('Toggle star')}" aria-pressed="${isStarred(item.cmd)}"${ruLang()}>${STAR_ICON}</button>
+      <button class="copy-btn" title="${ui('Copy command')}" aria-label="${ui('Copy command')}"${ruLang()}>${COPY_ICON}</button>
     </div>`;
 }
 
-// ── Copy to clipboard ─────────────────────────────────────────
+// Copy to clipboard
 let toastTimer;
 const toast = document.getElementById('toast');
 
@@ -259,7 +301,7 @@ const toast = document.getElementById('toast');
 // instead of holding a permanent "Copied" in the accessibility tree.
 function showToast(msg = 'Copied to clipboard', failed = false) {
   clearTimeout(toastTimer);
-  toast.querySelector('.toast-text').textContent = msg;
+  toast.querySelector('.toast-text').textContent = ui(msg);
   toast.classList.toggle('is-error', failed);
   toast.classList.add('show');
   toastTimer = setTimeout(() => {
@@ -320,7 +362,7 @@ function copySectionLink(id) {
   copyText(url, () => showToast(), copyFailed);
 }
 
-// ── Three-level navigation ───────────────────────────────────
+// Three-level navigation
 let activeGroup    = 'all';
 let activeCategory = 'all';
 let activeSub      = 'all';
@@ -477,7 +519,7 @@ function applySub(sub) {
   writeUrl(sub === 'all' ? `#${fallback}` : `#${sub}`);
 }
 
-// ── Search ────────────────────────────────────────────────────
+// Search
 function applySearch(query) {
   const q = query.trim().toLowerCase();
   const inStarredMode = activeGroup === 'starred';
@@ -503,7 +545,8 @@ function applySearch(query) {
         const raw = item.dataset.raw;
         const matchesText = !q
           || raw.toLowerCase().includes(q)
-          || item.dataset.desc.toLowerCase().includes(q);
+          || item.dataset.desc.toLowerCase().includes(q)
+          || item.dataset.en.toLowerCase().includes(q);
         const matchesStar = !inStarredMode || starred.has(raw);
         const visible = matchesText && matchesStar;
         item.hidden = !visible;
@@ -532,6 +575,7 @@ function applySearch(query) {
       emptyEl = document.createElement('div');
       emptyEl.id = 'emptyState';
       emptyEl.className = 'empty-state';
+      emptyEl.setAttribute('role', 'status');
       main.appendChild(emptyEl);
     }
     if (inStarredMode && !q) {
@@ -539,22 +583,24 @@ function applySearch(query) {
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
         </svg>
-        <h3>No starred commands yet</h3>
-        <p>Click the star icon next to a command to save it here.</p>`;
+        <h3>${ui('No starred commands yet')}</h3>
+        <p>${ui('Click the star icon next to a command to save it here.')}</p>`;
     } else {
       emptyEl.innerHTML = `
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
         <h3></h3>
-        <p>Try a different keyword or clear the search.</p>`;
+        <p>${ui('Try a different keyword or clear the search.')}</p>`;
       const scopeName = inStarredMode
-        ? 'starred'
+        ? (lang === 'ru' ? 'Starred' : 'starred')
         : (activeCategory !== 'all'
             ? CATEGORY_LABELS[activeCategory]
             : (activeGroup !== 'all' ? GROUP_LABELS[activeGroup] : ''));
-      const scopeLabel = scopeName ? ` in ${scopeName}` : '';
-      emptyEl.querySelector('h3').textContent = `No results for \u201c${query}\u201d${scopeLabel}`;
+      const scopeLabel = scopeName ? ` ${lang === 'ru' ? 'в' : 'in'} ${scopeName}` : '';
+      emptyEl.querySelector('h3').textContent = lang === 'ru'
+        ? `Ничего не найдено по запросу \u00ab${query}\u00bb${scopeLabel}`
+        : `No results for \u201c${query}\u201d${scopeLabel}`;
     }
   } else {
     clearEmptyState();
@@ -580,14 +626,14 @@ function clearEmptyState() {
 }
 
 
-// ── Scroll to top ─────────────────────────────────────────────
+// Scroll to top
 const scrollTopBtn = document.getElementById('scrollTopBtn');
 window.addEventListener('scroll', () => {
   scrollTopBtn.classList.toggle('visible', window.scrollY > SCROLL_THRESHOLD);
 }, { passive: true });
 scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-// ── Key bindings ──────────────────────────────────────────────
+// Key bindings
 const keysHelp = setupKeysHelp([
   { title: 'Commands', rows: [
     { keys: [['/']], desc: 'Focus search' },
@@ -633,10 +679,16 @@ searchClear.addEventListener('click', () => {
   searchClear.classList.remove('visible');
 });
 
-// ── Event delegation ──────────────────────────────────────────
+// Event delegation
 const main = document.getElementById('main');
 
 main.addEventListener('click', e => {
+  // A plain mouse click on the title does nothing, a modified one opens the static page, as on
+  // /diagrams/. Enter from a screen reader arrives as a click with detail 0 and follows the link.
+  if (e.target.closest('.section-page')) {
+    if (e.detail > 0 && !(e.ctrlKey || e.metaKey || e.shiftKey || e.altKey)) e.preventDefault();
+    return;
+  }
   const linkBtn = e.target.closest('.section-link');
   if (linkBtn) {
     copySectionLink(linkBtn.closest('.section').dataset.section);
@@ -674,14 +726,62 @@ document.querySelectorAll('.top-btn').forEach(btn => {
   btn.addEventListener('click', () => applyGroup(btn.dataset.group));
 });
 
-// ── Init ──────────────────────────────────────────────────────
+// The rendered interface after a language switch. Rows keep their state, only the words change.
+function relabelUi() {
+  const byId = new Map(SECTIONS.map(s => [s.id, s]));
+  const name = (el, [title, label]) => {
+    if (!el) return;
+    el.title = title;
+    el.setAttribute('aria-label', label);
+    if (lang === 'ru') el.lang = 'ru'; else el.removeAttribute('lang');
+  };
+  document.querySelectorAll('.section').forEach(sec => {
+    const act = sectionActions(byId.get(sec.dataset.section).title);
+    name(sec.querySelector('.section-link'), act.link);
+    name(sec.querySelector('.section-docs'), act.docs);
+    name(sec.querySelector('.section-report'), act.report);
+    const count = sec.querySelector('.section-count');
+    count.textContent = counted(+count.dataset.total, COMMANDS);
+    if (lang === 'ru') count.lang = 'ru'; else count.removeAttribute('lang');
+  });
+  document.querySelectorAll('.star-btn').forEach(btn => name(btn, [ui('Toggle star'), ui('Toggle star')]));
+  document.querySelectorAll('.copy-btn').forEach(btn => name(btn, [ui('Copy command'), ui('Copy command')]));
+}
+
+// Init
 function init() {
   main.innerHTML = SECTIONS.map(renderSection).join('');
 }
 
 init();
 
-// ── URL hash navigation ───────────────────────────────────────
+// A switch rewrites the descriptions in place, so the scope, the search and the stars stay put.
+// While Russian is on, search matches both languages, in English only the English.
+window.addEventListener(LANG_EVENT, async (e) => {
+  const next = e.detail;
+  if (next === 'ru') await loadRu();
+  if (getLang() !== next) return;
+  lang = next;
+  const relabel = (el, en) => {
+    const text = tr(en);
+    el.textContent = text;
+    if (text === en) el.removeAttribute('lang'); else el.lang = 'ru';
+    return text;
+  };
+  document.querySelectorAll('.card-desc[data-en]').forEach(el => relabel(el, el.dataset.en));
+  document.querySelectorAll('.cmd-item').forEach(item => {
+    item.dataset.desc = relabel(item.querySelector('.cmd-desc'), item.dataset.en);
+  });
+  document.querySelectorAll('.section-new').forEach(chip => {
+    chip.outerHTML = newChip(chip.closest('.section').querySelectorAll('.cmd-item.is-new').length);
+  });
+  relabelUi();
+  bookFrame?.then(frame => frame.remove(), () => {});
+  bookFrame = null;
+  applySearch(searchInput.value);
+});
+
+// URL hash navigation
 // The path is written in full with its trailing slash: a bare '#...' would resolve against /cli and
 // drop it, and a slashless address costs a redirect and splits analytics in two.
 function writeUrl(hash) {
@@ -708,7 +808,7 @@ restoreFromHash();
 if (!location.hash) writeUrl('');
 window.addEventListener('hashchange', restoreFromHash);
 
-// ── Save as PDF ───────────────────────────────────────────────
+// Save as PDF
 // The header button prints every command from a hidden frame of A4 sheets laid out here, each numbered
 // on a strip at its foot (Firefox draws no @page margin boxes). Ctrl+P prints the view, on paper.
 const PDF_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><polyline points="9 15 12 18 15 15"/></svg>`;
@@ -858,6 +958,7 @@ async function buildBook() {
   try {
     await Promise.all([...doc.querySelectorAll('link')].map(l => l.sheet ? null : new Promise(r => { l.onload = l.onerror = r; })));
     await Promise.all(BOOK_FACES.map(f => doc.fonts.load(f).catch(() => {})));
+    if (lang === 'ru') await Promise.all(['400', '600'].map(w => doc.fonts.load(`${w} 13px "Onest"`, 'Кириллица').catch(() => {})));
     layBook(doc);
   } catch (err) {
     frame.remove();
@@ -872,9 +973,17 @@ function addPdfButton() {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'action-btn';
-  btn.title = 'Save all commands as PDF';
-  btn.setAttribute('aria-label', 'Save all commands as PDF');
   btn.innerHTML = `${PDF_ICON}<span class="action-btn-label">PDF</span>`;
+  // The label stays PDF in both languages, its tooltip follows the switch.
+  const relabel = () => {
+    const ru = getLang() === 'ru';
+    const text = ru ? 'Сохранить все команды в PDF' : 'Save all commands as PDF';
+    btn.title = text;
+    btn.setAttribute('aria-label', text);
+    if (ru) btn.lang = 'ru'; else btn.removeAttribute('lang');
+  };
+  relabel();
+  window.addEventListener(LANG_EVENT, relabel);
   // A failed layout is not cached, so the next click builds the book again.
   btn.addEventListener('click', async () => {
     bookFrame ??= buildBook().catch((err) => { bookFrame = null; throw err; });
@@ -889,20 +998,8 @@ function addPdfButton() {
   actions.prepend(btn);
 }
 
-// Four header buttons leave a narrow phone too little field for the full placeholder, so it
-// shortens when it would be cut. The aria-label keeps the full name.
-const PLACEHOLDER = searchInput.placeholder;
-const measureCtx = document.createElement('canvas').getContext('2d');
-function fitPlaceholder() {
-  const cs = getComputedStyle(searchInput);
-  measureCtx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-  const room = searchInput.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-  searchInput.placeholder = measureCtx.measureText(PLACEHOLDER).width <= room ? PLACEHOLDER : 'Search...';
-}
-// The field itself is watched: the sidebar toggling changes its width with no window resize.
-if (window.ResizeObserver) new ResizeObserver(fitPlaceholder).observe(searchInput);
-else window.addEventListener('resize', fitPlaceholder);
-document.fonts?.ready.then(fitPlaceholder);
+const fitPlaceholder = fitSearchPlaceholder(searchInput);
 
 alignLogo('[data-group="all"]');
+watchNavFade(document.querySelectorAll('.nav .nav-inner'));
 setupHeader().then(() => { addPdfButton(); fitPlaceholder(); });

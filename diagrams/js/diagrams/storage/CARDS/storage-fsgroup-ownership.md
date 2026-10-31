@@ -14,6 +14,7 @@ CONTENT  Sources: Configure a Security Context, PodSecurityContext and CSIDriver
          v1.36.5 pkg/volume/volume_linux.go and csi/csi_mounter.go. OnRootMismatch checks the root
          dir GROUP, its rw/x bits AND setgid, never the owner. Always re-chowns, it does not check.
          Default CSI policy: fsType plus ReadWriteOnce or ReadWriteOncePod, read-only mounts never.
-         VOLUME_MOUNT_GROUP scopes the narration, desc and aria-label, the Kubelet sublabel stays.
+         VOLUME_MOUNT_GROUP scopes the narration and aria-label, the Kubelet sublabel stays.
          "fast no matter how many files" is ruled out: only the ownership walk is skipped.
+         "freshly formatted" and "new volume" are ruled out: the drawn tree already holds files.
 ```

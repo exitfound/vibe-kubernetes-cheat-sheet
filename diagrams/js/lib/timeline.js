@@ -2,7 +2,7 @@ import { reducedMotion } from './motion.js';
 import { playedHold } from './tokens.js';
 
 export class Timeline {
-  constructor({ steps, scene, onSceneReset, onChange, onPlayingChange, posterFirst = false }) {
+  constructor({ steps, scene, onSceneReset, onChange, onPlayingChange, narrationOf, posterFirst = false }) {
     this.steps = steps;
     this.scene = scene;
     this.idx = 0;
@@ -15,6 +15,9 @@ export class Timeline {
     this._onChange = onChange || (() => {});
     this._onPlayingChange = onPlayingChange || (() => {});
     this._onSceneReset = onSceneReset || (() => {});
+    // The text the reader is shown for a step, translated by the dialog while Russian is on. The
+    // reading-time floor of the hold counts this text, not the English.
+    this._narrationOf = narrationOf || ((s) => s.narration || '');
     // When true, steps[0] is a non-narrated "poster" rest frame: auto-play and loop
     // start at step 1 (the first action), and manual Next wraps the last step back to it.
     this.posterFirst = posterFirst;
@@ -80,7 +83,7 @@ export class Timeline {
     // On the poster, preview the first action step's text so it shows immediately on
     // open (only the diagram animation waits for the dwell).
     if (this.posterFirst && this.idx === 0 && this.steps[1]) {
-      meta.posterText = this.steps[1].narration || '';
+      meta.posterText = this._narrationOf(this.steps[1]);
     }
     this._onChange(this.idx, this.current, this.steps.length, meta);
   }
@@ -122,7 +125,7 @@ export class Timeline {
           if (isFinite(end) && end > maxAnimEnd) maxAnimEnd = end;
         } catch (_) {}
       }
-      const hold = playedHold(baseDur, maxAnimEnd, (step.narration || '').length);
+      const hold = playedHold(baseDur, maxAnimEnd, this._narrationOf(step).length);
       this._stepDur1x = Math.max(hold, maxAnimEnd + 60);
       this._stepConsumed1x = 0;
       this._stepResumeAt = performance.now();
@@ -130,11 +133,26 @@ export class Timeline {
     }
   }
 
-  // Apply the poster (steps[0]) resting state without animation, so a following
-  // first-action step builds on the correct baseline. Used by play()/loop/Next-wrap.
-  _applyPoster() {
-    try { this.steps[0] && this.steps[0].enter && this.steps[0].enter(this.scene, this._ctx(true)); }
-    catch (_) {}
+  // A fresh scene with the first `count` steps entered at once. Their highlight changes would each
+  // run the 0.3s CSS transition from the fresh tree, a pulse on blocks the next step never touches,
+  // so transitions are off until the rebuilt state is computed. `hold` leaves them off for the caller.
+  _rebuild(count, hold = false) {
+    const host = this.scene && this.scene.host;
+    if (host) host.classList.add('diagram-instant');
+    this._onSceneReset();
+    this._cancelAnims();
+    for (let j = 0; j < count; j++) {
+      const step = this.steps[j];
+      try { step.enter && step.enter(this.scene, this._ctx(true)); } catch (_) {}
+    }
+    if (!hold) this._endInstant();
+  }
+
+  _endInstant() {
+    const host = this.scene && this.scene.host;
+    if (!host) return;
+    void host.offsetWidth;
+    host.classList.remove('diagram-instant');
   }
 
   _scheduleAdvance() {
@@ -145,14 +163,8 @@ export class Timeline {
       if (this.idx < this.steps.length - 1) {
         this._enterStep(this.idx + 1, { withTimer: true });
       } else if (this.loop) {
-        this._onSceneReset();
-        this._cancelAnims();
-        if (this.posterFirst) {
-          this._applyPoster();
-          this._enterStep(1, { withTimer: true });
-        } else {
-          this._enterStep(0, { withTimer: true });
-        }
+        this._rebuild(this.posterFirst ? 1 : 0);
+        this._enterStep(this.posterFirst ? 1 : 0, { withTimer: true });
       } else {
         this._finished = true;
         this._setPlaying(false);
@@ -164,13 +176,13 @@ export class Timeline {
     if (this._destroyed) return;
     this._clearAutoPlay();
     if (this.isLast && this._finished) {
-      this._onSceneReset();
+      this._rebuild(0);
       this.idx = 0;
     }
     this._setPlaying(true);
     if (this.posterFirst && this.idx === 0) {
       // The poster is a rest frame: apply its state, then play the first action step.
-      this._applyPoster();
+      this._rebuild(1);
       this._enterStep(1, { withTimer: true });
     } else {
       this._enterStep(this.idx, { withTimer: true });
@@ -186,49 +198,59 @@ export class Timeline {
     this._setPlaying(false);
   }
 
+  // Prev, Next and a step dot all PLAY the step they land on, from the finished state of the one
+  // before it, and keep playing if the player was. Next on the last step of a poster card wraps to
+  // the poster, which is a rest frame.
   step(dir = 'next') {
-    this.pause();
     if (dir === 'next') {
-      if (this.posterFirst && this.isLast) {
-        // Wrap from the last action back to the blank poster (rest state).
-        this._onSceneReset();
-        this._cancelAnims();
-        this._applyPoster();
-        this.idx = 0;
-        this._notifyChange();
-      } else if (!this.isLast) {
-        this._enterStep(this.idx + 1, { withTimer: false });
-      }
-    } else {
-      if (this.isFirst) return;
-      const target = this.idx - 1;
-      this._onSceneReset();
-      this._cancelAnims();
-      for (let j = 0; j <= target; j++) {
-        const step = this.steps[j];
-        try { step.enter && step.enter(this.scene, this._ctx(true)); } catch (_) {}
-      }
-      this.idx = target;
-      this._notifyChange();
+      if (this.posterFirst && this.isLast) this._animateTo(0);
+      else if (!this.isLast) this._animateTo(this.idx + 1);
+    } else if (!this.isFirst) {
+      this._animateTo(this.idx - 1);
     }
+  }
+
+  playStep(target) {
+    if (target >= 0 && target < this.steps.length) this._animateTo(target);
+  }
+
+  // The step on screen once more. On the poster that is the first action step.
+  replay() {
+    this._animateTo(this.posterFirst && this.idx === 0 ? 1 : this.idx);
+  }
+
+  _animateTo(target) {
+    if (this._destroyed) return;
+    const keep = this.playing;
+    this._clearAutoPlay();
+    this._clearTimer();
+    if (this.posterFirst && target === 0) {
+      this._rebuild(1);
+      this.idx = 0;
+      this._setPlaying(false);
+      this._notifyChange();
+      return;
+    }
+    // Every move rebuilds, so Next pressed mid-flight still starts from the finished step (S-14 holds
+    // the rebuilt frame equal to the played one). Only Next keeps the transitions: a replay, Prev or a
+    // jump lands on a state the reader was not looking at, where a fading highlight reads as a pulse.
+    const onward = target === this.idx + 1;
+    this._rebuild(target, !onward);
+    this._enterStep(target, { withTimer: keep });
+    if (!onward) this._endInstant();
+    if (!keep) this._setPlaying(false);
   }
 
   reset() {
     this.pause();
-    this._onSceneReset();
-    this._cancelAnims();
+    this._rebuild(1);
     this.idx = 0;
-    try {
-      const step = this.steps[0];
-      step.enter && step.enter(this.scene, this._ctx(true));
-    } catch (_) {}
     this._notifyChange();
   }
 
   restart() {
     this.pause();
-    this._onSceneReset();
-    this._cancelAnims();
+    this._rebuild(0);
     this.idx = 0;
     this.play();
   }
@@ -236,12 +258,7 @@ export class Timeline {
   gotoStep(target) {
     this.pause();
     if (target < 0 || target >= this.steps.length) return;
-    this._onSceneReset();
-    this._cancelAnims();
-    for (let j = 0; j <= target; j++) {
-      const step = this.steps[j];
-      try { step.enter && step.enter(this.scene, this._ctx(true)); } catch (_) {}
-    }
+    this._rebuild(target + 1);
     this.idx = target;
     this._notifyChange();
   }

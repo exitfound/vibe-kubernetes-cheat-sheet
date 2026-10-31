@@ -15,10 +15,10 @@ Every command runs from `diagrams/test/`.
 
 | Task | Read | Edit | Verify |
 |---|---|---|---|
-| add a card | `./CANON.md`, the category `CLAUDE.md` | `<id>.js`, `cards.js`, `posters.js`, `CARDS/<id>.md` | `npm test`, then the frames |
+| add a card | `./CANON.md`, the category `CLAUDE.md` | `<id>.js`, `cards.js`, `posters.js`, `CARDS/<id>.md`, `js/lang/ru.js`, `js/lang/steps/<id>.js` | `npm test`, then the frames |
 | change geometry | CANON `L`, `A` | `<id>.js` | `npm test`, then the frames |
 | change motion or timing | CANON `M` | `<id>.js` | `npm test`, then the frames |
-| change narration or a label | CANON `T` | `<id>.js` | `npm test` |
+| change narration or a label | CANON `T` | `<id>.js`, and for a narration, the aria-label or a `desc` its Russian line (`S-57`, `S-58`) | `npm test` |
 | touch a shared helper | the comment beside it | `js/lib/*` | `npm test`, then `tools/settled-dump.mjs` against the tree before |
 | draw a poster | CANON `R` | `js/diagrams/<cat>/posters.js` | a montage beside two siblings |
 | write or debug a check | the test file header | `test/{unit,render,report}/*.test.mjs` | `node --test '<path>'`, after `npm run walk` for `render/` and `report/` |
@@ -41,6 +41,9 @@ diagrams/
     data.js      CATEGORIES + the category manifests as DIAGRAMS / SUBCATEGORIES
     posters.js   the poster maps merged
     revisions.js generated content fingerprint per card (committed, read by app.js and the hub)
+    lang/ru.js   Russian card descriptions keyed by the English desc, loaded only while RU is on (S-57)
+    lang/steps/<id>.js  Russian aria sentence and narration per card, keyed by the English, loaded
+                 by dialog.js only while RU is on (S-58)
     lib/         svg, primitives, timeline, motion, poster, inspector (+ inspect-mode),
                  export.js (the dialog's PNG save, loaded on demand),
                  tokens.js (PULSE_POD, PULSE_BLOCK, OPACITY, FADE, BEAT, HOLD, playedHold),
@@ -132,11 +135,16 @@ replays steps 0..n reduced.
 **The page around the cards** lives in `js/app.js` (grid, routing) and `js/dialog.js`: the dialog header (title, section, position,
 star, report link, PNG save, fullscreen), the grid with its detailed and compact views, the `NEW`
 badges (`cli/js/lib/fresh.js`, keyed by `id@revision`), the hash contract (`D-16`), the keys
-(`D-15`) and the poster-first model (`D-14`). Per-browser choices persist in `localStorage` as
-`kube-how:diagram-{view,loop,speed,starred}:v1`. Fullscreen goes on the page, not the dialog:
+(`D-15`) and the poster-first model (`D-14`). A grid card carries no category badge, its section
+header already names it (the dialog and the static page keep one). A card module that fails to
+import leaves a Try again button in the narration panel and the player disabled until it loads.
+Per-browser choices persist in `localStorage` as
+`kube-how:diagram-{view,loop,speed,starred}:v1`. With Russian on, the dialog reads its buttons and
+tooltips from `UI_RU` and the card's narration and aria sentence from `lang/steps/<id>.js`, the title
+and everything drawn stay English (root `CLAUDE.md`, Language). Fullscreen goes on the page, not the dialog:
 Chrome refuses `requestFullscreen()` on a `<dialog>`, so `syncFullscreenBtn()` re-opens the modal
-on top. On a phone the page shows a desktop-only stub (`.mobile-stub` in `index.html`) that links
-the static card pages instead of the grid. A tablet held upright (touch, portrait, 601 to 900 wide)
+on top. On a phone the page shows a desktop-only stub (`.mobile-stub` in `index.html`) instead of
+the grid: copy the link for a computer, or go to `/cli/`. A tablet held upright (touch, portrait, 601 to 900 wide)
 gets the dialog, with a `.portrait-hint` line under the drawing that points to landscape or the
 card's page.
 

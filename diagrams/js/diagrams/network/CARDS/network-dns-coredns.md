@@ -13,7 +13,7 @@ CONTENT  Sources, 1.36: DNS for Services and Pods, Customizing DNS Service, kube
          Search chip `default.svc.cluster.local +2`. Each replica caches: `that lands on this Pod`.
          Docs vs code: the docs Corefile caches cluster.local, kubeadm sets `disable success` on it.
          Over the cache readout: `kubeadm: cluster.local not cached`, success and denial both.
-         The answer step closes on `Under kubeadm it goes to the kubernetes plugin every time`.
+         The answer step closes on `Under kubeadm the lookup goes to the kubernetes plugin every time`.
 OPEN     CENTRE-LOW: the API server that balances the card stands above the panel bottom, so the
          rule sees only the blocks on 70..852 (L-17).
 ```

@@ -47,7 +47,7 @@ const POD_HELD = [
 
 // List order is z-order: boxes and Pods sit above the packet layer.
 export const SCENE = {
-  'aria-label': 'Six workload controller kinds over one row of Pods: a Deployment creates a ReplicaSet and a CronJob creates a Job, while ReplicaSet, StatefulSet, DaemonSet and Job each create the Pods, and three questions separate them, whether a replica carries a stable identity, whether the count follows the matching Node set, and whether the work ends',
+  'aria-label': 'Six workload controller kinds over one row of Pods, where a Deployment creates a ReplicaSet and a CronJob creates a Job, while ReplicaSet, StatefulSet, DaemonSet and Job create the Pods themselves, and three questions separate them: whether a replica carries a stable identity, whether the count follows the matching Node set, and whether the work ends',
   parts: [
     P.defs(),
     ...Object.keys(LANES).map(lanePart),
@@ -103,7 +103,7 @@ export const STEPS_SPEC = [
   {
     id: 'kinds',
     duration: 2500,
-    narration: 'Six built-in kinds manage Pods for you, and each one of them ends at the same thing, a Pod. Four create Pods directly. The other two create another controller instead, so their Pods always arrive through something else.',
+    narration: 'Six main built-in kinds manage Pods for you, and each one of them ends at the same thing, a Pod. Four create Pods directly. The other two create another controller instead, so their Pods always arrive through that controller.',
     chips: { identityChip: 'none yet', countChip: 'none yet', endChip: 'none yet' },
     opacity: stage(BLOCKS),
     // The chips still read `none yet`: nothing has been picked.
@@ -125,7 +125,7 @@ export const STEPS_SPEC = [
   {
     id: 'identity',
     duration: 3000,
-    narration: 'First question, does a replica need an identity. A StatefulSet names each Pod after itself and an ordinal, so ordinal 0 of a StatefulSet called web is web-0 and a replacement comes back under that name. A Deployment promises none of it.',
+    narration: 'First question, does a replica need an identity. A StatefulSet names each Pod after itself and an ordinal, so in a StatefulSet called web the Pod with ordinal 0 is web-0, and a replacement comes back under that name. A Deployment promises none of it.',
     chips: { identityChip: 'ordinal, web-0 stays web-0', countChip: SET, endChip: FOREVER },
     opacity: stage(['sts', 'pod1']),
     lit: ['sts', 'identityChip'],
@@ -136,8 +136,8 @@ export const STEPS_SPEC = [
   {
     id: 'nodes',
     duration: 3000,
-    narration: 'Second question, does the count follow the Nodes. A DaemonSet carries no replica number at all. It places one Pod on each Node that matches, so a matching Node joining the cluster gains a Pod and a Node leaving takes one away.',
-    chips: { identityChip: PLAIN, countChip: 'the matching Node set', endChip: FOREVER },
+    narration: 'Second question, does the Pod count follow the Nodes. A DaemonSet carries no replica number at all. It places one Pod on each Node that matches, so a matching Node joining the cluster gains a Pod, and a Node leaving takes its Pod away.',
+    chips: { identityChip: 'none, bound to a Node', countChip: 'the matching Node set', endChip: FOREVER },
     opacity: stage(['ds', 'pod2']),
     lit: ['ds', 'identityChip', 'countChip'],
     flow: [
@@ -147,7 +147,7 @@ export const STEPS_SPEC = [
   {
     id: 'ends',
     duration: 3000,
-    narration: 'Third question, does the work end. A Job runs Pods until the work is finished or it gives up, and then stops, where a ReplicaSet, a StatefulSet and a DaemonSet are each meant to keep running. That is the line between a workload you keep up and a task you want finished.',
+    narration: 'Third question, does the work end. A Job runs Pods until the work is done or the Job gives up, and then it stops. A ReplicaSet, a StatefulSet and a DaemonSet are each meant to keep running.',
     chips: { identityChip: INDEXED, countChip: 'spec.parallelism', endChip: 'yes, Complete or Failed' },
     opacity: stage(['job', 'pod3']),
     lit: ['job', 'identityChip', 'countChip', 'endChip'],
@@ -158,7 +158,7 @@ export const STEPS_SPEC = [
   {
     id: 'schedule',
     duration: 3800,
-    narration: 'A CronJob answers when rather than what. On each tick of its schedule it creates a Job, about one per tick and not exactly one, and that Job creates the Pods, so a CronJob reaches a Pod through a second controller.',
+    narration: 'A CronJob adds a schedule. On each tick it creates about one Job, not exactly one, and that Job creates the Pods. So a CronJob reaches a Pod through a second controller.',
     chips: { identityChip: INDEXED, countChip: 'about one Job per tick', endChip: 'no, only each Job ends' },
     opacity: stage(['cron', 'job', 'pod3']),
     lit: ['cron', 'countChip', 'endChip'],

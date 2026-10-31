@@ -77,7 +77,7 @@ const disk = ({ key, cylKey, cx, w, label, spec }) => P.group({
 
 // Z-order: blocks and disks, then wires and labels above them, then the chip strip, then packets.
 export const SCENE = {
-  'aria-label': 'PersistentVolumeClaim to PersistentVolume binding: a claim states the capacity, access mode and class it needs, the binding controller scans the available volumes and rejects the ones that do not fit, binds the claim to the one that does by writing the link on the volume first and then on the claim, only then can Kubelet mount the volume into the Pod, and a second claim asking for the same thing stays Pending until a matching volume appears',
+  'aria-label': 'PersistentVolumeClaim to PersistentVolume binding: a claim states the capacity, access mode and class it needs, and the binding controller scans the available volumes and rejects the ones that do not fit. The controller binds the claim to the one that does, writing the link on the volume first and then on the claim. Only then can Kubelet mount the volume into the Pod, and a second claim asking for the same thing stays Pending until a matching volume appears',
   parts: [
     P.defs(),
     P.box({ key: 'ctrl', x: CTRL_X, y: CTRL_Y, w: CTRL_W, h: CTRL_H, label: 'PV binding controller', sublabel: 'kube-controller-manager' }),
@@ -157,7 +157,7 @@ export const STEPS_SPEC = [
   {
     id: 'watch',
     duration: 2100,
-    narration: 'The binding controller watches every claim in the cluster. This one is new and still unbound, so it reads the three things the claim asks for: capacity, access mode and StorageClass.',
+    narration: 'The binding controller watches every claim in the cluster. This one is new and still unbound, so the controller reads what the claim asks for: capacity, access mode and StorageClass.',
     chipsCued: chips('Pending', 'Available', 'none', 'none'),
     opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_UP },
     lit: ['pvc'],
@@ -170,7 +170,7 @@ export const STEPS_SPEC = [
   {
     id: 'match',
     duration: 3400,
-    narration: 'The controller checks every Available volume in one sweep. PV a01 is only 2Gi, which is under what the claim asks for, and PV b22 belongs to the slow class rather than fast. Only PV x73a satisfies all three conditions, so it is the candidate. Had several fit, the smallest would win.',
+    narration: 'The controller checks every Available volume in one sweep. PV a01 is only 2Gi, which is under what the claim asks for, and PV b22 belongs to the slow class rather than fast. PV x73a is the only one that fits the claim, so it is the candidate. Had several fit, the smallest would win.',
     chipsCued: chips('Pending', 'Available', 'candidate PV x73a', 'none'),
     wires: VERDICTS,
     opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_DIM },
@@ -196,7 +196,7 @@ export const STEPS_SPEC = [
   {
     id: 'bind',
     duration: 3600,
-    narration: 'Binding is written volume first. PV x73a gets a claimRef pointing at data-claim and turns Bound, so no other claim can take it. Only then does the claim get a volumeName pointing back at PV x73a and turn Bound as well, and each object now names the other.',
+    narration: 'The controller writes the binding to the volume first. PV x73a gets a claimRef pointing at data-claim and turns Bound, so no other claim can take it. Only then does the claim get a volumeName pointing back at PV x73a and turn Bound as well, and each object now names the other.',
     chipsCued: chips('Bound', 'Bound', BOUND, 'none'),
     wires: VERDICTS,
     opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_DIM },
@@ -214,7 +214,7 @@ export const STEPS_SPEC = [
   {
     id: 'mount',
     duration: 3400,
-    narration: 'Only now can the Pod run. It is scheduled onto a Node, Kubelet there resolves the claim to the volume it is bound to and mounts it for the Pod, and the container starts with it at /data. The claim is the handle the Pod holds, and the volume behind it is what actually stores the bytes.',
+    narration: 'Only now can the Pod run. It is scheduled onto a Node, and Kubelet there resolves the claim to its bound volume and mounts that volume for the Pod. The container starts with the volume at /data. The Pod holds the claim, and the volume behind the claim stores the bytes.',
     chipsCued: chips('Bound', 'Bound', BOUND, 'mounted at /data'),
     wires: { ...VERDICTS, mount: 'kubelet mount' },
     opacity: { appPod: 1, ...CLAIM2_OFF, ...SHELF_DIM },

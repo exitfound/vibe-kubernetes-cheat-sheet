@@ -56,7 +56,7 @@ const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 // Z-order: the two frames, the blocks and the Pod, the lanes and the mount caption, the chip
 // strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Image volumes: Pod llm-server runs app image app:v3 and declares an image volume named model with reference llm:v1, an OCI image holding model weights, and pullPolicy IfNotPresent. At Pod startup Kubelet asks the container runtime to resolve the volume, before any container starts. llm:v1 is not on the Node, so it is pulled from the registry the same way a container image is, with the same pull credentials. As Kubelet creates the app container, the runtime mounts it as one read-only directory at /models, and only then does the container start. The app reads the weights but cannot write them. A recreated Pod resolves the volume again, but under IfNotPresent a Node already holding llm:v1 skips the pull, unless it pulled that private image with other credentials.',
+  'aria-label': 'Image volumes: Pod llm-server runs app image app:v3 and declares an image volume named model with reference llm:v1 (an OCI image holding model weights) and pullPolicy IfNotPresent. At Pod startup, before any container starts, Kubelet asks the container runtime to resolve the volume. The image llm:v1 is not on the Node, so it is pulled from the registry the same way a container image is, with the same pull credentials. As Kubelet creates the app container, the runtime mounts the volume as one read-only directory at /models, and only then does the container start. The app reads the weights but cannot write them. A recreated Pod resolves the volume again, but under IfNotPresent a Node already holding llm:v1 skips the pull, unless that Node pulled the private image with other credentials.',
   parts: [
     P.defs(),
     P.node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node' }),
@@ -91,8 +91,9 @@ export const SCENE = {
 // STO.S-01 as one literal: nothing is born or removed mid-story, and every lane is at full.
 const STAGE = { lAsk: 1, lPull: 1, lMount: 1, lStart: 1, lRead: 1 };
 const STORE_OLD = { store: 'on disk: app:v3' }, STORE_NEW = { store: 'on disk: app:v3, llm:v1' };
-const VOL_OLD = { vol: 'image volume, unresolved' }, VOL_NEW = { vol: 'image volume, read-only' };
-const WAIT = { pod: 'waiting for volume' }, RUN = { pod: 'Running' };
+const VOL_OLD = { vol: 'image volume, unresolved' }, VOL_RES = { vol: 'image volume, resolved' };
+const VOL_NEW = { vol: 'image volume, read-only' };
+const WAIT = { pod: 'waiting for volume' }, MOUNTED = { pod: 'volume mounted' }, RUN = { pod: 'Running' };
 const NO_WIRE = { mountAt: '' }, WIRE = { mountAt: '/models, read-only' };
 
 export const STEPS_SPEC = [
@@ -108,7 +109,7 @@ export const STEPS_SPEC = [
   {
     id: 'resolve',
     duration: 3000,
-    narration: 'Pod llm-server declares an image volume named model: reference llm:v1, pullPolicy IfNotPresent, mounted at /models. At Pod startup Kubelet asks the container runtime to resolve it, before any container starts. The app image app:v3 is already on this Node.',
+    narration: 'Pod llm-server declares an image volume named model, with reference llm:v1, pullPolicy IfNotPresent and mountPath /models. At Pod startup, before any container starts, Kubelet asks the container runtime to resolve that volume. The app image app:v3 is already on this Node.',
     chipsCued: { onNode: 'not present', appState: 'waiting', models: 'not mounted' },
     sublabels: { ...STORE_OLD, ...VOL_OLD },
     podSublabels: WAIT,
@@ -122,47 +123,48 @@ export const STEPS_SPEC = [
   {
     id: 'pull',
     duration: 3000,
-    narration: 'The model image llm:v1 is not on disk, so IfNotPresent pulls it. It comes from the registry the same way a container image does, with the same pull credentials. The weights ship as their own image, not baked into app:v3.',
+    narration: 'The model image llm:v1 is not on disk, so under IfNotPresent it gets pulled. It comes from the registry the same way a container image does, with the same pull credentials. The weights live in their own image, not baked into app:v3.',
     chipsCued: { onNode: 'pulled', appState: 'waiting', models: 'not mounted' },
-    sublabels: { ...STORE_NEW, ...VOL_OLD },
+    sublabels: { ...STORE_NEW, ...VOL_RES },
     podSublabels: WAIT,
     wires: NO_WIRE,
     opacity: STAGE,
     lit: ['llmImg'],
-    // Every value this step earns turns over when the ball that earns it lands (P-03).
-    rewind: { sublabels: STORE_OLD, chips: { onNode: 'not present' } },
+    // Every value this step earns turns over when the ball that earns it lands (P-03). The volume
+    // is resolved once the image is on disk.
+    rewind: { sublabels: { ...STORE_OLD, ...VOL_OLD }, chips: { onNode: 'not present' } },
     flow: [
       F.route({ points: L_PULL, delay: BEAT.lead, name: 'pull', lights: ['store'], tag: pullTag('llm:v1') }),
-      F.set({ sublabels: STORE_NEW, chipsCued: { onNode: 'pulled' }, at: 'pull' }),
+      F.set({ sublabels: { ...STORE_NEW, ...VOL_RES }, chipsCued: { onNode: 'pulled' }, at: 'pull' }),
     ],
   },
   {
     id: 'mount',
     duration: 3000,
-    narration: 'As Kubelet creates the app container, the runtime mounts the image as one directory at the mountPath, /models, always read-only. Which kinds of OCI object it can mount is up to the runtime, but at least every image a container can run.',
+    narration: 'As Kubelet creates the app container, the runtime mounts the image as one directory at the mountPath, /models, always read-only. Which kinds of OCI object can be mounted this way is up to the runtime, but at least every image a container can run.',
     chipsCued: { onNode: 'pulled', appState: 'waiting', models: 'read-only' },
     sublabels: { ...STORE_NEW, ...VOL_NEW },
-    podSublabels: WAIT,
+    podSublabels: MOUNTED,
     wires: WIRE,
     opacity: STAGE,
     lit: ['store'],
-    rewind: { sublabels: VOL_OLD, chips: { models: 'not mounted' }, wires: NO_WIRE },
+    rewind: { sublabels: VOL_RES, podSublabels: WAIT, chips: { models: 'not mounted' }, wires: NO_WIRE },
     flow: [
       F.route({ points: L_MOUNT, delay: BEAT.lead, name: 'mount', lights: ['vol'], tag: runTag('mount ro') }),
-      F.set({ sublabels: VOL_NEW, chipsCued: { models: 'read-only' }, wires: WIRE, at: 'mount' }),
+      F.set({ sublabels: VOL_NEW, podSublabels: MOUNTED, chipsCued: { models: 'read-only' }, wires: WIRE, at: 'mount' }),
     ],
   },
   {
     id: 'start',
     duration: 3400,
-    narration: 'Only now does Kubelet start the app container, from its own image app:v3. Had resolving or pulling llm:v1 failed, the app container, which mounts it, would wait while Kubelet retries with backoff, and the Pod would report why in its status.',
+    narration: 'Only now does Kubelet start the app container, from its own image app:v3. Had resolving or pulling llm:v1 failed, the app container, which mounts that image, would wait while Kubelet retries with backoff, and the Pod would report why in its status.',
     chipsCued: { onNode: 'pulled', appState: 'running', models: 'read-only' },
     sublabels: { ...STORE_NEW, ...VOL_NEW },
     podSublabels: RUN,
     wires: WIRE,
     opacity: STAGE,
     lit: ['kubelet'],
-    rewind: { podSublabels: WAIT, chips: { appState: 'waiting' } },
+    rewind: { podSublabels: MOUNTED, chips: { appState: 'waiting' } },
     flow: [
       // The Pod is the receiver and its pulse is the arrival cue: a `lights` on top of it would double
       // the cue and then stand as a highlight until the step ends.
@@ -173,7 +175,7 @@ export const STEPS_SPEC = [
   {
     id: 'read',
     duration: 3600,
-    narration: 'The app reads the weights under /models but cannot write there. A recreated Pod resolves the volume again, but under IfNotPresent a Node holding llm:v1 skips the pull, unless it pulled that private image with other credentials. New weights take a new tag or digest, or pullPolicy Always, and app:v3 is never rebuilt for them.',
+    narration: 'The app reads the weights in /models but cannot write there. A recreated Pod resolves the volume again, but under IfNotPresent a Node holding llm:v1 skips the pull unless that Node pulled the private image with other credentials. New weights take a new tag or digest, or pullPolicy Always, and app:v3 needs no rebuild for them.',
     chipsCued: { onNode: 'pulled', appState: 'running', models: 'read-only' },
     sublabels: { ...STORE_NEW, ...VOL_NEW },
     podSublabels: RUN,

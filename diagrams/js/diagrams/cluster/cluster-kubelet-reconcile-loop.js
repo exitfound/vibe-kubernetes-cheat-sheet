@@ -111,7 +111,7 @@ export const STEPS_SPEC = [
   {
     id: 'pleg',
     duration: 3400,
-    narration: 'PLEG (Pod Lifecycle Event Generator) wakes on its 1s timer, calls ListPodSandbox and ListContainers, and finds no sandbox or container for the new Pod. The empty observed state is recorded for SyncPod. The EventedPLEG feature gate (alpha, off by default) has the runtime push lifecycle events over CRI, so the Kubelet relists far less often.',
+    narration: 'PLEG (Pod Lifecycle Event Generator) wakes on its 1s timer, calls ListPodSandbox and ListContainers, and finds no sandbox or container for the new Pod. PLEG records the empty observed state for SyncPod. With EventedPLEG on (alpha feature gate, off by default), the runtime pushes lifecycle events over CRI, so Kubelet relists far less often.',
     chips: { podChip: POD_NAME, desiredChip: SPEC, observedChip: '0 containers', lastOpChip: 'ListContainers' },
     wires: { rt: 'ListPodSandbox · ListContainers' },
     lit: ['kubelet', 'observedChip', 'lastOpChip'],
@@ -137,7 +137,7 @@ export const STEPS_SPEC = [
   {
     id: 'cri',
     duration: 3800,
-    narration: 'Kubelet issues CRI gRPC calls in sequence: RunPodSandbox creates the pause container with shared namespaces, PullImage fetches the image, which imagePullPolicy can skip when it is already on the Node, then CreateContainer and StartContainer launch each container in the spec. Details of the sandbox setup are covered in the Pod Sandbox via CRI card.',
+    narration: 'Kubelet issues CRI gRPC calls in sequence. RunPodSandbox creates the pause container with shared namespaces, then PullImage fetches the image, a call imagePullPolicy can skip when the image is already on the Node. CreateContainer and StartContainer then launch each container in the spec. The Pod Sandbox via CRI card details the sandbox setup.',
     chips: { podChip: POD_NAME, desiredChip: SPEC, observedChip: '0 containers', lastOpChip: 'StartContainer' },
     wires: { rt: 'RunPodSandbox · Pull · Create · Start' },
     lit: ['kubelet', 'lastOpChip'],
@@ -155,7 +155,7 @@ export const STEPS_SPEC = [
   {
     id: 'status',
     duration: 4000,
-    narration: 'Right after that sync the Kubelet asks PLEG to relist the Pod (beta PLEGOnDemandRelist, on by default), so it sees the running container without waiting for the 1s timer. Observed state catches up to desired state, SyncPod finds nothing left to create or start, and Kubelet PATCHes Pod status again, now with the running container in containerStatuses.',
+    narration: 'Right after that sync the Kubelet asks PLEG to relist the Pod (beta PLEGOnDemandRelist gate, on by default), so it sees the running container without waiting for the 1s timer. Observed state catches up to desired state. SyncPod finds nothing left to create or start, and Kubelet PATCHes Pod status again, this time with the running container in containerStatuses.',
     chips: { podChip: POD_NAME, desiredChip: SPEC, observedChip: '1 container running', lastOpChip: 'ListContainers' },
     wires: { rt: 'ListPodSandbox · ListContainers', api: 'PATCH .../pods/{name}/status' },
     lit: ['lastOpChip', 'kubelet', 'observedChip'],

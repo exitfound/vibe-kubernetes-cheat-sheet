@@ -57,7 +57,7 @@ const CHIP_Y = i => CHIP_ROW(Math.floor(i / CHIP_COLS));
 
 // List order is z-order: the lanes inside the frame and the balls follow its translucent fill.
 export const SCENE = {
-  'aria-label': 'Static Pods and mirror Pods: the Kubelet runs a manifest file on the Node with no Scheduler and no owner, mirrors it into the API as a read-only record, puts that record back when kubectl deletes it, replaces the Pod and its mirror when the file changes, and carries it through a drain',
+  'aria-label': 'The Kubelet runs a static Pod from a manifest file on the Node with no Scheduler and no owner, mirrors it into the API as a mirror Pod, a read-only record, puts that record back when kubectl deletes it, replaces the Pod and its mirror when the file changes, and carries the static Pod through a drain',
   parts: [
     P.defs(),
     P.arrow({ x1: KUBECTL_X, y1: REQ_Y, x2: API_R, y2: REQ_Y, dim: true, dashed: true }),
@@ -86,7 +86,7 @@ export const SCENE = {
     P.pod({
       key: 'mirrorPod', id: 'mirrorPod', innerKey: 'mirrorBox',
       x: MIR_X, y: MIR_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
-      inner: { ...POD_INNER, label: 'static-web-Node-1', sublabel: 'not in the API yet' },
+      inner: { ...POD_INNER, label: 'static-web-node-1', sublabel: 'not in the API yet' },
     }),
     P.box({ key: 'apiserver', x: API_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'API', sublabel: 'holds the mirror Pod' }),
     P.box({ key: 'kubectl', x: KUBECTL_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'kubectl', sublabel: 'delete and drain' }),
@@ -168,7 +168,7 @@ export const STEPS_SPEC = [
     id: 'mirror',
     duration: 2800,
     narration: 'The Kubelet also creates a mirror Pod in the API for it, so kubectl get pods lists it like any other Pod. The name takes the Node name as a suffix, the kubernetes.io/config.mirror annotation marks it, and the labels on the file are copied across so selectors match it.',
-    chips: { pathChip: PATH, fileChip: 'static-web.yaml', podChip: 'static-web · Running', mirrorChip: 'static-web-Node-1' },
+    chips: { pathChip: PATH, fileChip: 'static-web.yaml', podChip: 'static-web · Running', mirrorChip: 'static-web-node-1' },
     wires: { mirror: 'POST /api/v1/namespaces/default/pods' },
     sublabels: FULL.sublabels,
     opacity: FULL.opacity,
@@ -179,20 +179,20 @@ export const STEPS_SPEC = [
       F.route({ points: KUBE_TO_MIRROR, name: 'create', lights: ['apiserver'] }),
       F.reveal({ target: 'mirrorPod', at: 'create', from: OPACITY.pending }),
       F.pulse({ pod: 'mirrorPod', at: 'create' }),
-      F.set({ at: 'create', chips: { mirrorChip: 'static-web-Node-1' }, sublabels: { mirrorBox: SUB.mirror[1] } }),
+      F.set({ at: 'create', chips: { mirrorChip: 'static-web-node-1' }, sublabels: { mirrorBox: SUB.mirror[1] } }),
     ],
   },
   {
     id: 'delete-mirror',
     duration: 4700,
-    narration: 'Deleting the mirror Pod with kubectl removes the API object and nothing else. The container on Node-1 keeps running, because the file on disk is what the Kubelet reads, and the Kubelet puts the mirror back on its next sync loop pass. Nothing done to the object reaches the container.',
+    narration: 'Deleting the mirror Pod with kubectl removes only the API object, and nothing done to the object reaches the container. The container on Node-1 keeps running because the Kubelet reads the file on disk. On its next sync loop pass the Kubelet puts the mirror back.',
     chips: { pathChip: PATH, fileChip: 'static-web.yaml', podChip: 'static-web · Running', mirrorChip: 'deleted, then recreated' },
-    wires: { top: 'DELETE /api/v1/namespaces/default/pods/static-web-Node-1', mirror: 'POST /api/v1/namespaces/default/pods' },
+    wires: { top: 'DELETE /api/v1/namespaces/default/pods/static-web-node-1', mirror: 'POST /api/v1/namespaces/default/pods' },
     sublabels: FULL.sublabels,
     opacity: FULL.opacity,
     lit: ['kubectl', 'kubelet', 'mirrorChip'],
     // The chip walks the step: present, gone, back.
-    rewind: { chips: { mirrorChip: 'static-web-Node-1' } },
+    rewind: { chips: { mirrorChip: 'static-web-node-1' } },
     flow: [
       F.top({ from: KUBECTL_X, to: API_R, y: REQ_Y, name: 'del', lights: ['apiserver'] }),
       F.top({ from: API_R, to: KUBECTL_X, y: RESP_Y, after: 'del' }),
@@ -210,14 +210,14 @@ export const STEPS_SPEC = [
   {
     id: 'edit-file',
     duration: 6500,
-    narration: 'To change a static Pod you change its file. When the Kubelet picks up the edit it stops the old Pod, then replaces the mirror Pod to match and starts a new Pod from the new spec. Moving the file out of the directory removes the Pod. The spec cannot refer to other API objects such as a ConfigMap, a Secret or a ServiceAccount, so everything it needs comes off the file or the Node filesystem.',
-    chips: { pathChip: PATH, fileChip: 'static-web.yaml · image nginx:1.27', podChip: 'static-web · replaced', mirrorChip: 'static-web-Node-1 · replaced' },
+    narration: 'To change a static Pod you change its file. When the Kubelet picks up the edit it stops the old Pod, then replaces the mirror Pod to match and starts a new Pod from the new spec. Moving the file out of the directory removes the Pod. The spec cannot refer to other API objects such as a ConfigMap, a Secret or a ServiceAccount, so what those objects would hold comes off the file or the Node filesystem.',
+    chips: { pathChip: PATH, fileChip: 'static-web.yaml · image nginx:1.30', podChip: 'static-web · replaced', mirrorChip: 'static-web-node-1 · replaced' },
     wires: { mirror: 'POST /api/v1/namespaces/default/pods' },
     sublabels: FULL.sublabels,
     opacity: FULL.opacity,
     lit: ['fileBox', 'fileChip', 'podChip', 'mirrorChip'],
     // Both chips walk the step: present, gone, replaced.
-    rewind: { chips: { podChip: 'static-web · Running', mirrorChip: 'static-web-Node-1' } },
+    rewind: { chips: { podChip: 'static-web · Running', mirrorChip: 'static-web-node-1' } },
     // The new spec is a new UID: the old Pod stops first, then the mirror with the stale hash goes,
     // then the mirror and the Pod come back together. The Kubelet lanes stay, both returns ride them.
     flow: [
@@ -231,7 +231,7 @@ export const STEPS_SPEC = [
       F.route({ points: KUBE_TO_MIRROR, after: 'stale', name: 'again' }),
       F.fade({ target: 'mirrorPod', from: OPACITY.terminated, to: 1, dur: FADE.in, at: 'again', fill: 'forwards', easing: 'ease-out' }),
       F.pulse({ pod: 'mirrorPod', at: 'again' }),
-      F.set({ at: 'again', chips: { mirrorChip: 'static-web-Node-1 · replaced' }, sublabels: { mirrorBox: SUB.mirror[1] } }),
+      F.set({ at: 'again', chips: { mirrorChip: 'static-web-node-1 · replaced' }, sublabels: { mirrorBox: SUB.mirror[1] } }),
       F.route({ points: KUBE_TO_POD, after: 'stale', name: 'start' }),
       F.fade({ target: 'staticPod', from: OPACITY.terminated, to: 1, dur: FADE.in, at: 'start', fill: 'forwards', easing: 'ease-out' }),
       F.pulse({ pod: 'staticPod', at: 'start' }),
@@ -242,7 +242,7 @@ export const STEPS_SPEC = [
     id: 'drain',
     duration: 2800,
     narration: 'A drain evicts or deletes the Pods on Node-1 and skips every mirror Pod, because removing one through the API would stop nothing. DaemonSet Pods are left alone too, and the Node Drain card covers the rest of that loop. So a static Pod rides out a drain and a kubeadm control plane keeps serving while its Node is cordoned.',
-    chips: { pathChip: PATH, fileChip: 'static-web.yaml · image nginx:1.27', podChip: 'static-web · replaced', mirrorChip: 'static-web-Node-1 · drain skips it' },
+    chips: { pathChip: PATH, fileChip: 'static-web.yaml · image nginx:1.30', podChip: 'static-web · replaced', mirrorChip: 'static-web-node-1 · drain skips it' },
     wires: { top: 'kubectl drain Node-1 · mirror Pods are skipped' },
     sublabels: FULL.sublabels,
     opacity: FULL.opacity,
