@@ -124,7 +124,7 @@ export const STEPS_SPEC = [
   {
     id: 'cluster',
     duration: 6300,
-    narration: 'Service web is a LoadBalancer under the default externalTrafficPolicy Cluster, so every Node accepts its traffic. The balancer picks Node-3, which runs no Pod web. Node-3 SNATs the connection to its own address and forwards it across the cluster network to Pod web-3 on Node-2. Spread at random over all ready Pods, each takes about a third.',
+    narration: 'Service web is a LoadBalancer under the default externalTrafficPolicy Cluster, so every Node accepts its traffic. The balancer picks Node-3, which runs no Pod web. Node-3 SNATs the connection to its own address and forwards it across the cluster network to Pod web-3 on Node-2. With connections spread at random over all ready Pods, each Pod takes about a third.',
     chips: { ...fields('Cluster', 'lost (SNAT)', 'yes', 'none'), ...THIRDS },
     sublabels: { lb: ALL_NODES },
     wires: { n3: 'SNAT · forwarded' },
@@ -161,7 +161,7 @@ export const STEPS_SPEC = [
   {
     id: 'local',
     duration: 6700,
-    narration: 'With externalTrafficPolicy Local a Node serves only its own Pods, forwards nothing to other Nodes and does no SNAT: Pod web-2 sees 198.51.100.9. The API server allocates healthCheckNodePort 32021, but until the balancer acts on it Node-3 still gets a third of connections and, with no local Pod, drops them. Pods web-1 and web-2 split a third.',
+    narration: 'With externalTrafficPolicy Local a Node serves only its own Pods, forwards nothing to other Nodes and does no SNAT, so Pod web-2 sees 198.51.100.9. The API server allocates healthCheckNodePort 32021, but until the balancer acts on that port, Node-3 still gets a third of connections and drops them for lack of a local Pod. Pods web-1 and web-2 split a third.',
     chips: { ...fields('Local', 'preserved', 'no', HC_PORT), ...LOCAL_ALL },
     sublabels: { lb: ALL_NODES },
     wires: { n1: 'client IP kept', n3: 'no local Pod · dropped' },

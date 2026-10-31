@@ -8,9 +8,10 @@
   &nbsp;·&nbsp; <a href="https://kube.how/diagrams/">Diagrams</a>
   &nbsp;·&nbsp; <a href="./cli/README.md">Commands guide</a>
   &nbsp;·&nbsp; <a href="./diagrams/README.md">Diagrams guide</a>
+  &nbsp;·&nbsp; <a href="./README.ru.md">Русский</a>
 </p>
 
-A fast, searchable web reference for everyone who works with Kubernetes day to day: a command cheat sheet and a library of animated architecture diagrams. No login, no ads, no cookies, no install, just open the page and use it. Visits are counted with cookieless Cloudflare Web Analytics.
+A fast, searchable web reference for everyone who works with Kubernetes day to day: a command cheat sheet and a library of animated architecture diagrams. No login, no ads, no cookies, no install, just open the page and use it. The interface, the descriptions and the diagram narration are in English or Russian, one button away.
 
 <p align="center">
   <img src="./.github/readme/cluster-architecture.gif" width="100%" alt="The Cluster Architecture diagram on kube.how playing step by step: requests travel along dashed lanes between the API, etcd, the controllers, the Scheduler and the Kubelet while a narration panel explains each step">
@@ -19,12 +20,12 @@ A fast, searchable web reference for everyone who works with Kubernetes day to d
 
 ## What is inside
 
-One static site, three path-based apps that share the same chrome:
+One static site, three apps:
 
 | Path | App | What it is |
 |---|---|---|
 | [`/`](https://kube.how/) | **Hub** | One-viewport landing page: two entry panels with live counts over an aurora background and a canvas packet graph |
-| [`/cli/`](https://kube.how/cli/) | **Commands** | Searchable `kubectl` / Helm / Kustomize / K9s cheat sheet, 886 commands, copy + star |
+| [`/cli/`](https://kube.how/cli/) | **Commands** | Searchable kubectl / Helm / Kustomize / K9s cheat sheet, 886 commands, copy + star |
 | [`/diagrams/`](https://kube.how/diagrams/) | **Diagrams** | Grid of 143 animated SVG diagrams: click a card and a step-by-step animation explains the mechanism |
 
 ### Commands
@@ -49,7 +50,6 @@ One static site, three path-based apps that share the same chrome:
 - **Diagrams are hand-built SVG** moved by the Web Animations API inside a native `<dialog>`. No diagram library, no canvas, no WebGL.
 - **A static page for every card and every section.** Both apps route by `#`, which search engines ignore, so `tools/pages/build.mjs` writes one HTML page per diagram and per command section, plus `sitemap.xml` and `llms.txt`, from the same modules the apps load.
 - **A browser walks every step.** `diagrams/test/` runs on the Node test runner with Playwright: unit tests over the catalogue and the prose, and render tests that play every step of every diagram. CI runs it before each deploy.
-- **Shipped by GitHub Actions** to GitHub Pages on every push to `main`, with the custom domain `kube.how` and DNS on Cloudflare.
 
 ## Run it locally
 
@@ -83,7 +83,7 @@ Each app has its own guide: [`cli/README.md`](./cli/README.md) and [`diagrams/RE
 
 ```
 index.html               hub landing page, self-contained
-404.html                 custom not-found page (a small Tetris game)
+404.html                 custom not-found page
 cli/                     Commands app and the chrome every page shares
 diagrams/                Diagrams app, its catalogue and its test suite
 images/                  social previews and the home-screen icon

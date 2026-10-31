@@ -51,7 +51,7 @@ const stampLeft = beside(-1, 12), stampRight = beside(1, 12), retroTag = beside(
 // Family z-order: blocks and the disk, then relations, lanes and captions, then the class catalog and
 // the Bound caption, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Default StorageClass: a claim created with no storageClassName gets the class annotated as default written into it by the DefaultStorageClass admission plugin, a claim that sets storageClassName to an empty string is left alone and binds only to a volume with no class, a claim created while no default exists stays unset, and while it is still unbound the PV binding controller writes the new default into it once one appears, and while two classes are default during a migration a new claim gets the most recently created one, so data-a ends on standard, data-b on the empty string, data-c on fast and data-d on ultra',
+  'aria-label': 'Default StorageClass: a claim created with no storageClassName gets the class annotated as default written into it by the DefaultStorageClass admission plugin. A claim that sets storageClassName to an empty string is left alone and binds only to a volume with no class. A claim created while no default exists stays unset, and while it is still unbound the PV binding controller writes the new default into it once one appears. While two classes are default during a migration, a new claim gets the most recently created one. So data-a ends on standard, data-b on the empty string, data-c on fast and data-d on ultra',
   parts: [
     P.defs(),
     P.box({ key: 'adm', x: ADM_X, y: ADM_Y, w: BOX_W, h: BOX_H, label: 'DefaultStorageClass', sublabel: 'admission, kube-apiserver' }),
@@ -185,7 +185,7 @@ export const STEPS_SPEC = [
   {
     id: 'overlap',
     duration: 3400,
-    narration: 'The other order annotates the new class before removing the old flag, so for a short migration window fast and ultra are both default. PVC data-d, created in that window, gets the most recently created of the two: ultra. Outside a migration, keep just one default.',
+    narration: 'The other order annotates the new class before removing the old flag, so for a short migration window fast and ultra are both default. PVC data-d, created in that window, gets the most recently created of the two: ultra. Outside a migration, there should be just one default.',
     sublabels: subs(STD, EMPTY, FAST, ULTRA),
     wires: { bound: 'Bound' },
     opacity: stage(true, true, true, true, true),

@@ -183,7 +183,7 @@ export const STEPS_SPEC = [
   {
     id: 'request',
     duration: 3100,
-    narration: 'Pod web-a has one container, app, with requests.ephemeral-storage 512Mi and limits.ephemeral-storage 1Gi. The request is what placement counts: web-a runs on Node-1 because 512Mi of its allocatable local storage was not yet requested. A request reserves room and caps nothing.',
+    narration: 'Pod web-a has one container, app, with requests.ephemeral-storage 512Mi and limits.ephemeral-storage 1Gi. The request is what placement counts: web-a runs on Node-1 because 512Mi of Node-1 allocatable local storage was not yet requested. A request reserves room and caps nothing.',
     chips: chips('0', 'Running'),
     opacity: stage(),
     rewind: { chips: { reqChip: '512Mi' } },
@@ -196,7 +196,7 @@ export const STEPS_SPEC = [
   {
     id: 'write',
     duration: 4400,
-    narration: 'The app writes three kinds of bytes to Node-1 local storage, all on one filesystem: temp files go to its writable layer, stdout to its log file, and /scratch is an emptyDir on disk. All three count for the Pod. The container counts its writable layer and log, or only the log on a Node with a separate image filesystem. The limit refuses no write.',
+    narration: 'The app writes three kinds of bytes to Node-1 local storage, all on one filesystem. Temp files go to the container writable layer, stdout to its log file, and /scratch is an emptyDir on disk. All three count for the Pod. The container counts its writable layer and log, or, on a Node with a separate image filesystem, only the log. The limit itself refuses no write.',
     chips: chips(FULL, 'Running'),
     opacity: stage({ fill: 3 }),
     rewind: { chips: { useChip: '0' } },
@@ -222,7 +222,7 @@ export const STEPS_SPEC = [
   {
     id: 'scan',
     duration: 3600,
-    narration: 'The Kubelet never sees a write happen. Every 10 seconds its eviction loop reads the usage it last measured, by periodic directory scans, or for an emptyDir by project quotas where their off by default beta gate is on, the Pod runs in a user namespace and the filesystem has project quotas. Pod web-a comes back at 1100Mi.',
+    narration: 'The Kubelet never sees a write happen. Every 10 seconds its eviction loop reads the usage it last measured, by periodic directory scans, or for an emptyDir by project quotas when their beta gate (off by default) is on, the Pod runs in a user namespace and the filesystem has project quotas. Pod web-a comes back at 1100Mi.',
     chips: chips('1100Mi measured', 'Running'),
     opacity: stage({ fill: 3 }),
     lit: ['kubelet'],
@@ -238,7 +238,7 @@ export const STEPS_SPEC = [
   {
     id: 'compare',
     duration: 3500,
-    narration: 'Two sums meet the same 1Gi line. The container counts its writable layer and log, 700Mi, inside its own limit. The Pod adds the emptyDir: 1100Mi against the 1Gi sum of its container limits, and that one is over. The Kubelet checks any emptyDir sizeLimit first, then this Pod total, then each container.',
+    narration: 'Two sums meet the same 1Gi line. The container counts its writable layer and log, 700Mi, inside its own limit. The Pod adds the emptyDir and reaches 1100Mi against the 1Gi sum of its container limits, and that total is over. The Kubelet checks any emptyDir sizeLimit first, then this Pod total, then each container.',
     chips: chips('1100Mi, over 1Gi', 'Running'),
     opacity: stage({ fill: 3, verdict: 1 }),
     lit: ['kubelet'],
@@ -253,7 +253,7 @@ export const STEPS_SPEC = [
   {
     id: 'evict',
     duration: 3900,
-    narration: 'The Kubelet evicts the whole Pod, not one container. It kills web-a with a 1 second grace period, whatever its spec asks, though each container still gets the 2 second minimum stop. It sets phase Failed with reason Evicted and the message Pod ephemeral local storage usage exceeds the total limit of containers 1Gi. Node-1 was never short of disk.',
+    narration: 'The Kubelet evicts the whole Pod, not one container. It kills web-a with a 1 second grace period, whatever its spec asks, though each container still gets the 2 second minimum stop. It sets phase Failed with reason Evicted and the message "Pod ephemeral local storage usage exceeds the total limit of containers 1Gi". Node-1 was never short of disk.',
     chips: chips('1100Mi, over 1Gi', 'Failed, Evicted'),
     opacity: stage({ a: OPACITY.terminated, fill: 3, verdict: 1 }),
     lit: ['kubelet'],
@@ -272,7 +272,7 @@ export const STEPS_SPEC = [
   {
     id: 'replace',
     duration: 3500,
-    narration: 'Nothing restarts web-a in place, unlike a container killed at its memory limit. It stays Failed, and its ReplicaSet creates a new Pod, web-b, which starts from zero and can land on Node-1 again. A Node that runs short of disk is a separate path, node-pressure eviction.',
+    narration: 'Nothing restarts web-a in place, unlike a container killed at its memory limit. The Pod stays Failed, and its ReplicaSet creates a new Pod, web-b, which starts from zero and can land on Node-1 again. If the Node itself runs short of disk, that is a separate path, node-pressure eviction.',
     chips: chips('0, web-b', 'Failed, Evicted'),
     opacity: stage({ a: 0, b: 1 }),
     rewind: { chips: { useChip: '1100Mi, over 1Gi' } },

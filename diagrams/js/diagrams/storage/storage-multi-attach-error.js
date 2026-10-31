@@ -105,7 +105,7 @@ const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 // Z-order: the two node frames, then the blocks and the disk, then the Pods so they sit above their
 // own frame, then the six lanes and the band caption, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'A Multi-Attach error, which Kubernetes 1.36.4 and later report as Waiting for detach. PV web is ReadWriteOnce and attached to Node-1 through VolumeAttachment csi-7f3a, so when a replacement Pod lands on Node-2 the attach and detach controller refuses to write a second one, csi-2c9d, and records a Waiting for detach warning on the new Pod. It hangs in ContainerCreating until the old Pod is removed for good and the first attachment goes, which is why a RollingUpdate Deployment with default settings on ReadWriteOnce storage stalls whenever its replacement Pod is scheduled to a different Node.',
+  'aria-label': 'A Multi-Attach error, which Kubernetes 1.36.4 and later report as Waiting for detach. PV web is ReadWriteOnce and attached to Node-1 through VolumeAttachment csi-7f3a, so when a replacement Pod lands on Node-2 the attach and detach controller refuses to write a second one, csi-2c9d, and records a Waiting for detach warning on the new Pod. The new Pod hangs in ContainerCreating until the old Pod is removed for good and the first attachment goes, which is why a RollingUpdate Deployment with default settings on ReadWriteOnce storage stalls whenever its replacement Pod is scheduled to a different Node.',
   parts: [
     P.defs(),
     P.node({ key: 'nodeA', x: NODE_A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1', tune: titleNode }),
@@ -197,7 +197,7 @@ export const STEPS_SPEC = [
   {
     id: 'wantattach',
     duration: 3300,
-    narration: 'The attach and detach controller now has to attach the volume to Node-2, which for this CSI disk means writing a second VolumeAttachment. The request stops at the controller: PV web is ReadWriteOnce and still attached to Node-1, so it refuses before writing anything, and csi-2c9d stays a want.',
+    narration: 'The attach and detach controller now has to attach the volume to Node-2, which for this CSI disk means writing a second VolumeAttachment. The request stops there. PV web is ReadWriteOnce and still attached to Node-1, so the controller refuses before writing anything, and csi-2c9d stays wanted, not written.',
     chipsCued: chips('Node-1', 'ContainerCreating', 'csi-7f3a on Node-1'),
     wires: { band: 'RWO: cannot attach twice' },
     ...stage({ nodeB: 1, newOp: 1, linkNew: 1, vaBOp: OPACITY.pending }),
@@ -225,7 +225,7 @@ export const STEPS_SPEC = [
     duration: 3600,
     // The controller records the warning on the new Pod, so the event rides back to it and lands with
     // its blink. csi-7f3a lights because it is the blocker the event names.
-    narration: 'So the new Pod hangs in ContainerCreating. The controller records a FailedAttachVolume warning on it, Waiting for detach for volume web, naming Pod web-7f9c8-tp8vd as the one using it. Up to 1.36.3 it read Multi-Attach error. Kubelet cannot mount a disk not attached to its Node, so the container cannot start.',
+    narration: 'So the new Pod hangs in ContainerCreating. The controller records a FailedAttachVolume warning on the Pod, Waiting for detach for volume web, naming Pod web-7f9c8-tp8vd as the one using the volume. Up to 1.36.3 it read Multi-Attach error. Kubelet cannot mount a disk not attached to its Node, so the container cannot start.',
     chipsCued: chips('Node-1', 'ContainerCreating', 'csi-7f3a on Node-1'),
     wires: { band: 'event: FailedAttachVolume' },
     ...stage({ nodeB: 1, newOp: 1, linkNew: 1, linkEvt: 1, vaBOp: OPACITY.pending }),
@@ -239,7 +239,7 @@ export const STEPS_SPEC = [
   {
     id: 'wait',
     duration: 3700,
-    narration: 'Only the old attachment going away clears it. The controller will not delete csi-7f3a while the old Pod runs, and at one replica the default maxUnavailable rounds down to zero, so the rollout keeps that Pod until the new one is ready. Each side waits on the other, and progressDeadlineSeconds only reports the rollout as stalled.',
+    narration: 'Only the old attachment going away unblocks the new Pod. The controller will not delete csi-7f3a while the old Pod runs, and at one replica the default maxUnavailable rounds down to zero, so the rollout keeps that Pod until the new one is ready. Each side waits on the other, and progressDeadlineSeconds only reports the rollout as stalled.',
     chipsCued: chips('Node-1', 'ContainerCreating', 'old Pod running'),
     wires: { band: 'each side waits for the other' },
     ...stage({
@@ -251,7 +251,7 @@ export const STEPS_SPEC = [
   {
     id: 'detach',
     duration: 4000,
-    narration: 'Nothing inside the rollout breaks the deadlock, and deleting the old Pod alone does not either: its ReplicaSet recreates it at once. So a hand from outside switches the strategy to Recreate, which scales the old ReplicaSet to zero. Kubelet on Node-1 unmounts, the controller deletes csi-7f3a, the disk detaches, and for a moment the volume belongs to nobody.',
+    narration: 'Nothing inside the rollout breaks the deadlock, and deleting the old Pod alone does not either: its ReplicaSet recreates it at once. So someone outside the rollout switches the strategy to Recreate, which scales the old ReplicaSet to zero. Kubelet on Node-1 unmounts, the controller deletes csi-7f3a, the disk detaches, and for a moment the volume belongs to nobody.',
     chipsCued: chips('nothing', 'ContainerCreating', 'nothing'),
     wires: { band: 'delete csi-7f3a, then detach' },
     // Static end state: csi-7f3a and its lanes are gone, the old Pod with them, the disk is free.
@@ -295,7 +295,7 @@ export const STEPS_SPEC = [
   {
     id: 'attach',
     duration: 4800,
-    narration: 'With the volume free the controller writes csi-2c9d, the driver attaches the disk to Node-2, Kubelet mounts it, and the new Pod starts. None of that was the stall: it went on waiting for the old Pod to leave, not on any storage operation.',
+    narration: 'With the volume free the controller writes csi-2c9d, the driver attaches the disk to Node-2, Kubelet mounts it, and the new Pod starts. These storage operations did not cause the stall. The time went into waiting for the old Pod to leave.',
     chipsCued: chips('Node-2', 'Running', 'nothing'),
     wires: { band: 'now attach to Node-2' },
     ...stage({
@@ -334,7 +334,7 @@ export const STEPS_SPEC = [
   {
     id: 'fix',
     duration: 3800,
-    narration: 'So with default settings a Deployment on ReadWriteOnce storage stalls whenever the replacement lands on another Node: RollingUpdate creates the new Pod before deleting the old one. Set the strategy to Recreate, which deletes the old Pod first, the way a StatefulSet replaces an ordinal. The new Pod may still wait briefly for the detach.',
+    narration: 'So with default settings a Deployment on ReadWriteOnce storage stalls whenever the replacement lands on another Node, because RollingUpdate creates the new Pod before deleting the old one. The way out is the Recreate strategy, which deletes the old Pod first, the way a StatefulSet replaces an ordinal. The new Pod may still wait briefly for the detach.',
     chipsCued: chips('Node-2', 'Running', 'nothing'),
     wires: { band: 'Recreate, not RollingUpdate' },
     ...stage({

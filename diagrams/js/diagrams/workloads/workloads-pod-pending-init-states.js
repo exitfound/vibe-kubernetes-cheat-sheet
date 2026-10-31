@@ -118,7 +118,7 @@ export const STEPS_SPEC = [
   {
     id: 'pending',
     duration: 3600,
-    narration: 'Pending means the Pod has not begun executing its init containers, and the Node column says why: no Node has been chosen yet, so no Kubelet has seen this Pod and reading Kubelet logs finds nothing about it. The component still holding the Pod is the Scheduler, and kubectl describe pod web-0 prints its reason under Events.',
+    narration: 'Pending means the Pod has not begun executing its init containers, and the Node column says why. No Node has been chosen yet, so no Kubelet has seen this Pod and the Kubelet logs hold nothing about it. The Pod is still in the hands of the Scheduler, and kubectl describe pod web-0 shows why under Events.',
     chips: {
       readyChip: NOT_READY, statusChip: 'Pending', restartChip: NO_RESTARTS,
       ageChip: '15s', nodeChip: NO_NODE, holdChip: 'the Scheduler, no Node fits',
@@ -181,7 +181,7 @@ export const STEPS_SPEC = [
   {
     id: 'initializing',
     duration: 3300,
-    narration: 'PodInitializing means the Pod has already finished executing its init containers and the app containers are being created. It is what those containers read until the runtime reports on them, so a Pod that sits here is held by the app image or the runtime and not by anything the init containers did.',
+    narration: 'PodInitializing means the Pod has already finished executing its init containers and the app containers are now being created. STATUS reads it until the runtime reports on those containers. So a Pod that sits here is held by the app image or the runtime and not by anything the init containers did.',
     chips: {
       readyChip: NOT_READY, statusChip: 'PodInitializing', restartChip: NO_RESTARTS,
       ageChip: '4m40s', nodeChip: ON_NODE, holdChip: 'the Kubelet, app containers',
@@ -211,7 +211,7 @@ export const STEPS_SPEC = [
   {
     id: 'running-not-ready',
     duration: 3800,
-    narration: 'Running ends the STATUS column and starts the confusion, because READY has read 0/1 at every value before it. STATUS answers whether the containers exist and are running, READY answers whether they are serving, and the gap between them is the readiness half of the condition ladder. Running here is the Pod phase, which never reports readiness.',
+    narration: 'Running ends the STATUS column and starts the confusion, because READY has read 0/1 at every value before it. STATUS answers whether the containers exist and are running, READY answers whether they are serving. The gap between them is the readiness half of the condition ladder. Running here is the Pod phase, which never reports readiness.',
     chips: {
       readyChip: NOT_READY, statusChip: 'Running', restartChip: NO_RESTARTS,
       ageChip: '5m10s', nodeChip: ON_NODE, holdChip: 'the app, readiness is next',

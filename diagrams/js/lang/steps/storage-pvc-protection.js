@@ -1,0 +1,27 @@
+// Russian for storage-pvc-protection: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "Why a deleted PersistentVolumeClaim sits in Terminating. Because of the pvc-protection finalizer on PVC data-claim, a delete only writes a deletionTimestamp, so the object stays and Pod web-0 keeps its mount. The status phase reads Bound the whole time, and Terminating is only a display derived from the deletionTimestamp. Once the last consuming Pod is gone the controller removes the finalizer, and only then does the API server take the object out of ETCD.":
+    "Почему удалённый PersistentVolumeClaim висит в Terminating. Из-за finalizer pvc-protection на PVC data-claim удаление лишь записывает deletionTimestamp, поэтому объект остаётся, а Pod web-0 сохраняет своё монтирование. Статус PVC всё это время остаётся Bound, а Terminating лишь отображение, вычисленное по deletionTimestamp. Когда уходит последний Pod, использующий PVC, контроллер снимает finalizer, и только тогда API Server убирает объект из ETCD.",
+
+  "The claim is a handle, and the volume behind it is what stores the bytes. Kubelet resolved data-claim to data-vol and mounted it at /data, so the app writes through the claim into the disk. The finalizer guards the claim for as long as this Pod object exists.":
+    "PVC служит ссылкой, а байты хранит том за ним. Kubelet нашёл по data-claim том data-vol и смонтировал его в /data, так что приложение пишет через PVC на диск. Finalizer защищает PVC, пока существует объект этого Pod.",
+
+  "You run kubectl delete pvc data-claim. The API accepts it and writes a deletionTimestamp onto the object. With finalizers present, that is all a delete does. It is a request, recorded on the object, and nothing has been removed yet. Your terminal prints deleted anyway and then hangs, because kubectl waits for finalizers by default.":
+    "Вы запускаете kubectl delete pvc data-claim. API принимает удаление и записывает в объект deletionTimestamp. Когда у объекта есть finalizers, удаление этим и ограничивается. Это запрос, записанный в объекте, и пока ничего не удалено. Терминал при этом всё равно печатает deleted и зависает, потому что kubectl по умолчанию ждёт finalizers.",
+
+  "The delete stops there. The finalizers list still holds kubernetes.io/pvc-protection, so the API server does not complete it and the object stays where it was, shown as Terminating. The Pod has noticed nothing: the volume is still mounted and the app is still writing to it, straight through a claim you already deleted.":
+    "Дальше удаление не идёт. В списке finalizers всё ещё kubernetes.io/pvc-protection, поэтому API Server не завершает удаление, и объект остаётся на месте, а kubectl показывает его как Terminating. Pod ничего не заметил. Том всё ещё смонтирован, и приложение по-прежнему пишет в него прямо через PVC, который вы уже удалили.",
+
+  "The protection is deliberate. Taking the claim away under a running Pod would pull the mount out from beneath it and could lose writes that are still in flight. Deletion also closes the claim to new users: a new Pod that names it is left unschedulable and stays Pending, without ever holding the claim.":
+    "Такая защита сделана намеренно. Если отнять PVC у работающего Pod, из-под него выдернут монтирование, и записи, которые ещё в пути, могут потеряться. Кроме того, удаление закрывает PVC для новых пользователей. Новый Pod, который на него ссылается, разместить нельзя, и он остаётся в Pending, так и не получив PVC.",
+
+  "So the reason has to go. The Pod is deleted, or it finishes and its Pod object is removed, and as it goes Kubelet unmounts the volume and the claim loses its last consumer, the event the protection controller has been waiting for.":
+    "Значит, причина должна уйти. Pod удаляют, или он завершается и его объект удаляется. При этом Kubelet размонтирует том, а PVC теряет последнего потребителя. Именно этого события и ждал контроллер защиты.",
+
+  "The pvc-protection controller checks whether any Pod still uses the claim, finds none, and removes the finalizer from the object, which it could not do while web-0 existed. The finalizers list is now empty, and that was the last thing holding the outstanding delete, so the kubectl command hanging since step 2 is about to return.":
+    "Контроллер pvc-protection проверяет, использует ли ещё какой-нибудь Pod этот PVC, не находит таких и снимает finalizer с объекта, чего не мог сделать, пока существовал web-0. Список finalizers теперь пуст, а это было последнее, что держало незавершённое удаление, так что команда kubectl, зависшая с шага 2, вот-вот завершится.",
+
+  "The moment the finalizers list is empty, the API server completes the delete it accepted five steps ago and the record leaves ETCD. The disk itself is a separate question, settled by the reclaim policy on the volume. So for a stuck Terminating claim, the thing to look for is the Pod object that still names it, finished or not: kubectl describe pvc lists it under Used By.":
+    "Как только список finalizers опустел, API Server завершает удаление, принятое пять шагов назад, и запись уходит из ETCD. Судьба самого диска это отдельный вопрос, и решает его reclaim policy тома. Так что если PVC завис в Terminating, искать нужно объект Pod, который всё ещё на него ссылается, завершённый или нет. Команда kubectl describe pvc показывает этот Pod в Used By.",
+};

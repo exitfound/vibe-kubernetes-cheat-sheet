@@ -160,7 +160,7 @@ export const STEPS_SPEC = [
   {
     id: 'no-shell',
     duration: 3400,
-    narration: 'The app container runs a distroless image, which ships no shell and no debugging tools. The kubectl exec command goes through the pods/exec subresource and asks the container to start sh, and there is no sh to start, so the first door is closed by the image itself and no shell exec into app can open it.',
+    narration: 'The app container runs a distroless image, which ships no shell and no debugging tools. The kubectl exec command goes through the pods/exec subresource and asks the container to start sh, but there is nothing to start. So the first door is closed by the image itself, and no shell exec into app can open it.',
     chips: BEFORE,
     wires: { top: 'exec: start sh in app' },
     opacity: NOT_STARTED,
@@ -191,7 +191,7 @@ export const STEPS_SPEC = [
   {
     id: 'third-door',
     duration: 4000,
-    narration: 'The kubectl debug command builds an EphemeralContainer, names it debugger- plus a random suffix when you do not (debugger-8xzrl here), and PATCHes it onto the pods/ephemeralcontainers subresource. That handler is the only writer of the list, so kubectl edit cannot reach it. The API server appends the entry, which can never be changed or removed afterwards.',
+    narration: 'The kubectl debug command builds an EphemeralContainer that targets app, names it debugger- plus a random suffix when you do not (debugger-8xzrl here), and PATCHes it onto the pods/ephemeralcontainers subresource. Only that handler writes the list, so kubectl edit cannot reach it. The API server appends the entry, which can never be changed or removed afterwards.',
     chips: AFTER,
     wires: { top: 'PATCH pods/ephemeralcontainers' },
     opacity: NOT_STARTED,
@@ -220,7 +220,7 @@ export const STEPS_SPEC = [
   {
     id: 'starts',
     duration: 3900,
-    narration: 'The Kubelet on the Node sees the new entry and starts the container inside the Pod that is already running, in the namespaces of the container targetContainerName names, PID among them. The Pod is not replaced and app is not restarted, so its restartCount stays at 0, and what the debug container does is reported under status.ephemeralContainerStatuses.',
+    narration: 'The Kubelet on the Node sees the new entry and starts the container inside the already running Pod, in the namespaces of the container targetContainerName names, PID among them. The Pod is not replaced and app is not restarted, so the restartCount of app stays at 0, and what the debug container does is reported under status.ephemeralContainerStatuses.',
     chips: { ...AFTER, statusChip: 'Running' },
     wires: { spine: 'start debugger-8xzrl in the running Pod' },
     opacity: STARTED,
@@ -240,7 +240,7 @@ export const STEPS_SPEC = [
   {
     id: 'inside',
     duration: 4100,
-    narration: 'Because it shares the PID namespace of app, ps in the debug container lists the app process, and the /proc link of that process reaches the app filesystem, which is how a distroless image gets read. With its default general profile kubectl debug adds SYS_PTRACE to the debug container, and the container runtime must implement namespace targeting for any of it to work.',
+    narration: 'The debug container shares the PID namespace of app, so ps in it lists the app process, and the /proc link of that process reaches the app filesystem, which is how a distroless image gets read. With its default general profile kubectl debug adds SYS_PTRACE to the debug container, and the container runtime must implement namespace targeting for any of it to work.',
     chips: { ...AFTER, statusChip: 'Running' },
     opacity: STARTED,
     sublabels: doors({ ephemDoor: 'appended · never removed', kubectlEl: 'debug -it --image … --target app', appBox: APP_KEPT, debugBox: PRESENT }),

@@ -1,0 +1,21 @@
+// Russian for network-service-debugging: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "A Service call that never reaches the app: the client resolves the Service name and sends to it, but the app in the Pod gets the call only while the selector matches the Pod labels, while the EndpointSlice marks the Pod ready (the Pod is Ready or the Service sets publishNotReadyAddresses) and while targetPort is the port the container listens on. A named targetPort resolves to the port the Pod declares under that name":
+    "Вызов Service, который не доходит до приложения. Клиент разрешает имя Service и шлёт на него вызов, но приложение в Pod получает вызов, только пока selector совпадает с метками Pod, пока EndpointSlice помечает Pod как ready (для этого Pod должен быть в Ready или Service должен задавать publishNotReadyAddresses) и пока targetPort совпадает с портом, который слушает контейнер. Именованный же targetPort разрешается в порт, который Pod объявляет под этим именем",
+
+  "The client calls web on port 80 and the name resolves to the ClusterIP 10.96.0.20. The call reaches the app only while three links hold: the selector matches the Pod labels, the Pod is Ready so the slice serves it, and targetPort 9376 is the port the container listens on.":
+    "Клиент вызывает web по порту 80, и имя разрешается в ClusterIP 10.96.0.20. Вызов доходит до приложения, только пока держатся три связи: selector совпадает с метками Pod, Pod в Ready, поэтому EndpointSlice его обслуживает, а targetPort 9376 это порт, который слушает контейнер.",
+
+  "The Pod carries app=web-v2 while the selector still asks for app=web. Nothing matches, so the Pod is not listed even though it is Ready, and the EndpointSlice holds no endpoints at all. The name still resolves and the client still sends, but with nothing behind the Service the call never reaches a Pod.":
+    "У Pod метка app=web-v2, а selector по-прежнему ищет app=web. Совпадений нет, поэтому Pod не попадает в список, хотя он и в Ready, и в EndpointSlice нет ни одного эндпоинта. Имя всё ещё разрешается, клиент всё ещё шлёт, но за Service никого нет, поэтому вызов до Pod так и не доходит.",
+
+  "The labels match again, but the Pod is not Ready, for example because its readiness probe fails. The slice still lists it, marked not ready and not serving, so the call never reaches a Pod. If the Service sets publishNotReadyAddresses, every endpoint is marked ready and the call gets through, though serving stays false.":
+    "Метки снова совпадают, но Pod не в Ready, например из-за проваленной readiness probe. EndpointSlice по-прежнему его перечисляет, но с условиями ready и serving в false, так что вызов до Pod так и не доходит. Если же Service задаёт publishNotReadyAddresses, каждый эндпоинт помечается как ready, и вызов проходит, хотя serving остаётся false.",
+
+  "Now the Pod is Ready and the slice serves 10.244.2.7:9376, so the first two links hold. But the container listens on 8080 while targetPort still says 9376. A numeric targetPort goes into the endpoint as it is, so the call reaches the Pod on a port where nothing listens.":
+    "Теперь Pod в Ready, и EndpointSlice обслуживает 10.244.2.7:9376, так что первые две связи держатся. Но контейнер слушает 8080, а targetPort по-прежнему равен 9376. Числовой targetPort попадает в эндпоинт как есть, поэтому вызов приходит в Pod на порт, который не слушает ни один процесс.",
+
+  "Naming the port takes the number out of the Service. The targetPort becomes a port name, and the Pod declares containerPort 8080 under that name, so the endpoint resolves to 10.244.2.7:8080, where the container listens, and the call is served. If the port moves, only the Pod changes, and its declaration has to move with the process.":
+    "Если дать порту имя, число уходит из Service. В поле targetPort теперь стоит имя порта, а Pod объявляет под этим именем containerPort 8080, так что эндпоинт разрешается в 10.244.2.7:8080, где слушает контейнер, и вызов обслуживается. Если порт переедет, поменяется только Pod, и его объявление должно переехать вместе с процессом.",
+};

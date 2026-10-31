@@ -8,7 +8,7 @@ import { makeScene, makeResetStep } from './scene-spec.js';
 // A step as DATA, and its motion as an ordered PROGRAM: the field list and what each half means
 // are in ../../CLAUDE.md. Every step keeps its `spec`, so a frozen probe can read the intent.
 
-// ---- Flow verbs. The kit binds the category role and its two tinted pulses once. ----
+// Flow verbs. The kit binds the category role and its two tinted pulses once.
 export function makeFlowKinds({ role = '', pulsePod = null, pulsePodDim = null } = {}) {
   const roled = (p) => (p.role === undefined ? { ...p, role } : p);
   return {
@@ -213,7 +213,7 @@ function unlightRewound(s, spec) {
   }
 }
 
-// ---- The generated enter(): static state on BOTH paths, the card escape, then the split. ----
+// The generated enter(): static state on BOTH paths, the card escape, then the split.
 export function makeSteps(STEPS_SPEC, { resetStep, bind = {} } = {}) {
   return STEPS_SPEC.map((spec) => {
     const step = { id: spec.id, duration: spec.duration };

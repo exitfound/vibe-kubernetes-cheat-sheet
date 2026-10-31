@@ -21,6 +21,10 @@ const LOOP_CX = LOOP_X + LOOP_W / 2;
 const LOOP_CY = LOOP_Y + LOOP_H / 2;                         // the left face the write leaves
 const SLICE_CX = LOOP_CX;
 const SLICE_X = SLICE_CX - BOX_W / 2;
+// The burst tag rides beside the watch lane, its left end 8 past the slice wall, so it leaves the
+// box edge with its ball instead of starting inside the box (M-30a). 6.2 is the sublabel glyph width.
+const BURST_TAG = '100 endpoints not ready';
+const BURST_TAG_DX = BOX_W / 2 + 8 + (BURST_TAG.length * 6.2) / 2;
 
 // The kernel shares the instrument face midpoint, so the write lane is one horizontal segment,
 // and the chip strip left edge, so it shares a column wall with the readout under it.
@@ -161,7 +165,7 @@ function syncLoop() {
 // Z-order is the list order: the two relationships and the two lanes first, then the blocks, then
 // the captions and chips, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'The kube-proxy sync loop drawn as a clock: an EndpointSlice update arrives when a Pod is deleted, one hundred endpoint changes stack up on the change side of the axis, and the write side below it shows one hundred separate kernel updates at minSyncPeriod 0s against about five updates of twenty endpoints each at the default 1s floor, with the window a single change waits bracketed over the first burst and a syncPeriod resync standing alone with no change above it',
+  'aria-label': 'The kube-proxy sync loop drawn as a clock. When a Pod is deleted an EndpointSlice update arrives, and one hundred endpoint changes stack up on the axis, on the change side. Lower down, on the write side, minSyncPeriod 0s shows one hundred separate kernel updates, and the default 1s floor about five updates of twenty endpoints each. A bracket over the first burst marks the window a single change waits, and a syncPeriod resync stands alone with no change above it',
   parts: [
     P.defs(),
     P.lane({ points: WATCH, dashed: true, dim: true }),
@@ -240,7 +244,7 @@ export const STEPS_SPEC = [
   {
     id: 'watch',
     duration: 4200,
-    narration: 'A Pod that dies reaches this loop only as a change to the EndpointSlice that listed its endpoint. The change rewrites nothing by itself: it marks the rules stale and asks for a resync, and the resync is what touches the kernel. How soon that resync runs is a question about the floor between them rather than about the change.',
+    narration: 'When a Pod dies, it reaches this loop only as a change to the EndpointSlice that listed the endpoint of that Pod. The change by itself rewrites nothing. It marks the rules stale and asks for a resync, and it is the resync that touches the kernel. How soon that resync runs is set by the floor between resyncs, not by the change itself.',
     chips: chips('none yet', DEFAULT_FLOOR, 'none yet', 'in sync'),
     sublabels: { slice: '100 endpoints ready', kernel: 'iptables rules for Service web' },
     opacity: clock({}),
@@ -253,7 +257,7 @@ export const STEPS_SPEC = [
   {
     id: 'burst',
     duration: 3900,
-    narration: 'Delete the Deployment behind this Service and all 100 of its Pods go. The slice loses 100 endpoints, so 100 separate changes reach kube-proxy inside a very short window, and every one of them on its own is a reason to rewrite the rules in the kernel.',
+    narration: 'When the Deployment behind this Service is deleted, all 100 Pods of that Deployment go. The slice loses 100 ready endpoints, so 100 separate changes reach kube-proxy inside a very short window, and every one of them on its own is a reason to rewrite the rules in the kernel.',
     chips: chips('100 in one window', DEFAULT_FLOOR, 'none yet', 'in sync'),
     sublabels: { slice: '0 endpoints ready', kernel: 'iptables rules for Service web' },
     opacity: clock({ change: 1 }),
@@ -262,7 +266,7 @@ export const STEPS_SPEC = [
     // state has them standing and the animated path winds both back and lands them on the arrival.
     rewind: { opacity: { changeSide: 0 }, chips: { changeChip: 'none yet' } },
     flow: [
-      F.route({ points: WATCH, delay: BEAT.lead, name: 'w', lights: ['loop'], tag: { text: '100 endpoints removed' } }),
+      F.route({ points: WATCH, delay: BEAT.lead, name: 'w', lights: ['loop'], tag: { text: BURST_TAG, dx: BURST_TAG_DX } }),
       F.anim({ target: 'changeSide', ...FADE_IN, at: 'w' }),
       F.set({ at: 'w', chips: { changeChip: '100 in one window' } }),
       F.light({ targets: ['changeChip'], at: 'w' }),
@@ -271,7 +275,7 @@ export const STEPS_SPEC = [
   {
     id: 'immediate',
     duration: 4000,
-    narration: 'With minSyncPeriod set to 0s kube-proxy resyncs immediately on every Service or EndpointSlice change. Those 100 deletions come out as 100 separate updates, removing the endpoints from the rules one at a time. That is a great deal of redundant work whenever many things change in a small period.',
+    narration: 'With minSyncPeriod set to 0s kube-proxy resyncs immediately on every Service or EndpointSlice change. Those 100 deletions turn into 100 separate updates, and the endpoints are removed from the rules one at a time. That makes a great deal of redundant work whenever many things change in a short period.',
     chips: chips('100 in one window', '0s, no floor', '100, one per change', 'in sync'),
     sublabels: { slice: '0 endpoints ready', kernel: 'rewritten 100 times' },
     wires: { state: 'one update per change' },
@@ -289,7 +293,7 @@ export const STEPS_SPEC = [
   {
     id: 'batched',
     duration: 4800,
-    narration: 'The floor is minSyncPeriod, and it is a floor rather than a delay: at the default 1s no resync starts sooner than a second after the last one ends, so the changes waiting behind it are aggregated. The same 100 deletions might come out as about 5 updates of 20 endpoints each, cheaper in CPU, and the full set of changes lands faster.',
+    narration: 'The floor is minSyncPeriod, and it is a floor rather than a delay. At the default 1s no resync starts sooner than a second after the previous one ends, so the changes waiting for it are aggregated. The same 100 deletions might fit into about 5 updates of 20 endpoints each. That is cheaper in CPU, and the full set of changes lands faster.',
     chips: chips('100 in one window', DEFAULT_FLOOR, 'about 5, 20 endpoints each', 'in sync'),
     sublabels: { slice: '0 endpoints ready', kernel: 'rewritten 5 times' },
     wires: { state: 'one update per burst' },
@@ -307,7 +311,7 @@ export const STEPS_SPEC = [
   {
     id: 'window',
     duration: 4000,
-    narration: 'The floor is paid for in staleness. A change that arrives just after a resync waits for the next one, up to a full minSyncPeriod, and until then the rules still carry an endpoint the API server has already dropped. A larger floor aggregates more work and widens that window.',
+    narration: 'The floor is paid for in stale rules. A change that arrives just after a resync waits for the next one, up to a full minSyncPeriod, and until then the rules still carry an endpoint the API server already shows not ready. A larger floor aggregates more work and widens that window.',
     chips: chips('100 in one window', DEFAULT_FLOOR, 'about 5, 20 endpoints each', 'up to 1s behind'),
     sublabels: { slice: '0 endpoints ready', kernel: 'rewritten 5 times' },
     wires: { lag: 'up to minSyncPeriod', state: 'one update per burst' },
@@ -326,17 +330,17 @@ export const STEPS_SPEC = [
     duration: 3500,
     narration: 'The other clock is syncPeriod, and it is not tied to any individual change. It paces the re-synchronizing and cleanup work no single change triggers: every syncPeriod kube-proxy checks whether an external component has interfered with its rules, and resyncs them if one has.',
     // The change count does NOT move here: nothing new arrived, and the burst it names still happened.
-    chips: chips('100 in one window', DEFAULT_FLOOR, 'about 5, 20 endpoints each', 'in sync'),
+    // The lag chip keeps its bound too: syncPeriod does not clear minSyncPeriod staleness, and the
+    // narration never says the rules are back in sync.
+    chips: chips('100 in one window', DEFAULT_FLOOR, 'about 5, 20 endpoints each', 'up to 1s behind'),
     sublabels: { slice: '0 endpoints ready', kernel: 'checked on syncPeriod' },
     wires: { state: 'a resync with nothing above it' },
     opacity: clock({ change: 1, sparse: 1, period: 1 }),
     lit: ['loop', 'periodChip'],
-    rewind: { opacity: { periodTick: 0 }, chips: { lagChip: 'up to 1s behind' } },
+    rewind: { opacity: { periodTick: 0 } },
     flow: [
       F.anim({ target: 'periodTick', ...FADE_IN, delay: 200 }),
       F.route({ points: WRITE, delay: BEAT.lead, name: 'p', lights: ['kernel'] }),
-      F.set({ at: 'p', chips: { lagChip: 'in sync' } }),
-      F.light({ targets: ['lagChip'], at: 'p' }),
     ],
   },
 ];

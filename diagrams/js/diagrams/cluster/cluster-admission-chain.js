@@ -42,7 +42,7 @@ const { w: CHIP_W, x: CHIP_X } = strip({ from: BAND_L, to: BAND_R, count: 2, gap
 
 // The list order is the z-order: the three top-row blocks go last.
 export const SCENE = {
-  'aria-label': 'The write path through the API: authentication and authorization, then mutating admission, schema validation and validating admission, then the write to ETCD',
+  'aria-label': 'The write path through the API, where authentication and authorization are followed by mutating admission, schema validation and validating admission, then the write to ETCD',
   parts: [
     P.defs(),
     P.chip({ key: 'objChip', x: CHIP_X(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'Pod object', value: '{cpu=100m}' }),
@@ -90,7 +90,7 @@ export const STEPS_SPEC = [
   {
     id: 'authn-authz',
     duration: 2800,
-    narration: 'Already done, and not admission at all. Admission runs after authentication, so every caller has an identity, even system:anonymous. Authorizers run in configured order, commonly Node then RBAC, and the first to allow or to deny ends it, so no later one runs. Nothing allowing it means 403.',
+    narration: 'Already done, not admission at all. Admission runs after authentication, so every caller has an identity, even system:anonymous. Authorizers run in configured order, usually Node then RBAC, and the first to allow or deny decides, so no later one runs. If none allows, the answer is 403.',
     chips: AT_REST,
     wires: { req: 'POST /api/v1/namespaces/default/pods' },
     lit: ['kubectl'],
@@ -100,7 +100,7 @@ export const STEPS_SPEC = [
   {
     id: 'mutating',
     duration: 4000,
-    narration: 'Pluggable plus built-in. Always-on mutating plugins like ServiceAccount, LimitRanger and DefaultTolerationSeconds rewrite the Pod here, MutatingAdmissionPolicy runs CEL mutations in process, and MutatingWebhookConfiguration adds external policy webhooks (Kyverno, OPA Gatekeeper, sidecar injectors) on top, all before validation. Their failurePolicy decides whether a timeout blocks the write.',
+    narration: 'Pluggable plus built-in. Default-on mutating plugins like ServiceAccount, LimitRanger and DefaultTolerationSeconds rewrite the Pod here, MutatingAdmissionPolicy runs CEL mutations in process, and MutatingWebhookConfiguration adds external policy webhooks (Kyverno, OPA Gatekeeper, sidecar injectors) on top, all before validation. A webhook failurePolicy decides if a timeout blocks the write.',
     chips: MUTATED,
     // Static highlights only (M-26, M-01).
     lit: ['objChip', 'failurePolicy', 'api'],

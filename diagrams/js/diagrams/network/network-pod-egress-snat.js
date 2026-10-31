@@ -72,7 +72,7 @@ const CHIP_X = CHIP_W.reduce((acc, w, i) => (i ? [...acc, acc[i - 1] + CHIP_W[i 
 // The list order IS the append order, which is the z-order: Node background, then the blocks, then
 // the wires above them, then the caption and the chips, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'Pod egress to the internet: no route on the internet leads back to a Pod IP, so the last netfilter hook on the way out walks the POSTROUTING rules, where RETURN exempts a destination in a non-masquerade range, the cluster pod CIDR among them, with its source unchanged, while everything else is source-NATed to the Node IP by MASQUERADE, conntrack stores the flow it translated, and the reply that comes back to the Node IP is reversed off that stored entry as it enters the Node, without walking a masquerade rule at all',
+  'aria-label': 'Pod egress to the internet: no route on the internet leads back to a Pod IP, so the last netfilter hook on the way out walks the POSTROUTING rules. There RETURN exempts a destination in a non-masquerade range (one of them covers the cluster pod CIDR) with its source unchanged, while everything else is source-NATed to the Node IP by MASQUERADE. The conntrack table stores the translated flow, and the reply that comes back to the Node IP is reversed off that stored entry as it enters the Node, without walking a masquerade rule at all',
   parts: [
     P.defs(),
     P.node({ key: 'theNode', x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node   ·   192.168.1.20' }),
@@ -153,7 +153,7 @@ export const STEPS_SPEC = [
   {
     id: 'rule',
     duration: 3000,
-    narration: 'Only the first packet of a flow walks these rules, in order. RETURN rules for the non-masquerade ranges come first, the pod CIDR 10.244.0.0/16 among them, so Pod to Pod traffic keeps its own source. 1.1.1.1 is in none of them, so it falls past RETURN to masquerade.',
+    narration: 'Only the first packet of a flow walks these rules, in order. RETURN rules for the non-masquerade ranges come first (one covers the pod CIDR 10.244.0.0/16), so Pod to Pod traffic keeps its source. 1.1.1.1 is in none of them, so the packet falls past RETURN to masquerade.',
     chips: { srcChip: POD_IP, dstChip: DST, ruleChip: 'RETURN not taken', ctChip: 'none' },
     // T-35: the leg this step plays is the road NOT taken, and the caption says so above it.
     wires: { branch: `if dst were ${PEER_IP}` },
@@ -189,7 +189,7 @@ export const STEPS_SPEC = [
   {
     id: 'reply',
     duration: 3000,
-    narration: 'The server answers 192.168.1.20, the only address it ever saw. The reply walks no masquerade rule at all. As it enters the Node, a conntrack lookup finds the stored entry and reverses the translation off it alone, which costs a lookup rather than a rule scan.',
+    narration: 'The server never saw the Pod IP, and its reply returns to 192.168.1.20. It walks no masquerade rule at all. As it enters the Node, a conntrack lookup finds the stored entry and reverses the translation off it alone, which costs a lookup rather than a rule scan.',
     chips: { srcChip: DST, dstChip: POD_IP, ruleChip: 'no nat rule walked', ctChip: 'translation reversed' },
     wires: { branch: KEPT },
     // srcChip and ruleChip are news on this step and not carry-overs: the reply is a packet with the
@@ -208,7 +208,7 @@ export const STEPS_SPEC = [
   {
     id: 'deliver',
     duration: 2400,
-    narration: 'With the destination restored to 10.244.1.5 the reply goes down the veth into the Pod. The Pod used its own source address the whole way, and the rewrite and its reversal both happened on the Node, invisible to either end of the connection.',
+    narration: 'With the destination restored to 10.244.1.5 the reply goes down the veth into the Pod. The Pod used its own source address the whole way. The rewrite and its reversal both happened on the Node, invisible to either end of the connection.',
     chips: { srcChip: DST, dstChip: POD_IP, ruleChip: 'no nat rule walked', ctChip: 'translation reversed' },
     wires: { branch: KEPT },
     // The ball leaves the Node edge the reply landed on, so the Node frame is the lit sender (M-18a).

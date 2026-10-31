@@ -183,7 +183,7 @@ export const STEPS_SPEC = [
     id: 'reply',
     // Two-hop round trip: the floor leaves the settle of the single-hop steps after the reply lands.
     duration: 3800,
-    narration: 'The Pod replies from its own IP, and conntrack in the same Node dataplane reverses the translation so the source reads 10.96.0.20 again. The client only ever sees the ClusterIP it dialed, never the Pod address that served it.',
+    narration: 'The Pod replies from its own IP, and conntrack in the same Node dataplane reverses the translation, so the source reads 10.96.0.20 again. The client sees only the ClusterIP it dialed and never the Pod address that served it.',
     chips: { dnatChip: '-> 10.244.2.7:8080', ctChip: 'reverse NAT', backChip: '10.244.2.7', vipChip: VIP },
     ...serving('podX'),
     reducedLit: ['clientBox'],
@@ -201,7 +201,7 @@ export const STEPS_SPEC = [
     id: 'balance',
     // Same two-hop settle as reply.
     duration: 3800,
-    narration: 'A second connection to the ClusterIP is a new flow, and with no session affinity the kernel may pick the other backend. It DNATs this one to 10.244.3.9 and conntrack pins it there, while the first flow stays on 10.244.2.7. Each connection keeps its own Pod.',
+    narration: 'A second connection to the ClusterIP is a new flow, and with no session affinity the kernel may pick the other backend. It DNATs this one to 10.244.3.9 and conntrack pins it there, while the first flow stays on 10.244.2.7.',
     chips: { dnatChip: '-> 10.244.3.9:8080', ctChip: 'two flows', backChip: '10.244.3.9', vipChip: VIP },
     ...serving('podY'),
     reducedLit: ['podYBox'],

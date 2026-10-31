@@ -38,7 +38,7 @@ const ROW_A = 520, ROW_B = 566;
 // The list order IS the append order, which is the z-order: blocks, then the lanes and relations,
 // then the standing captions and the chips, then the packet layer with the ball and its tag on top.
 export const SCENE = {
-  'aria-label': 'A Service call that never reaches the app: the client resolves the Service name and sends to it, but the app in the Pod gets the call only while the selector matches the Pod labels, the Pod is Ready, unless the Service sets publishNotReadyAddresses, so the EndpointSlice serves it, and targetPort is the port the container listens on, and a named targetPort resolves to the port the Pod declares under that name',
+  'aria-label': 'A Service call that never reaches the app: the client resolves the Service name and sends to it, but the app in the Pod gets the call only while the selector matches the Pod labels, while the EndpointSlice marks the Pod ready (the Pod is Ready or the Service sets publishNotReadyAddresses) and while targetPort is the port the container listens on. A named targetPort resolves to the port the Pod declares under that name',
   parts: [
     P.defs(),
     P.box({ key: 'slice', x: SVC_L, y: SLICE_Y, w: BOX_W, h: SLICE_H, label: 'EndpointSlice web-x9f2k', sublabel: '1 serving endpoint' }),
@@ -150,7 +150,7 @@ export const STEPS_SPEC = [
   {
     id: 'wrong-port',
     duration: 3400,
-    narration: 'Now the Pod is Ready and the slice serves 10.244.2.7:9376, so both empty-slice checks pass. But the container listens on 8080 while targetPort still says 9376. A numeric targetPort goes into the endpoint as it is, so the call reaches the Pod on a port where nothing listens.',
+    narration: 'Now the Pod is Ready and the slice serves 10.244.2.7:9376, so the first two links hold. But the container listens on 8080 while targetPort still says 9376. A numeric targetPort goes into the endpoint as it is, so the call reaches the Pod on a port where nothing listens.',
     ...chips({ listenChip: '8080' }),
     sublabels: { slice: '1 serving endpoint', podBox: 'listens :8080' },
     ...HOLDS,

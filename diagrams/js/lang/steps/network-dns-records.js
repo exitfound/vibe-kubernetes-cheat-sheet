@@ -1,0 +1,21 @@
+// Russian for network-dns-records: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "Kubernetes DNS records: the full name of a Service is built from Service, namespace, svc and the cluster domain, and CoreDNS answers with an A record to the ClusterIP, an SRV record for named ports, multiple A records for a headless Service, or a per-Pod record":
+    "DNS-записи Kubernetes: полное имя Service складывается из Service, Namespace, svc и домена кластера, а CoreDNS отвечает записью A с ClusterIP, записью SRV для именованных портов, несколькими записями A для headless Service или записью отдельного Pod",
+
+  "The full name is web.default.svc.cluster.local: the Service, its namespace, the literal svc, then the cluster domain. Under the default ClusterFirst policy a Pod resolv.conf carries search domains and ndots:5, so a short name like web is expanded to this fully qualified form before it leaves the Pod. Every record below is a variation on these four segments.":
+    "Полное имя web.default.svc.cluster.local складывается из Service, его Namespace, слова svc и затем домена кластера. При политике по умолчанию ClusterFirst файл resolv.conf в Pod содержит домены поиска и ndots:5, поэтому короткое имя вроде web дополняется до этой полной формы, прежде чем покинуть Pod. Все записи ниже собраны из этих же четырёх частей в разных вариантах.",
+
+  "A query for the name itself gets an A record, or AAAA on IPv6, pointing at the Service ClusterIP, 10.96.0.20. This is the common case: the name resolves to the stable virtual IP, and the Service rules kube-proxy writes send traffic on to one Pod. The address answered is the web Service, not the kube-dns ClusterIP the question was sent to.":
+    "На запрос самого имени приходит запись A, или AAAA для IPv6, указывающая на ClusterIP Service, 10.96.0.20. Это обычный случай. Имя разрешается в стабильный виртуальный IP, а дальше трафик в один Pod отправляют правила Service, записанные компонентом kube-proxy. В ответе адрес Service web, а не ClusterIP kube-dns, куда ушёл вопрос.",
+
+  "A named port also publishes an SRV record. The name grows a prefix, _http._tcp, naming the port and the protocol, and the answer carries the port number and the target host. It lets a client discover which port a Service exposes without that port number being hard-coded in the client.":
+    "Именованный порт публикует ещё и запись SRV. У имени появляется префикс _http._tcp с именем порта и протоколом, а в ответе номер порта и целевой хост. Так клиент может узнать, какой порт открыт у Service, и номер порта не надо зашивать в клиент.",
+
+  "If the Service is headless, the client asks the same name it asked for the A record and gets a different answer: one A record per ready Pod instead of a single virtual IP, here three of them, and the client chooses an endpoint itself.":
+    "Если Service headless, клиент спрашивает то же самое имя, что и для записи A, и получает другой ответ. В нём по одной записи A на каждый готовый Pod вместо одного виртуального IP, здесь их три, и клиент сам выбирает эндпоинт.",
+
+  "Finally a Pod has a record of its own, a form that predates the DNS spec, and here the name changes twice: the Pod IP written with dashes takes the place of the Service, and the subdomain flips from svc to pod. CoreDNS only serves it when the kubernetes plugin has pods enabled, which kubeadm sets to insecure by default, and in that mode CoreDNS answers from the name without checking that such a Pod exists. A stable way to reach one specific replica is a StatefulSet Pod hostname under a headless Service.":
+    "Наконец, своя запись есть и у Pod. Эта форма появилась раньше спецификации DNS, и имя здесь меняется дважды. IP Pod, записанный через дефисы, встаёт на место Service, а поддомен svc меняется на pod. CoreDNS отдаёт такую запись, только если в плагине kubernetes включён параметр pods, а kubeadm по умолчанию задаёт ему значение insecure. В этом режиме CoreDNS берёт адрес из самого имени и не проверяет, есть ли такой Pod. Чтобы стабильно достучаться до одной заданной реплики, можно взять hostname Pod из StatefulSet под headless Service.",
+};

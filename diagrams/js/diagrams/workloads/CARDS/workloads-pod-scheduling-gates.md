@@ -14,10 +14,10 @@ DEVIATES S-08: the Pod is bare, with no inner box and no Node frame. Nothing abo
          narration gives at entry, and winding it back would count the Pod as gated after it left.
 CONTENT  Sources: Pod Scheduling Readiness, Pod v1, Scheduler metrics (v1.36), KEP 3521, upstream
          strategy.go, validation.go, scheduling_queue.go, printers.go (1.36). The last step keeps
-         SchedulingGated on STATUS and PodScheduled: set once at creation. A gated Pod gets no
-         attempt, `never enqueued` is ruled out. Unschedulable is a failed attempt, not every Node
-         tried. The Controller removes a gate, the API accepts it. remove-last says "this Pod waits
-         on nothing else": DRA PreEnqueue can still hold one. No JSON shape: the pages disagree.
+         SchedulingGated on STATUS and as the PodScheduled reason (set at creation), never its value.
+         `never enqueued` is ruled out: a gated Pod gets no attempt. Unschedulable is a failed
+         attempt, not every Node tried. The Controller removes a gate, the API accepts it. remove-last
+         "waits on nothing else": DRA PreEnqueue can still hold one. No JSON shape: pages disagree.
 OPEN     The band between the writer and the floor holds only the two drops, empty right of 716.
          Its depth is the drops, the panel caps raising the floor, and no honest block stands there.
 ```

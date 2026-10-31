@@ -110,7 +110,7 @@ const ctrlTag = beside(-1, -14), nodeTag = beside(1, -14);
 // Every lane is a route: dashed, headed, built from its ball's points. Append order is z-order:
 // blocks and disk, lanes and captions, the Pod, the chip strip, the packets.
 export const SCENE = {
-  'aria-label': 'Growing a volume while the Pod keeps running normally runs in two phases. Raising the request on PVC data-claim is accepted only because the StorageClass behind it sets allowVolumeExpansion, then the external-resizer grows the real device and Kubelet grows the filesystem on it, a step a driver may skip for a raw block volume, which has no filesystem to grow and may not need the Node call at all. Where that filesystem grows online the space reaches web-0 with no restart. A shrink is refused.',
+  'aria-label': 'Growing a volume while the Pod keeps running usually runs in two phases. Raising the request on PVC data-claim is accepted only because the StorageClass behind it sets allowVolumeExpansion. Then the external-resizer grows the real device and Kubelet grows the filesystem on it. For a raw block volume a driver may skip that step, as such a volume has no filesystem to grow and may not need the Node call at all. Where the filesystem grows online the space reaches web-0 with no restart. A shrink is refused.',
   parts: [
     P.defs(),
     P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'requests 5Gi' }),
@@ -181,7 +181,7 @@ export const STEPS_SPEC = [
   {
     id: 'edit',
     duration: 3200,
-    narration: 'You raise spec.resources.requests.storage on the claim from 5Gi to 20Gi. That single field is the only thing anybody changes by hand in this whole card. The request now says 20Gi and nothing physical has moved: the device and the filesystem are both still 5Gi.',
+    narration: 'You raise spec.resources.requests.storage on the claim from 5Gi to 20Gi, the only change anybody makes by hand. The request now says 20Gi, but nothing physical has changed, since the device and the filesystem are both still 5Gi.',
     chipsCued: chips('20Gi', '5Gi', '5Gi', '5Gi'),
     wires: { cap: 'capacity 5Gi', verdict: 'request raised, nothing moved' },
     sublabels: { pvc: 'requests 20Gi' },
@@ -199,7 +199,7 @@ export const STEPS_SPEC = [
   {
     id: 'gate',
     duration: 3400,
-    narration: 'That edit was accepted only because of one field on the StorageClass the claim names: allowVolumeExpansion is true. The check runs at admission, on the API server, so with the flag false or absent the edit itself is rejected and no resizer ever hears about it. The gate is on the way in, not further down.',
+    narration: 'That edit was accepted only because of one field on the StorageClass the claim names: allowVolumeExpansion is true. The check runs at admission, on the API server, so with the flag false or absent the edit itself is rejected and no resizer ever hears about it.',
     chipsCued: chips('20Gi', '5Gi', '5Gi', '5Gi'),
     wires: { cap: 'capacity 5Gi', verdict: 'expansion allowed' },
     sublabels: { pvc: 'requests 20Gi' },
@@ -216,7 +216,7 @@ export const STEPS_SPEC = [
   {
     id: 'controller-expand',
     duration: 3700,
-    narration: 'Phase one runs on the controller side. The external-resizer sees the accepted request and calls ControllerExpandVolume on the driver, which tells the backend to grow the real block device from 5Gi to 20Gi. The device is now bigger and the PV capacity follows it. The filesystem sitting on that device has no idea and is still 5Gi.',
+    narration: 'Phase one runs on the controller side. The external-resizer sees the accepted request and calls ControllerExpandVolume on the driver, and the driver tells the backend to grow the real block device from 5Gi to 20Gi. The device is now bigger and the PV capacity follows it. The filesystem on it knows nothing of this and is still 5Gi.',
     chipsCued: chips('20Gi', '20Gi', '5Gi', '5Gi'),
     wires: { cap: 'capacity 20Gi', verdict: 'device grown, fs pending' },
     sublabels: { pvc: 'FileSystemResizePending' },
@@ -244,7 +244,7 @@ export const STEPS_SPEC = [
   {
     id: 'node-expand',
     duration: 3700,
-    narration: 'Phase two runs on the Node. Kubelet calls NodeExpandVolume, which grows the filesystem on the mounted device until it fills the larger disk. This half runs only on a Node where a Pod uses the claim read-write, so with no such Pod it waits for one to start. A raw block volume has no filesystem to grow, so a driver may skip that work.',
+    narration: 'Phase two runs on the Node. Kubelet calls NodeExpandVolume, which grows the filesystem on the mounted device to fill the larger disk. This half runs only on a Node where a Pod uses the claim read-write, so with no such Pod it waits for one to start. A raw block volume has no filesystem to grow, so a driver may skip that work.',
     chipsCued: chips('20Gi', '20Gi', '20Gi', '5Gi'),
     wires: { cap: 'capacity 20Gi', verdict: 'filesystem grown' },
     sublabels: { pvc: 'capacity 20Gi' },
@@ -265,7 +265,7 @@ export const STEPS_SPEC = [
   {
     id: 'pod-sees',
     duration: 3600,
-    narration: 'Only now does the space reach the workload. The device grew, then the filesystem grew, and because this filesystem grows online the extra room shows up inside the running container with no restart, so df in web-0 finally reads 20Gi. The order is the whole point: a filesystem can never grow past the device underneath it.',
+    narration: 'Only now does the space reach the workload. The device grew, then the filesystem grew, and because this filesystem grows online the extra room shows up inside the running container with no restart, so df in web-0 finally reads 20Gi. The order matters because a filesystem can never grow past the device underneath it.',
     chipsCued: chips('20Gi', '20Gi', '20Gi', '20Gi'),
     wires: { cap: 'capacity 20Gi', mount: 'now 20Gi at /data', verdict: 'nothing pending' },
     sublabels: { pvc: 'Bound, 20Gi' },
@@ -285,7 +285,7 @@ export const STEPS_SPEC = [
   {
     id: 'no-shrink',
     duration: 3600,
-    narration: 'Growing works, going back does not. Ask for less than the volume already has and the API refuses the edit, because there is no safe general way to shrink a filesystem with live data on it. Walking a request back down after an expansion failed is a different thing: that retries a smaller grow, still above the current size.',
+    narration: 'Growing works, going back does not. A request for less than the volume already has is refused by the API, because there is no safe general way to shrink a filesystem with live data on it. Walking a request back down after an expansion failed is a different thing. It retries a smaller grow, still above the current size.',
     chipsCued: chips('20Gi', '20Gi', '20Gi', '20Gi'),
     wires: { cap: 'capacity 20Gi', verdict: 'request stays 20Gi' },
     sublabels: { pvc: 'shrink refused' },

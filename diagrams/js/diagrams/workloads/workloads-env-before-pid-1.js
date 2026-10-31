@@ -130,7 +130,7 @@ export const STEPS_SPEC = [
   {
     id: 'resolve',
     duration: 3900,
-    narration: 'The Kubelet reads the objects the spec named, and it reads them at the moment it launches the container rather than at the moment the Pod was created. DB_HOST takes whatever the key holds at that instant, and a Secret is opened the same way. The Pod IP costs no read at all, because the Kubelet set up the Pod sandbox and already knows its address.',
+    narration: 'The Kubelet reads the objects the spec named, and it reads them at the moment it launches the container rather than at the moment the Pod was created. DB_HOST takes whatever the key holds at that instant, and a Secret is read the same way. The Pod IP costs no read at all, because the Kubelet set up the Pod sandbox and already knows its address.',
     chips: EMPTY,
     wires: { req: 'cached ConfigMap app-config · status.podIP needs no read' },
     opacity: below(false),
@@ -144,7 +144,7 @@ export const STEPS_SPEC = [
   {
     id: 'snapshot',
     duration: 4300,
-    narration: 'On top of what the spec asked for, and unless enableServiceLinks is false, the Kubelet writes variables for every Service in this namespace that has a cluster IP right now, among them WEB_SERVICE_HOST and WEB_SERVICE_PORT for a Service named web. That list is a snapshot, so a Service created one second later is absent from this container. DNS is the way out of that ordering trap.',
+    narration: 'On top of what the spec asked for, and unless enableServiceLinks is false, the Kubelet writes variables for every Service in this namespace that has a cluster IP right now, among them WEB_SERVICE_HOST and WEB_SERVICE_PORT for a Service named web. That list is a snapshot, so a Service created one second later is absent from this container. DNS lookup avoids that ordering problem.',
     chips: EMPTY,
     wires: { req: 'Service web exists now · WEB_SERVICE_HOST and _PORT' },
     opacity: below(false),
@@ -158,7 +158,7 @@ export const STEPS_SPEC = [
   {
     id: 'handover',
     duration: 4300,
-    narration: 'The whole set crosses in one call. CreateContainer carries it, PID 1 starts with the variables already in its environment, and no second call of that kind is ever made for this container. What the downward API can send across has a limit worth knowing: a named label or annotation comes through, but the whole metadata.labels map is available only as a file in a downwardAPI volume.',
+    narration: 'The whole set crosses in one call. CreateContainer carries it, PID 1 starts with the variables already in its environment, and no second call of that kind is ever made for this container. What the downward API can send across has a limit: a named label or annotation comes through, but the whole metadata.labels map is available only as a file in a downwardAPI volume.',
     chips: FILLED,
     wires: { req: 'CreateContainer · the set crosses · StartContainer' },
     opacity: below(true),
@@ -176,7 +176,7 @@ export const STEPS_SPEC = [
   {
     id: 'frozen',
     duration: 4200,
-    narration: 'Somebody edits the ConfigMap. The Kubelet sees it, because by default it watches, and the object above the line now says something the copy below the line does not. A mounted volume without subPath would pick the edit up on a later sync and a downwardAPI volume does the same after a resize, but a variable is a copy taken once, and only a restarted container reads it again.',
+    narration: 'Somebody edits the ConfigMap. The Kubelet sees it, because by default it watches, and the object above the line now says something the copy below the line does not. A mounted volume without subPath would pick the edit up on a later sync and a downwardAPI volume does the same after a Pod resize. But a variable is a copy taken once, and only a restarted container reads it again.',
     // Deliberately not lit and not changed: that they did not move is the point.
     chips: FILLED,
     wires: { req: 'watch · ConfigMap app-config modified' },

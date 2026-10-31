@@ -80,7 +80,7 @@ const RETURN_TAG_DY = -50;
 const VETH_LABEL_X = POD_CX + 84;
 
 export const SCENE = {
-  'aria-label': 'The netfilter path a packet takes: a client Pod packet crosses the veth into the host namespace and meets PREROUTING with conntrack and the nat table, then the routing decision, which is a fork with INPUT below it and FORWARD, POSTROUTING and eth0 along the row. DNAT runs before routing so routing judges the rewritten address, MASQUERADE waits for the last hook, the reply is untangled from the recorded flow with no rule walk, and an address the Node itself owns takes the other leg of the fork and never reaches POSTROUTING.',
+  'aria-label': 'The netfilter path a packet takes. A client Pod packet crosses the veth into the host namespace and meets PREROUTING with conntrack and the nat table, then the routing decision. That decision is a fork with INPUT below it and FORWARD, POSTROUTING and eth0 further along the row. DNAT runs before routing, so the route is chosen on the rewritten address. MASQUERADE waits for the last hook. The reply is matched to the recorded flow and translated back with no Service rule walk, and a packet for an address the Node itself owns takes the other leg of the fork and never reaches POSTROUTING.',
   parts: [
     P.defs(),
     P.pod({
@@ -157,7 +157,7 @@ export const STEPS_SPEC = [
     id: 'dnat',
     // T-20: the hold pays for the mode qualifier rather than dropping the clause.
     duration: 3000,
-    narration: 'Inside PREROUTING the nat table runs, and the KUBE-SERVICES chain kube-proxy writes in iptables mode matches the ClusterIP. It rewrites the destination to a real backend, 10.244.2.7:8080 on Node-2, and conntrack stores that translation beside the flow. What leaves this hook is no longer addressed to a Service.',
+    narration: 'Inside PREROUTING the nat table runs, and the KUBE-SERVICES chain kube-proxy writes in iptables mode matches the ClusterIP. A rule down that chain rewrites the destination to a real backend, 10.244.2.7:8080 on Node-2, and conntrack stores that translation beside the flow.',
     chips: { hookChip: 'PREROUTING (nat)', dstChip: BACKEND, srcChip: POD_IP, ctChip: 'DNAT recorded' },
     sublabels: { ct: FLOW_DNAT },
     lit: ['hookChip', 'pre', 'ct', 'dstChip', 'ctChip'],
@@ -171,7 +171,7 @@ export const STEPS_SPEC = [
   {
     id: 'fork',
     duration: 2700,
-    narration: 'Only now does the kernel decide where to send the packet, and it decides on the rewritten address. This box is the one on the row that is not a hook: it is a fork. An address the Node itself owns goes to INPUT and is delivered locally, everything else goes on to FORWARD.',
+    narration: 'Only now does the kernel decide where the packet goes, and it decides on the rewritten address. Unlike the boxes around it, this one is not a hook but a fork. A packet for an address the Node itself owns goes to INPUT for local delivery. Everything else goes to FORWARD.',
     chips: { hookChip: 'routing decision', dstChip: BACKEND, srcChip: POD_IP, ctChip: 'DNAT recorded' },
     sublabels: { ct: FLOW_DNAT },
     lit: ['rt', 'hookChip', 'dstChip'],
@@ -186,7 +186,7 @@ export const STEPS_SPEC = [
     id: 'out',
     // The hold carries the by-default qualifier, as on `dnat`.
     duration: 4000,
-    narration: 'FORWARD is where the filter table runs, and where an iptables NetworkPolicy implementation drops what is not allowed. POSTROUTING is the last hook before the wire, and MASQUERADE lives there because only after routing is the outgoing interface known. By default neither kube-proxy nor the egress rules masquerade a Pod to Pod packet, so the Pod source survives.',
+    narration: 'FORWARD is where the filter table runs and an iptables NetworkPolicy implementation drops what is not allowed. POSTROUTING is the last hook before the wire, and MASQUERADE lives there because only after routing is the outgoing interface known. By default neither kube-proxy nor egress masquerade rules SNAT a Pod to Pod packet, so the Pod source survives.',
     chips: { hookChip: 'FORWARD, POSTROUTING', dstChip: BACKEND, srcChip: '10.244.1.5 (no SNAT)', ctChip: 'DNAT recorded' },
     wires: { exit: 'to Node-2' },
     sublabels: { ct: FLOW_DNAT },
@@ -222,7 +222,7 @@ export const STEPS_SPEC = [
   {
     id: 'local',
     duration: 3300,
-    narration: 'The fork resolves the other way when the address after the rewrite belongs to the Node itself, which is what a hostNetwork backend on this Node gives it. Routing sends the packet to INPUT and a local socket has it. POSTROUTING is never reached, so MASQUERADE can never see such a packet.',
+    narration: 'At the fork the packet turns the other way when the address after the rewrite belongs to the Node itself, as it does for a hostNetwork backend on this Node. Routing sends the packet to INPUT and a local socket has it. Such a packet never reaches POSTROUTING, so MASQUERADE can never see it.',
     chips: { hookChip: 'INPUT', dstChip: '10.0.1.4:8080 (this Node)', srcChip: POD_IP, ctChip: 'second flow' },
     sublabels: { ct: FLOW_LOCAL },
     lit: ['pre', 'hookChip', 'dstChip', 'srcChip', 'ctChip'],

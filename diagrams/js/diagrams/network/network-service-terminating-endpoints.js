@@ -220,7 +220,7 @@ export const STEPS_SPEC = [
   {
     id: 'delete',
     duration: 3400,
-    narration: 'Only then does the rollout delete web-c, and the grace clock starts at 0s. At once the 5s preStop sleep web-c declares begins, and its endpoint turns ready=false and terminating=true, while serving follows readiness and stays true.',
+    narration: 'Only then does the rollout delete web-c, and the grace clock starts at 0s. At once the 5s preStop sleep that web-c declares begins, and its endpoint turns ready=false and terminating=true, while serving follows readiness and stays true.',
     chips: COND_TERM,
     wires: { epHdr: EP_HDR },
     podSublabels: { podC: C_TERM, podD: D_READY },
@@ -239,7 +239,7 @@ export const STEPS_SPEC = [
   {
     id: 'reprogram',
     duration: 5400,
-    narration: 'Inside that 5s window kube-proxy reads the flip and, as ready endpoints remain, rewrites the Service rules without web-c, so a new connection lands on web-a. The sleep exists because this update races the shutdown: web-c must keep answering until it lands.',
+    narration: 'Inside that 5s window kube-proxy reads the flip and, as ready endpoints remain, rewrites the Service rules without web-c, so a new connection lands on web-a. The sleep exists because this update races the shutdown: web-c must keep answering until the update lands.',
     chips: COND_TERM,
     wires: { epHdr: EP_HDR },
     podSublabels: { podC: C_TERM, podD: D_READY },

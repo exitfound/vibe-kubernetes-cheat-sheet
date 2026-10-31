@@ -196,7 +196,7 @@ export const STEPS_SPEC = [
   {
     id: 'readers',
     duration: 2800,
-    narration: 'The tree is where the numbers sit, not what acts on them. Two cards pick them up from here: CPU Throttling and CFS Quota takes cpu.max as the budget a container may spend inside each period, and Container OOMKill takes memory.max as the cap that gets a container killed. Read those two next.',
+    narration: 'The tree only holds the numbers. Two cards show what acts on them: CPU Throttling and CFS Quota takes cpu.max as the budget a container may spend inside each period, and Container OOMKill takes memory.max as the cap that gets a container killed.',
     chips: WRITTEN,
     opacity: UPTO4,
     lit: ['leafBox', 'cpuMaxChip', 'memMaxChip'],

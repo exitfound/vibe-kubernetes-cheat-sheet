@@ -67,7 +67,7 @@ const LANE_KUBELET = { from: [KUBELET_CX, RESERVE_Y], to: [KUBELET_CX, WL.TOP_BO
 
 // The list order is the z-order: the two readers go last.
 export const SCENE = {
-  'aria-label': 'Effective Pod request drawn as cpu over one Pod lifetime: regular init containers run one at a time so the init phase counts its tallest single container plus any sidecar declared before it, the sidecar and the app run together so theirs are summed, and the Pod is reserved the higher of the two standing on its RuntimeClass overhead, for the whole life',
+  'aria-label': 'Effective Pod request drawn as cpu over one Pod lifetime: regular init containers run one at a time so the init phase counts its tallest instant, one container plus any sidecar declared before it, the sidecar and the app run together so theirs are summed, and the Pod is reserved the higher of the two standing on its RuntimeClass overhead, for the whole life',
   parts: [
     P.defs(),
     // A ball rides up on the last step, which earns the arrowhead (A-05). Nothing travels down.
@@ -151,7 +151,7 @@ export const STEPS_SPEC = [
   {
     id: 'profile',
     duration: 3500,
-    narration: 'Read this as one Pod life, left to right, with cpu up the page. First init-a runs on its own, then init-b runs on its own, and then the sidecar and the app run together for the rest of the Pod. Four containers, four cpu requests, and adding all four up gives 1750m, which is the one number this Pod is never charged.',
+    narration: 'This reads as one Pod life, left to right, with cpu up the page. First init-a runs on its own, then init-b runs on its own, and then the sidecar and the app run together for the rest of the Pod. The four cpu requests add up to 1750m, and that sum is the one number this Pod is never charged.',
     wires: { readout: READ.naive, heldLbl: READ.none },
     opacity: stage(HIDDEN),
     // Init tiles light one after the other, sidecar and app together. No static `lit`: it would
@@ -173,7 +173,7 @@ export const STEPS_SPEC = [
   {
     id: 'init-max',
     duration: 3500,
-    narration: 'Regular init containers run strictly one at a time, so at no instant do two of them hold cpu together. The effective init request is therefore the highest single one, 800m, not the 1100m they add up to, and the phase holds that 800m whichever of the two is running, which is why init-b stands as tall as init-a.',
+    narration: 'Regular init containers run strictly one at a time, so at no instant do two of them hold cpu together. The effective init request is therefore the highest single one, 800m, not the 1100m they add up to. The phase holds that 800m whichever of the two is running, which is why init-b stands as tall as init-a.',
     wires: { readout: READ.init, heldLbl: READ.none },
     opacity: stage(INIT_READ),
     // The level lands after the pair, so it reads as the answer to the two tiles.
@@ -185,7 +185,7 @@ export const STEPS_SPEC = [
   {
     id: 'run-sum',
     duration: 3700,
-    narration: 'The sidecar and the app overlap for the rest of the Pod, so their requests add up: 200m plus 450m is 650m. Being an init container with restartPolicy=Always, the sidecar is weighed in the init maximum too, where 800m wins. Declared before init-a it would run beside it and lift that maximum to 1000m: array order is part of the number.',
+    narration: 'The sidecar and the app overlap for the rest of the Pod, so their requests add up: 200m plus 450m is 650m. Being an init container with restartPolicy=Always, the sidecar is weighed in the init maximum too, where 800m wins. Declared before init-a it would run beside it and lift that maximum to 1000m, so the array order changes the number.',
     wires: { readout: READ.run, heldLbl: READ.none },
     opacity: stage(INIT_READ),
     // No rule here: the run envelope is the top edge of the run column itself (M-27).

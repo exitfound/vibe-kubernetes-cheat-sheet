@@ -14,6 +14,6 @@ CONTENT  Sources: Parallel execution for Jobs, Job v1 (v1.36), job_controller.go
          completions is 5: two waves with one failure close on five. `exceeding it marks the Job
          Failed`, never `reaching it`: the code tests failed > backoffLimit, `reaches` is OnFailure.
          A Succeeded Pod is never reused. SuccessCriteriaMet lands with Complete. Exits fall in one
-         sync, so two waves hold and the back-off delays all three creations, counted since the last
-         success. The cap is ten minutes (MaxJobPodFailureBackOff in code), the page says six.
+         sync, which `fail` says (`At the same time`), so two waves hold and the back-off delays all
+         three creations, counted since the last success. The cap is ten minutes, page and code.
 ```

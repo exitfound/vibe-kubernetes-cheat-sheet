@@ -47,7 +47,7 @@ const POD_SUBS = ['priority: 0', 'priority: 0', 'priority: 2000000000'];
 
 // The list order is the z-order: the Node, its Pods and the top row draw above the ball.
 export const SCENE = {
-  'aria-label': 'Graceful Node shutdown: the Kubelet holds a delay inhibitor lock, systemd signals it over D-Bus, and the Kubelet sets NotReady, terminates non-critical then critical Pods, then releases the lock',
+  'aria-label': 'Graceful Node shutdown, where the Kubelet holds a delay inhibitor lock, systemd signals it over D-Bus, and the Kubelet sets NotReady, terminates non-critical Pods first, then critical ones, and releases the lock',
   parts: [
     P.defs(),
     P.arrow({ x1: SYS_X, y1: SIG_Y, x2: KUBE_X + BOX_W, y2: SIG_Y, dim: true, dashed: true }),
@@ -176,7 +176,7 @@ export const STEPS_SPEC = [
   {
     id: 'release',
     duration: 3400,
-    narration: 'The critical Pods are done or their 20s ran out. Kubelet releases the inhibitor lock, and systemd resumes the shutdown. When the Node Lease in kube-node-lease expires, the node-lifecycle-controller turns Ready from False to Unknown and swaps the not-ready taint for unreachable, NoSchedule and NoExecute alike.',
+    narration: 'The critical Pods are done or their 20s ran out. Kubelet releases the inhibitor lock, and systemd resumes the shutdown. After the monitor grace period with no Lease renewal, the node-lifecycle-controller turns Ready from False to Unknown and swaps the not-ready taint for unreachable, NoSchedule and NoExecute alike.',
     chips: { lockChip: LOCK_FREE, gpChip: '60s', gpCritChip: '20s', phaseChip: RELEASED },
     wires: { sig: 'release lock' },
     opacity: ALL_DOWN,

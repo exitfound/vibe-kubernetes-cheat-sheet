@@ -211,7 +211,7 @@ export const STEPS_SPEC = [
   {
     id: 'spend',
     duration: 2600,
-    narration: 'The container runs, and every microsecond of CPU time it burns is charged against the 50ms budget. One busy thread on one CPU empties it 50ms into the period. Nothing is wrong with the code, it has simply reached the ceiling that the limit bought.',
+    narration: 'The container runs, and every microsecond of CPU time it burns is charged against the 50ms budget. One busy thread on one CPU empties it 50ms into the period. The code is not at fault, because this is the ceiling the limit bought.',
     // cpu.stat counters turn over on the period timer, not mid-period, so they stay 0 here.
     chips: { weightChip: WEIGHT_SET, maxChip: MAX_SET, statChip: STAT_IDLE, stateChip: STATE },
     wires: { kernel: '50ms of run time charged to the cgroup' },
@@ -252,7 +252,7 @@ export const STEPS_SPEC = [
   {
     id: 'observe',
     duration: 5200,
-    narration: 'Nothing died. The Pod stays Running with restartCount 0, and kubectl describe shows no event and no condition: no Kubernetes object carries throttling. The kernel counts the stall in cpu.stat and, with kernel PSI on, in cpu.pressure, and cAdvisor inside the Kubelet exports both. Its container_cpu_cfs_throttled_seconds_total only climbs: 100 periods in, it reads 5 seconds. The quota kills nothing, but the latency can fail a liveness probe, which restarts the container.',
+    narration: 'Nothing died. The Pod stays Running with restartCount 0, and kubectl describe shows no event and no condition: no Kubernetes object carries throttling. The kernel counts the stall in cpu.stat and, with kernel PSI on, in cpu.pressure, and cAdvisor in the Kubelet exports both. The container_cpu_cfs_throttled_seconds_total metric only climbs: 100 periods in, it reads 5 seconds. The quota kills nothing, but latency can fail a liveness probe, which restarts the container.',
     // 100 periods x 50ms of stall is throttled_usec 5000000, the 5 seconds the metric reports.
     chips: { weightChip: WEIGHT_SET, maxChip: MAX_SET, statChip: THR(100), stateChip: STATE },
     wires: { kernel: 'cpu.stat scraped · no Pod event, no condition' },

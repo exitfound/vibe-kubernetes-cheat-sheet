@@ -58,7 +58,7 @@ const lane = (key, points) => P.lane({ key, points, dim: true, dashed: true });
 
 // List order is z-order.
 export const SCENE = {
-  'aria-label': 'Kubernetes cluster architecture: the API, ETCD, the controller-manager, the cloud-controller-manager and the Scheduler inside the control plane, with the Kubelet and kube-proxy on Node-1 each watching the API for itself, and the Kubelet driving the Runtime over CRI',
+  'aria-label': 'Kubernetes cluster architecture, where the API, ETCD, the controller-manager, the cloud-controller-manager and the Scheduler run in the control plane, and the Kubelet and kube-proxy run on Node-1, each watching the API for itself, with the Kubelet driving the Runtime over CRI',
   parts: [
     P.defs(),
     P.node({ key: 'cpEl', x: FRAME_X, y: CP_Y, w: FRAME_W, h: CP_H, label: 'Control plane' }),
@@ -114,14 +114,14 @@ export const STEPS_SPEC = [
   {
     id: 'api',
     duration: 3600,
-    narration: 'The API is the only way in for clients and controllers. Every read and every write passes through it, and a write clears authentication, authorization and admission before it is stored. Replicas are stateless and scale horizontally. The one path that skips it is a static Pod, which the Kubelet reads from a local file or a URL.',
+    narration: 'The API is the only way in for clients and controllers. Every read and every write goes through it, and a write clears authentication, authorization and admission before it is stored. Replicas are stateless and scale horizontally. One of the few paths that skip it is a static Pod, which the Kubelet reads from a local file or a URL.',
     opacity: CONTROL_HALF,
     lit: ['apisrv'],
   },
   {
     id: 'etcd',
     duration: 2300,
-    narration: 'ETCD holds the cluster state the API serves, and in a standard cluster the API is the only client it has. Every change is replicated through Raft, where a quorum of replicas must agree before the write is committed and the revision moves forward.',
+    narration: 'ETCD holds the cluster state the API serves, and in a standard cluster it has no client but the API. Every change is replicated through Raft, and a write is committed and the revision moves forward only once a quorum of replicas agrees.',
     wires: { 'etcd-write': 'write · Raft quorum commit' },
     opacity: CONTROL_HALF,
     lit: ['apisrv'],
@@ -130,7 +130,7 @@ export const STEPS_SPEC = [
   {
     id: 'etcd-response',
     duration: 2600,
-    narration: 'On the way back ETCD serves reads to the API, which is a separate exchange rather than the answer to that write. A watch keeps the stream open and pushes later changes through it without another round trip. Clients watch the API, never ETCD, and it answers them from its own cache.',
+    narration: 'On the way back ETCD serves reads to the API, and that is a separate exchange, not the answer to that write. A watch keeps the stream open, and later changes arrive through it without another round trip. Clients watch the API and never ETCD, and the API answers them from its own cache.',
     wires: { 'etcd-read': 'read · watch stream' },
     opacity: CONTROL_HALF,
     lit: ['etcdC'],
@@ -139,7 +139,7 @@ export const STEPS_SPEC = [
   {
     id: 'controllers',
     duration: 2600,
-    narration: 'The controller-manager runs the built-in control loops, roughly one per resource kind (Deployment, ReplicaSet, Job and so on), plus loops that cut across all of them like the garbage collector. Each watches the API, never ETCD, and writes back to reconcile observed state with desired state.',
+    narration: 'The controller-manager runs the built-in control loops, roughly one per resource kind (Deployment, ReplicaSet, Job and so on), plus loops shared by all kinds, like the garbage collector. Each loop watches the API, never ETCD, and writes back to reconcile observed state with desired state.',
     wires: { controllers: 'watch · reconcile loop' },
     opacity: CONTROL_HALF,
     lit: ['apisrv'],
@@ -152,7 +152,7 @@ export const STEPS_SPEC = [
   {
     id: 'cloud-controllers',
     duration: 2400,
-    narration: 'The cloud-controller-manager runs the loops that talk to a cloud provider: Node lifecycle, cloud routes and Service load balancers. It is optional and a cluster on your own hardware has none. It writes what it learns back to the API, and it is split out so provider code lives outside the core.',
+    narration: 'The cloud-controller-manager runs loops that talk to a cloud provider and handle Node lifecycle, cloud routes and Service load balancers. It is optional and a cluster on your own hardware has none. It writes what it learns to the API and is split out so provider code lives outside the core.',
     // No provider is drawn, so the provider call lives only in the narration.
     wires: { cloud: 'watch Nodes and Services · write status back' },
     opacity: CONTROL_HALF,
@@ -165,7 +165,7 @@ export const STEPS_SPEC = [
   {
     id: 'scheduler',
     duration: 2600,
-    narration: 'The Scheduler watches Pods that have no Node assignment yet, filters and scores the candidates, then posts a Binding back to the API. On the ordinary path that one write is all it does, and preemption is the exception where it also deletes victims. The Kubelet on the chosen Node takes it from there.',
+    narration: 'The Scheduler watches Pods that have no Node assignment yet, filters and scores the candidates, then posts a Binding back to the API. On the ordinary path it writes nothing else to the Pod. The exception is preemption, where it also deletes lower-priority Pods to make room. The Kubelet on the chosen Node takes it from there.',
     wires: { scheduler: 'watch Pods · post Binding' },
     opacity: CONTROL_HALF,
     lit: ['apisrv'],

@@ -71,7 +71,7 @@ const lane = (key, points, opacity) => P.lane({ key, points, dashed: true, dim: 
 // Z-order: the blocks and the disk, the lanes and their captions, the Pod, the disk caption, the
 // chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Why a deleted PersistentVolumeClaim sits in Terminating. The pvc-protection finalizer on PVC data-claim means a delete only writes a deletionTimestamp, so the object stays and Pod web-0 keeps its mount, while the status phase reads Bound the whole time and Terminating is only a display derived from the deletionTimestamp. Once the last consuming Pod is gone the controller removes the finalizer, and only then does the API server take the object out of ETCD.',
+  'aria-label': 'Why a deleted PersistentVolumeClaim sits in Terminating. Because of the pvc-protection finalizer on PVC data-claim, a delete only writes a deletionTimestamp, so the object stays and Pod web-0 keeps its mount. The status phase reads Bound the whole time, and Terminating is only a display derived from the deletionTimestamp. Once the last consuming Pod is gone the controller removes the finalizer, and only then does the API server take the object out of ETCD.',
   parts: [
     P.defs(),
     P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'phase Bound' }),
@@ -138,7 +138,7 @@ export const STEPS_SPEC = [
   {
     id: 'in-use',
     duration: 3400,
-    narration: 'The claim is a handle, and the volume behind it is what stores the bytes. Kubelet resolved data-claim to data-vol and mounted it at slash data, so the app writes through the claim into the disk. The finalizer guards the claim for as long as this Pod object exists.',
+    narration: 'The claim is a handle, and the volume behind it is what stores the bytes. Kubelet resolved data-claim to data-vol and mounted it at /data, so the app writes through the claim into the disk. The finalizer guards the claim for as long as this Pod object exists.',
     chipsCued: chips('none', 'Bound', PROT, '1 Pod'),
     sublabels: { pvc: 'phase Bound' },
     wires: { mount: 'mounted at /data', verdict: 'Bound to data-vol' },
@@ -154,7 +154,7 @@ export const STEPS_SPEC = [
   {
     id: 'delete-request',
     duration: 3700,
-    narration: 'You run kubectl delete pvc data-claim. The API accepts it and writes a deletionTimestamp onto the object. That is all a delete does when finalizers are present: it is a request, recorded on the object, and nothing has been removed yet. Your terminal prints deleted anyway and then hangs, because kubectl waits for finalizers by default.',
+    narration: 'You run kubectl delete pvc data-claim. The API accepts it and writes a deletionTimestamp onto the object. With finalizers present, that is all a delete does. It is a request, recorded on the object, and nothing has been removed yet. Your terminal prints deleted anyway and then hangs, because kubectl waits for finalizers by default.',
     chipsCued: chips('set', TERMINATING, PROT, '1 Pod'),
     sublabels: { pvc: DELETING },
     wires: { mount: 'mount still live', verdict: 'marked for deletion' },
@@ -169,7 +169,7 @@ export const STEPS_SPEC = [
   {
     id: 'finalizer-holds',
     duration: 3500,
-    narration: 'Now watch what does not happen. The finalizers list still holds kubernetes.io/pvc-protection, so the API server does not complete the delete and the object stays exactly where it was. The Pod never noticed: the volume is still mounted and the app is still writing to it, straight through a claim you already deleted.',
+    narration: 'The delete stops there. The finalizers list still holds kubernetes.io/pvc-protection, so the API server does not complete it and the object stays where it was, shown as Terminating. The Pod has noticed nothing: the volume is still mounted and the app is still writing to it, straight through a claim you already deleted.',
     chipsCued: chips('set', TERMINATING, PROT, '1 Pod'),
     sublabels: { pvc: DELETING },
     wires: { mount: 'still mounted', verdict: 'finalizer blocks removal' },
@@ -197,7 +197,7 @@ export const STEPS_SPEC = [
   {
     id: 'pod-gone',
     duration: 3400,
-    narration: 'So remove the reason. The Pod is deleted, or it finishes and its Pod object is removed, and as it goes Kubelet unmounts the volume and the claim loses its last consumer. This is the event the protection controller has been waiting for the whole time.',
+    narration: 'So the reason has to go. The Pod is deleted, or it finishes and its Pod object is removed, and as it goes Kubelet unmounts the volume and the claim loses its last consumer, the event the protection controller has been waiting for.',
     chipsCued: chips('set', TERMINATING, PROT, '0 Pods'),
     sublabels: { pvc: DELETING },
     wires: { verdict: 'last consumer gone' },
@@ -222,7 +222,7 @@ export const STEPS_SPEC = [
   {
     id: 'finalizer-removed',
     duration: 3500,
-    narration: 'The pvc-protection controller checks whether any Pod still uses the claim, finds none, and does the job it was waiting for: it removes the finalizer from the object. The finalizers list is now empty, the last thing the outstanding delete was waiting for, so the kubectl command hanging since step 2 is about to return.',
+    narration: 'The pvc-protection controller checks whether any Pod still uses the claim, finds none, and removes the finalizer from the object, which it could not do while web-0 existed. The finalizers list is now empty, and that was the last thing holding the outstanding delete, so the kubectl command hanging since step 2 is about to return.',
     chipsCued: chips('set', TERMINATING, 'none', '0 Pods'),
     sublabels: { pvc: DELETING },
     wires: { verdict: 'nothing holds it now' },
@@ -237,7 +237,7 @@ export const STEPS_SPEC = [
   {
     id: 'gone',
     duration: 3900,
-    narration: 'The moment the finalizers list is empty, the API server completes the delete it accepted five steps ago and the record leaves ETCD. The disk itself is a separate question, settled by the reclaim policy on the volume. So for a stuck Terminating claim, find the Pod object that still names it, finished or not: kubectl describe pvc lists it under Used By.',
+    narration: 'The moment the finalizers list is empty, the API server completes the delete it accepted five steps ago and the record leaves ETCD. The disk itself is a separate question, settled by the reclaim policy on the volume. So for a stuck Terminating claim, the thing to look for is the Pod object that still names it, finished or not: kubectl describe pvc lists it under Used By.',
     chipsCued: chips('gone with object', 'not found', 'none', '0 Pods'),
     wires: { verdict: 'object removed from ETCD' },
     // The claim and the rest of the axis end this step gone. The disk stays: it outlives the claim.

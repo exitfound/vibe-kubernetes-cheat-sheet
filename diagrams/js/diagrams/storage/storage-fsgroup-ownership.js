@@ -117,7 +117,7 @@ const appShell = () => podShell({
 });
 
 export const SCENE = {
-  'aria-label': 'fsGroup and volume ownership: a freshly formatted volume is owned by root so a non-root container cannot write to it, and securityContext.fsGroup makes Kubelet chown and setgid the whole volume tree to that GID, on a volume type and CSI driver that support it, before the container starts, unless a CSI driver advertising VOLUME_MOUNT_GROUP does it instead, while fsGroupChangePolicy OnRootMismatch checks only the top-level directory and skips the walk when it already matches, which stops a volume of millions of files adding minutes to every Pod start the way the default policy Always does',
+  'aria-label': 'fsGroup and volume ownership: the volume tree is owned by root, so a non-root container cannot write to it. The securityContext.fsGroup field makes Kubelet chown and setgid the whole volume tree to that GID before the container starts, on a volume type and CSI driver that support it, unless a CSI driver advertising VOLUME_MOUNT_GROUP does it itself. The OnRootMismatch policy in fsGroupChangePolicy checks only the top-level directory and skips the walk when that directory already matches, which stops a volume of millions of files adding minutes to every Pod start, as happens under the default policy Always',
   parts: [
     P.defs(),
     // Re-centred on the front face below the cap ellipse (STO.L-02).
@@ -207,7 +207,7 @@ export const STEPS_SPEC = [
   {
     id: 'denied',
     duration: 3000,
-    narration: 'Start the Pod with no fsGroup and it comes up, but the first write to the volume fails with permission denied. The disk is fine, the mount is fine. The ownership is simply wrong for a non-root process, and a process running as user 1000 cannot chown a tree that root owns.',
+    narration: 'A Pod started with no fsGroup comes up, but the first write to the volume fails with permission denied. The disk and the mount are fine, but the ownership is wrong for a non-root process. And a process running as user 1000 cannot chown a tree that root owns.',
     chipsCued: chips('root:root', 'denied', 'unset'),
     sublabels: { secBox: 'fsGroup not set', tree: 'owned root:root' },
     wires: { disk: 'created root:root' },
@@ -277,7 +277,7 @@ export const STEPS_SPEC = [
   {
     id: 'always',
     duration: 3400,
-    narration: 'There is a cost. The default policy, Always, walks the entire tree and sets the group and mode of every entry again on every Pod start, even when nothing changed. On a small volume that is nothing. On a volume with millions of files it can add minutes to each start, and the Pod sits waiting the whole time.',
+    narration: 'But the default policy, Always, has a cost. On every Pod start Always walks the entire tree and resets the group and mode of every entry, even when nothing changed. On a small volume that is nothing. On a volume with millions of files it can add minutes to each start, and the Pod sits waiting the whole time.',
     // The policy value is unchanged here: this step explains what Always costs.
     chipsCued: chips('root:2000 g+s', 'allowed', 'Always (default)'),
     sublabels: { secBox: 'fsGroup: 2000', tree: 'every start re-chowns all of it' },
@@ -296,7 +296,7 @@ export const STEPS_SPEC = [
   {
     id: 'onmismatch',
     duration: 4000,
-    narration: 'The fsGroupChangePolicy: OnRootMismatch setting is the escape. Kubelet checks only the top-level directory: its group, its permission bits and its setgid bit. If all of them already match what fsGroup asks for, it assumes the tree was set on a previous start and skips the walk entirely. The next start pays no ownership walk, however many files sit below.',
+    narration: 'The fsGroupChangePolicy: OnRootMismatch setting avoids that. Kubelet checks only the top-level directory, that is its group, its permission bits and its setgid bit. If all of them already match what fsGroup asks for, Kubelet assumes the tree was set on a previous start and skips the whole walk, however many files sit below.',
     chipsCued: chips('root:2000 g+s', 'allowed', 'OnRootMismatch'),
     sublabels: { secBox: 'fsGroup: 2000', tree: 'top dir matches, walk skipped' },
     wires: { disk: 'set on a previous start' },

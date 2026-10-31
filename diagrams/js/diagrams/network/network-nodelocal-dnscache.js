@@ -77,7 +77,7 @@ const ASK_TAG = { text: '10.96.0.10' }, EXT_TAG = { text: '10.0.0.2' }, DNAT_TAG
 // The list order IS the append order, which is the z-order: frames, blocks, lanes and their labels,
 // chips, then the packet layer.
 export const SCENE = {
-  'aria-label': 'NodeLocal DNSCache in kube-proxy iptables mode: a client Pod on Node-1 asks the kube-dns ClusterIP 10.96.0.10. Without the cache the Node-1 rules DNAT that UDP query to a CoreDNS Pod on Node-2 and track each lookup in conntrack. With the node-local-dns DaemonSet agent on the host network, the same address is bound on Node-1 with NOTRACK rules, so the query stops at the agent. A miss for a cluster name goes to CoreDNS over TCP through the kube-dns-upstream Service, a cached answer is served on the Node for at most 30 seconds, and other names go to the upstream resolvers of the Node.',
+  'aria-label': 'NodeLocal DNSCache in kube-proxy iptables mode: a client Pod on Node-1 asks the kube-dns ClusterIP 10.96.0.10. Without the cache the Node-1 rules DNAT that UDP query to a CoreDNS Pod on Node-2 and track each lookup in conntrack. With the node-local-dns DaemonSet agent on the host network, the same address is bound on Node-1 with NOTRACK rules, so the query stops at the agent. A miss for a cluster-domain name goes to CoreDNS over TCP through the kube-dns-upstream Service, a cached answer is served on the Node for at most 30 seconds, and other names go to the upstream resolvers of the Node.',
   parts: [
     P.defs(),
     P.node({ key: 'node1', x: N1_X, y: NODE_Y, w: N1_W, h: N1_H, label: 'Node-1' }),
@@ -171,7 +171,7 @@ export const STEPS_SPEC = [
   {
     id: 'agent',
     duration: 4800,
-    narration: 'A DaemonSet runs node-local-dns, a caching CoreDNS, on the host network of every Node. In iptables mode it binds a link-local address, here 169.254.20.10, and the kube-dns ClusterIP with NOTRACK rules, so the same query stops at the agent: no DNAT, no conntrack entry, no change to Pods. IPVS mode, deprecated, binds only the first and needs the Kubelet clusterDNS changed.',
+    narration: 'A DaemonSet runs node-local-dns, a caching CoreDNS, on the host network of every Node. In iptables mode it binds a link-local address, here 169.254.20.10, and the kube-dns ClusterIP with NOTRACK rules, so the same query stops at the agent: no DNAT, no conntrack entry, no change to Pods. In the deprecated IPVS mode the agent binds only the first address and needs the Kubelet clusterDNS changed.',
     chips: { rewriteChip: 'none, NOTRACK', cacheChip: 'empty', upChip: 'not asked yet', ctChip: 'no entry' },
     wires: WIRES_AFTER,
     ...stage(true),
@@ -192,7 +192,7 @@ export const STEPS_SPEC = [
   {
     id: 'miss',
     duration: 7400,
-    narration: 'The cache is empty, so the agent forwards the cluster name to CoreDNS. It already owns 10.96.0.10, so it dials a second Service, kube-dns-upstream, over TCP. That leg is DNAT-ed and tracked, but a TCP entry is removed when the connection closes. The answer is cached, then returned to the Pod.',
+    narration: 'The cache is empty, so the agent forwards the cluster-domain name to CoreDNS. The agent already owns 10.96.0.10, so it dials a second Service, kube-dns-upstream, over TCP. That leg is DNAT-ed and tracked, but a TCP entry is removed when the connection closes. The answer is cached, then returned to the Pod.',
     chips: { rewriteChip: 'DNAT to CoreDNS', cacheChip: 'miss, stored', upChip: 'TCP to CoreDNS', ctChip: 'TCP, removed on close' },
     wires: WIRES_AFTER,
     ...stage(true),
@@ -230,16 +230,21 @@ export const STEPS_SPEC = [
   },
   {
     id: 'external',
-    duration: 6200,
-    narration: 'By default only the cluster domain and the reverse zones go to CoreDNS. A name such as example.com matches the catch-all zone of the agent, which forwards to the resolvers in the resolv.conf of the Node, and the answer is still cached on Node-1. Of that lookup only the ndots:5 search-list tries, which are cluster names, reach CoreDNS.',
+    duration: 7400,
+    narration: 'By default only the cluster domain and the reverse zones go to CoreDNS. A name such as example.com matches the catch-all zone of the agent, which forwards to the resolvers in the resolv.conf of the Node, and the answer is still cached on Node-1. Of that lookup only the ndots:5 search-list tries in the cluster domain reach CoreDNS.',
     chips: { rewriteChip: 'none', cacheChip: 'miss, stored', upChip: 'Node resolvers', ctChip: 'UDP, tracked' },
     wires: WIRES_AFTER,
     ...stage(true),
     rewind: { chips: { rewriteChip: 'none, NOTRACK', cacheChip: 'hit, 30s max', upChip: 'not asked', ctChip: 'no entry' } },
     lit: ['agent'],
     reducedLit: ['clientBox'],
+    // The search-list tries come first: the agent sends them to CoreDNS on the miss path, untagged so
+    // the step keeps its duration. Their answers are not narrated, so no ball brings them back.
     flow: [
-      F.segment({ from: TO_EXT[0], to: TO_EXT[1], delay: BEAT.lead, dur: LEG_DUR, name: 'out', lights: ['ext'], tag: EXT_TAG }),
+      F.segment({ from: FROM_AGENT[0], to: FROM_AGENT[1], delay: BEAT.lead, name: 'up', lights: ['dp'], dur: HOP_DUR }),
+      ...turn('up', { rewriteChip: 'DNAT to CoreDNS', cacheChip: 'miss', upChip: 'TCP to CoreDNS', ctChip: 'TCP, removed on close' }),
+      F.segment({ from: TO_N2[0], to: TO_N2[1], after: 'up', name: 'cross', lights: ['dns'], dur: HOP_DUR }),
+      F.segment({ from: TO_EXT[0], to: TO_EXT[1], after: 'cross', dur: LEG_DUR, name: 'out', lights: ['ext'], tag: EXT_TAG }),
       ...turn('out', { rewriteChip: 'none', upChip: 'Node resolvers', ctChip: 'UDP, tracked' }),
       F.segment({ from: FROM_EXT[0], to: FROM_EXT[1], after: 'out', name: 'back', dur: HOP_DUR }),
       ...turn('back', { cacheChip: 'miss, stored' }),

@@ -1,0 +1,27 @@
+// Russian for network-dns-autoscaling: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "DNS horizontal autoscaling: where it is enabled, a separate kube-dns-autoscaler Deployment watches the Node objects on the API server, counts the Nodes and their allocatable cores on every poll and reads a parameter set from a ConfigMap, then the linear control pattern divides each count by its own per-replica figure, rounds both up and keeps the larger, clamps the result with min and with preventSinglePointFailure, and writes it to the scale subresource of the CoreDNS Deployment, so the replica row grows as the cluster grows, while the ladder pattern answers the same two counts from two step tables instead":
+    "Горизонтальное автомасштабирование DNS: там, где оно включено, отдельный Deployment kube-dns-autoscaler следит за объектами Node в API Server, при каждом опросе считает Node и их allocatable ядра и читает набор параметров из ConfigMap. Затем режим linear делит каждое число на свою норму на реплику, округляет оба вверх и берёт большее, ограничивает результат через min и preventSinglePointFailure и записывает его в subresource scale у Deployment CoreDNS. Так ряд реплик растёт вместе с кластером, а режим ladder вместо этого отвечает на те же два числа по двум ступенчатым таблицам",
+
+  "When DNS autoscaling is enabled, the kube-dns-autoscaler Deployment runs a separate controller, no part of CoreDNS. Its Pod lists and watches the Node objects on the API server, and every 10 seconds by default it counts the Nodes and the allocatable cores they add up to. This cluster answers with 16 Nodes and 128 cores.":
+    "Когда автомасштабирование DNS включено, Deployment kube-dns-autoscaler запускает отдельный от CoreDNS контроллер. Его Pod получает список объектов Node в API Server и следит за ними, а каждые 10 секунд по умолчанию считает Node и сумму их allocatable ядер. В этом кластере выходит 16 Node и 128 ядер.",
+
+  "On the same poll it fetches ConfigMap kube-dns-autoscaler, which holds its parameters. The manifest passes coresPerReplica 256, nodesPerReplica 16 and both flags as default-params, and the autoscaler writes those into the ConfigMap when none exists. Setting includeUnschedulableNodes true counts cordoned, draining and NotReady Nodes in the total, and with no min passed the library holds min at 1.":
+    "При том же опросе автоскейлер читает ConfigMap kube-dns-autoscaler со своими параметрами. Манифест передаёт coresPerReplica 256, nodesPerReplica 16 и оба флага как default-params, и автоскейлер записывает их в ConfigMap, если его нет. С параметром includeUnschedulableNodes, равным true, в общий счёт попадают Node, переведённые в cordon, под drain и в состоянии NotReady, а если min не передан, библиотека держит его равным 1.",
+
+  "The linear pattern reads both axes and rounds each one up. The Nodes axis gives ceil of 16 over 16, which is 1, and the cores axis gives ceil of 128 over 256, which is also 1. The equation keeps the larger of the two, which is 1 either way.":
+    "Режим linear читает обе оси и округляет каждую вверх. Ось Node даёт ceil(16/16), то есть 1, а ось ядер ceil(128/256), то есть тоже 1. Формула берёт большее из двух значений, и в любом случае это 1.",
+
+  "Two clamps follow. A max would cap the result and none is set, and min 1 lifts nothing here. But preventSinglePointFailure holds at least 2 replicas while the cluster has more than one Node, so the autoscaler writes 2 to the CoreDNS scale subresource.":
+    "Затем идут два ограничения. Параметр max ограничил бы результат сверху, но он не задан, а min 1 здесь ничего не поднимает. Зато preventSinglePointFailure держит не меньше 2 реплик, пока в кластере больше одной Node, поэтому автоскейлер записывает 2 в subresource scale у CoreDNS.",
+
+  "The cluster grows to 48 Nodes of 32 allocatable cores each. Nothing restarts and nothing is edited. The next poll counts 48 Nodes in total and 1536 cores, and the same two axes are read again against the same parameters.":
+    "Кластер вырастает до 48 Node по 32 allocatable ядра. Ничего не перезапускается и не правится. Следующий опрос насчитывает в сумме 48 Node и 1536 ядер, и те же две оси читаются снова с теми же параметрами.",
+
+  "Now the two axes disagree. The Nodes axis gives ceil of 48 over 16, which is 3, and the cores axis gives ceil of 1536 over 256, which is 6. On Nodes with many cores the cores axis dominates, and the larger reading, 6, is written to the Deployment.":
+    "Теперь оси расходятся. Ось Node даёт ceil(48/16), то есть 3, а ось ядер ceil(1536/256), то есть 6. На Node с большим числом ядер побеждает ось ядер, и большее значение, 6, записывается в Deployment.",
+
+  "The other control pattern is ladder, and swapping the ConfigMap key swaps the mode with no restart. The two divisors give way to two step tables, coresToReplicas and nodesToReplicas. Each count is looked up on its own table, and the lookup yielding more replicas wins, which is 5 here. A ladder may name 0 replicas, which linear may not.":
+    "Второй режим называется ladder, и смена ключа в ConfigMap меняет режим без перезапуска. Вместо двух делителей теперь работают две ступенчатые таблицы, coresToReplicas и nodesToReplicas. Каждое число ищется в своей таблице, и побеждает результат с большим числом реплик, здесь 5. В ladder можно указать 0 реплик, а в linear нельзя.",
+};

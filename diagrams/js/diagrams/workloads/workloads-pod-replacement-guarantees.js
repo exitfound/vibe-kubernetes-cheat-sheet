@@ -129,7 +129,7 @@ export const STEPS_SPEC = [
   {
     id: 'the-blow',
     duration: 3800,
-    narration: 'The same thing happens to all five: the Pod is gone, and the object leaves the API. It happens at one moment and is equally true of every column, so nothing that follows is a matter of who noticed first. From here the answers are not the same, and what separates them is what each controller promises rather than how fast it reacts.',
+    narration: 'The same thing happens to all five at one moment: the Pod is gone and the object leaves the API. That is equally true of every column, so nothing that follows depends on who noticed first. From here the answers differ, and what separates them is what each controller promises, not how fast it reacts.',
     wires: { ...verdicts('gone', 'gone', 'gone', 'gone', 'gone'), event: 'Pod deleted' },
     podSublabels: perPod(...GONE),
     sublabels: { cron: CRON_SUB },
@@ -192,7 +192,7 @@ export const STEPS_SPEC = [
   {
     id: 'none-at-all',
     duration: 3000,
-    narration: 'The last answer is nothing at all, and here only the DaemonSet gives it. Take the Node away and its Pod is garbage collected with it, and nothing is rescheduled elsewhere, because no other Node is short of one.',
+    narration: 'The last answer is nothing at all, and here only the DaemonSet gives it. Once the Node is taken away, its Pod is garbage collected with it, and nothing is rescheduled elsewhere, because no other Node is short of one.',
     wires: { ...verdicts('a new name', 'same ordinal, same claim', 'the Node went too', 'a new name', 'its Job, a new name'), event: 'Node-2 removed' },
     podSublabels: perPod(NEW_RS, HAD[1], '', NEW_JOB, NEW_CJ),
     sublabels: { cron: 'started nothing' },

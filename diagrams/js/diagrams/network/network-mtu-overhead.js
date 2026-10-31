@@ -66,7 +66,7 @@ const sent = (key, bytes) => P.box({ key, x: CONTENT_L, y: SENT_Y, w: bw(bytes),
 // then the blocks inside and beside it, then the wires and their labels, then the chips, then the
 // packet layer carrying the ball on top.
 export const SCENE = {
-  'aria-label': 'MTU overhead and path MTU blackholes: a VXLAN outer header spends 50 of the 1500 bytes a link carries so the CNI sets the Pod interface to 1450, and when one tunnel hop further along the path carries only 1400 that frame is refused for being 100 bytes too big, the ICMP that reports it is filtered, and small packets keep crossing while large ones disappear',
+  'aria-label': 'MTU overhead and path MTU blackholes: a VXLAN outer header spends 50 of the 1500 bytes a link carries, so the CNI sets the Pod interface to 1450. When one tunnel hop further along the path carries only 1400, a full size frame is refused for being 100 bytes too big and the ICMP that reports it is filtered. So small packets keep crossing while large ones disappear',
   parts: [
     P.defs(),
     P.box({ key: 'trackLink', x: CONTENT_L, y: LINK_Y, w: bw(1500), h: TRACK_H, label: 'Local link 1500 B' }),

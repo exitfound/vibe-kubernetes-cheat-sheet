@@ -18,6 +18,7 @@ CONTENT  Sources: kube-controller-manager flags, Nodes, Node API, network plugin
          Routing stays unqualified: overlay and routed dataplanes both key on the block.
          The plugin owns Pod IPs: `a CNI IPAM that uses the Node podCIDR`, never `the CNI IPAM`.
          `configured once` is ruled out: the dual-stack page sets `--cluster-cidr` on kube-proxy.
+         Uniqueness is scoped to IPs drawn from the blocks: a hostNetwork Pod takes the Node IP.
 OPEN     CENTRE-LOW: the rule sees only the two Pods, and they sit in the Nodes the narration names
          (L-17).
          The IPAM ball lands on the Pod title and covers 3.3 units of `Pod`. Lifting it breaks A-19,

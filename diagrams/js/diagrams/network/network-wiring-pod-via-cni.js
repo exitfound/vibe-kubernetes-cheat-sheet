@@ -1,4 +1,4 @@
-import { P, F, defineCard } from './network-kit.js';
+import { P, F, defineCard, OPACITY } from './network-kit.js';
 import { path } from '../../lib/svg.js';
 
 // Design notes for this card: ./CARDS/network-wiring-pod-via-cni.md
@@ -88,7 +88,7 @@ export const SCENE = {
     P.box({ key: 'cri', x: CRI[0], y: CRI[1], w: CRI[2], h: CRI[3], label: 'CRI · containerd', sublabel: 'sandbox runtime' }),
     // Pod sandbox = a pod shell (loopback-only netns) wrapping an inner pause/eth0 box.
     P.pod({
-      key: 'sandbox', innerKey: 'sandboxInner', x: SBX[0], y: SBX[1], w: SBX[2], h: SBX[3],
+      key: 'sandbox', shellKey: 'sandboxShell', innerKey: 'sandboxInner', x: SBX[0], y: SBX[1], w: SBX[2], h: SBX[3],
       label: 'Pod sandbox', sublabel: 'netns: lo only',
       // `holds netns` and not `eth0`: the sublabel is static, and eth0 does not exist until step 5 (`T-13`).
       inner: { dx: 22, dy: PAUSE_Y - 30 - SBX[1], w: SBX[2] - 44, h: 60, label: 'pause', sublabel: 'holds netns' },
@@ -125,12 +125,16 @@ export const SCENE = {
     P.packets(),
   ],
   reset: {
-    keys: ['kubelet', 'cri', 'delegate', 'ipChip', 'opChip', 'sandboxInner'],
+    keys: ['kubelet', 'cri', 'delegate', 'ipChip', 'opChip', 'sandboxInner', 'sandboxShell'],
     pods: ['sandbox'],
   },
 };
 
 const POD_IP = '10.244.1.5';
+// containerd starts pause only after the chain returns (record CONTENT), so until then it rests at
+// the pending shade and comes up on the `result` step, once ADD is ok (`C-14`).
+const PAUSE_DOWN = { sandboxInner: OPACITY.pending };
+const PAUSE_UP = { sandboxInner: 1 };
 
 export const STEPS_SPEC = [
   {
@@ -138,21 +142,24 @@ export const STEPS_SPEC = [
     duration: 1500,
     chips: { ipChip: 'pending', opChip: 'idle' },
     podSublabels: { sandbox: 'netns: lo only' },
+    opacity: PAUSE_DOWN,
     chain: -1,
   },
   {
     id: 'sandbox',
     duration: 2600,
-    narration: 'The Kubelet asks the CRI runtime, here containerd, for a Pod sandbox. The runtime first creates the Pod network namespace, with loopback only and no Pod IP, runs the plugin chain inside that same RunPodSandbox call, and only then starts the pause container in it.',
+    narration: 'The Kubelet asks the CRI runtime (here containerd) for a Pod sandbox. The runtime first creates the Pod network namespace, with loopback only and no Pod IP, runs the plugin chain inside that same RunPodSandbox call, and only then starts the pause container in it.',
     chips: { ipChip: 'pending', opChip: 'not called yet' },
     wires: { run: 'RunPodSandbox', netns: 'create netns' },
     podSublabels: { sandbox: 'netns: lo only' },
+    opacity: PAUSE_DOWN,
     // Both actors are in the handoff, but the kubelet initiates it: the runtime lights when the
     // RunPodSandbox call reaches it, one hop before it creates anything.
     lit: ['kubelet', 'opChip'],
     chain: -1,
-    // The animated path says the sandbox was created by PULSING it, which no lights list can name.
-    reducedLit: ['sandboxInner'],
+    // The animated path says the netns was created by PULSING the sandbox, which no lights list can
+    // name. The shell stands in, not the pause box: pause does not run yet.
+    reducedLit: ['sandboxShell'],
     // kubelet calls the runtime, which then creates the sandbox: two chained hops, the sandbox
     // pulses on arrival (down-arrow: packet first, pulse at arrivalMs).
     flow: [
@@ -164,10 +171,11 @@ export const STEPS_SPEC = [
   {
     id: 'exec',
     duration: 2400,
-    narration: 'The runtime, not the Kubelet, reads the plugin list from /etc/cni/net.d and runs the first plugin as a plain executable. CNI_COMMAND=ADD, the sandbox namespace path and CNI_IFNAME=eth0 arrive on its environment, and the network config arrives on stdin.',
+    narration: 'The runtime, not the Kubelet, reads the plugin list from /etc/cni/net.d and runs the first plugin as a plain executable. It gets CNI_COMMAND=ADD, the sandbox namespace path and CNI_IFNAME=eth0 in its environment, and the network config on stdin.',
     chips: { ipChip: 'pending', opChip: 'ADD' },
     wires: { add: 'exec · ADD' },
     podSublabels: { sandbox: 'netns: lo only' },
+    opacity: PAUSE_DOWN,
     lit: ['cri', 'opChip'],
     chain: 0,
     // The ADD exec rides straight from the runtime into the first plugin row (top of the trunk).
@@ -178,9 +186,10 @@ export const STEPS_SPEC = [
   {
     id: 'delegate',
     duration: 2400,
-    narration: 'The bridge plugin does not hand out addresses itself. Its config names an IPAM plugin, host-local, which it runs as a delegate of its own, and host-local picks 10.244.1.5 out of the range for this Node and returns it to the caller.',
+    narration: 'The bridge plugin does not hand out addresses itself. Its config names the IPAM plugin host-local, and bridge runs it as its delegate. The host-local plugin picks 10.244.1.5 from the range of this Node and returns it to the caller.',
     chips: { ipChip: POD_IP, opChip: 'ADD' },
     podSublabels: { sandbox: 'netns: lo only' },
+    opacity: PAUSE_DOWN,
     // The bridge row is lit before the ball leaves it (`chain: 0`, `M-18a`). host-local is NOT listed
     // here: it is the receiver, so it lights on the arrival instead (`report:arrival/R3`).
     lit: ['ipChip', 'opChip'],
@@ -198,6 +207,7 @@ export const STEPS_SPEC = [
     narration: 'The runtime then runs the next plugin in the list. It passes the previous result in as prevResult, so portmap adds to what bridge already produced instead of starting over. That ordered list is what the word chain means here.',
     chips: { ipChip: POD_IP, opChip: 'ADD' },
     podSublabels: { sandbox: 'netns: lo only' },
+    opacity: PAUSE_DOWN,
     lit: ['ipChip', 'opChip'],
     // The ball leaves bridge for portmap: light both, so the row it departs is not dark.
     chain: [0, 1],
@@ -209,17 +219,21 @@ export const STEPS_SPEC = [
   {
     id: 'result',
     duration: 2600,
-    narration: 'The last plugin prints one result on stdout: the interfaces the chain made, the addresses on them, the routes and the DNS. The one the chain made inside the sandbox namespace comes up as eth0 carrying 10.244.1.5, and the operation finishes as ADD ok.',
+    narration: 'The last plugin prints one result on stdout: the interfaces the chain made, the addresses on them, the routes and the DNS. The one inside the sandbox namespace comes up as eth0 carrying 10.244.1.5, and the operation finishes as ADD ok.',
     chips: { ipChip: POD_IP, opChip: 'ADD ok' },
     wires: { result: 'eth0 up' },
     podSublabels: { sandbox: 'eth0: 10.244.1.5' },
+    opacity: PAUSE_UP,
     lit: ['ipChip', 'opChip'],
     chain: 1,
     // The animated path says eth0 came up by PULSING the sandbox, which no lights list can name.
     reducedLit: ['sandboxInner'],
     // The sublabel, the wire label and the op chip are ONE result of ONE call, so all three wait for
     // the ball to reach the sandbox, which is also where it pulses (`P-03`, `P-04`).
-    rewind: { chips: { opChip: 'ADD' }, wires: { result: '' }, podSublabels: { sandbox: 'netns: lo only' } },
+    rewind: {
+      chips: { opChip: 'ADD' }, wires: { result: '' }, podSublabels: { sandbox: 'netns: lo only' },
+      opacity: PAUSE_DOWN,
+    },
     flow: [
       F.segment({ from: RESULT[0], to: RESULT[1], name: 'hop', pulse: 'sandbox' }),
       F.set({
@@ -228,15 +242,18 @@ export const STEPS_SPEC = [
         wires: { result: 'eth0 up' },
         podSublabels: { sandbox: 'eth0: 10.244.1.5' },
       }),
+      // RunPodSandbox starts pause once the chain has returned, so it comes up after the arrival.
+      F.reveal({ target: 'sandboxInner', from: OPACITY.pending, after: 'hop' }),
     ],
   },
   {
     id: 'join',
     duration: 2600,
-    narration: 'Only now does the Kubelet start the app containers, and they join the namespace that is already wired, so all of them answer on that one Pod IP. On delete the runtime runs the same list with CNI_COMMAND=DEL, in reverse order, and each plugin releases what it made.',
+    narration: 'Only now does the Kubelet start the app containers. They join the namespace that is already wired, so all of them answer on that one Pod IP. On delete the runtime runs the same list with CNI_COMMAND=DEL, in reverse order, and each plugin releases what it made.',
     chips: { ipChip: POD_IP, opChip: 'DEL on delete' },
     wires: { join: 'start app containers' },
     podSublabels: { sandbox: 'eth0: 10.244.1.5' },
+    opacity: PAUSE_UP,
     lit: ['kubelet', 'opChip'],
     chain: -1,
     // The animated path says the containers joined by PULSING the sandbox, which no lights list names.

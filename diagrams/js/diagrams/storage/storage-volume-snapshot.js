@@ -68,7 +68,7 @@ const V_FROZEN = ['v1', 'v1', 'v2', 'v1', 'v1', 'v1'];
 
 // List order IS z-order: the snapshot row group carries its pointers.
 export const SCENE = {
-  'aria-label': 'Volume Snapshots: Pod db-0 keeps writing the blocks of PVC data-1 in a Ceph pool. The snapshot controller binds VolumeSnapshot snap-1 to a cluster-scoped VolumeSnapshotContent the way a PVC binds a PV, and at 10:00 the csi-snapshotter sidecar sends CreateSnapshot, which freezes the volume as pointers to its six blocks with nothing copied. At 10:05 a new write to block C makes the pool keep the old C for the snapshot, so the live volume moves on while snap-1 still reads 10:00, and PVC restore-1, with dataSource snap-1 and a class of the same driver, gets a new, crash-consistent volume holding that 10:00 state. All three live in one pool, so if the pool is lost they are lost together and the snapshot was not a backup',
+  'aria-label': 'Volume Snapshots: Pod db-0 keeps writing the blocks of PVC data-1 in a Ceph pool. The snapshot controller binds VolumeSnapshot snap-1 to a cluster-scoped VolumeSnapshotContent the way a PVC binds a PV. At 10:00 the csi-snapshotter sidecar sends CreateSnapshot, which freezes the volume as pointers to its six blocks with nothing copied. At 10:05 a new write to block C makes the pool keep the old C for the snapshot, so the live volume moves on while snap-1 still reads 10:00. PVC restore-1, with dataSource snap-1 and a class of the same driver, gets a new, crash-consistent volume holding that 10:00 state. All three live in one pool, so if the pool is lost they are lost together, which means the snapshot was not a backup',
   parts: [
     P.defs(),
     P.node({ key: 'frame', x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'Ceph pool rbd' }),
@@ -211,7 +211,7 @@ export const STEPS_SPEC = [
   {
     id: 'restore',
     duration: 3700,
-    narration: 'To go back, create PVC restore-1 with dataSource snap-1, no smaller than its restoreSize, in a class of the same driver, here the very same class. Provisioning builds a new volume holding C v2, the 10:00 state, not the live C v3. Nothing quiesced db-0 first, so it is only crash consistent: what it held in memory at 10:00 is not in it.',
+    narration: 'To go back, PVC restore-1 is created with dataSource snap-1, no smaller than its restoreSize, in a class of the same driver, here the same class. Provisioning builds a new volume holding C v2, the 10:00 state, not the live C v3. Nothing quiesced db-0 first, so the copy is only crash consistent: what db-0 held in memory at 10:00 is not in it.',
     chipsCued: chips('10:20', 'true', '5 of 6', 'same pool'),
     sublabels: { lC: 'v3' },
     opacity: stage({ ...KEPT, rowRest: 1, lanes: ['wSeed'] }),

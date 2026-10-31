@@ -12,6 +12,6 @@ CONTENT  Sources: IPv4/IPv6 Dual-Stack, DNS for Services and Pods, EndpointSlice
          The connect step forwards through the Service. kube-proxy has no block, so the rewrite is
          passive. `controller-manager` is named twice: it takes both CIDR flags. `unless a cloud
          provider picks them` stays: `--node-ip` is the one conditional item. `here IPv4 then IPv6`
-         hedges, ipFamilies orders it. `each Pod it wires`: a hostNetwork Pod gets no CNI address.
+         hedges, ipFamilies orders it. `fails the Service outright`: the page says creation fails.
          fd00::1:5, fd00:96::a echo the v4 pair (no 2001:db8::), valid under 1.36 strict IP checks.
 ```

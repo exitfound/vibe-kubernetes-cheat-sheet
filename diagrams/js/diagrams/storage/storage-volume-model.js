@@ -56,7 +56,7 @@ const PHASES = ['on a Node', 'init', 'start', 'share', 'restart'];
 // Z-order: the Pod group (shell, containers, disk, files) so the pulse takes it as a unit, then the
 // mount lanes and captions, the spec ladder, the timeline, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Pod volume model: the Pod spec declares one emptyDir volume named cache under spec.volumes, and each container reaches it only through a volumeMounts entry of its own. The init container seed mounts cache at /work, writes config.json and exits. The app mounts it at /data and reads that file, the log shipper mounts it read-only at /logs and reads the app.log the app writes. When the app crashes and restarts, the new container mounts the same volume and app.log is still there. A lifetime timeline shows the volume bar starting and running with the Pod bar while every container bar is shorter, because the volume belongs to the Pod, not to any container.',
+  'aria-label': 'Pod volume model: the Pod spec declares one emptyDir volume named cache under spec.volumes, and each container reaches it only through a volumeMounts entry of its own. The init container seed mounts cache at /work, writes config.json and exits. The app mounts the volume at /data and reads that file, the log shipper mounts cache read-only at /logs and reads the app.log the app writes. When the app crashes and restarts, the new container mounts the same volume and app.log is still there. A lifetime timeline shows the volume bar starting and running with the Pod bar while every container bar is shorter, because the volume belongs to the Pod, not to any container.',
   parts: [
     P.defs(),
     P.group({
@@ -160,7 +160,7 @@ export const STEPS_SPEC = [
   {
     id: 'init',
     duration: 3800,
-    narration: 'The init container seed runs first, to completion. Its own volumeMounts entry puts cache at /work, where it writes config.json, then it exits. Its bar ends and its mount goes with it, but the file stays in the volume.',
+    narration: 'The init container seed runs first, to completion. Its own volumeMounts entry puts cache at /work, where it writes config.json, then it exits. The seed bar ends and the mount goes with the container, but the file stays in the volume.',
     sublabels: { ...NOT_STARTED, seedBox: 'init, Completed' },
     podSublabels: PENDING,
     opacity: stage(2),
@@ -187,7 +187,7 @@ export const STEPS_SPEC = [
   {
     id: 'start',
     duration: 3200,
-    narration: 'Now app and log-shipper start, and each lists cache in a volumeMounts entry of its own: app at /data, log-shipper at /logs with readOnly set. App opens /data/config.json and finds the file seed left, although seed no longer runs.',
+    narration: 'Now app and log-shipper start, and each lists cache in a volumeMounts entry of its own. For app it is /data, for log-shipper /logs with readOnly set. App opens /data/config.json and finds the file seed left, although seed no longer runs.',
     sublabels: RUNNING,
     podSublabels: RUNNING_POD,
     opacity: stage(3),
@@ -231,7 +231,7 @@ export const STEPS_SPEC = [
   {
     id: 'restart',
     duration: 3200,
-    narration: 'App crashes, and restartPolicy Always, the default, restarts it in the same Pod, so its restart count goes to 1. The new container starts clean outside the volume, yet it mounts the same cache at /data and app.log is still there.',
+    narration: 'App crashes and, under restartPolicy Always, the default, is restarted in the same Pod, so its restart count goes to 1. The new container starts clean outside the volume, yet it mounts the same cache at /data and app.log is still there.',
     sublabels: { ...RUNNING, appBox: 'restarted, count 1' },
     podSublabels: RUNNING_POD,
     opacity: stage(5),
@@ -253,7 +253,7 @@ export const STEPS_SPEC = [
   {
     id: 'lifetime',
     duration: 3000,
-    narration: 'No container bar spans the whole story, and none of them ever owned the volume. The cache bar is the Pod bar: this emptyDir lasts until the Pod leaves its Node, however many containers come and go inside it.',
+    narration: 'No container bar spans the whole story, and none of them ever owned the volume. The cache bar matches the Pod bar: this emptyDir lasts until the Pod leaves its Node, however many containers come and go inside it.',
     sublabels: { ...RUNNING, appBox: 'restarted, count 1' },
     podSublabels: RUNNING_POD,
     opacity: stage(6),

@@ -69,7 +69,7 @@ const stack = (el, refs) => {
 // purpose: pulsePod animates `.diagram-box-rect` and `.diagram-box`, so the table keeps painting
 // through any pulse of the Pod.
 export const SCENE = {
-  'aria-label': 'Containers in one Pod share a network stack: the app and the sidecar stand on the same loopback and bind their ports in one shared space, so a call to 127.0.0.1 is delivered inside the Pod and a bind of a pair another container already holds comes back as address already in use, while a call from outside arrives on the Pod eth0 at the Pod address and the container holding the target port answers',
+  'aria-label': 'Containers in one Pod share a network stack, which means the app and the sidecar stand on the same loopback and bind their ports in one shared space. So a call to 127.0.0.1 is delivered inside the Pod, and a bind of a pair another container already holds comes back as address already in use. A call from outside arrives on the Pod eth0 at the Pod address, and the container holding the target port answers',
   parts: [
     P.defs(),
     P.pod({
@@ -117,7 +117,7 @@ export const STEPS_SPEC = [
   {
     id: 'bind',
     duration: 2900,
-    narration: 'Every container in this Pod joins one network namespace, so all of them share a single port space. The app binds :8080 in that space and the sidecar binds :15001, and neither of them gets a table of its own. A port claimed in there is claimed for the whole Pod rather than for one container.',
+    narration: 'Every container in this Pod joins one network namespace, so all of them share a single port space. The app binds :8080 in that space and the sidecar binds :15001, and each port is claimed for the whole Pod rather than for one container.',
     chips: { pathChip: 'idle', portChip: 'one space', bindChip: 'app and sidecar', ipChip: POD_IP, slotFree: 'free', slotApp: 'app', slotSide: 'sidecar' },
     // A bind is a syscall and not traffic, so nothing travels here (M-27). What the step shows is
     // the two containers claiming their slots in the one table below them.
@@ -126,7 +126,7 @@ export const STEPS_SPEC = [
   {
     id: 'localhost',
     duration: 3000,
-    narration: 'The app now calls 127.0.0.1:15001. Both containers stand on the same loopback, so the call goes down into lo and straight back up into the sidecar. There is no veth hop and nothing on the wire, just a loopback delivery inside the Pod.',
+    narration: 'The app now calls 127.0.0.1:15001. Both containers stand on the same loopback, so the call goes down into lo and straight back up into the sidecar, with no veth hop and nothing on the wire.',
     chips: { pathChip: 'loopback via lo', portChip: 'one space', bindChip: 'app and sidecar', ipChip: POD_IP, ...BOUND },
     wires: { local: '127.0.0.1:15001' },
     lit: ['app', 'pathChip'],
@@ -140,7 +140,7 @@ export const STEPS_SPEC = [
   {
     id: 'conflict',
     duration: 3000,
-    narration: 'A bind claims an address and a port together, so the shared space is where the two containers meet. The sidecar already holds 127.0.0.1:15001, and an app that asked for that same pair would be refused with address already in use. Any port the sidecar has not claimed, :9090 here, is still open to it.',
+    narration: 'A bind claims an address and a port together, so the shared space is where the two containers can collide. The sidecar already holds 127.0.0.1:15001, and an app that asked for that same pair would be refused with address already in use. Any port the sidecar has not claimed (here :9090) is still open to the app.',
     chips: { pathChip: 'idle', portChip: 'one space', bindChip: ':15001 in use', ipChip: POD_IP, ...BOUND },
     // Static again, and the picture is the table: the slot the app wants is held, and the free slot
     // beside it is the one it may take instead.
@@ -149,7 +149,7 @@ export const STEPS_SPEC = [
   {
     id: 'external',
     duration: 3400,
-    narration: 'A call from outside arrives on eth0, the one interface in the Pod that faces the network, at 10.244.1.5. It carries a port, and the container holding that port answers, here the app on :8080. From the outside the Pod is one host with one address per family, however many containers run inside.',
+    narration: 'A call from outside arrives on eth0, the one interface in the Pod that faces the network, at 10.244.1.5. It carries a port, and the container holding that port answers (here the app on :8080). From the outside the Pod is one host with one address per address family, however many containers run inside.',
     chips: { pathChip: 'eth0', portChip: 'one space', bindChip: 'app holds :8080', ipChip: POD_IP, ...BOUND },
     lit: ['pathChip', 'bindChip'],
     // The animated path says the client sent by PULSING it, which no lights list can name.
@@ -166,7 +166,7 @@ export const STEPS_SPEC = [
   {
     id: 'recap',
     duration: 3300,
-    narration: 'So the network belongs to the Pod rather than to a container: the address, the loopback and the port space are shared, while each container keeps its own root filesystem, and its own process tree unless the Pod sets shareProcessNamespace. That is what lets a sidecar proxy take the app traffic on localhost without leaving the Pod.',
+    narration: 'So the network belongs to the Pod rather than to a container. The address, the loopback and the port space are shared, while each container keeps its own root filesystem, and its own process tree unless the Pod sets shareProcessNamespace. That is what lets a sidecar proxy take the app traffic on localhost without leaving the Pod.',
     chips: { pathChip: 'lo and eth0', portChip: 'one space', bindChip: 'one per pair', ipChip: POD_IP, ...BOUND },
     // Static summary: both interfaces and the whole table stand lit, no motion.
     lit: ['eth0', 'lo', 'slotFree', 'slotApp', 'slotSide', 'pathChip', 'portChip', 'bindChip', 'ipChip'],

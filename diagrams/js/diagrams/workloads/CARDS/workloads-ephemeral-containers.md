@@ -22,6 +22,6 @@ CONTENT  v1.36: Ephemeral Containers, Debug Running Pods, Share Process Namespac
          update), kubectl debug profiles.go. A Pod update THROUGH THAT DOOR changes only images,
          `immutable` is ruled out. exec is closed by the IMAGE, for a shell exec into app. Never
          restarted, changed or removed. Step 5 opens on the Kubelet seeing the entry, never `the
-         write reaches the Node`. Step 3 gives debugger-8xzrl as the name example. No Pod phase. The
-         default profile is general, adds SYS_PTRACE: Debug Running Pods says legacy, code wins.
+         write reaches the Node`. Step 3 names debugger-8xzrl and the target app, both set by its
+         PATCH. No Pod phase. Default profile general adds SYS_PTRACE: docs say legacy, code wins.
 ```

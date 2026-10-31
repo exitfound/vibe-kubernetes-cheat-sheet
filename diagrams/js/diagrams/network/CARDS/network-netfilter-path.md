@@ -8,11 +8,10 @@ WHAT     The netfilter stations in order with a packet walking them, and the rou
 DEVIATES NET.L-01: the client Pod is 232 by 110 with a 192 by 48 app box, the card's own size.
          P-03: `dnat` and `fork` turn their chips at entry. Their ball leaves the place that already
          made the value, which `P-06` admits.
-CONTENT  Sources: Virtual IPs and Service Proxies, Cluster Networking (v1.36), kube-proxy code at
-         1.36, netfilter hooks, NAT HOWTO. The reply reversal lands at POSTROUTING, after routing.
-         `KUBE-SERVICES` is named with its mode: iptables, the 1.36 default. nftables lacks it.
-         `out` rests on two defaults: kube-proxy marks only off-cluster sources (`masqueradeAll`
-         false), and the CNI or ip-masq-agent egress rules skip a Pod range destination.
-         A hook is not a table, and the routing decision carries `not a hook`. A local Pod meets
-         PREROUTING, not OUTPUT. A bare "hostNetwork backend" on `local` is ruled out: on this Node.
+CONTENT  Sources: Virtual IPs and Service Proxies, Cluster Networking (v1.36), kube-proxy code,
+         netfilter hooks, NAT HOWTO. `KUBE-SERVICES` (iptables, the 1.36 default) leads to the DNAT.
+         `out` rests on two defaults: kube-proxy marks only off-cluster sources, egress masquerade
+         rules skip a Pod range. The reply reversal lands at POSTROUTING, skips NAT rules, not filter.
+         Not hooks: the routing decision (`not a hook`), eth0, a table. A local Pod meets
+         PREROUTING, not OUTPUT. `local` keeps "on this Node" after the hostNetwork backend.
 ```

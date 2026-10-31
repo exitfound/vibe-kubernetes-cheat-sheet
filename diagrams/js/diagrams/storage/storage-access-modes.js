@@ -83,7 +83,7 @@ const podBlock = ({ key, innerKey, x, label }) => P.pod({
 // List order is z-order: node frames, the driver band and the disks, the Pods, lanes and
 // captions, the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Access modes decide who can mount a volume at once: ReadWriteOnce means a single Node, so two Pods on that same Node can both use this block disk while the attach and detach controller refuses a Pod on another Node, ReadWriteOncePod narrows that to one single Pod and Kubernetes enforces it through the Scheduler and Kubelet, and ReadWriteMany needs a backend that can deliver it, such as a shared filesystem, because this single-attach block disk cannot be attached to many Nodes, while ReadOnlyMany lets many Nodes mount a volume but does not make the mount read-only, which takes readOnly: true in the Pod.',
+  'aria-label': 'Access modes decide who can mount a volume at once. ReadWriteOnce means a single Node, so two Pods on that same Node can both use this block disk, while the attach and detach controller refuses a Pod on another Node. ReadWriteOncePod narrows that to one single Pod, and Kubernetes enforces it through the Scheduler and Kubelet. ReadWriteMany needs a backend that can deliver it, such as a shared filesystem, because this single-attach block disk cannot be attached to many Nodes. ReadOnlyMany lets many Nodes mount a volume but does not make the mount read-only. That takes readOnly: true in the Pod.',
   parts: [
     P.defs(),
     P.node({ x: NODE_1_X, y: NODE_Y, w: NODE_1_W, h: NODE_H, label: 'Node-1' }),
@@ -162,7 +162,7 @@ export const STEPS_SPEC = [
   {
     id: 'rwo-first',
     duration: 3100,
-    narration: 'Pod app-1 mounts the volume. The disk is attached to one Node, Node-1, and ReadWriteOnce lets a Pod there read and write it. So far this looks exactly like a per-Pod lock, but that is not what ReadWriteOnce actually means.',
+    narration: 'Pod app-1 mounts the volume. The disk is attached to one Node, Node-1, and ReadWriteOnce lets a Pod there read and write it. So far this looks exactly like a per-Pod lock, but that is not what ReadWriteOnce means.',
     chipsCued: chips('ReadWriteOnce', 'Node-1', 'app-1', 'attach controller'),
     wires: { block: 'attached: Node-1' },
     opacity: pods(1, 1, 1),          // app-2 and app-3 are healthy, just not shown mounting
@@ -189,7 +189,7 @@ export const STEPS_SPEC = [
   {
     id: 'rwo-othernode',
     duration: 3300,
-    narration: 'Pod app-3 lives on Node-2 and asks for the same volume. This one is refused. The volume is ReadWriteOnce and already attached to Node-1, so the attach and detach controller will not attach it to Node-2 as well. Pod app-3 gets a Waiting for detach warning and cannot start while Node-1 holds the disk.',
+    narration: 'Pod app-3 is placed on Node-2, asks for the same volume and is refused. The volume is ReadWriteOnce and already attached to Node-1, so the attach and detach controller will not attach it to Node-2 as well. Pod app-3 gets a Waiting for detach warning and cannot start while Node-1 holds the disk.',
     chipsCued: chips('ReadWriteOnce', 'Node-1', 'app-1, app-2', 'attach controller'),
     wires: { block: 'attached: Node-1', drv: 'held by Node-1' },
     opacity: pods(1, 1, OPACITY.pending),        // app-3 refused: Waiting for detach
@@ -200,7 +200,7 @@ export const STEPS_SPEC = [
   {
     id: 'rwop',
     duration: 3600,
-    narration: 'ReadWriteOncePod is the only mode that limits access to one Pod, so now even app-2 on Node-1 is refused. Kubernetes enforces it itself: the Scheduler will not place a second Pod that uses the claim, though a higher-priority one can preempt the holder, and Kubelet refuses the mount to a Pod that lands on the Node anyway.',
+    narration: 'ReadWriteOncePod is the only mode that limits access to one Pod, so now even app-2 on Node-1 is refused. Kubernetes enforces it itself: scheduling will not place a second Pod that uses the claim, though a higher-priority one can preempt the holder, and Kubelet refuses the mount to a Pod that lands on the Node anyway.',
     chipsCued: chips('ReadWriteOncePod', 'Node-1', 'app-1 only', 'Kubernetes'),
     wires: { block: 'held by app-1', drv: 'one Pod only' },
     opacity: pods(1, OPACITY.pending, OPACITY.pending),      // RWOP refuses everyone but app-1
@@ -225,9 +225,9 @@ export const STEPS_SPEC = [
     id: 'rwx-nfs',
     // The three mounts are spaced by MOUNT_LEAD so their tags never share the disk top.
     duration: 4300,
-    narration: 'Point the claim at a shared filesystem instead, PV nfs on NFS or CephFS, and ReadWriteMany works: Kubernetes lets it be used on both Nodes at once, and all three Pods mount it together, with nobody refused. The mode was always allowed by Kubernetes, what changed is a backend that can deliver it.',
+    narration: 'Point the claim at a shared filesystem instead (PV nfs on NFS or CephFS), and ReadWriteMany works: Kubernetes lets it be used on both Nodes at once, and all three Pods mount it together. Kubernetes always allowed the mode, and this backend can deliver it.',
     chipsCued: chips('ReadWriteMany', 'Node-1, Node-2', 'app-1, app-2, app-3', 'CSI driver'),
-    wires: { nfs: 'mounted on both nodes' },
+    wires: { nfs: 'mounted on both Nodes' },
     // Every Pod at full: ReadWriteMany on a shared filesystem excludes nobody.
     opacity: pods(1, 1, 1),
     // Each mount turns over only what its own ball earns: the sharing list grows one Pod per
@@ -239,7 +239,7 @@ export const STEPS_SPEC = [
       ...grantMount({ name: 'b1', pod: 'podB1', reqPts: W_P3_DRV, attachPts: W_DRV_NFS_3, tag: 'mount rwx', disk: 'pvNfs', lead: 2 * MOUNT_LEAD }),
       F.set({ at: 'a1Att', chipsCued: { attachChip: 'Node-1', shareChip: 'app-1' } }),
       F.set({ at: 'a2Att', chipsCued: { shareChip: 'app-1, app-2' } }),
-      F.set({ at: 'b1Att', chipsCued: { attachChip: 'Node-1, Node-2', shareChip: 'app-1, app-2, app-3' }, wires: { nfs: 'mounted on both nodes' } }),
+      F.set({ at: 'b1Att', chipsCued: { attachChip: 'Node-1, Node-2', shareChip: 'app-1, app-2, app-3' }, wires: { nfs: 'mounted on both Nodes' } }),
     ],
   },
   {

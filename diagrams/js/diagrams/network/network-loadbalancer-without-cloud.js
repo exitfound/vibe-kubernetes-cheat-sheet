@@ -124,7 +124,7 @@ export const STEPS_SPEC = [
   {
     id: 'pool',
     duration: 4200,
-    narration: 'On bare metal no cloud provider implements load balancers, so a Service of type LoadBalancer stays pending. MetalLB fills that gap in-cluster. Its controller takes a free address from the IPAddressPool the operator declared, 203.0.113.0/24, and writes 203.0.113.9 into status.loadBalancer.ingress. An allocated address is not a reachable one: no router knows where it lives yet.',
+    narration: 'On bare metal no cloud provider implements load balancers, so a Service of type LoadBalancer stays pending. MetalLB does that job in-cluster. Its controller takes a free address from the IPAddressPool the operator declared, 203.0.113.0/24, and writes 203.0.113.9 into status.loadBalancer.ingress. No router knows where that address lives yet, so it is allocated but not reachable.',
     chips: fields(LB_IP, 'none', 'idle', 'idle', 'idle'),
     sublabels: { router: 'no entry' },
     ...node1(false),
@@ -157,7 +157,7 @@ export const STEPS_SPEC = [
   {
     id: 'failover',
     duration: 5500,
-    narration: 'Node-1 fails. The other speakers detect it through memberlist and drop it from the candidates, so Node-2 comes first now and its speaker sends gratuitous ARPs for the router to rewrite its entry. Failover usually takes a few seconds, and connections that went through Node-1 are lost. Even with every Node healthy, one owner limits the ingress bandwidth of the Service to that of a single Node.',
+    narration: 'Node-1 fails. The other speakers detect it through memberlist and drop it from the candidates, so Node-2 comes first now and its speaker sends gratuitous ARPs for the router to rewrite its entry. Failover usually takes a few seconds, and connections that went through Node-1 are lost. Even with every Node healthy, one owner of the address limits the ingress bandwidth of the Service to that of a single Node.',
     chips: fields(LB_IP, 'L2 (ARP)', 'down', 'answers ARP', 'idle'),
     sublabels: { router: AT_N2 },
     ...node1(true),
@@ -177,7 +177,7 @@ export const STEPS_SPEC = [
   {
     id: 'bgp',
     duration: 7300,
-    narration: 'BGP mode changes the shape. The speaker on every Node peers with the router and advertises 203.0.113.9, so a router with multipath on installs three equal-cost next hops for it and typically hashes each connection onto one Node. Ingress spreads across Nodes, but router hashes are usually not stable: when a Node goes, expect all active connections to break. Resilient ECMP helps, and the router has to speak BGP.',
+    narration: 'In BGP mode the speaker on every Node peers with the router and advertises 203.0.113.9, so a router with multipath on installs three equal-cost next hops for it and typically hashes each connection onto one Node. Incoming traffic spreads across Nodes, but router hashes are usually not stable: when a Node goes, most active connections are likely to break. Resilient ECMP helps, and the router has to speak BGP.',
     chips: fields(LB_IP, 'BGP (ECMP)', 'BGP session', 'BGP session', 'BGP session'),
     sublabels: { router: 'ECMP: 3 next hops' },
     ...node1(false),

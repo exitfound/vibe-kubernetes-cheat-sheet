@@ -466,8 +466,8 @@ const ENTRIES = [
     why: 'the three chips are a READOUT of whichever kind is in focus and not a value any ball on '
       + 'this card produces: no packet here carries a number, every hop is one controller '
       + 'creating another object. Binding them to an arrival would say that a Pod being created '
-      + 'is what decides whether a replica has an identity. The value winds back to none, '
-      + 'interchangeable because the kind in focus changed, and a DaemonSet Pod carrying no '
+      + 'is what decides whether a replica has an identity. The value changes to none, '
+      + 'bound to a Node because the kind in focus changed, and a DaemonSet Pod carrying no '
       + 'identity is true before that Pod is placed.' },
   { axis: 'FORM-B', card: 'workloads-controller-kinds', where: ['nodes', 'countChip'],
     why: 'the three chips are a READOUT of whichever kind is in focus and not a value any ball on '

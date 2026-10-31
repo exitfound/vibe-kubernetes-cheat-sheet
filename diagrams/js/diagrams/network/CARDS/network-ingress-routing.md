@@ -11,10 +11,10 @@ DEVIATES NET.L-01: the controller and both backend Pods are 232 by 114, the card
          unit branch on `routeDur` is too fast to read the tag.
          P-03: on `match-api` and `no-match` the request chips turn on arrival, `servedChip` waits
          for its own beat.
-CONTENT  Sources: Ingress, Ingress Controllers (v1.36), NGINX Ingress Controller 5.4 annotations.
+CONTENT  Sources: Ingress, Ingress Controllers (v1.36), NGINX Ingress Controller 5.4 annotations,
+         command-line arguments (`-ingress-class`) and ConfigMap (`default-server-return` 404).
          Class `nginx` is that maintained controller, never the retired kubernetes/ingress-nginx.
-         It proxies to Pod IPs unless `use-cluster-ip`, so the desc keeps `commonly`. The desc
-         closes on the API being GA and frozen, never on one controller's retirement.
+         It proxies to Pod IPs unless `use-cluster-ip`, so the desc keeps `usually`.
          Longest path, then Exact over Prefix: `the Ingress spec gives precedence`. TLS ends at
          the controller. `No Ingress of this class names that host`, default backend answers 404.
 ```

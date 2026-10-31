@@ -12,9 +12,9 @@ DEVIATES WL.L-07: the two readers stand at 420..944, on the L-03 line, not on th
          WL.A-01: no top-row pair. Both lanes run up from the reservation to the readers, because
          the chart produces the number and the control plane reads it.
 CONTENT  Sources: Sidecar Containers, Init Containers, Pod Overhead, Assign Pod-level Resources
-         (v1.36), KEP 753, component-helpers resource (1.36). `regular` init containers: the sidecar
-         is weighed in the init maximum, and declared before init-a it lifts it to 1000m. The docs
-         take the plain init maximum, the code adds earlier sidecars: the card follows the code.
+         (v1.36), KEP 753, component-helpers resource (1.36). `regular` init containers. The docs
+         take the plain init maximum, the code adds earlier sidecars, the card follows the code: the
+         init maximum is the tallest instant, one container plus the sidecars declared before it.
          Pod-level spec.resources replaces only the container part, overhead adds on top, stageless.
          The cgroup clause says `Linux`. Overhead as on the sidecar page. The Scheduler reserves.
 OPEN     The graduation mark hard copies the workloads channel list 91, 184, 255, so a retint misses

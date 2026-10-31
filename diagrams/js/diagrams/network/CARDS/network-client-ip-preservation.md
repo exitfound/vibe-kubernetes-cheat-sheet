@@ -17,5 +17,5 @@ CONTENT  Sources: Using Source IP (1.36), X-Forwarded-For (MDN), RFC 7239, PROXY
          `An edge that keeps what arrived appends what it saw`: a boundary edge may replace instead.
          `Trust that list from its last entry inwards`. The forged value is TEST-NET-1 192.0.2.1.
          The backend must expect the preamble, and `TCP4 198.51.100.9` heads the version 1 line.
-         The addresses survive `only because nothing on the way rewrote them`.
+         `only because nothing on the way rewrote them` stays: a LoadBalancer Service SNATs by default.
 ```

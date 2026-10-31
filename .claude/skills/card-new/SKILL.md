@@ -187,10 +187,12 @@ verb, stop and say so (`S-27`).
 | `js/diagrams/<cat>/cards.js` | the `DIAGRAMS` entry | `D-01`, `D-04`, `D-05` |
 | `js/diagrams/<cat>/posters.js` | the thumbnail, drawn by `card-poster` | `D-06` |
 | `js/diagrams/<cat>/CARDS/<id>.md` | the record, plus a row in the folder's `CARDS.md` index | `S-45`, `S-43` |
+| `js/lang/ru.js`, `js/lang/steps/<id>.js` | the Russian `desc`, then the Russian aria sentence and every narration, keyed by the English, after the text is final, written through the `card-facts-ru` skill | `S-57`, `S-58` |
 | `diagrams/card/<id>/index.html`, `sitemap.xml` | run `node tools/pages/build.mjs`, never hand-edit | `D-12` |
 
-The poster is not drawn here: hand it to `card-poster` (`R-01`). The `desc` opens with the question
-the card answers and carries the words a reader would search for (`D-15`).
+The poster is not drawn here: hand it to `card-poster` (`R-01`). The `desc` is a situation a reader
+would meet, in one or more sentences that may name the actors and objects, then the question the
+card answers (`D-04`, `D-05`). The answer stays in the steps.
 
 ## 8. Verify by looking
 

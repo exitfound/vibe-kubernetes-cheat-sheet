@@ -160,7 +160,7 @@ export const STEPS_SPEC = [
   {
     id: 'inject',
     duration: 4800,
-    narration: 'Pod api-0 mounts one projected volume at /var/run/secrets/app, filled from three sources. Kubelet gets ConfigMap vault-ca from the API server and writes its key as ca.crt, then writes namespace from the Pod object through downwardAPI.',
+    narration: 'Pod api-0 mounts one projected volume at /var/run/secrets/app, filled from three sources. Kubelet gets ConfigMap vault-ca from the API server and writes the ConfigMap key as ca.crt, then, through downwardAPI, writes namespace from the Pod object.',
     chips: C_TWO,
     wires: NO_CAPTION,
     opacity: TWO,
@@ -187,7 +187,7 @@ export const STEPS_SPEC = [
   {
     id: 'request',
     duration: 4800,
-    narration: 'The third source, serviceAccountToken, lives in no object. Kubelet sends a TokenRequest for the audience vault and one hour, gets back a token bound to Pod api-0, and writes it as token. A recipient outside that audience should reject it.',
+    narration: 'The third source, serviceAccountToken, lives in no object. Kubelet sends a TokenRequest for the audience vault and a one hour lifetime, gets back a token bound to Pod api-0, and writes it as token. A recipient outside that audience should reject it.',
     chips: C_THREE,
     wires: NO_CAPTION,
     opacity: THREE,

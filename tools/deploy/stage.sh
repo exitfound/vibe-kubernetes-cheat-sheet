@@ -10,6 +10,6 @@ cp index.html 404.html favicon.svg favicon.ico robots.txt sitemap.xml llms.txt C
 cp -r images cli diagrams scheme "$out/"
 rm -rf "$out/diagrams/test"
 # Two shapes of design record: the per-category CARDS.md and the per-card CARDS/ folder beside it.
-# README.md is the GitHub guide of a sub-app, not a page. Exclusion is by NAME, so a directory needs
-# its own clause. -depth: files go before their folder.
-find "$out" -depth \( -name CLAUDE.md -o -name CARDS.md -o -name CANON.md -o -name README.md -o -name CARDS -type d \) -exec rm -rf {} +
+# README.md and README.ru.md are the GitHub guides of a sub-app, not pages. Exclusion is by NAME, so a
+# directory needs its own clause. -depth: files go before their folder.
+find "$out" -depth \( -name CLAUDE.md -o -name CARDS.md -o -name CANON.md -o -name README.md -o -name README.ru.md -o -name CARDS -type d \) -exec rm -rf {} +

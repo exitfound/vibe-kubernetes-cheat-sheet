@@ -111,7 +111,7 @@ export const STEPS_SPEC = [
   {
     id: 'allocate',
     duration: 2000,
-    narration: 'The workload grows, and memory.current keeps rising toward memory.max as the container allocates anonymous pages, page cache, and slab. The cgroup memory controller accounts every byte against the limit.',
+    narration: 'The workload grows, and memory.current keeps rising toward memory.max as the container allocates anonymous pages, page cache, and slab. The cgroup memory controller charges that usage against the limit.',
     chips: { memChip: '220Mi / 256Mi · climbing', oomScoreChip: OOM_SCORE, terminationChip: 'Running', restartChip: '0' },
     wires: { kernel: 'memory.current rising · charged to the cgroup' },
     sublabels: { containerBox: 'using 220Mi of 256Mi' },
@@ -172,7 +172,7 @@ export const STEPS_SPEC = [
   {
     id: 'restart',
     duration: 2500,
-    narration: 'The restartPolicy is Always (the default), so Kubelet starts a fresh container inside the same Pod sandbox. The Pod IP and Linux namespaces are preserved and restartCount increments. Repeated OOMKills trip CrashLoopBackOff, and the backoff behind it is covered in the CrashLoopBackOff and Restart Backoff card.',
+    narration: 'The restartPolicy is Always (the default), so Kubelet starts a fresh container in the same Pod sandbox. The Pod IP and the sandbox namespaces are kept and restartCount increments. Repeated OOMKills trip CrashLoopBackOff, and the backoff behind it is covered in the CrashLoopBackOff and Restart Backoff card.',
     chips: { memChip: '120Mi / 256Mi', oomScoreChip: OOM_SCORE, terminationChip: 'Running (restarted)', restartChip: '1' },
     // "applied", not "written": the runtime touches the cgroup file, and this card draws no runtime block.
     wires: { kernel: 'new container · memory.max + oom_score_adj applied' },

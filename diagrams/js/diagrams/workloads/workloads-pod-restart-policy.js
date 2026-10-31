@@ -116,7 +116,7 @@ export const STEPS_SPEC = [
   {
     id: 'policy',
     duration: 6300,
-    narration: 'The restartPolicy is a Pod-level field, immutable once the Pod is created, and covers every app and regular init container that does not set its own. Since 1.35 the ContainerRestartRules feature gate is beta and on by default, so a container may override it with its own restartPolicy and with restartPolicyRules matched on exit codes. The Pod-level default is Always. A sidecar (an initContainer with restartPolicy Always, on by default since 1.29 and GA in 1.33) ignores it. Kubelet reads the field from the Pod spec and applies it each time a container terminates.',
+    narration: 'The restartPolicy is a Pod-level field, immutable once the Pod is created, and covers every app and regular init container that does not set its own. Since 1.35 the ContainerRestartRules feature gate is beta and on by default, so a container may override it with its own restartPolicy and restartPolicyRules matched on exit codes. The Pod-level default is Always. A sidecar (an initContainer with restartPolicy Always, on by default since 1.29 and GA in 1.33) ignores the Pod value. Kubelet reads the field from the Pod spec and applies it whenever a container terminates.',
     chips: { pod1Chip: 'Running', pod2Chip: 'Running', pod3Chip: 'Running', focusChip: 'Pod-level, default Always' },
     wires: { req: 'watch · spec.restartPolicy delivered' },
     opacity: { pod1: 1, pod2: 1, pod3: 1 },
@@ -127,7 +127,7 @@ export const STEPS_SPEC = [
   {
     id: 'exit-zero',
     duration: 3300,
-    narration: 'Scenario: a container exits 0, a clean success. Pod A (Always) restarts the container and stays Running. Pod B (OnFailure) does not restart a successful exit, so once the container is done the Pod phase becomes Succeeded. Pod C (Never) does not restart anything either and likewise ends Succeeded.',
+    narration: 'Scenario: a container exits 0, a clean success. Pod A (Always) restarts the container and stays Running. Pod B (OnFailure) does not restart it after a success, so once the container is done the Pod phase becomes Succeeded. Pod C (Never) does not restart anything either and likewise ends Succeeded.',
     chips: { pod1Chip: 'Running (restarted)', pod2Chip: 'Succeeded', pod3Chip: 'Succeeded', focusChip: 'exit 0: only Always restarts' },
     wires: { req: 'exit 0 · Always restarted · status PATCH: B and C Succeeded' },
     // Pin final opacities: A is back to Running, B and C are terminal.
@@ -142,7 +142,7 @@ export const STEPS_SPEC = [
   {
     id: 'exit-nonzero',
     duration: 3000,
-    narration: 'Scenario: a container exits with a non-zero code, a failure. Pod A (Always) restarts it. Pod B (OnFailure) restarts it too, since OnFailure retries any non-zero exit. Pod C (Never) restarts nothing, so a single failure drives the Pod phase to Failed.',
+    narration: 'Scenario: a container fails with a non-zero exit code. Pod A (Always) restarts the container. Pod B (OnFailure) restarts it too, since OnFailure retries after any non-zero exit. Pod C (Never) restarts nothing, so a single failure drives the Pod phase to Failed.',
     chips: { pod1Chip: 'Running (restarted)', pod2Chip: 'Running (restarted)', pod3Chip: 'Failed', focusChip: 'exit != 0: only Never does not restart' },
     wires: { req: 'exit != 0 · Always and OnFailure restarted · status PATCH: C Failed' },
     // Pin: A and B are restarted back to Running, C is terminal Failed.
@@ -157,7 +157,7 @@ export const STEPS_SPEC = [
   {
     id: 'backoff',
     duration: 5400,
-    narration: 'The first restart is immediate, and every restart after it, whether driven by Always or by OnFailure, waits out the same exponential backoff schedule, kept per container, doubling from a 10s base to a 5 minute ceiling by default. The container sits in Waiting with reason=CrashLoopBackOff during the wait, and the timer resets after the container has run successfully for 10 minutes. A Never Pod whose containers set no policy of their own never restarts, so it never enters this loop.',
+    narration: 'The first restart is immediate, and every restart after it, whether by Always or by OnFailure, waits out the same exponential backoff schedule, kept per container. By default the wait doubles from a 10s base to a 5 minute ceiling. While it lasts, the container sits in Waiting with reason=CrashLoopBackOff, and the timer resets after the container has run successfully for 10 minutes. A Never Pod whose containers set no policy of their own never restarts, so it never enters this loop.',
     chips: { pod1Chip: 'Waiting (backoff)', pod2Chip: 'Waiting (backoff)', pod3Chip: 'never enters backoff', focusChip: 'backoff 10s..300s, per container' },
     wires: { req: 'status PATCH: Waiting, reason=CrashLoopBackOff · backoff 10s → 300s cap' },
     // Pin: A and B sit in backoff (alive, not serving), C stays terminated from the exit step.
@@ -172,7 +172,7 @@ export const STEPS_SPEC = [
   {
     id: 'fit',
     duration: 3200,
-    narration: 'Long-running controllers (Deployment, ReplicaSet, DaemonSet, StatefulSet) only allow restartPolicy=Always, so their containers restart unless one carries its own policy. Job uses OnFailure or Never to let its Pods reach a terminal Succeeded or Failed phase instead of looping forever.',
+    narration: 'Controllers of long-running apps (Deployment, ReplicaSet, DaemonSet, StatefulSet) only allow restartPolicy=Always, so their containers restart unless one sets its own policy. A Job uses OnFailure or Never so its Pods reach a terminal Succeeded or Failed phase instead of looping forever.',
     chips: { pod1Chip: 'long-running apps', pod2Chip: 'Job (OnFailure)', pod3Chip: 'Job (Never)', focusChip: 'long-running vs run-to-completion' },
     wires: { req: 'Always: long-running · OnFailure / Never: Jobs' },
     opacity: { pod1: 1, pod2: 1, pod3: 1 },

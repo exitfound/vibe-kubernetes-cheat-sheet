@@ -157,7 +157,7 @@ export const STEPS_SPEC = [
   {
     id: 'api',
     duration: 5600,
-    narration: 'The config volume is a ConfigMap, an API object the API server stores in ETCD. Kubelet fetches it and writes each key into the Pod as a read-only file, so the app reads a copy. A Secret volume arrives the same way, into a tmpfs in RAM.',
+    narration: 'The config volume is a ConfigMap, an API object the API server stores in ETCD. Kubelet fetches the ConfigMap and writes each key into the Pod as a read-only file, so the app reads a copy. A Secret volume arrives the same way, into a tmpfs in RAM.',
     chipsCued: { ctrChip: 'writable layer', podChip: 'cache, scratch, config', nodeChip: 'node-logs', ownChip: 'ConfigMap' },
     wires: { diskCap: DISK_BOTH },
     sublabels: { wr: WR_SUB, ram: 'tmpfs: scratch' },
@@ -221,7 +221,7 @@ export const STEPS_SPEC = [
   {
     id: 'node-lost',
     duration: 3200,
-    narration: 'Finally the Node itself is lost, disk and all, and everything that lived on it goes too, node-logs included: a hostPath lasts only as long as that one Node disk. The ConfigMap and the claim data survive because they never lived on the Node. Where data lives decides how long it lives.',
+    narration: 'Finally the Node itself is lost, disk and all, and everything that lived on it goes too, node-logs included: a hostPath lasts only as long as that one Node disk. The ConfigMap and the claim data survive because they never lived on the Node.',
     chipsCued: { ctrChip: 'writable layer gone', podChip: 'cache, scratch, config gone', nodeChip: 'node-logs lost', ownChip: 'ConfigMap, PVC data kept' },
     wires: { diskCap: '' },
     sublabels: { wr: 'removed', ram: 'scratch deleted' },

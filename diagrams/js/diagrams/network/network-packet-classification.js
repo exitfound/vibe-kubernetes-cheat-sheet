@@ -53,7 +53,7 @@ const OUT_DN = [[NODE_R, FACE_DN_Y], [NH_X, FACE_DN_Y]];
 // The list order IS the append order, which is the z-order: the Node frame, the blocks, the wires,
 // the chips, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'Packet classification on a Node in the default iptables proxy mode: a Pod sends to one destination and the destination alone decides which machinery takes the packet, because two stations stand between the Pod and the wire in a fixed order, a nat table that owns the Service range 10.96.0.0/16 and rewrites a Service address to a backend Pod address, and a route lookup that sees only what the nat table handed on and sorts it into the Pod range 10.244.0.0/16, routed to the Node owning that slice with no further rewrite, or into no cluster range at all, taken by the default route with the source rewritten to the Node IP',
+  'aria-label': 'Packet classification on a Node in the default iptables proxy mode. A Pod sends to one destination, and that destination alone decides which machinery takes the packet. That is because two stations stand between the Pod and the wire in a fixed order. The first is a nat table that owns the Service range 10.96.0.0/16 and rewrites a Service address to a backend Pod address. The second is a route lookup that sees only what the nat table handed on. It puts the address either in the Pod range 10.244.0.0/16, where the packet goes to the Node owning that slice with no further rewrite, or in no cluster range at all, where the default route takes it with the source rewritten to the Node IP',
   parts: [
     P.defs(),
     P.node({ key: 'theNode', x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1   ·   192.168.1.20' }),
@@ -105,7 +105,7 @@ export const STEPS_SPEC = [
   {
     id: 'stations',
     duration: 2750,
-    narration: 'A packet leaves the Pod carrying one destination and naming no machinery. In the default iptables proxy mode, two stations stand between it and the wire, in a fixed order, and only the second one is a routing decision. The nat table meets it first.',
+    narration: 'A packet leaves the Pod carrying one destination and naming no machinery. In the default iptables proxy mode two stations stand between the packet and the wire, in a fixed order, and only the second is a routing decision. The nat table comes first.',
     chips: { dstChip: VIP, srcChip: POD_IP, verdictChip: 'none' },
     lit: ['dstChip'],
     // The animated path says the Pod SENT by pulsing it, which no lights list can name.
@@ -121,7 +121,7 @@ export const STEPS_SPEC = [
   {
     id: 'service',
     duration: 2700,
-    narration: 'The destination 10.96.0.20:80 is a Service address in the Service range, and the nat table holds a rule for it that rewrites it to a backend Pod address, 10.244.2.7:8080 on Node-2. What leaves this station is no longer addressed to a Service.',
+    narration: 'The destination 10.96.0.20:80 is a Service address from the Service range, and the nat table holds a rule for this address. The rule rewrites it to a backend Pod address, 10.244.2.7:8080 on Node-2.',
     // The rewrite happens INSIDE the nat box, so the ball EMERGES from its far face already carrying
     // the new address (NET.A-01) and the dst chip is true from entry rather than turned over.
     chips: { dstChip: BACKEND, srcChip: POD_IP, verdictChip: 'Service range, DNAT' },
@@ -150,7 +150,7 @@ export const STEPS_SPEC = [
   {
     id: 'direct',
     duration: 4700,
-    narration: 'A Pod addressing a Pod directly walks the same two stations in the same order. The nat table holds no rule for this address and passes it straight through, and the route lookup returns the very same verdict.',
+    narration: 'A packet sent straight to another Pod walks the same two stations in the same order. The nat table holds no rule for this address and passes the packet straight through, and the route lookup returns the same verdict.',
     // Every value is what the step before left: nothing turns over, and that IS the sentence, so no
     // chip is cued (P-05). The uncued strip is what says the two journeys ended the same way.
     chips: { dstChip: BACKEND, srcChip: POD_IP, verdictChip: V_POD },

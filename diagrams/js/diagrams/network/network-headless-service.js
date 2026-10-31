@@ -60,7 +60,7 @@ export const SCENE = {
   parts: [
     P.defs(),
     P.box({ key: 'svc', x: COL_X, y: SVC_Y, w: BLOCK_W, h: BLOCK_H, label: 'Service nginx', sublabel: 'clusterIP: None' }),
-    P.box({ key: 'slice', x: COL_X, y: SLICE_Y, w: BLOCK_W, h: BLOCK_H, label: 'EndpointSlice', sublabel: '3 of 3 ready' }),
+    P.box({ key: 'slice', x: COL_X, y: SLICE_Y, w: BLOCK_W, h: BLOCK_H, label: 'EndpointSlice nginx-x9f2k', sublabel: '3 of 3 ready' }),
     P.box({ key: 'dns', x: COL_X, y: DNS_Y, w: BLOCK_W, h: BLOCK_H, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10' }),
     P.pod({
       key: 'client', innerKey: 'clientBox', x: CLIENT_X, y: CLIENT_Y, w: BLOCK_W, h: POD_H, label: 'Client Pod', sublabel: '10.244.1.5',
@@ -133,7 +133,7 @@ export const STEPS_SPEC = [
   {
     id: 'answer',
     duration: 3400,
-    narration: 'For a headless Service with a selector the control plane still keeps an EndpointSlice, and CoreDNS answers from it: one A record for every ready Pod, three addresses instead of one virtual IP. Nothing balances the traffic, and the whole set comes back for the client to choose from.',
+    narration: 'For a headless Service with a selector the control plane still keeps an EndpointSlice, and CoreDNS answers from it: one A record for every ready Pod, three addresses instead of one virtual IP. The platform does no load balancing, and the whole set comes back for the client to choose from.',
     chips: { qChip: SVC_Q, r0: IPS[0], r1: IPS[1], r2: IPS[2] },
     wires: WIRE,
     opacity: ALL_READY,
@@ -163,7 +163,7 @@ export const STEPS_SPEC = [
   {
     id: 'not-ready',
     duration: 5000,
-    narration: 'Pod web-2 fails its readiness probe. Its endpoint turns ready=false in the EndpointSlice and CoreDNS stops publishing it, so the same lookup now returns two addresses. A Service with publishNotReadyAddresses set would keep web-2 in the answer.',
+    narration: 'Pod web-2 fails its readiness probe. Its endpoint turns ready=false in the EndpointSlice and CoreDNS stops publishing that endpoint, so the same lookup now returns two addresses. A Service with publishNotReadyAddresses set would keep web-2 in the answer.',
     chips: { qChip: SVC_Q, r0: IPS[0], r1: IPS[1], r2: 'not ready, left out' },
     sublabels: { slice: '2 of 3 ready', w2Box: 'not ready' },
     wires: WIRE,
@@ -185,7 +185,7 @@ export const STEPS_SPEC = [
   {
     id: 'pod-name',
     duration: 6000,
-    narration: 'Each Pod also gets a name of its own, the Pod name under the governing Service that the StatefulSet serviceName points at: web-0.nginx.default.svc.cluster.local. That lookup returns web-0 alone, which lets a client reach one specific replica, such as a primary.',
+    narration: 'Each Pod also gets a name of its own, the Pod name under the governing Service that the StatefulSet serviceName points at. For web-0 that is web-0.nginx.default.svc.cluster.local. That lookup returns web-0 alone, which lets a client reach one specific replica, such as a primary.',
     chips: { qChip: POD_Q, r0: IPS[0], r1: NOT_ASKED, r2: NOT_ASKED },
     sublabels: { slice: '2 of 3 ready', w2Box: 'not ready' },
     wires: WIRE,
@@ -203,7 +203,7 @@ export const STEPS_SPEC = [
   {
     id: 'new-ip',
     duration: 5600,
-    narration: 'Delete web-0 and the StatefulSet recreates it under the same name, here with a new IP. Once it is ready the same lookup returns 10.244.3.8: the name is stable, the address is not. A client that cached the answer can hold it until the record TTL expires, 30 seconds under kubeadm.',
+    narration: 'When web-0 is deleted, the StatefulSet recreates it under the same name, here with a new IP. Once it is ready the same lookup returns that new address, 10.244.3.8. A client that cached the answer can hold the old one until the record TTL expires, 30 seconds under kubeadm.',
     chips: { qChip: POD_Q, r0: NEW_IP, r1: NOT_ASKED, r2: NOT_ASKED },
     sublabels: { slice: '2 of 3 ready', w2Box: 'not ready' },
     podSublabels: { w0: NEW_IP },

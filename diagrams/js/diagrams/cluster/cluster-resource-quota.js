@@ -99,7 +99,7 @@ const budgetBlock = ({ key, x, w, label, dashed = false }) => P.box({
 
 // Parts order is z-order: ladder and LimitRange above the packet layer, the actors last.
 export const SCENE = {
-  'aria-label': 'ResourceQuota and LimitRange: four admission rows and a write, where LimitRanger injects the cpu request the Pod template never named and ResourceQuota then checks the running sum against spec.hard, so the third Pod is refused past the ceiling of a budget bar and the 403 lands on the ReplicaSet that asked for it',
+  'aria-label': 'ResourceQuota and LimitRange on four admission rows and a write, where LimitRanger injects the cpu request the Pod template never named and ResourceQuota then checks the running sum against spec.hard, so the third Pod goes past the ceiling of a budget bar and is refused, and the 403 lands on the ReplicaSet that asked for that Pod',
   parts: [
     P.defs(),
     P.relation({ points: API_TO_CHAIN }),
@@ -126,7 +126,7 @@ export const SCENE = {
     P.chain({
       key: 'chain', x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
-        '1. mutating    ·  LimitRanger sets defaultRequest',
+        '1. mutating    ·  LimitRanger applies defaultRequest',
         '2. validating  ·  LimitRanger checks min and max',
         '3. validating  ·  webhooks and policies get a say',
         '4. validating  ·  ResourceQuota runs after them all',
@@ -209,7 +209,7 @@ export const STEPS_SPEC = [
   {
     id: 'mutating',
     duration: 3200,
-    narration: 'The Pod template names no cpu at all, so LimitRanger rewrites it here, in the one phase where the object can still be changed, and sets defaultRequest.cpu 500m. That injection is structural rather than convenient: once a quota constrains requests.cpu, a Pod naming neither requests nor limits is a Pod the quota cannot count.',
+    narration: 'The Pod template names no cpu, so LimitRanger rewrites the Pod here, in the one phase where the object can still be changed, and applies defaultRequest.cpu 500m. The quota relies on that injection: once a quota constrains requests.cpu, it cannot count a Pod that names neither requests nor limits.',
     chips: chipsOf('requests.cpu 0', INJECTED, NOT_CREATED),
     ...IDLE,
     wires: { req: 'POST pod web-1 · no cpu named' },

@@ -66,7 +66,7 @@ const REVEAL = { keyframes: [{ opacity: OPACITY.pending }, { opacity: 1 }], opti
 // The list order IS the append order, which is the z-order: the ladder and the body blocks, then the
 // lanes and their labels, then the entry group, then the strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Connection tracking and NAT: the first packet of a new flow matches no conntrack entry, so the NAT rules are walked once to pick a backend, and conntrack then records the flow as one entry holding the original tuple and the reply tuple it expects back, which lets the reply be reverse-translated with no rule read at all and every later packet be translated straight off the stored entry',
+  'aria-label': 'Connection tracking and NAT. The first packet of a new flow matches no conntrack entry, so it walks the NAT rules once, where a backend is picked. Then conntrack records the flow as one entry holding the original tuple and the reply tuple expected back. That entry lets the reply be reverse-translated with no rule read at all, and every later packet is translated straight off the stored entry',
   parts: [
     P.defs(),
     P.tag({ x: NF_CX, y: RULE_Y - 13, text: 'NAT rules · iptables mode' }),
@@ -147,28 +147,28 @@ export const STEPS_SPEC = [
     id: 'send',
     duration: 2400,
     narration: 'The client dials a Service address that no host owns, and the first packet of the flow reaches netfilter. There is no conntrack entry matching this packet, so nothing about this connection has been decided yet.',
-    chips: { ...BLANK, ctChip: 'no match', walkChip: 'pending', backendChip: 'none', tableChip: 'no entry' },
+    chips: { ...BLANK, ctChip: 'NEW', walkChip: 'pending', backendChip: 'none', tableChip: 'no entry' },
     opacity: entryStage(OPACITY.pending),
     chain: -1,
     lit: [],
     // The animated path says the client sent this packet by PULSING it, which no lights list names.
     reducedLit: ['clientBox'],
-    // Up-arrow: the client pulses first, then the packet leaves on the request lane, and the miss is
-    // only known once the packet is inside the box, so both chips land on that arrival.
+    // Up-arrow: the client pulses first, then the packet leaves on the request lane. The lookup misses,
+    // which makes the packet NEW, only once it is inside the box, so both chips land on that arrival.
     rewind: { chips: { ctChip: 'none', walkChip: 'none' } },
     flow: [
       F.pulse({ pod: 'client' }),
       F.segment({ from: C_REQ[0], to: C_REQ[1], delay: BEAT.afterPulse, name: 'in', lights: ['nf'] }),
       F.tag({ text: REQ_TAG, points: C_REQ, delay: BEAT.afterPulse, ...RIDE }),
-      F.set({ chips: { ctChip: 'no match', walkChip: 'pending' }, at: 'in' }),
+      F.set({ chips: { ctChip: 'NEW', walkChip: 'pending' }, at: 'in' }),
       F.light({ targets: ['ctChip', 'walkChip'], at: 'in' }),
     ],
   },
   {
     id: 'walk',
     duration: 2800,
-    narration: 'With no entry to match, the NAT rules have to be walked. The chain is read top to bottom until a rule claims the destination and a backend is chosen for this connection. Every first packet of every new flow pays this walk, and no later packet of it pays again while the entry lives.',
-    chips: { ...BLANK, ctChip: 'no match', walkChip: WALK_READ, backendChip: BACKEND, tableChip: 'no entry' },
+    narration: 'With no entry to match, the NAT rules have to be walked. The chain is read top to bottom until a rule claims the destination and a backend is chosen for this connection. The first packet of every new flow pays this walk, and no later packet of that flow pays again while the entry lives.',
+    chips: { ...BLANK, ctChip: 'NEW', walkChip: WALK_READ, backendChip: BACKEND, tableChip: 'no entry' },
     opacity: entryStage(OPACITY.pending),
     chain: [0, 1, 2],
     lit: ['nf'],
@@ -186,7 +186,7 @@ export const STEPS_SPEC = [
   {
     id: 'insert',
     duration: 3000,
-    narration: 'The flow is now recorded by conntrack as one entry holding two tuples: the original direction the client sent, and the reply direction it expects back. The destination is rewritten to the chosen backend and the packet is delivered, with the mapping stored for the life of the connection.',
+    narration: 'The flow is now recorded by conntrack as one entry with two tuples: the original direction the client sent, and the reply direction the client expects back. The destination is rewritten to the chosen backend and the packet delivered, with the mapping stored as long as the entry lives.',
     chips: { origRow: ORIG_TUPLE, replyRow: REPLY_TUPLE, ctChip: 'NEW', walkChip: WALK_READ, backendChip: BACKEND, tableChip: TABLE_ONE },
     opacity: entryStage(1),
     chain: -1,
@@ -195,11 +195,12 @@ export const STEPS_SPEC = [
     reducedLit: ['serverBox'],
     // The record is born first, then the rewritten packet leaves the far edge of the box: the DNAT
     // happened inside it, which is why no ball crosses the box (NET.A-01).
-    rewind: { opacity: entryStage(OPACITY.pending), chips: { ...BLANK, ctChip: 'no match', tableChip: 'no entry' } },
+    // ct state stays NEW: the packet has been NEW since `send`, so writing the entry changes no fact.
+    rewind: { opacity: entryStage(OPACITY.pending), chips: { ...BLANK, tableChip: 'no entry' } },
     flow: [
       F.anim({ target: 'entry', ...REVEAL, name: 'write' }),
-      F.set({ chips: { origRow: ORIG_TUPLE, replyRow: REPLY_TUPLE, ctChip: 'NEW', tableChip: TABLE_ONE }, at: 'write' }),
-      F.light({ targets: ['origRow', 'replyRow', 'ctChip', 'tableChip'], at: 'write' }),
+      F.set({ chips: { origRow: ORIG_TUPLE, replyRow: REPLY_TUPLE, tableChip: TABLE_ONE }, at: 'write' }),
+      F.light({ targets: ['origRow', 'replyRow', 'tableChip'], at: 'write' }),
       F.segment({ from: S_REQ[0], to: S_REQ[1], delay: 520, name: 'give' }),
       F.tag({ text: NAT_TAG, points: S_REQ, delay: 520, ...RIDE }),
       F.pulse({ pod: 'server', at: 'give' }),
@@ -208,7 +209,7 @@ export const STEPS_SPEC = [
   {
     id: 'reply',
     duration: 3600,
-    narration: 'The backend answers from its own address, and the packet matches the reply tuple of the stored entry. That match alone is enough to undo the translation, so the client sees an answer from the Service address it dialed, and the entry moves to ESTABLISHED. Not one NAT rule is read on the way back.',
+    narration: 'The backend answers from its own address, and the packet matches the reply tuple of the stored entry. That match alone undoes the translation, so the client sees an answer from the Service address it dialed, and the reply is what flips the entry to ESTABLISHED. Not one NAT rule is read on the way back.',
     chips: { origRow: ORIG_TUPLE, replyRow: REPLY_TUPLE, ctChip: 'ESTABLISHED', walkChip: 'none on the reply', backendChip: BACKEND, tableChip: TABLE_ONE },
     opacity: entryStage(1),
     chain: -1,
@@ -226,14 +227,14 @@ export const STEPS_SPEC = [
       F.set({ chips: { ctChip: 'ESTABLISHED', walkChip: 'none on the reply' }, at: 'h1' }),
       F.light({ targets: ['replyRow', 'ctChip', 'walkChip'], at: 'h1' }),
       F.segment({ from: C_REP[0], to: C_REP[1], after: 'h1', name: 'h2' }),
-      F.tag({ text: 'src 10.96.0.20', points: C_REP, after: 'h1', ...RIDE_BACK }),
+      F.tag({ text: 'src 10.96.0.20:80', points: C_REP, after: 'h1', ...RIDE_BACK }),
       F.pulse({ pod: 'client', at: 'h2' }),
     ],
   },
   {
     id: 'fastpath',
     duration: 3600,
-    narration: 'Every later packet of this flow matches the original tuple and is translated straight off the entry, with the rule ladder left untouched. That is why a flow stays on one backend for as long as its entry lives, and why a Node opening huge numbers of short connections can fill its conntrack table and start dropping new ones.',
+    narration: 'Every later packet of this flow matches the original tuple and is translated straight off the entry, leaving the rule ladder untouched. That is why a flow stays on one backend while its entry lives. For the same reason a Node opening huge numbers of short connections can fill its conntrack table and start dropping new ones.',
     chips: { origRow: ORIG_TUPLE, replyRow: REPLY_TUPLE, ctChip: 'ESTABLISHED', walkChip: 'skipped', backendChip: BACKEND + ' · pinned', tableChip: TABLE_ONE },
     opacity: entryStage(1),
     // The ladder stays dark, and that darkness against the `walk` step IS the lesson of this step.

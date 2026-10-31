@@ -49,7 +49,7 @@ const RUNNING_LOOPS = 'Deployment · ReplicaSet · Job';
 
 // The list order is the z-order: the replicas and the Lease draw above the ball.
 export const SCENE = {
-  'aria-label': 'Leader election via Lease: acquire, renew, expire, failover',
+  'aria-label': 'Leader election via Lease with acquire, renew, expire and failover',
   parts: [
     P.defs(),
     P.chip({ key: 'v1', x: REP_XS[0], y: ROLE_Y, w: REP_W, h: ROW_H, name: 'role', value: 'standby' }),
@@ -102,7 +102,7 @@ export const STEPS_SPEC = [
   {
     id: 'acquire',
     duration: 2700,
-    narration: 'All three replicas race for the Lease. The first write creates it and its sender becomes holder. Every write after that is a compare-and-swap on resourceVersion.',
+    narration: 'All three replicas race for the Lease. The first write creates it, and the replica that sent it becomes holder. Every write after that is a compare-and-swap on resourceVersion.',
     // The role chip holds a role. The 409 already rides the wires.
     chips: { v1: 'leader', v2: 'standby', v3: 'standby', holderChip: 'Controller-mgr-1', durChip: '15s', renewChip: '0s', transChip: '0' },
     sublabels: { r1: STARTING_LOOPS, r2: IDLE_LOOPS, r3: IDLE_LOOPS },
@@ -131,7 +131,7 @@ export const STEPS_SPEC = [
     id: 'renew',
     duration: 2700,
     // The standby polls are drawn, do not reword the sentence to match empty lanes.
-    narration: 'Only the leader runs control loops. It PUTs a fresh renewTime well inside leaseDurationSeconds (15s), and the standbys only GET the Lease to check it.',
+    narration: 'Only the leader runs control loops. It PUTs a fresh renewTime well inside leaseDurationSeconds (15s), and the standbys only check the Lease with a GET.',
     chips: { v1: 'leader · reconciling', v2: 'standby · polling', v3: 'standby · polling', holderChip: 'Controller-mgr-1', durChip: '15s', renewChip: '0s', transChip: '0' },
     sublabels: { r1: RUNNING_LOOPS, r2: IDLE_LOOPS, r3: IDLE_LOOPS },
     // The call name, not a code: on a renewal no status code is news.
@@ -151,7 +151,7 @@ export const STEPS_SPEC = [
   {
     id: 'expire',
     duration: 2200,
-    narration: 'Controller-mgr-1 crashes or is partitioned. A partitioned leader stands down at its renew deadline (10s), and a standby may acquire after leaseDurationSeconds.',
+    narration: 'Controller-mgr-1 crashes or is partitioned. A partitioned leader stands down at its renew deadline (10s), and a standby may acquire the Lease after leaseDurationSeconds.',
     // Not "polling": nothing travels on this step.
     chips: { v1: 'unreachable', v2: 'standby · may acquire', v3: 'standby · may acquire', holderChip: 'Controller-mgr-1', durChip: '15s', renewChip: '> 15s', transChip: '0' },
     sublabels: { r1: IDLE_LOOPS, r2: IDLE_LOOPS, r3: IDLE_LOOPS },
@@ -164,7 +164,7 @@ export const STEPS_SPEC = [
   {
     id: 'failover',
     duration: 2700,
-    narration: 'With the Lease expired, both survivors race again. Controller-mgr-2 wins the CAS and becomes holder, so the control loops resume there after about a lease duration.',
+    narration: 'With the Lease expired, both survivors race for it again. Controller-mgr-2 wins the CAS and becomes holder, so the control loops resume there after about a lease duration.',
     chips: { v1: 'unreachable', v2: 'leader', v3: 'standby', holderChip: 'Controller-mgr-2', durChip: '15s', renewChip: '0s', transChip: '1' },
     sublabels: { r1: IDLE_LOOPS, r2: STARTING_LOOPS, r3: IDLE_LOOPS },
     wires: { w2: 'PUT 200 OK', w3: 'PUT 409 Conflict' },

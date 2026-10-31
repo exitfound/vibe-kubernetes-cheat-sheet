@@ -8,7 +8,7 @@ export { FADE, BEAT, OPACITY } from './tokens.js';
 // card-facing part of it and overrides only the pod tint, while the rest is called from lib/ (the
 // scene and step builders). A name a CARD is to import goes into every kit at once (S-22).
 
-// ---- geometry constants ----
+// geometry constants
 // Not exported: each card owns its own spine, and the ball rides the SAME points array as the wire.
 
 // `role` has NO category default: omitting it leaves the attribute off and the chip falls back to
@@ -64,7 +64,7 @@ export function setWire(s, key, txt) {
   if (s.refs.wires && s.refs.wires[key]) s.refs.wires[key].textContent = txt;
 }
 
-// ---- init() boilerplate ----
+// init() boilerplate
 export function makeInit(SceneClass, STEPS, opts = {}) {
   return function init(root, callbacks = {}) {
     const scene = new SceneClass(root);
@@ -74,6 +74,7 @@ export function makeInit(SceneClass, STEPS, opts = {}) {
       onSceneReset: () => scene.reset(),
       onChange: callbacks.onStepChange,
       onPlayingChange: callbacks.onPlayingChange,
+      narrationOf: callbacks.narrationOf,
       ...opts,
     });
     return {
@@ -85,14 +86,16 @@ export function makeInit(SceneClass, STEPS, opts = {}) {
       setLoop: (b) => tl.setLoop(b),
       isLooping: () => tl.isLooping(),
       step: (dir) => tl.step(dir),
+      playStep: (i) => tl.playStep(i),
+      replay: () => tl.replay(),
       setSpeed: (r) => tl.setSpeed(r),
       isPlaying: () => tl.isPlaying(),
       autoPlay: (ms) => tl.autoPlay(ms),
       destroy: () => { tl.destroy(); root.replaceChildren(); },
       posterFirst: !!opts.posterFirst,
       total: STEPS.length,
-      // Inert debug handle: a probe plays one step with no auto-advance, then seeks its WAAPI
-      // animations deterministically. Reachable only through window.__diagramCtl, in inspect mode.
+      // Debug handle: a probe plays one step with no auto-advance, then seeks its WAAPI animations
+      // deterministically (window.__diagramCtl, inspect mode). The GIF save seeks a hidden copy the same way.
       _timeline: tl,
     };
   };

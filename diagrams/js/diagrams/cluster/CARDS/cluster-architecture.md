@@ -11,12 +11,12 @@ DEVIATES A-21: the two Node-bound lanes end on the Kubelet and kube-proxy, not o
          The control plane is the subject and keeps its shape, the Node pair would read as traffic.
          T-21: the first step names clients and none is drawn. cluster-object-create-path draws the
          client in the band at 1060..1190, which this card leaves empty on purpose.
-CONTENT  Sources (v1.36): Kubernetes Components, Cluster Architecture, Cloud Controller Manager,
-         API Concepts (watch cache), Create static Pods, the Pod API reference (`spec.nodeName`).
-         cloud-controller-manager has an `optional` sublabel, kube-proxy being optional and the
-         status PATCH are in words only. The API is "the only way in for clients and controllers",
-         the Scheduler writes once "on the ordinary path", ETCD has one client "in a standard
-         cluster", controllers "roughly one per resource kind", static Pods "a local file or a URL".
+CONTENT  Sources (v1.36): Components, Architecture, Cloud Controller Manager, API Concepts, API
+         Server Bypass Risks, static Pods, Pod API (`spec.nodeName`). kube-proxy optional and the
+         status PATCH are words only. A static Pod is "one of the few paths": Bypass Risks also
+         lists the kubelet API, etcd, the runtime socket. "That one write is all it does" is ruled
+         out: the Scheduler also posts an Event. Kept: "only way in for clients and controllers",
+         "in a standard cluster", "roughly one per resource kind", "a local file or a URL".
 OPEN     The `Control plane` frame label prints at (162, 114), under the panel on every viewport. It
          stays: the grid shared with cluster-object-create-path and cluster-cascading-deletion puts
          the frame at 150, and moving it moves all three cards.

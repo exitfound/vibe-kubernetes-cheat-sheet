@@ -65,7 +65,7 @@ const CHIP_W = 232, CHIP_GAP = 16;
 const STRIP = chipStrip({ cx: CX, w: CHIP_W, gap: CHIP_GAP });
 
 export const SCENE = {
-  'aria-label': 'Immediate vs WaitForFirstConsumer volume binding: under Immediate binding a zonal disk is provisioned as soon as the claim exists, and here it lands in zone-a while Node-1 in zone-a has no room, so no Node both fits the Pod and lies in the disk zone and the Pod stays Pending unschedulable because Node-2 does not match the PersistentVolume node affinity, while WaitForFirstConsumer defers binding and provisioning until the Scheduler has chosen a Node for the Pod, so the volume is created in that Node topology',
+  'aria-label': 'Immediate vs WaitForFirstConsumer volume binding: under Immediate binding a zonal disk is provisioned as soon as the claim exists, and here it lands in zone-a while Node-1 in zone-a has no room. So no Node both fits the Pod and lies in the disk zone. The Pod stays Pending unschedulable, because Node-2 does not match the PersistentVolume node affinity. WaitForFirstConsumer instead defers binding and provisioning until the Scheduler has chosen a Node for the Pod, so the volume is created in that Node topology',
   parts: [
     P.defs(),
     P.node({ key: 'nodeA', x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'node-1' }),
@@ -136,7 +136,7 @@ export const STEPS_SPEC = [
     id: 'imm-provision',
     // Longer than its siblings: the provisioning route wraps the outer margin.
     duration: 4400,
-    narration: 'With Immediate and no matching PV, the volume is provisioned the moment the claim appears, long before any Pod is scheduled. With no Pod to guide it, the provisioner may pick any zone the class allows. Here it lands in zone-a, and the claim is Bound to a PV whose node affinity names zone-a, so here only Node-1 can reach it.',
+    narration: 'With Immediate and no matching PV, the volume is provisioned the moment the claim appears, long before any Pod is scheduled. With no Pod to guide it, the provisioner may pick any zone the class allows. Here it lands in zone-a, and the claim is Bound to a PV whose node affinity names zone-a, so only Node-1 can reach it.',
     chipsCued: chips('Immediate', 'Bound', 'Pending', 'disk in zone-a'),
     wires: { za: 'provisioned here' },
     sublabels: { sc: IMMEDIATE, pvc: 'Bound' },
@@ -175,7 +175,7 @@ export const STEPS_SPEC = [
   {
     id: 'imm-fail',
     duration: 3700,
-    narration: 'No Node satisfies both the Pod and its zone-a disk, so the Pod is not scheduled. It stays Pending until a zone-a Node has room, and its FailedScheduling event reports one Node short of CPU and one that did not match the PersistentVolume node affinity. This is a common multi-zone failure, and the class field that prevents it is next.',
+    narration: 'No Node satisfies both the Pod and its zone-a disk, so the Pod is not scheduled. It stays Pending until a zone-a Node has room, and its FailedScheduling event reports one Node short of CPU and one that did not match the PersistentVolume node affinity. This is a common multi-zone failure, and one class field prevents it.',
     chipsCued: chips('Immediate', 'Bound', 'unschedulable', 'zone-a vs zone-b'),
     wires: { za: 'healthy but stranded', fail: 'no match for PV node affinity' },
     sublabels: { sc: IMMEDIATE, pvc: 'Bound' },
@@ -188,7 +188,7 @@ export const STEPS_SPEC = [
   {
     id: 'wffc-schedule',
     duration: 4000,
-    narration: 'Start over with a new class set to WaitForFirstConsumer, since the mode cannot be edited. The claim waits in Pending. The Scheduler picks Node-2 first, records it on the claim as selected-node, and waits up to 600s by default for the volume to bind. A Pod with nodeName set skips the Scheduler, and its claim stays Pending.',
+    narration: 'Starting over takes a new class set to WaitForFirstConsumer, since the mode cannot be edited. The claim waits in Pending. Scheduling picks Node-2 first, records it on the claim as selected-node, and waits up to 600s by default for the volume to bind. A Pod with nodeName set skips scheduling, and its claim stays Pending.',
     chipsCued: chips('WaitForFirstConsumer', 'Pending, waiting', 'node-2 chosen', 'Pod zone-b'),
     wires: { zb: 'Pod placed first' },
     sublabels: { sc: WFFC, pvc: SELECTED },
@@ -205,7 +205,7 @@ export const STEPS_SPEC = [
   {
     id: 'wffc-provision',
     duration: 5200,
-    narration: 'Now that a Node is chosen, the zone to build in is no longer a guess. The provisioner reads selected-node and creates the volume in zone-b, and the claim binds. Only then is the Pod bound to Node-2, and the disk attached there. The Kubelet mounts it and the Pod starts, because the order was reversed so the disk could follow the Pod.',
+    narration: 'Now that a Node is chosen, the zone to build in is no longer a guess. The provisioner reads selected-node and creates the volume in zone-b, and the claim binds. Only then is the Pod bound to Node-2, and the disk attached there. With the order reversed the disk has followed the Pod. The Kubelet mounts the disk, and the Pod starts.',
     chipsCued: chips('WaitForFirstConsumer', 'Bound', 'Running', 'both zone-b'),
     wires: { zb: 'provisioned in topology' },
     sublabels: { sc: WFFC, pvc: 'Bound' },

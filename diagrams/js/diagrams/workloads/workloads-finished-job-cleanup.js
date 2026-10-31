@@ -101,7 +101,7 @@ export const STEPS_SPEC = [
   {
     id: 'finished',
     duration: 4000,
-    narration: 'Both Pods exit 0, so the Job condition becomes Complete and .status.completionTime is stamped at that instant. Finishing removes nothing. The Job object and both Pods stay in the API by default, so kubectl logs and kubectl describe still answer after the run is over. A CronJob prunes its own finished Jobs by count, a bare Job like this one has no such limit.',
+    narration: 'Both Pods exit 0, so the Job condition becomes Complete and .status.completionTime is stamped at that instant. Finishing removes nothing. The Job object and both Pods stay in the API by default, so kubectl logs and kubectl describe still answer once the run is over. A CronJob prunes its finished Jobs by count, while a bare Job like this one has no such limit.',
     chips: { ttlChip: '100', compChip: STAMP, eligChip: DUE, clockChip: STAMP, statusChip: DONE, podsChip: KEPT },
     sublabels: { pod1Box: 'exit 0', pod2Box: 'exit 0' },
     podSublabels: { pod1: 'Succeeded · object kept', pod2: 'Succeeded · object kept' },
@@ -119,7 +119,7 @@ export const STEPS_SPEC = [
   {
     id: 'watch',
     duration: 4400,
-    narration: 'The ttl-after-finished controller inside kube-controller-manager watches Jobs, and it only looks at ones that have already finished. This Job now reports Complete, so it is picked up. A Job that is still running is one it passes over whatever the spec says. Set the field to 0 and a Job is eligible the moment it finishes, and leave it unset and this controller never touches the Job at all.',
+    narration: 'The ttl-after-finished controller inside kube-controller-manager watches Jobs, and it only looks at ones that have already finished. This Job now reports Complete, so it is picked up, while a Job that is still running is passed over whatever the spec says. With the field at 0, a Job is eligible the moment it finishes. With it unset, this controller never touches the Job.',
     chips: { ttlChip: '100', compChip: STAMP, eligChip: DUE, clockChip: '12:00:44', statusChip: DONE, podsChip: KEPT },
     wires: { req: 'watch Jobs · acts on Complete or Failed' },
     sublabels: { pod1Box: 'exit 0', pod2Box: 'exit 0' },
@@ -135,7 +135,7 @@ export const STEPS_SPEC = [
   {
     id: 'waiting',
     duration: 3200,
-    narration: 'The timer starts when the Job finishes, not when it was created. With ttlSecondsAfterFinished at 100, the Job becomes eligible for removal 100 seconds after the completion stamp of 12:00:31, which is 12:02:11. It is 12:01:04 now, 33 of those seconds have gone, and nothing happens yet.',
+    narration: 'The timer starts when the Job finishes, not when it was created. With ttlSecondsAfterFinished at 100, the Job becomes eligible for removal 100 seconds after the completion stamp of 12:00:31, which is 12:02:11. It is 12:01:04 now, 33 of those 100 seconds have gone, and nothing happens yet.',
     chips: { ttlChip: '100', compChip: STAMP, eligChip: DUE, clockChip: '12:01:04', statusChip: DONE, podsChip: KEPT },
     sublabels: { pod1Box: 'exit 0', pod2Box: 'exit 0' },
     podSublabels: { pod1: 'Succeeded · object kept', pod2: 'Succeeded · object kept' },
@@ -165,7 +165,7 @@ export const STEPS_SPEC = [
   {
     id: 'cascade',
     duration: 4400,
-    narration: 'The delete asks for propagationPolicy Foreground, a cascading deletion. Both Pods carry an ownerReference back to Job pi, so the garbage collector deletes them first and removes the Job object only once they are gone. Neither Pod was counted or aged on its own here. They go because their owner is being deleted, the run leaves kubectl get pods, and the Node is left with nothing of this run on it.',
+    narration: 'The delete asks for propagationPolicy Foreground, a cascading deletion. Both Pods carry an ownerReference back to Job pi, so the garbage collector deletes them first and removes the Job object only once they are gone. Neither Pod was counted or aged on its own here: they go because their owner is being deleted. The run leaves kubectl get pods and nothing of it remains on the Node.',
     chips: { ttlChip: '100', compChip: STAMP, eligChip: DUE, clockChip: DUE, statusChip: 'deleted', podsChip: '0' },
     sublabels: { pod1Box: 'exit 0', pod2Box: 'exit 0' },
     podSublabels: { pod1: 'Succeeded · object kept', pod2: 'Succeeded · object kept' },

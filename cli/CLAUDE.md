@@ -4,9 +4,9 @@ The root `../CLAUDE.md` covers running, shipping, the shared chrome and the work
 This file covers what is specific to `/cli/`: the data contracts, the editing recipes and the
 invariants the code does not show.
 
-Files: `index.html`, `css/{chrome,styles,page}.css`, `js/{app,data,contacts}.js`,
-`js/lib/{chrome,sidebar,keys,fresh,commands}.js`. `chrome.css` and
-`lib/{chrome,sidebar,keys,fresh}.js` are the site-wide chrome, loaded from here by every page. `page.css` styles only the generated
+Files: `index.html`, `css/{chrome,styles,page}.css`, `js/{app,data,contacts}.js`, `js/lang/ru.js`,
+`js/lib/{chrome,sidebar,keys,fresh,lang,commands}.js`. `chrome.css` and
+`lib/{chrome,sidebar,keys,fresh,lang}.js` are the site-wide chrome, loaded from here by every page. `page.css` styles only the generated
 static pages in `section/` (on top of `styles.css`), which are never edited by hand.
 
 ## Data
@@ -28,6 +28,10 @@ export const GITHUB   = { enabled: true, label, href, icon };
 export const SPONSOR  = { enabled: true, donate: { label, href, icon }, wallets: [{ coin, net, addr }] };
 ```
 
+- `js/lang/ru.js` is `RU`, the Russian for every group `desc` and command `desc`, keyed by the
+  exact English text and imported only while Russian is on (root `CLAUDE.md`, Language). A switch
+  rewrites the descriptions in place, search matches both languages while Russian is on, the PDF follows the switch.
+  The static section pages stay English.
 - `js/lib/commands.js` (`hl()`, `sortCmds()`) is shared with the static pages, so both show a
   command the same way. A flag or a token of 30 characters or fewer never breaks inside, a longer
   token breaks after each `/`. A search whose query holds `/` re-renders with
@@ -42,8 +46,10 @@ export const SPONSOR  = { enabled: true, donate: { label, href, icon }, wallets:
   and `#starred` deep-link.
 - **Starred** is a filter, not a render path: `applySearch()` ANDs `starred.has(rawCmd)`, and the
   empty-card and empty-section roll-up does the rest. A star is keyed on the raw command string in
-  `kube-how:starred:v1`, so a command listed in two sections toggles in both. The cyan
-  `--starred-color` is for the star icon only.
+  `kube-how:starred:v1`, so a command listed in two sections toggles in both. The star icon
+  takes its section's category tint (`--sec-*`). The cyan `--starred-color`, shared with `/diagrams/`,
+  is only the fallback of a star with no section tint: the Starred nav button stays lavender here and
+  on `/diagrams/`.
 - **NEW** is the `.cmd-desc::after` pseudo-element on `.cmd-item.is-new`, so `applySearch()`
   rewriting the description cannot wipe it. A copy clears it everywhere (`clearNew()`). The rule is
   `js/lib/fresh.js` (root `CLAUDE.md`).
@@ -54,17 +60,21 @@ export const SPONSOR  = { enabled: true, donate: { label, href, icon }, wallets:
 - **PDF.** After `setupHeader()`, `addPdfButton()` prepends a PDF button. It lays every command out
   as A4 sheets in a hidden iframe (`buildBook()`, the dark `.print-dark` look) and prints that.
   Ctrl+P prints the current view in a paper theme, the `@media print` block in `styles.css`.
-  `fitPlaceholder()` shortens the search placeholder when the four header buttons crowd it.
+  `fitPlaceholder()` shortens the search placeholder when the five header buttons crowd it, and
+  empties it when even the short one does not fit (320px): the magnifier and the aria-label remain.
 - **Sticky offsets.** The three rows stack under the header at fixed `top` values per breakpoint
   (desktop, <=900px, <=400px), and `.section` `scroll-margin-top` is their sum. A change to the
-  header or a row height changes every one of them.
+  header or a row height changes every one of them. On a phone held sideways (<=900 wide, <=500
+  tall) only the header and the group row stay pinned, the category and section rows scroll away.
+  The right-edge fade on a row shows only while it overflows (`watchNavFade()` in `js/lib/chrome.js`).
 - **Keys.** `/` focuses and selects the search, `Esc` clears it, `?` opens the shortcuts sheet,
   and while it is open the page ignores its own keys. `/` and `?` go through `isSlash` and
   `isQuestion`.
 
 ## Editing content
 
-**Commands.** Edit only `SECTIONS`. Every group needs a `desc`, commands sort themselves. Then run
+**Commands.** Edit `SECTIONS`. Every group needs a `desc`, commands sort themselves. A new or
+reworded `desc` needs its line in `js/lang/ru.js` (`unit/cli-i18n.test.mjs` names the missing ones). Then run
 `node tools/pages/build.mjs` from the repo root, and `npm run docs:sync` in `diagrams/test` when the
 command count changed.
 

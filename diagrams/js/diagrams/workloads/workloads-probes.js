@@ -141,7 +141,7 @@ export const STEPS_SPEC = [
   {
     id: 'ready',
     duration: 3600,
-    narration: 'The readinessProbe passes successThreshold consecutive times, and may run ahead of its period while not Ready. Kubelet flips the Pod Ready condition to True and the Pod endpoint in the EndpointSlice flips to ready=true, so new connections start reaching it. Every condition named in spec.readinessGates must be True first.',
+    narration: 'The readinessProbe passes successThreshold times in a row and may run ahead of its period until the container is Ready. Kubelet flips the Pod Ready condition to True and the Pod endpoint in the EndpointSlice flips to ready=true, so new connections start reaching the Pod. All spec.readinessGates conditions must be True first.',
     chips: { startupChip: RETIRED, livenessChip: 'passing', readinessChip: 'passing 1/1', restartChip: '0' },
     sublabels: { epSlice: EP_READY },
     wires: { req: '200 OK · Ready=True' },
@@ -199,7 +199,7 @@ export const STEPS_SPEC = [
   {
     id: 'fresh-container',
     duration: 5500,
-    narration: 'The replacement container starts from the beginning. Kubelet runs startupProbe again and holds the other two shut until it passes, then readinessProbe succeeds and that endpoint flips back to ready=true. The restartCount carries over, so it climbs with every restart, which is how a restart loop is read off a running one.',
+    narration: 'The replacement container starts from the beginning. Kubelet runs startupProbe again and holds the other two probes shut until it passes. Then readinessProbe succeeds, and the endpoint flips back to ready=true. The restartCount carries over and climbs with every restart, which is how a restart loop is told apart from a healthy run.',
     chips: { startupChip: RETIRED, livenessChip: 'running', readinessChip: 'passing 1/1', restartChip: '1' },
     sublabels: { epSlice: EP_READY },
     wires: { req: '200 OK · Ready=True' },

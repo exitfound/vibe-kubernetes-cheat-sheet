@@ -74,7 +74,7 @@ const lane = (points) => P.lane({ points, dim: true, dashed: true });
 
 // List order is z-order: frames first, then blocks, lanes, wire labels, packets.
 export const SCENE = {
-  'aria-label': 'How a cascading delete unwinds through finalizers: the object is stamped rather than removed, the Garbage collector walks ownerReferences down to the Pod on a Node, and the finalizers clear back up the chain before the records leave ETCD',
+  'aria-label': 'A cascading delete through finalizers, in which the object is stamped rather than removed, the Garbage collector walks ownerReferences down to the Pod on a Node, and the finalizers clear back up the chain before the records leave ETCD',
   parts: [
     P.defs(),
     P.node({ x: FRAME_X, y: CP_Y, w: FRAME_W, h: CP_H, label: 'Control plane' }),
@@ -89,7 +89,7 @@ export const SCENE = {
     P.pod({
       key: 'placedPod', id: 'placedPod', innerKey: 'placedPodBox',
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
-      inner: { ...POD_INNER, label: 'my-app-7d4-x2k9p', sublabel: 'nginx:1.27' },
+      inner: { ...POD_INNER, label: 'my-app-7d4-x2k9p', sublabel: 'nginx:1.30' },
     }),
     P.lane({ key: 'kubeletPodArrow', points: STOP_POD, dashed: true }),
     lane(DELETE),
@@ -134,7 +134,7 @@ export const STEPS_SPEC = [
   {
     id: 'mark-deletion',
     duration: 2500,
-    narration: 'The API does not remove the object. It sets metadata.deletionTimestamp and adds the foregroundDeletion finalizer, then commits the change to ETCD via Raft at rv=843. The Deployment is now marked for deletion but still exists in cluster state.',
+    narration: 'The API does not remove the object but sets metadata.deletionTimestamp and adds the foregroundDeletion finalizer. Then it commits this to ETCD via Raft at rv=843. The Deployment still exists in cluster state, now marked for deletion.',
     wires: { persist: 'set deletionTimestamp' },
     lit: ['apisrv'],
     flow: [F.route({ points: PERSIST, lights: ['etcd'] })],
@@ -142,7 +142,7 @@ export const STEPS_SPEC = [
   {
     id: 'ack-response',
     duration: 3000,
-    narration: 'ETCD acks the committed write back to the API, and the API returns HTTP 200 OK to kubectl with the stamped object in the body. The call has returned, but kubectl waits by default until the object is gone, and the object lifecycle is only just beginning.',
+    narration: 'ETCD acks the committed write back to the API, and the API returns HTTP 200 OK to kubectl with the stamped object in the body. The call has returned, but kubectl waits by default until the object is gone, and most of the deletion is still ahead.',
     wires: { 'etcd-ack': 'ack · rv=843', 'api-ack': 'HTTP 200 OK' },
     lit: ['etcd'],
     flow: [
@@ -153,7 +153,7 @@ export const STEPS_SPEC = [
   {
     id: 'gc-cascade',
     duration: 4000,
-    narration: 'The API broadcasts a MODIFIED event for the Deployment to its watchers. The Deployment controller sees the deletionTimestamp and stops issuing rollouts. The Garbage collector walks the ownerReferences and DELETEs ReplicaSet my-app-7d4 in foreground, then Pod my-app-7d4-x2k9p under it, each stamped with a deletionTimestamp rather than removed from ETCD yet.',
+    narration: 'The API broadcasts a MODIFIED event for the Deployment to its watchers. The Deployment controller sees the deletionTimestamp and stops issuing rollouts. The Garbage collector walks the ownerReferences and DELETEs ReplicaSet my-app-7d4 in foreground, then Pod my-app-7d4-x2k9p of that ReplicaSet. Each gets a deletionTimestamp but is not removed from ETCD yet.',
     wires: {
       controller: 'watch MODIFIED · Deployment',
       'gc-watch': 'watch MODIFIED · Deployment',
@@ -169,7 +169,7 @@ export const STEPS_SPEC = [
   {
     id: 'kubelet-watch',
     duration: 2500,
-    narration: 'The Kubelet on Node-1 has a filtered watch for Pods bound to it. The API streams a MODIFIED event for my-app-7d4-x2k9p carrying its new deletionTimestamp down that watch to Node-1, and the Kubelet starts the termination procedure.',
+    narration: 'The Kubelet on Node-1 has a filtered watch for Pods bound to it. The API streams a MODIFIED event for my-app-7d4-x2k9p carrying its new deletionTimestamp down that watch to Node-1, and the Kubelet starts terminating the Pod.',
     wires: { 'kubelet-watch': 'watch MODIFIED · Pod' },
     lit: ['apisrv'],
     flow: [F.route({ points: TO_NODE, lights: ['kubelet'] })],
@@ -177,7 +177,7 @@ export const STEPS_SPEC = [
   {
     id: 'kubelet-stops',
     duration: 4100,
-    narration: 'The terminationGracePeriodSeconds budget (30s by default) started when the Pod was stamped. The container gets SIGQUIT, the STOPSIGNAL the nginx image sets, SIGTERM otherwise, then SIGKILL only if it outlives the timer. Once it stops, the Kubelet sets the terminal phase and sends a DELETE with grace 0. The Graceful Pod Shutdown card covers the budget.',
+    narration: 'The terminationGracePeriodSeconds budget (30s by default) started when the Pod was stamped. The container gets SIGQUIT, the STOPSIGNAL the nginx image sets, or SIGTERM otherwise. SIGKILL comes only if the container outlives the timer. Once it stops, the Kubelet sets the terminal phase and sends a DELETE with grace 0. The Graceful Pod Shutdown card covers the budget.',
     wires: { 'stop-pod': 'SIGQUIT · grace 30s' },
     // Pinned final state, so a cancel between steps does not flash the default opacity.
     opacity: { placedPod: OPACITY.terminating },
@@ -194,7 +194,7 @@ export const STEPS_SPEC = [
   {
     id: 'purge',
     duration: 3900,
-    narration: 'The grace 0 DELETE removes the Pod record from ETCD. With no Pod left under it, the Garbage collector clears the foregroundDeletion finalizer off the ReplicaSet, then off the Deployment, and as each list empties the API removes that record too, the Deployment last at rv=856. That completes the delete kubectl sent on step 1, so kubectl stops waiting.',
+    narration: 'The grace 0 DELETE removes the Pod record from ETCD. With no Pod left under it, the Garbage collector clears the foregroundDeletion finalizer off the ReplicaSet, then off the Deployment, and as each list empties the API removes that record too. The Deployment goes last, at rv=856. That completes the step 1 delete by kubectl, so kubectl stops waiting.',
     wires: { gc: 'clear finalizer', persist: 'finalizers=[] · removed' },
     opacity: { placedPod: 0, kubeletPodArrow: 0 },
     // Wind back to the step 6 state, or the pin hides the Pod on entry and the fades pop it back.

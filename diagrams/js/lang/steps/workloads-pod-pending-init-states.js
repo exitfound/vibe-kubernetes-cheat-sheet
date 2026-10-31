@@ -1,0 +1,21 @@
+// Russian for workloads-pod-pending-init-states: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "Where a Pod stalls before Running: five columns of the kubectl get pods -o wide row are drawn on the floor, and each STATUS value names the component still holding the Pod, from the Scheduler on Pending with no Node to the Kubelet on Init and PodInitializing, while READY stays 0 of 1 through all of them":
+    "Где Pod застревает до Running: пять колонок строки kubectl get pods -o wide нарисованы внизу, и каждое значение STATUS называет компонент, который ещё держит Pod, от Scheduler при Pending без Node до Kubelet при Init и PodInitializing, а READY всё это время остаётся 0 из 1",
+
+  "Pending means the Pod has not begun executing its init containers, and the Node column says why. No Node has been chosen yet, so no Kubelet has seen this Pod and the Kubelet logs hold nothing about it. The Pod is still in the hands of the Scheduler, and kubectl describe pod web-0 shows why under Events.":
+    "Pending значит, что Pod ещё не начал выполнять свои init-контейнеры, и колонка Node объясняет почему. Node ещё не выбрана, поэтому ни один Kubelet этот Pod не видел, и в журнальных сообщениях Kubelet о нём ничего нет. Pod всё ещё в руках Scheduler, а почему, покажет kubectl describe pod web-0 в разделе Events.",
+
+  "A Node is chosen, the Node column fills in, and the Kubelet takes over. STATUS turns into a counter: Init:0/2 means two init containers with none completed, and Init:1/2 means one has. That counter is the only column here that tracks init progress, because without a sidecar READY cannot move until an app container starts.":
+    "Node выбрана, колонка Node заполняется, и дело переходит к Kubelet. STATUS превращается в счётчик, где Init:0/2 значит два init-контейнера и ни одного завершённого, а Init:1/2 значит, что один завершён. Из колонок строки ход init показывает только этот счётчик, потому что READY без sidecar не сдвинется, пока не стартует контейнер приложения.",
+
+  "Init:Error means an init container has failed to execute, and when it keeps failing the same cell reads Init:CrashLoopBackOff. The counter is replaced by the reason, and RESTARTS carries the count and the time of the last one. AGE is the age of the Pod, so an Init: value still on the row at four minutes is likely a stall.":
+    "Init:Error значит, что init-контейнер завершился с ошибкой, а если он раз за разом завершается неудачей, та же ячейка показывает Init:CrashLoopBackOff. Вместо счётчика теперь стоит причина, а RESTARTS показывает число перезапусков и время последнего. AGE это возраст Pod, так что если через четыре минуты в строке всё ещё стоит значение Init:, Pod, скорее всего, застрял.",
+
+  "PodInitializing means the Pod has already finished executing its init containers and the app containers are now being created. STATUS reads it until the runtime reports on those containers. So a Pod that sits here is held by the app image or the runtime and not by anything the init containers did.":
+    "PodInitializing значит, что Pod уже выполнил свои init-контейнеры и теперь создаются контейнеры приложения. STATUS показывает это значение, пока среда выполнения не сообщит об этих контейнерах. Поэтому если Pod застрял здесь, его держит образ приложения или среда выполнения, а не то, что сделали init-контейнеры.",
+
+  "Running ends the STATUS column and starts the confusion, because READY has read 0/1 at every value before it. STATUS answers whether the containers exist and are running, READY answers whether they are serving. The gap between them is the readiness half of the condition ladder. Running here is the Pod phase, which never reports readiness.":
+    "На Running колонка STATUS заканчивается, и тут начинается путаница, ведь при всех прежних значениях READY показывал 0/1. STATUS отвечает, существуют ли контейнеры и работают ли они, а READY отвечает, обслуживают ли они трафик. Разрыв между ними и есть та половина лестницы условий, что отвечает за готовность. Running здесь это статус Pod из поля status.phase, а этот статус готовность не показывает никогда.",
+};

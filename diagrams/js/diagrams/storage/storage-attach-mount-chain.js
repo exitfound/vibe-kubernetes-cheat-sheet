@@ -155,7 +155,7 @@ export const STEPS_SPEC = [
   {
     id: 'create',
     duration: 3600,
-    narration: 'CreateVolume runs first, on the controller side, for a dynamically provisioned claim. The provisioner asks the driver to carve a real disk out of the cloud backend. When it returns, a disk called vol-1 exists somewhere in the provider, but it is not attached to any Node yet and nothing can read a byte of it.',
+    narration: 'CreateVolume runs first, on the controller side, for a dynamically provisioned claim. The provisioner asks the driver to carve a real disk out of the cloud backend. When the call returns, a disk called vol-1 exists somewhere in the provider, but it is not attached to any Node yet and nothing can read a byte of it.',
     chipsCued: chips('vol-1 in the cloud', 'none', 'none', 'none', VA_FALSE),
     opacity: born(0, 0, 0),
     lit: ['ctrl'],
@@ -191,9 +191,9 @@ export const STEPS_SPEC = [
   {
     id: 'stage',
     duration: 3500,
-    narration: 'Once the VolumeAttachment reads attached, Kubelet sends NodeStageVolume, the first of two Node calls, on a driver that stages. The node plugin formats the device if still blank and mounts it once, at a staging path Kubelet just made. One mount per Node however many Pods use it is why stage and publish are split.',
+    narration: 'Once the VolumeAttachment shows attached, Kubelet sends NodeStageVolume, the first of two Node calls, on a driver that stages. The node plugin formats the device if still blank and mounts it once, at a staging path Kubelet just made. Stage and publish are split so one mount per Node serves however many Pods use it.',
     chipsCued: chips('attached to Node-1', '/dev/nvme1n1', 'mounted once', 'none', VA_TRUE),
-    wires: { stage: 'mount once per node' },
+    wires: { stage: 'mount once per Node' },
     opacity: born(1, 1, 0),
     lit: ['dev', 'nd'],
     chain: 2,
@@ -209,7 +209,7 @@ export const STEPS_SPEC = [
   {
     id: 'publish',
     duration: 3700,
-    narration: 'NodePublishVolume is the last call, once per Pod. It usually bind-mounts the staged filesystem into this Pod private directory rather than mounting the disk again, and the runtime binds that into the container as /data. Kubelet may then apply the Pod fsGroup, unless the driver did. Only then does Pod A start and begin writing.',
+    narration: 'NodePublishVolume is the last call, once per Pod. It usually bind-mounts the staged filesystem into this Pod private directory rather than mounting the disk again. Kubelet may then apply the Pod fsGroup, unless the driver did, and the runtime binds the result into the container as /data. Only then does Pod A start and begin writing.',
     chipsCued: chips('attached to Node-1', '/dev/nvme1n1', 'mounted once', '1 (Pod A)', VA_TRUE),
     wires: { stage: 'usually a bind mount' },
     // Pod A starts on this step, so it and its lane are present by the end of it.
@@ -227,7 +227,7 @@ export const STEPS_SPEC = [
   {
     id: 'unwind',
     duration: 3800,
-    narration: 'Delete Pod A and the calls unwind in reverse. NodeUnpublishVolume removes its bind mount. With no other Pod on the Node using it, NodeUnstageVolume unmounts the staging path and Kubelet deletes it. On a healthy Node only then does ControllerUnpublishVolume detach the disk. The disk survives: deleting it is up to the reclaim policy.',
+    narration: 'When Pod A is deleted, the calls unwind in reverse. NodeUnpublishVolume drops the Pod A bind mount. If no other Pod on the Node uses the volume, NodeUnstageVolume unmounts the staging path, which Kubelet deletes. On a healthy Node only then does ControllerUnpublishVolume detach the disk. The disk stays: reclaim policy acts only once the claim goes.',
     chipsCued: chips('detached, disk kept', 'none', 'unmounted', 'none', VA_TRUE),
     wires: { stage: 'unpublish, unstage, detach' },
     // The end state is the idle topology. The animated path tears down bottom-up, one construction per call.

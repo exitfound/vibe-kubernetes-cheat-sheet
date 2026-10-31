@@ -83,7 +83,7 @@ const OFF = OPACITY.terminating;
 
 // The list order is the z-order: Pods and the actor row sit above the packet layer.
 export const SCENE = {
-  'aria-label': 'StatefulSet update strategy: a template change becomes a new revision, and under RollingUpdate the controller deletes and recreates one Pod at a time from the largest ordinal to the smallest, waiting for each to be Running and Ready, with partition freezing every ordinal below it, maxUnavailable widening the window once its feature gate is on, and OnDelete handing the trigger back to you',
+  'aria-label': 'StatefulSet update strategy: a template change becomes a new revision, and under RollingUpdate the controller deletes and recreates one Pod at a time from the largest ordinal to the smallest, waiting for each to be Running and Ready, with partition freezing every ordinal below its value, maxUnavailable widening the window once its feature gate is on, and OnDelete handing the update trigger back to you',
   parts: [
     P.defs(),
     P.arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }),
@@ -146,7 +146,7 @@ export const STEPS_SPEC = [
   {
     id: 'revision',
     duration: 3600,
-    narration: 'Your edit to spec.template reaches the controller off its watch, and it stores that template as a ControllerRevision with the next revision number. Nothing has moved: all four replicas still run the revision before it. The default spec.updateStrategy.type is RollingUpdate, and that is what turns a new revision into a rollout.',
+    narration: 'The controller learns of your spec.template edit off its watch and saves the template as a ControllerRevision with the next revision number. Nothing has moved yet, and all four replicas still run the previous revision. The default spec.updateStrategy.type is RollingUpdate, and this is what turns a new revision into a rollout.',
     chips: { chip0: 'RollingUpdate', chip1: '0', chip2: '1', chip3: 'Parallel' },
     wires: { req: 'create ControllerRevision, rev 3', progress: 'on rev 3: none of 4', partLabel: '', name0: '', name1: '' },
     opacity: { ...window2(OFF, OFF), partition: 0 },
@@ -161,7 +161,7 @@ export const STEPS_SPEC = [
   {
     id: 'largest-first',
     duration: 3900,
-    narration: 'A RollingUpdate deletes and recreates each Pod, and it proceeds in the same order as termination, from the largest ordinal to the smallest. So the walk opens at web-3 and never at web-0. The Pod comes back built from rev 3, and it is the only member of the set that is unavailable while it does.',
+    narration: 'Under RollingUpdate the controller deletes and recreates each Pod in the same order as Pod termination, from the largest ordinal to the smallest. So the walk opens at web-3 and never at web-0. The Pod comes back built from rev 3, and while it does, it is the only member of the set that is unavailable.',
     chips: { chip0: 'RollingUpdate', chip1: '0', chip2: '1', chip3: 'Parallel' },
     wires: { req: 'delete Pod web-3, recreate from rev 3', progress: 'on rev 3: 1 of 4', partLabel: '', name0: 'web-3', name1: '' },
     opacity: { ...window2(1, OFF), partition: 0 },
@@ -219,7 +219,7 @@ export const STEPS_SPEC = [
   {
     id: 'max-unavailable',
     duration: 4800,
-    narration: 'With the MaxUnavailableStatefulSet gate on and podManagementPolicy Parallel, set spec.updateStrategy.rollingUpdate.maxUnavailable to 2 and partition back to 0, and web-1 and web-0 are replaced together. OrderedReady still recreates them in order. The Beta gate is off by default since 1.35.4. Every replica now runs rev 3.',
+    narration: 'If the MaxUnavailableStatefulSet feature gate is on and podManagementPolicy is Parallel, spec.updateStrategy.rollingUpdate.maxUnavailable goes to 2 and partition back to 0. Then web-1 and web-0 are replaced together, but OrderedReady still recreates them in order. Since 1.35.4 this Beta gate is off by default. Every replica now runs rev 3.',
     chips: { chip0: 'RollingUpdate', chip1: '0', chip2: '2', chip3: 'Parallel' },
     wires: { req: 'delete web-1 and web-0, recreate from rev 3', progress: 'on rev 3: 4 of 4', partLabel: '', name0: 'web-1', name1: 'web-0' },
     opacity: { ...window2(1, 1), partition: 0 },
@@ -249,7 +249,7 @@ export const STEPS_SPEC = [
   {
     id: 'ondelete',
     duration: 4400,
-    narration: 'The other strategy hands the trigger back. With spec.updateStrategy.type set to OnDelete a further edit to spec.template still records rev 4, but the controller updates nothing by itself, so every replica stays on the revision it has until you delete a Pod yourself. Your deletions become the rollout.',
+    narration: 'The other strategy hands the update trigger back to you. With spec.updateStrategy.type set to OnDelete a further edit to spec.template still records rev 4, but the controller updates nothing by itself. Each Pod keeps its revision until you delete it, and after the delete it comes back from rev 4.',
     chips: { chip0: 'OnDelete', chip1: '0', chip2: '2', chip3: 'Parallel' },
     wires: { req: 'create ControllerRevision, rev 4', progress: 'on rev 4: none of 4', partLabel: '', name0: '', name1: '' },
     opacity: { ...window2(OFF, OFF), partition: 0 },

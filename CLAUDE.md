@@ -90,7 +90,8 @@ internal file inside a shipped directory must be named in all three, and in the 
 container probes of `verify.yml` (`unit/files.test.mjs` S-41 checks that all five agree). The container (`COPY . .`) is the cheapest place to catch
 a miss: `curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/<path>` must return 404.
 
-`404.html` is the custom not-found page (a small Tetris game under the shared header and sidebar).
+`404.html` is the custom not-found page (a large 404, one line of text and links to the two apps,
+under the shared header and sidebar).
 It links `/cli/css/chrome.css` and `/cli/css/styles.css` and imports the shared chrome modules from
 `/cli/js/lib/`, like every other page. Its inline script forwards any `/scheme/...` path (the old
 address of `/diagrams/`) to the same place there.
@@ -105,7 +106,8 @@ search engines. It is a shipped top-level folder, named in `stage.sh` and `relea
 (`#sideDiagram`). The current page's button ships `.active` + `aria-current="page"` in its HTML. A
 bottom `.side-toggle` collapses it (`body.sidebar-collapsed`), a `.side-expand` tab restores it.
 The choice persists in `localStorage` `kube-how:sidebar-collapsed:v1`: `'1'` hidden, `'0'` shown,
-absent means shown on desktop and hidden at <=680px. Wiring: `cli/js/lib/sidebar.js`, the one copy,
+absent means shown on desktop and tablets, hidden at <=680px and on a touch screen at most 500 tall
+(a phone held sideways, the `/diagrams/` stub test). Wiring: `cli/js/lib/sidebar.js`, the one copy,
 imported by every page. On `/cli/` and `/diagrams/` a `#sideKeys` button opens the shortcuts sheet
 (hidden on touch).
 
@@ -118,10 +120,25 @@ alone. Both search fields carry a `<kbd class="search-kbd">/</kbd>` hint.
 
 **New since your last visit.** `cli/js/lib/fresh.js` (imported by both apps and the hub) keeps a
 per-browser map of seen items (`kube-how:cli-seen:v1` by `hashKey(rawCommand)`,
-`kube-how:diagram-seen:v1` by `id@revision`, the content fingerprint in `diagrams/js/revisions.js`).
+`kube-how:diagram-seen:v2` by `id@revision`, the content fingerprint in `diagrams/js/revisions.js`).
 The first visit records a baseline that is never new. An item that appears later, or a card whose
 content changed, reads `NEW` for `FRESH_DAYS` until copied or opened. No dates live in the content
 data.
+
+**Language.** The rightmost header button switches EN and RU on every page that calls
+`setupHeader()`. `cli/js/lib/lang.js` keeps the choice in `localStorage` `kube-how:lang:v1` (`'ru'`,
+absent means English, the default for everyone) and announces a switch as a `kube-how:lang` event.
+What follows it: the `/cli/` descriptions (`cli/js/lang/ru.js`, `cli/CLAUDE.md`), the `/diagrams/`
+card descriptions (`diagrams/js/lang/ru.js`), the diagram dialog's buttons and tooltips (`UI_RU` in
+`diagrams/js/dialog.js`), each card's narration and aria sentence (`diagrams/js/lang/steps/<id>.js`),
+and the helper chrome (sidebar, footer, header menus, tooltips, counts, empty states, the shortcuts
+sheet, `404.html`), static text as `data-ru*` attributes swapped by an inline snippet on each page,
+rendered text in each app. Commands, Kubernetes kinds, nav labels (All, Starred), category, section
+and card names, everything drawn inside a diagram, and the static pages stay English. A step's hold
+counts the text on screen, so Russian narration plays at its own length. Every Russian map is keyed
+by the exact English, so rewording an English string orphans its Russian line until it is
+re-translated (the unit tests name both). Space Grotesk has no Cyrillic, so Russian loads Onest from
+Google Fonts while it is on.
 
 **Analytics.** The Cloudflare Web Analytics beacon ends every page except `404.html`. On `/cli/` and
 `/diagrams/` it carries `"spa": false`: SPA mode counted every `replaceState` (each step, flip and
@@ -137,9 +154,12 @@ buttons on touch. Re-check with axe-core after any chrome change.
 1200x630, raster with no source in the repo: any text painted into one has to be true.
 `images/apple-touch-icon.png` is the home-screen icon every page links.
 
-**Header.** GitHub / Contacts / Sponsor on all three pages, no cross-navigation (that is the
+**Header.** GitHub / Contacts / Sponsor and the language switch on all three pages, no cross-navigation (that is the
 sidebar's job). The data is `cli/js/contacts.js`, the rendering, the dropdowns and the wallet copy
-are `setupHeader()` in `cli/js/lib/chrome.js`. Deleting `contacts.js` drops the buttons everywhere.
+are `setupHeader()` in `cli/js/lib/chrome.js`. The dropdowns are disclosures (`aria-expanded`, no
+menu roles): Esc returns focus to their button, focus leaving one closes it, and `clampDropdown()`
+keeps an open one clear of the left edge and of a shown sidebar, which sits above the header.
+Deleting `contacts.js` drops the buttons everywhere.
 `/cli/` adds a PDF button of its own (`cli/CLAUDE.md`).
 
 **Chrome parity.** The chrome has one copy, shared by every page including the generated static
@@ -149,7 +169,8 @@ scrollbar), linked BEFORE the page's own stylesheet, and `cli/js/lib/` (`chrome.
 Each page calls `alignLogo(selector)` from `chrome.js`, which centres the logo icon over the nav's
 "All" button (the hub and `404.html` measure an invisible ghost nav), skipped at <=900px. The
 scrollbar rules live in `chrome.css`, so every page has the same width and the centred content
-does not drift on tab switch.
+does not drift on tab switch. Corner radii come from one scale, written at the top of `chrome.css`
+(2, 4, 6, 8, 10, 14, 50%): a new rule picks a step from it.
 
 **First paint.** Every `<head>` starts with `color-scheme: dark` hints and an inline
 `background:#110f1f;color:#ece9ff`, and `cli/js/app.js` awaits one painted frame before building
@@ -204,4 +225,5 @@ paint for the live counts.
 - At <=900px the three header actions fill the second header row as equal labelled buttons. The
   stacked panels are `flex: 1 0 auto` (with `overflow: hidden` a flex item's minimum height is 0 and
   the CTA got cut). Padding 24px, gap 10px, icon 56px keep the hub one viewport at 390x844 and
-  700x900. Shorter phones scroll a little.
+  700x900. Shorter phones scroll a little. A phone held sideways (<=900 wide, <=500 tall) keeps the
+  panels side by side: stacked, the second one began below the first screen.

@@ -1,0 +1,24 @@
+// Russian for cluster-etcd-raft: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "ETCD Raft consensus, where the API sends a write to the Leader, one of three ETCD replicas, and the Leader appends it, replicates it to both Followers, commits once a majority has stored it, sends the new commit index to the Followers, and stops writing when quorum is lost":
+    "Консенсус Raft в ETCD, где API отправляет запись на Leader, одну из трёх реплик ETCD, а Leader добавляет её в журнал, реплицирует на оба Follower, фиксирует, когда её сохранило большинство, отправляет новый commit index на Follower и перестаёт записывать, когда кворум потерян",
+
+  "The API issues a write for a new Pod, and it should be the only component that talks to ETCD. Every write goes through the Leader, the single point that orders all changes. A write that lands on a Follower is forwarded to the Leader. A linearizable read waits for the Leader to confirm it still holds a quorum, so no read sees a split view.":
+    "API отправляет запись для нового Pod, и только этому компоненту следует обращаться к ETCD. Каждая запись идёт через Leader, единственную точку, которая упорядочивает все изменения. Запись, попавшая на Follower, пересылается на Leader. Линеаризуемое же чтение ждёт, пока Leader подтвердит, что кворум всё ещё за ним, и поэтому ни одно чтение не видит расколотую картину.",
+
+  "The Leader appends the write as entry 9 in its own log, right after the 8 entries already stored. For now the entry lives on a single replica and stays uncommitted, so commitIndex is still 8 and the new Pod is invisible to readers. Nothing becomes durable until a majority holds it, and the Leader counts as one.":
+    "Leader добавляет запись под номером 9 в свой журнал, сразу после 8 уже сохранённых. Сейчас она есть лишь на одной реплике и не зафиксирована, поэтому commitIndex всё ещё равен 8, а новый Pod не виден читателям. Надёжной запись станет, только когда её сохранит большинство, и сам Leader считается в нём за одну реплику.",
+
+  "The Leader sends an AppendEntries RPC carrying entry 9 to both Followers at once. Each Follower rejects a stale term, and before accepting the entry it checks that its entry 8 has the term the Leader sent for it. So an accepted log matches the Leader through entry 9. After writing entry 9 to its own log, each Follower returns an ack to the Leader.":
+    "Leader отправляет AppendEntries RPC с записью 9 сразу обоим Follower. Каждый Follower отклоняет устаревший term, а прежде чем принять запись, проверяет, что у его записи 8 тот term, который прислал для неё Leader. Поэтому принятый журнал совпадает с журналом Leader вплоть до записи 9. Сохранив запись 9 в своём журнале, каждый Follower отправляет подтверждение на Leader.",
+
+  "The Leader needs a majority rather than every replica: itself plus the first Follower to ack already makes 2 of 3, which meets quorum. With a majority persisted, entry 9 is committed and can no longer be lost, so the Leader advances commitIndex to 9 and reports the write back to the API as durable.":
+    "Leader нужно большинство, а не все реплики. Он сам и первый подтвердивший Follower уже дают 2 из 3, а это кворум. Раз большинство сохранило запись 9, она зафиксирована и потеряться уже не может, поэтому Leader сдвигает commitIndex до 9 и сообщает API, что запись надёжно сохранена.",
+
+  "The Leader also sends the new commitIndex to the Followers in an empty AppendEntries, signalling that entry 9 is safe to apply. Each Follower applies entry 9 to its state machine, the key-value view that clients read from. All three replicas now hold the Pod at index 9, and a linearizable read returns it from any member.":
+    "Кроме того, Leader сообщает обоим Follower новый commitIndex в пустом AppendEntries, и это знак, что запись 9 можно применять. Каждый Follower применяет запись 9 к своей машине состояний, то есть к представлению key-value, из которого читают клиенты. Теперь все три реплики хранят Pod под индексом 9, и линеаризуемое чтение вернёт его с любого участника.",
+
+  "Both Followers go silent, so the Leader holds one vote of three and quorum is lost. Entry 10 appends but cannot commit. Within two election timeouts the Leader steps down, and the write fails with etcdserver: request timed out. Linearizable reads stop, while serializable reads answer locally and may be stale until a majority returns.":
+    "Оба Follower замолкают, поэтому у Leader остаётся один голос из трёх, и кворум потерян. Запись 10 попадает в журнал, но зафиксироваться не может. Не позже чем через два election timeout Leader слагает полномочия, и запись завершается ошибкой etcdserver: request timed out. Линеаризуемые чтения останавливаются, а сериализуемые отвечают локально и могут быть устаревшими, пока не вернётся большинство.",
+};

@@ -1,0 +1,15 @@
+// Russian for network-kube-proxy-modes: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "kube-proxy backend selection as two routes, where the iptables route walks box by box a chain KUBE-SERVICES to KUBE-SVC to KUBE-SEP that grows O(n) with Services, while the IPVS route resolves a backend in one O(1) in-kernel hash lookup":
+    "Выбор бэкенда в kube-proxy, показанный двумя маршрутами, где маршрут iptables проходит блок за блоком цепочку KUBE-SERVICES, KUBE-SVC, KUBE-SEP, которая растёт как O(n) с числом Service, а маршрут IPVS находит бэкенд одним поиском O(1) в хеш-таблице ядра",
+
+  "In iptables mode the packet walks a chain box by box. It first enters KUBE-SERVICES and jumps to the per-Service KUBE-SVC chain that picks an endpoint by statistic random, and then a KUBE-SEP chain DNATs the packet to that Pod, here 10.244.2.7. KUBE-SERVICES has a rule per Service and the kernel checks them in order, so the walk grows O(n) with the number of Services.":
+    "В режиме iptables пакет проходит цепочку блок за блоком. Сначала пакет входит в KUBE-SERVICES и переходит в цепочку KUBE-SVC своего Service, которая выбирает эндпоинт через statistic random, а затем цепочка KUBE-SEP делает DNAT пакета на этот Pod, здесь 10.244.2.7. В KUBE-SERVICES правило на каждый Service, и ядро проверяет их по очереди, поэтому обход растёт как O(n) с числом Service.",
+
+  "In IPVS mode the same kind of connection skips the walk. The Service is a virtual server and its endpoints are real servers in an in-kernel hash table, so one constant-time lookup finds a backend however many Services exist. Here it is 10.244.3.9, picked by a scheduling algorithm such as round-robin (the default) or least-connection.":
+    "В режиме IPVS такое же соединение пропускает этот обход. Service выступает как virtual server, а его эндпоинты как real server в хеш-таблице ядра, поэтому один поиск за постоянное время находит бэкенд, сколько бы ни было Service. Здесь это бэкенд 10.244.3.9, выбранный алгоритмом планирования, например round-robin (он используется по умолчанию) или least-connection.",
+
+  "Either mode turns the ClusterIP into a ready backend, and at scale they differ in the lookup. With thousands of Services the iptables chain is thousands of rules long and every new rule slows the walk, while the IPVS hash stays one step. Large clusters long preferred IPVS for that, but it has been deprecated since v1.35 and may be removed in a future release, with nftables as its replacement.":
+    "Оба режима превращают ClusterIP в готовый бэкенд, а в большом масштабе разница между ними в поиске. При тысячах Service цепочка iptables растягивается на тысячи правил, и каждое новое замедляет обход, а хеш IPVS остаётся одним шагом. Поэтому большие кластеры долго предпочитали IPVS, но с v1.35 этот режим объявлен устаревшим и может быть удалён в будущем релизе, а на смену ему приходит nftables.",
+};

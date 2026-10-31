@@ -78,7 +78,7 @@ const lane = (points) => P.lane({ points, dim: true, dashed: true });
 
 // List order is z-order: frames first, then blocks, lanes, wire labels and the packet layer.
 export const SCENE = {
-  'aria-label': 'The object create path: a manifest travels from the client through the control plane to the Kubelet on a Node, which calls the Runtime to start the container',
+  'aria-label': 'The object create path, where a manifest travels from the client through the control plane to the Kubelet on a Node, and the Kubelet calls the Runtime to start the container',
   parts: [
     P.defs(),
     P.node({ x: FRAME_X, y: CP_Y, w: FRAME_W, h: CP_H, label: 'Control plane' }),
@@ -93,7 +93,7 @@ export const SCENE = {
     P.pod({
       key: 'placedPod', id: 'placedPod', innerKey: 'placedPodBox', opacity: 0,
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
-      inner: { dx: 30, dy: 28, w: POD_W - 60, h: 52, label: 'my-app-7d4-x2k9p', sublabel: 'nginx:1.27' },
+      inner: { dx: 30, dy: 28, w: POD_W - 60, h: 52, label: 'my-app-7d4-x2k9p', sublabel: 'nginx:1.30' },
     }),
     // dim like every other lane, or the Node band reads heavier than the control plane.
     P.lane({ key: 'kubeletCriArrow', points: CRI, dim: true, dashed: true, opacity: 0 }),
@@ -131,7 +131,7 @@ export const STEPS_SPEC = [
     // Long because the client lanes climb over the frame.
     id: 'post',
     duration: 3000,
-    narration: 'You run kubectl apply -f deploy.yaml. The client serializes the manifest as JSON and POSTs it to /apis/apps/v1/namespaces/default/deployments on the API. On an object that already exists the client sends a three-way merge PATCH instead, and Server-side Apply is the same PATCH under its own content type.',
+    narration: 'You run kubectl apply -f deploy.yaml. The client serializes the manifest as JSON and POSTs it to /apis/apps/v1/namespaces/default/deployments on the API. If the object already exists, the client sends a three-way merge PATCH instead, and Server-side Apply is the same PATCH under its own content type.',
     // Elided to fit, the narration spells the full path out.
     wires: { post: 'POST .../deployments' },
     lit: ['client'],
@@ -140,7 +140,7 @@ export const STEPS_SPEC = [
   {
     id: 'persist',
     duration: 2200,
-    narration: 'The API authenticates the caller from your kubeconfig, checks RBAC, runs admission and schema validation, then writes the new Deployment my-app to ETCD. ETCD commits the write via Raft quorum at rv=842.',
+    narration: 'The API authenticates you from your kubeconfig, checks RBAC, runs admission and schema validation, then writes the new Deployment my-app to ETCD. ETCD commits the write via Raft quorum at rv=842.',
     // The request, not its outcome: the commit comes back on the ack register in step 3.
     wires: { persist: 'write Deployment my-app' },
     lit: ['apisrv'],
@@ -149,7 +149,7 @@ export const STEPS_SPEC = [
   {
     id: 'etcd-response',
     duration: 3000,
-    narration: 'ETCD acks the committed write back to the API at rv=842, and the API returns HTTP 201 Created to the kubectl client. The Deployment now exists in cluster state, but no Pods have been created yet.',
+    narration: 'ETCD tells the API that the write is committed at rv=842, and the API returns HTTP 201 Created to the kubectl client. The Deployment now exists in cluster state, but no Pods have been created yet.',
     wires: { 'etcd-ack': 'ack · rv=842', 'api-ack': 'HTTP 201 Created' },
     lit: ['etcd'],
     // The API takes the ack before it answers the client, so it lights on arrival.
@@ -162,7 +162,7 @@ export const STEPS_SPEC = [
     id: 'controller',
     // Two watch-and-write cycles, four balls.
     duration: 4400,
-    narration: 'The Deployment controller, inside the controller-manager, sees my-app via its watch on the API and creates a ReplicaSet (my-app-7d4). The ReplicaSet controller sees THAT on a watch of its own and creates a Pod (my-app-7d4-x2k9p) with no nodeName yet. Nobody calls anybody.',
+    narration: 'The Deployment controller, inside the controller-manager, sees my-app via its watch on the API and creates a ReplicaSet (my-app-7d4). The ReplicaSet controller sees my-app-7d4 on its own watch and creates a Pod (my-app-7d4-x2k9p) with no nodeName yet. No controller calls another.',
     // End value: the second watch, where the step lands.
     wires: { controller: 'watch ADDED ReplicaSet my-app-7d4' },
     lit: ['apisrv'],
@@ -190,7 +190,7 @@ export const STEPS_SPEC = [
   {
     id: 'kubelet-watch',
     duration: 2400,
-    narration: 'The Kubelet on Node-1 has a filtered watch on /api/v1/pods?fieldSelector=spec.nodeName=Node-1. The API streams my-app-7d4-x2k9p down that watch to Node-1, where the Kubelet picks it up.',
+    narration: 'The Kubelet on Node-1 has a filtered watch on /api/v1/pods?fieldSelector=spec.nodeName=Node-1. The API streams my-app-7d4-x2k9p down that watch to Node-1, and there the Kubelet picks the Pod up.',
     wires: { 'kubelet-watch': 'watch ADDED my-app-7d4-x2k9p' },
     lit: ['apisrv'],
     flow: [F.route({ points: TO_KUBELET, lights: ['kubelet'] })],
@@ -198,7 +198,7 @@ export const STEPS_SPEC = [
   {
     id: 'create-pod',
     duration: 3300,
-    narration: 'The Kubelet drives the Runtime over CRI, one call at a time: first a Pod sandbox, which gets the Pod its network namespace and IP, then the nginx:1.27 image, then the container starting inside that sandbox. The Pod my-app-7d4-x2k9p is Running on Node-1.',
+    narration: 'The Kubelet drives the Runtime over CRI, one call at a time. It asks first for a Pod sandbox, which gives the Pod its network namespace and IP, then for the nginx:1.30 image, then for the container to start in that sandbox. The Pod my-app-7d4-x2k9p is now Running on Node-1.',
     // Pinned visible so cancel returns cleanly.
     opacity: { kubeletCriArrow: 1, kubeletPodArrow: 1, placedPod: 1 },
     lit: ['kubelet'],

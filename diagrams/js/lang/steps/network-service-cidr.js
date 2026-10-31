@@ -1,0 +1,18 @@
+// Russian for network-service-cidr: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "Service CIDR and ClusterIP allocation, where one ServiceCIDR object declares the Service range 10.96.0.0/16, which the allocator inside the API server reads as a low static band holding the well-known addresses 10.96.0.1 and 10.96.0.10 and a high dynamic band it draws from first, and an address is allocated by writing an IPAddress object of that name into ETCD before the clusterIP field is set, with a second ServiceCIDR able to add a range with nothing restarted":
+    "Service CIDR и выделение ClusterIP, где один объект ServiceCIDR объявляет диапазон Service 10.96.0.0/16, который аллокатор внутри API Server видит как нижнюю статическую полосу с известными адресами 10.96.0.1 и 10.96.0.10 и верхнюю динамическую полосу, откуда аллокатор берёт адреса в первую очередь, адрес выделяется записью в ETCD объекта IPAddress с именем этого адреса до того, как задаётся поле clusterIP, а второй ServiceCIDR может добавить диапазон без единого перезапуска",
+
+  "One ServiceCIDR object declares the whole Service range, here 10.96.0.0/16, and the allocator reads it as two bands. Automatic allocation takes the high dynamic band first and the low static band only once that runs out. The low band is for addresses picked by hand, so the two in it are not reserved, only unlikely to be taken.":
+    "Один объект ServiceCIDR объявляет весь диапазон Service, здесь 10.96.0.0/16, и аллокатор видит в нём две полосы. Автоматическое выделение берёт адреса сначала из верхней динамической полосы, а из нижней статической только тогда, когда верхняя закончится. Нижняя полоса отведена под адреса, выбранные вручную, поэтому два адреса в ней не зарезервированы, просто их вряд ли займут.",
+
+  "A new Service web is created with an empty clusterIP field, so the API server hands the request to the ClusterIP allocator. The allocator looks in the high dynamic band, which is tried first for every automatic address, and takes a free one, here 10.96.137.42.":
+    "Создаётся новый Service web с пустым полем clusterIP, поэтому API Server передаёт запрос аллокатору ClusterIP. Аллокатор ищет в верхней динамической полосе, с которой начинается каждое автоматическое выделение, и берёт свободный адрес, здесь 10.96.137.42.",
+
+  "Allocating means writing an object. The allocator creates an IPAddress object named 10.96.137.42 that points back at the Service, and only once that object exists is the clusterIP field set. Two Services cannot end up on one address, because two objects cannot share one name.":
+    "Выделить адрес значит записать объект. Аллокатор создаёт объект IPAddress с именем 10.96.137.42, который ссылается обратно на Service, и только когда этот объект уже есть, задаётся поле clusterIP. Два Service не могут оказаться на одном адресе, потому что у двух объектов не может быть общего имени.",
+
+  "When the range fills up, the old fix was to widen the service-cluster-ip-range flag and restart the API server, which was disruptive. Now you add a second ServiceCIDR object, here 10.97.0.0/16, which gives the allocator a second range to draw from, and the Service IP space grows with nothing restarted.":
+    "Раньше, когда диапазон заполнялся, приходилось расширять флаг service-cluster-ip-range и перезапускать API Server, а это нарушало работу. Теперь вы добавляете второй объект ServiceCIDR, здесь 10.97.0.0/16, который даёт аллокатору второй диапазон для выделения, и пространство IP-адресов Service растёт без единого перезапуска.",
+};

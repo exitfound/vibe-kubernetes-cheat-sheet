@@ -156,10 +156,20 @@ await group('diagram: grid and dialog keys and buttons', DESK, async (p) => {
   const s0 = await st(); await p.keyboard.press('ArrowRight'); await w(p, 400); const s1 = await st();
   await p.keyboard.press('ArrowLeft'); await w(p, 400);
   ok('arrows step forward and back', s1 !== s0 && (await st()) === s0, `${s0} | ${s1}`);
-  await p.keyboard.press('ArrowRight'); await p.keyboard.press('r'); await w(p, 500);
-  ok('R restarts', /^Step 1 /.test(await st()));
-  await p.keyboard.press('ArrowRight'); await ru(p, 'к', 'KeyR'); await w(p, 500);
-  ok('R on a Russian layout restarts', /^Step 1 /.test(await st()));
+  // A replay keeps the step and starts fresh animations: the ones running before it are all gone.
+  const mark = () => p.evaluate(() => { window.__anims = new Set(document.getAnimations()); });
+  const replayed = () => p.evaluate(() => document.getAnimations().some(a => !window.__anims.has(a)));
+  await p.keyboard.press('ArrowRight'); await w(p, 200); const r0 = await st(); await mark();
+  await p.keyboard.press('r'); await w(p, 300);
+  ok('R replays the step', (await st()) === r0 && await replayed(), r0);
+  await mark(); await ru(p, 'к', 'KeyR'); await w(p, 300);
+  ok('R on a Russian layout replays the step', (await st()) === r0 && await replayed());
+  await p.keyboard.press('Shift+R'); await w(p, 500);
+  ok('Shift+R restarts', /^Step 1 /.test(await st()));
+  if (await playing()) { await p.keyboard.press('Space'); await w(p, 200); }
+  await p.keyboard.press('ArrowRight'); await ru(p, 'К', 'KeyR', true); await w(p, 500);
+  ok('Shift+R on a Russian layout restarts', /^Step 1 /.test(await st()));
+  if (await playing()) { await p.keyboard.press('Space'); await w(p, 200); }
   const l0 = await loop(); await p.keyboard.press('l'); await w(p, 150); const l1 = await loop();
   await ru(p, 'д', 'KeyL'); await w(p, 150);
   ok('L toggles loop on both layouts', l0 !== l1 && (await loop()) === l0);
@@ -198,16 +208,24 @@ await group('diagram: grid and dialog keys and buttons', DESK, async (p) => {
   ok('next and previous step buttons', a1 !== a0 && (await st()) === a0);
   await p.click('[data-act="next"]'); await p.click('[data-act="restart"]'); await w(p, 500);
   ok('restart button', /^Step 1 /.test(await st()));
+  if (await playing()) { await p.click('[data-act="play"]'); await w(p, 200); }
+  await p.click('[data-act="next"]'); await w(p, 200); const b0 = await st(); await mark();
+  await p.click('[data-act="replay"]'); await w(p, 300);
+  ok('replay button', (await st()) === b0 && await replayed(), b0);
   const pl = await playing(); await p.click('[data-act="play"]'); await w(p, 200);
   ok('play / pause button', pl !== (await playing()));
   if (await playing()) { await p.click('[data-act="play"]'); await w(p, 200); }
   const lb = await loop(); await p.click('[data-act="loop"]'); await w(p, 150);
   ok('loop button', lb !== (await loop())); await p.click('[data-act="loop"]');
-  await p.click('.ctl-speed button[data-speed="2"]'); await w(p, 150);
-  ok('speed 2x is active and remembered', await p.evaluate(() => document.querySelector('.ctl-speed [data-speed="2"]').classList.contains('active') && localStorage.getItem('kube-how:diagram-speed:v1') === '2'));
+  const speedIs = (v) => p.evaluate((v) => document.querySelector(`.ctl-speed [data-speed="${v}"]`).classList.contains('active') && localStorage.getItem('kube-how:diagram-speed:v1') === v, v);
+  await p.click('.ctl-speed button[data-speed="1.5"]'); await w(p, 150);
+  ok('speed 1.5x is active and remembered', await speedIs('1.5'));
   await p.click('.ctl-speed button[data-speed="1"]');
-  await p.click('.step-dot:nth-child(3)'); await w(p, 400);
-  ok('a step dot jumps to its step', /^Step 3 /.test(await st()));
+  await p.keyboard.press('Minus'); await w(p, 100); const sMinus = await speedIs('0.5');
+  await p.keyboard.press('Equal'); await w(p, 100);
+  ok('- and + step the speed', sMinus && await speedIs('1'));
+  await mark(); await p.click('.step-dot:nth-child(3)'); await w(p, 400);
+  ok('a step dot plays its step', /^Step 3 /.test(await st()) && await replayed());
   const n0 = await title(); await p.click('.dialog-nav-next'); await w(p, 1200); const n1 = await title();
   await p.click('.dialog-nav-prev'); await w(p, 1200);
   ok('side arrows flip cards', n1 !== n0 && (await title()) === n0);
@@ -248,23 +266,39 @@ await group('new since last visit + hub counts', DESK, async (p) => {
   ok('first diagram visit: no NEW badges', (await p.$$('.card-new')).length === 0);
   // A browser that stored bare ids, before revisions existed, sees nothing new and is rewritten to id@revision.
   await p.evaluate(() => {
-    const sch = JSON.parse(localStorage.getItem('kube-how:diagram-seen:v1'));
-    localStorage.setItem('kube-how:diagram-seen:v1', JSON.stringify(Object.fromEntries(Object.keys(sch).map(k => [k.split('@')[0], 0]))));
+    const sch = JSON.parse(localStorage.getItem('kube-how:diagram-seen:v2'));
+    localStorage.setItem('kube-how:diagram-seen:v2', JSON.stringify(Object.fromEntries(Object.keys(sch).map(k => [k.split('@')[0], 0]))));
   });
   await p.goto(B + '/diagrams/'); await w(p, 900);
   ok('diagram: bare-id storage migrates with no NEW badges', (await p.$$('.card-new')).length === 0
-    && await p.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('kube-how:diagram-seen:v1'))).every(k => k.includes('@'))));
+    && await p.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('kube-how:diagram-seen:v2'))).every(k => k.includes('@'))));
+  // A v1 map from before the v2 rename: an unchanged card carries over through CARRY, a changed one (an
+  // old revision) reads NEW, and v1 goes.
+  const changed = await p.evaluate(async () => {
+    const { REV, CARRY } = await import('/diagrams/js/revisions.js');
+    const old = (id) => Object.keys(CARRY).find(k => k.startsWith(`${id}@`)) || `${id}@00000000`;
+    localStorage.setItem('kube-how:diagram-seen:v1', JSON.stringify(Object.fromEntries(Object.keys(REV).map(id => [old(id), 0]))));
+    localStorage.removeItem('kube-how:diagram-seen:v2');
+    return Object.keys(REV).length - Object.keys(CARRY).length;
+  });
+  await p.goto(B + '/diagrams/'); await w(p, 900);
+  ok('diagram: the v1 map carries into v2, only changed cards NEW, v1 removed', (await p.$$('.card-new')).length === changed
+    && await p.evaluate(() => localStorage.getItem('kube-how:diagram-seen:v1') === null));
+  await p.evaluate(() => {
+    const v2 = JSON.parse(localStorage.getItem('kube-how:diagram-seen:v2'));
+    localStorage.setItem('kube-how:diagram-seen:v2', JSON.stringify(Object.fromEntries(Object.keys(v2).map(k => [k, 0]))));
+  });
   await p.evaluate(async () => {
     const { SECTIONS } = await import('/cli/js/data.js'); const { hashKey } = await import('/cli/js/lib/fresh.js');
     const cli = JSON.parse(localStorage.getItem('kube-how:cli-seen:v1'));
     [...SECTIONS[0].groups[0].cmds.slice(0, 3), ...SECTIONS[9].groups[0].cmds.slice(0, 2)].forEach(c => delete cli[hashKey(c.cmd)]);
     localStorage.setItem('kube-how:cli-seen:v1', JSON.stringify(cli));
     // Diagram keys are id@revision: two cards never seen, and one seen at an older revision (edited since).
-    const sch = JSON.parse(localStorage.getItem('kube-how:diagram-seen:v1'));
+    const sch = JSON.parse(localStorage.getItem('kube-how:diagram-seen:v2'));
     const keyOf = (id) => Object.keys(sch).find(k => k.startsWith(id + '@'));
     ['cluster-architecture', 'cluster-admission-chain'].forEach(id => delete sch[keyOf(id)]);
     const old = keyOf('storage-volume-snapshot'); delete sch[old]; sch['storage-volume-snapshot@00000000'] = 0;
-    localStorage.setItem('kube-how:diagram-seen:v1', JSON.stringify(sch));
+    localStorage.setItem('kube-how:diagram-seen:v2', JSON.stringify(sch));
   });
   await p.goto(B + '/'); await w(p, 1200);
   ok('hub counts what is new before the pages are visited', (await p.textContent('#hubStatCli')).includes('5 new') && (await p.textContent('#hubStatDiagram')).includes('3 new'));

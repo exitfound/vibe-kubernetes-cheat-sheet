@@ -194,7 +194,7 @@ export const STEPS_SPEC = [
   {
     id: 'mark',
     duration: 3400,
-    narration: 'Each row flips one field of the policy on StatefulSet web while the other stays at the default, Retain. A field at Retain adds no ownerReference, so its event deletes no claim. Under whenDeleted Delete, the controller writes an ownerReference to web on the claims of every current Pod, existing or new.',
+    narration: 'Each row flips one field of the policy on StatefulSet web while the other stays at the default, Retain. A field at Retain adds no ownerReference, so its event deletes no claim. When whenDeleted is Delete, the controller writes an ownerReference to web on the claims of every current Pod, existing or new.',
     sublabels: { ...subs({ dD: 'owner: web' }), sts: 'replicas: 3' },
     wires: BLANK,
     opacity: stage({ ownD: 1 }),
@@ -210,7 +210,7 @@ export const STEPS_SPEC = [
   {
     id: 'scale-down',
     duration: 7000,
-    narration: 'Scale web to two and the controller deletes the highest ordinal, Pod web-2. Retain leaves data-web-2 Bound with its data. Delete first makes Pod web-2 its owner, so once the Pod is gone the garbage collector deletes the claim, and its PV, set to Delete, takes the disk.',
+    narration: 'When web is scaled to two, the controller deletes the highest ordinal, Pod web-2. Retain leaves data-web-2 Bound with its data. Delete first makes Pod web-2 its owner, so once the Pod is gone the garbage collector deletes the claim, and its PV, set to Delete, takes the disk.',
     sublabels: { ...subs({ sD2: 'owner: web-2', dD: 'owner: web' }), sts: 'replicas: 2' },
     wires: verdicts({ ...ROW_S_DOWN, ...PV_DEL }),
     opacity: stage({ pod: T, sDc2: T, sDk2: T, ownS: 1, ownD: 1 }),
@@ -240,7 +240,7 @@ export const STEPS_SPEC = [
   {
     id: 'scale-up',
     duration: 4600,
-    narration: 'Scale back to three and the controller creates web-2 again. Under Retain the new Pod mounts the same data-web-2, data intact. Under Delete the controller waits out the old claim, creates a fresh one of that name before the Pod, and with WaitForFirstConsumer its empty volume comes after the Pod.',
+    narration: 'When web is scaled back to three, the controller creates web-2 again. Under Retain the new Pod mounts the same data-web-2, data intact. Under Delete the controller waits out the old claim, creates a fresh one of that name before the Pod, and with WaitForFirstConsumer its empty volume comes after the Pod.',
     sublabels: { ...subs({ dD: 'owner: web' }), sts: 'replicas: 3' },
     wires: verdicts({ ...ROW_S_UP, ...PV_DEL }),
     opacity: stage({ ownD: 1 }),
@@ -249,10 +249,12 @@ export const STEPS_SPEC = [
     // claim and disk rise from the ghosts the scale-down left.
     rewind: {
       opacity: { pod: OPACITY.pending, sDc2: T, sDk2: T },
+      sublabels: { sDc2: 'Pending' },
       wires: verdicts({ ...ROW_S_DOWN, ...PV_DEL }),
     },
     flow: [
       // The controller creates the claim before the Pod, then the Pod, then the new volume is bound.
+      // Under WaitForFirstConsumer the fresh claim reads Pending until its disk lands.
       F.reveal({ target: 'sDc2', delay: BEAT.lead, from: T, name: 'mint', lights: ['sDc2'] }),
       F.route({ points: POD_LANE, after: 'mint', name: 'make', tag: POD_TAG('create') }),
       // The Pod blinks as the create lands, as it does when the delete lands on scale-down.
@@ -260,13 +262,13 @@ export const STEPS_SPEC = [
       F.reveal({ target: 'pod', at: 'make', from: OPACITY.pending, name: 'up' }),
       F.set({ at: 'up', wires: { vsR: ROW_S_UP.sR } }),
       F.reveal({ target: 'sDk2', after: 'up', from: T, name: 'disk', lights: ['sDk2'] }),
-      F.set({ at: 'disk', wires: { vsD: ROW_S_UP.sD } }),
+      F.set({ at: 'disk', sublabels: { sDc2: 'Bound' }, wires: { vsD: ROW_S_UP.sD } }),
     ],
   },
   {
     id: 'set-delete',
     duration: 6800,
-    narration: 'Delete web with the default background cascade and its Pods go too. Under Retain all three claims stay Bound with no owner. Under Delete the garbage collector deletes the claims web owns along with its Pods, PVC protection holds each until its Pod is gone, and each PV set to Delete takes its disk.',
+    narration: 'When web is deleted with the default background cascade, its Pods go too. Under Retain all three claims stay Bound with no owner. Under Delete the garbage collector deletes the claims web owns along with its Pods, PVC protection holds each until its Pod is gone, and each PV set to Delete takes its disk.',
     sublabels: { ...subs({ dD: 'owner: web' }), sts: 'deleted' },
     wires: verdicts({ ...ROW_S_UP, ...ROW_D_GONE, ...PV_DEL }),
     opacity: stage({ sts: T, pod: T, dDc: T, dDk: T, ownD: 1 }),
@@ -294,7 +296,7 @@ export const STEPS_SPEC = [
   {
     id: 'disk',
     duration: 4200,
-    narration: 'Delete removes claims, never disks directly. Had the PVs said Retain, the same garbage collection would delete the three claims and leave every volume Released with its data. The reclaimPolicy on each PV decides the disk, not this policy.',
+    narration: 'Delete removes claims, never disks directly. Had the PVs said Retain, the same garbage collection would delete the three claims and leave every volume Released with its data: the reclaimPolicy on each PV, not this policy, decides the disk.',
     sublabels: { ...subs({ dD: 'owner: web' }), sts: 'deleted' },
     wires: verdicts({ ...ROW_S_UP, dR: ROW_D_GONE.dR, dD: 'claims deleted, disks Released', pv: 'if the PVs say Retain' }),
     // Only the three claims of the counterfactual cell are replayed. Everything else stands where

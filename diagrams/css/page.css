@@ -87,7 +87,7 @@ a.page-cat:hover { filter: brightness(1.15); }
   position: relative;
   padding: 14px 16px 14px 56px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--bg-card);
   counter-increment: step;
 }
@@ -166,7 +166,7 @@ a.page-cat:hover { filter: brightness(1.15); }
 }
 .page-index-group a:hover { color: var(--accent); border-color: var(--accent-border); }
 
-/* ===== SHARED BY BOTH STATIC PAGE KINDS (a copy lives in the other app's page.css) ===== */
+/* Shared by both static page kinds (a copy lives in the other app's page.css) */
 .crumbs ol {
   display: flex;
   flex-wrap: wrap;
@@ -206,7 +206,7 @@ a.page-cat:hover { filter: brightness(1.15); }
   align-items: center;
   padding: 9px 16px;
   border: 1px solid var(--accent-border);
-  border-radius: 9px;
+  border-radius: 10px;
   background: var(--accent-glow);
   color: var(--accent);
   font-size: 14.5px;

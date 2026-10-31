@@ -12,7 +12,7 @@ DEVIATES NET.L-01: the Pods are 128 by 104 so three fit a Service frame, 3 x 128
          P-05: `one-backend` lights the weights chip with no change, because the step introduces
          the weight the chip shows.
 CONTENT  Sources: traffic splitting guide, HTTPRoute, Gateway API (v1.36), HTTPBackendRef in the
-         apis/v1 types of Gateway API v1.5.1, current with 1.36. A weight is a share of the sum:
+         apis/v1 types of Gateway API v1.5.1 and v1.6.3, alike here. A weight is a share of the sum:
          `about a tenth of the requests this rule matches`. A lone backend takes every request only
          with a weight above 0. The header rule wins because both rules match prefix / and neither
          names a method. An invalid backend's share gets 500, moving nowhere. The header rule's 500

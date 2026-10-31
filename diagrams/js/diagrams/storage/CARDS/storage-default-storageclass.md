@@ -13,7 +13,8 @@ CONTENT  Sources (v1.36): Storage Classes, Persistent Volumes (Class, Retroactiv
          empty storageClassName get updated, code skips any non-nil class
          (PersistentVolumeClaimHasClass). The card follows the code. Retro writes only on the 15s
          resync, into an unbound claim with no volumeName that matched no volume. `most recently
-         created`, never `annotated last`. Once written, the class is immutable.
+         created`, never `annotated last`. Once written, the class is immutable. The desc says
+         `can still end up`: with no default the class stays unset.
 OPEN     CENTRE reads the class catalog chain as a chip strip on 920. Centring it lays it over the
          admission box, and moving it below the claims takes it away from its reader.
 ```

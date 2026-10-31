@@ -78,7 +78,7 @@ function setSlot(slot, type, sub) {
 
 // The list order is the z-order: the four blocks go last, after the packet layer.
 export const SCENE = {
-  'aria-label': 'How a controller stays in step with the API server, over the list-watch cycle. A client-go Client, the API, an Informer, an Indexer and ETCD stand around a group-version-resource catalogue and a row of watch events. The controller lists once, then holds one watch open for later changes, re-listing when history is compacted past its resourceVersion.',
+  'aria-label': 'How a controller stays in step with the API server, over the list-watch cycle. A client-go Client, the API, an Informer, an Indexer and ETCD stand around a group-version-resource catalogue and a row of watch events. The controller lists once, then holds one watch open for later changes, re-listing when history is compacted past the resourceVersion it knows.',
   parts: [
     P.defs(),
     P.chip({ key: 'rvChip', x: SCHIP_X, y: SCHIP_Y(0), w: SCHIP_W, h: SCHIP_H, name: 'resourceVersion', value: 'none' }),
@@ -162,7 +162,7 @@ export const STEPS_SPEC = [
     id: 'list',
     // The tail after the flow is reading time for the longest narration, not slack.
     duration: 5400,
-    narration: 'The informer fires the initial LIST at resourceVersion 0. The API keeps its watch cache filled from ETCD and answers the list from there, with no quorum read, so the full set lands in the Indexer at rv=842 and the controller reconciles from local memory.',
+    narration: 'The informer fires the initial LIST at resourceVersion 0. The API keeps its watch cache filled from ETCD and answers the list straight from it, with no quorum read, so the full set lands in the Indexer at rv=842 and the controller reconciles from local memory.',
     chips: { rvChip: '842', watchChip: 'closed', cacheChip: '3' },
     // The ETCD lanes are the API keeping its own cache current: an rv=0 list never reaches etcd.
     wires: {
@@ -195,7 +195,7 @@ export const STEPS_SPEC = [
   {
     id: 'watch',
     duration: 2000,
-    narration: 'The informer opens GET /api/v1/pods?watch=true&resourceVersion=842. The API streams every change since that RV as a chunked HTTP response. The connection stays open for as long as the controller wants.',
+    narration: 'The informer opens GET /api/v1/pods?watch=true&resourceVersion=842. The API streams every change since that RV as a chunked HTTP response. The connection stays open until its timeout, then the informer reopens it.',
     chips: { rvChip: '842', watchChip: 'open · chunked HTTP', cacheChip: '3' },
     wires: { watch: 'chunked HTTP · stream' },
     opacity: SHOWN,
@@ -226,7 +226,7 @@ export const STEPS_SPEC = [
   {
     id: 'relist-on-410',
     duration: 2400,
-    narration: 'If the API has compacted history past the resourceVersion the informer holds, the next watch chunk returns HTTP 410 Gone. The informer drops its watch, re-LISTs to a fresh resourceVersion, and resumes the watch.',
+    narration: 'If the API has compacted history past the resourceVersion the informer holds, the next watch chunk returns HTTP 410 Gone. Then the informer drops its watch, re-LISTs to a fresh resourceVersion, and resumes the watch.',
     // `kept` is the news, so it is cued: the watch dies, the Indexer keeps its objects until the relist replaces them.
     chips: { rvChip: '843 · expired', watchChip: '410 Gone · re-listing', cacheChip: '4 · kept' },
     wires: { watch: 'HTTP 410 Gone', req: 're-LIST · fresh rv' },
@@ -252,7 +252,7 @@ export const STEPS_SPEC = [
   {
     id: 'crd',
     duration: 2800,
-    narration: 'CRDs add their own group and version (example.com/v1). The API serves them under /apis just like built-ins. Same list-then-watch contract, same informer story. Since 1.35 client-go opens that watch with the initial list on it, falling back to the LIST drawn here.',
+    narration: 'CRDs add their own group and version (example.com/v1). The API serves them under /apis like built-ins, and informers list and watch them the same way. Since 1.35 client-go opens that watch with the initial list on it, falling back to the LIST drawn here.',
     // The 410 step is a conditional aside, so the chips return to the steady state of `event`.
     chips: { rvChip: '843', watchChip: 'open · streaming', cacheChip: '4' },
     wires: { gvr: 'CRD · widgets · watchable' },

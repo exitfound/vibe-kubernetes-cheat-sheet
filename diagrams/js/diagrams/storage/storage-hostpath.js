@@ -237,7 +237,7 @@ export const STEPS_SPEC = [
   {
     id: 'reach',
     duration: 2900,
-    narration: 'The hostPath spec limits no path. On Node-1, /var/lib/kubelet holds the Secret volumes of its Pods and containerd.sock hands out root. So Baseline and Restricted Pod Security forbid hostPath, and only Privileged allows it, for Node agents such as log readers.',
+    narration: 'The hostPath spec limits no path. On Node-1, /var/lib/kubelet holds the Secret volumes of its Pods and containerd.sock hands out root. So Baseline and Restricted Pod Security forbid hostPath, and only Privileged allows it, for Node agents such as log collectors.',
     chipsCued: { ...TYPE, n1Chip: 'cache.db kept', ephChip: 'Pod gone', n2Chip: 'FailedMount' },
     opacity: stage({ app: OPACITY.terminated, app2: 1 }),
     ...faces('cache.db 8Gi', { reach: true, app2: 'ContainerCreating' }),

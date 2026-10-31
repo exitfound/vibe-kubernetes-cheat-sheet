@@ -50,7 +50,7 @@ const JOG_Y = midX(TOP_BOTTOM, LADDER_Y);
 const SANDBOX_CONNECTOR = [[SPINE_X, TOP_BOTTOM], [SPINE_X, JOG_Y], [CX, JOG_Y], [CX, NODE_Y]];
 
 export const SCENE = {
-  'aria-label': 'Pod sandbox via CRI: RunPodSandbox creates the pause container, CNI attaches the network, PullImage, CreateContainer and StartContainer launch the workload inside the sandbox',
+  'aria-label': 'Pod sandbox via CRI: RunPodSandbox creates the network namespace, CNI wires it, and only then the pause container starts, then PullImage, CreateContainer and StartContainer launch the workload inside the sandbox',
   parts: [
     P.defs(),
     P.arrow({ x1: KUBE_R, y1: CALL_Y, x2: RT_X, y2: CALL_Y, dim: true, dashed: true }),
@@ -68,8 +68,8 @@ export const SCENE = {
     P.chain({
       key: 'chain', x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
-        '1. RunPodSandbox   ·  pause container, shared namespaces',
-        '2. CNI ADD         ·  veth pair, IPAM, route',
+        '1. RunPodSandbox   ·  netns first, no container yet',
+        '2. CNI ADD         ·  veth, IPAM, then pause starts',
         '3. PullImage       ·  fetch image (policy can skip)',
         '4. CreateContainer ·  OCI spec, rootfs, mounts',
         '5. StartContainer  ·  fork ENTRYPOINT inside sandbox',
@@ -111,24 +111,25 @@ export const STEPS_SPEC = [
     chips: { sandboxChip: 'none', ipChip: 'none', statusChip: 'none', lastOpChip: 'none' },
     sublabels: { appBox: 'ENTRYPOINT' },
     podSublabels: { shellEl: ' ' },
-    opacity: { sandboxGroup: 0, appGroup: 0 },
+    opacity: { sandboxGroup: 0, pauseBox: 0, appGroup: 0 },
     chain: -1,
   },
   {
     id: 'sandbox',
     duration: 3100,
-    narration: 'Kubelet calls RunPodSandbox with the Pod metadata, labels, and resource hints. The runtime creates a pause container that holds the network, IPC, and UTS namespaces every workload container will share by default. The PID namespace is shared only when spec.shareProcessNamespace or spec.hostPID is set.',
-    chips: { sandboxChip: SANDBOX_ID, ipChip: 'none', statusChip: 'sandbox ready', lastOpChip: 'RunPodSandbox' },
+    narration: 'Kubelet calls RunPodSandbox with the Pod metadata, labels, and resource hints. The runtime first creates the Pod network namespace, still with no IP. Every workload container will share it, with IPC and UTS, by default. The PID namespace is shared only when spec.shareProcessNamespace or spec.hostPID is set.',
+    chips: { sandboxChip: SANDBOX_ID, ipChip: 'none', statusChip: 'sandbox setup', lastOpChip: 'RunPodSandbox' },
     wires: { kr: 'RunPodSandbox' },
-    podSublabels: { shellEl: 'sandbox ready' },
-    opacity: { appGroup: 0, sandboxGroup: 1 },
+    podSublabels: { shellEl: 'sandbox setup' },
+    // containerd starts pause only after CNI (sandbox_run.go), so the Pod lands empty here.
+    opacity: { appGroup: 0, sandboxGroup: 1, pauseBox: 0 },
     lit: ['statusChip', 'kubelet', 'sandboxChip', 'lastOpChip'],
     chain: 0,
     rewind: { chips: { sandboxChip: 'none', statusChip: 'none' } },
     flow: [
       F.top({ from: KUBE_R, to: RT_X, y: CALL_Y, name: 'grpc', lights: ['runtime'] }),
       F.route({ points: SANDBOX_CONNECTOR, after: 'grpc', name: 'run' }),
-      F.set({ at: 'run', chips: { sandboxChip: SANDBOX_ID, statusChip: 'sandbox ready' } }),
+      F.set({ at: 'run', chips: { sandboxChip: SANDBOX_ID, statusChip: 'sandbox setup' } }),
       F.fade({ target: 'sandboxGroup', from: 0, to: 1, dur: FADE.in, at: 'run', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'sandboxGroup', at: 'run' }),
     ],
@@ -136,14 +137,14 @@ export const STEPS_SPEC = [
   {
     id: 'cni',
     duration: 3100,
-    narration: 'As part of sandbox setup the runtime invokes the configured CNI plugin with the sandbox netns path. The plugin creates a veth pair, allocates an IP via IPAM, configures routes, and returns the result. The Pod IP is now set on the sandbox.',
+    narration: 'Inside the same RunPodSandbox call the runtime invokes the configured CNI plugin with the netns path. The plugin creates a veth pair, allocates an IP via IPAM, configures routes, and returns the result. Only then does the runtime start the pause container, which holds the network, IPC, and UTS namespaces.',
     chips: { sandboxChip: SANDBOX_ID, ipChip: POD_IP, statusChip: 'sandbox ready · IP set', lastOpChip: 'CNI ADD' },
     wires: { rc: 'ADD · netns + IPAM' },
     podSublabels: { shellEl: 'IP 10.244.1.5' },
-    opacity: { appGroup: 0, sandboxGroup: 1 },
+    opacity: { appGroup: 0, sandboxGroup: 1, pauseBox: 1 },
     lit: ['statusChip', 'lastOpChip', 'runtime', 'ipChip'],
     chain: 1,
-    rewind: { chips: { ipChip: 'none', statusChip: 'sandbox ready' }, podSublabels: { shellEl: 'sandbox ready' } },
+    rewind: { chips: { ipChip: 'none', statusChip: 'sandbox setup' }, podSublabels: { shellEl: 'sandbox setup' } },
     flow: [
       F.top({ from: RT_R, to: CNI_X, y: CALL_Y, name: 'exec' }),
       // The narrated CNI result rides the return lane, on the same beat as `conf`.
@@ -152,6 +153,7 @@ export const STEPS_SPEC = [
       F.light({ targets: ['cni'], at: 'exec' }),
       F.route({ points: SANDBOX_CONNECTOR, after: 'exec', name: 'conf' }),
       F.set({ at: 'conf', chips: { ipChip: POD_IP, statusChip: 'sandbox ready · IP set' }, podSublabels: { shellEl: 'IP 10.244.1.5' } }),
+      F.fade({ target: 'pauseBox', from: 0, to: 1, dur: FADE.in, at: 'conf', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'sandboxGroup', at: 'conf' }),
     ],
   },
@@ -161,9 +163,9 @@ export const STEPS_SPEC = [
     narration: 'Kubelet calls PullImage for the app image, respecting imagePullPolicy and imagePullSecrets. The runtime fetches it from the registry into the Node image store. Under IfNotPresent Kubelet skips the call if the image is there, unless it pulled that private image with other credentials. No workload container exists yet.',
     // `pulled`, not `cached`: this step draws the call, the skip belongs to the policy.
     chips: { sandboxChip: SANDBOX_ID, ipChip: POD_IP, statusChip: 'image pulled', lastOpChip: 'PullImage' },
-    wires: { kr: 'PullImage · nginx:1.27' },
+    wires: { kr: 'PullImage · nginx:1.30' },
     podSublabels: { shellEl: 'IP 10.244.1.5' },
-    opacity: { appGroup: 0, sandboxGroup: 1 },
+    opacity: { appGroup: 0, sandboxGroup: 1, pauseBox: 1 },
     lit: ['lastOpChip', 'kubelet', 'statusChip'],
     chain: 2,
     rewind: { chips: { statusChip: 'sandbox ready · IP set' } },
@@ -180,7 +182,7 @@ export const STEPS_SPEC = [
     wires: { kr: 'CreateContainer' },
     sublabels: { appBox: 'created · not started' },
     podSublabels: { shellEl: 'IP 10.244.1.5' },
-    opacity: { sandboxGroup: 1, appGroup: OPACITY.pending },
+    opacity: { sandboxGroup: 1, pauseBox: 1, appGroup: OPACITY.pending },
     lit: ['lastOpChip', 'kubelet', 'statusChip'],
     chain: 3,
     rewind: { chips: { statusChip: 'image pulled' } },
@@ -202,7 +204,7 @@ export const STEPS_SPEC = [
     wires: { kr: 'StartContainer' },
     sublabels: { appBox: 'running' },
     podSublabels: { shellEl: 'IP 10.244.1.5' },
-    opacity: { sandboxGroup: 1, appGroup: 1 },
+    opacity: { sandboxGroup: 1, pauseBox: 1, appGroup: 1 },
     lit: ['kubelet', 'statusChip', 'lastOpChip'],
     chain: 4,
     rewind: { chips: { statusChip: 'created · not started' }, sublabels: { appBox: 'created · not started' } },

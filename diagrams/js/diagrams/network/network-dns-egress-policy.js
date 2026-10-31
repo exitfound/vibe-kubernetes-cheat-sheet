@@ -100,7 +100,7 @@ const workload = (key, x, label, sublabel, inner) => P.pod({
 // them, the lanes ON TOP of the boundary so each road runs visibly through its door, then the
 // captions and the packet layer.
 export const SCENE = {
-  'aria-label': 'What a NetworkPolicy does to name resolution: a Pod that no policy selects reaches the cluster DNS Service and then the address it was given, a policy that selects that Pod for Egress allows only what its rules allow so the lookup dies on the way out while the one Pod the rules select still connects, an egress rule to the DNS Pods that states port 53 with no protocol opens TCP alone because protocol defaults to TCP, the same rule stating 53/UDP and 53/TCP lets the query out and the reply back in without a rule of its own, and the TCP half is what carries the retry when an answer comes back truncated.',
+  'aria-label': 'What a NetworkPolicy does to name resolution: a Pod that no policy selects reaches the cluster DNS Service and then the address it was given, a policy that selects that Pod for Egress allows only what its rules allow so the lookup dies on the way out while the one Pod the rules select still connects, an egress rule to the DNS Pods that states port 53 with no protocol opens TCP alone because protocol defaults to TCP, the same rule stating 53/UDP and 53/TCP lets the query out and the reply back in without a rule of its own, and 53/TCP is what carries the retry when an answer comes back truncated.',
   parts: [
     P.defs(),
     P.box({ key: 'coredns', x: DNS_X, y: DNS_Y, w: BOX_W, h: BOX_H, label: 'CoreDNS Pods', sublabel: 'k8s-app=kube-dns' }),
@@ -253,7 +253,7 @@ export const STEPS_SPEC = [
   {
     id: 'truncated',
     duration: 6500,
-    narration: 'The TCP half of that rule is not decoration. An answer too large for a UDP reply comes back with the truncation flag set, and a resolver that retries over TCP asks the same question again on port 53 TCP. That retry is a fresh connection out of Pod web, so without the TCP port in the rule the large answer never arrives.',
+    narration: 'An answer too large for a UDP reply comes back with the truncation flag set, and a resolver that retries over TCP asks the same question again on port 53 TCP. That retry is a fresh connection out of Pod web, so without the TCP port in the rule the large answer never arrives.',
     ...stage({ ring: 1, policies: 2 }),
     wires: { ringCap: RING_CAPTION, ...caps(BOTH, DB_RULE) },
     sublabels: { polDns: DNS_RULE_BOTH },

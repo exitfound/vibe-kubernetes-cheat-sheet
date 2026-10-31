@@ -102,7 +102,7 @@ jobs:
 
       - name: No internal file is staged
         run: |
-          leaked="$(find _site \( -name CLAUDE.md -o -name CARDS.md -o -name CANON.md -o -name README.md -o -name CARDS -o -path '_site/diagrams/test' \) -print)"
+          leaked="$(find _site \( -name CLAUDE.md -o -name CARDS.md -o -name CANON.md -o -name README.md -o -name README.ru.md -o -name CARDS -o -path '_site/diagrams/test' \) -print)"
           if [ -n "$leaked" ]; then echo "internal files staged:"; echo "$leaked"; exit 1; fi
 
       - name: Site smoke on the staged site
@@ -176,7 +176,7 @@ jobs:
           for path in / /cli/ /diagrams/ /diagrams/card/ /cli/section/ /cli/section/helm/ /sitemap.xml /llms.txt; do
             [ "$(code "$path")" = 200 ] || { echo "not 200: $path"; fail=1; }
           done
-          for path in /CLAUDE.md /diagrams/CLAUDE.md /diagrams/CANON.md /README.md /cli/README.md /diagrams/README.md /diagrams/js/diagrams/cluster/CARDS.md /diagrams/js/diagrams/cluster/CARDS/cluster-architecture.md /diagrams/test/ /tools/pages/build.mjs /Dockerfile /compose.yaml /configs/nginx.conf /.dockerignore; do
+          for path in /CLAUDE.md /diagrams/CLAUDE.md /diagrams/CANON.md /README.md /README.ru.md /cli/README.md /cli/README.ru.md /diagrams/README.md /diagrams/README.ru.md /diagrams/js/diagrams/cluster/CARDS.md /diagrams/js/diagrams/cluster/CARDS/cluster-architecture.md /diagrams/test/ /tools/pages/build.mjs /Dockerfile /compose.yaml /configs/nginx.conf /.dockerignore; do
             [ "$(code "$path")" = 404 ] || { echo "not 404: $path"; fail=1; }
           done
           exit "$fail"

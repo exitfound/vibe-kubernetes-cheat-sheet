@@ -64,7 +64,7 @@ const chip = (i, key, name, value) => P.chip({ key, x: chipX(i), y: CHIPS_Y, w: 
 // Z-order is the list order: the frame, the disks, the two stations, the Pods, the lanes and their
 // captions, the chip row, then the packet layer.
 export const SCENE = {
-  'aria-label': 'volumeMode decides what a Pod is handed. Two claims ask for the same size from the same StorageClass and differ only in volumeMode. Under Filesystem, the default, the CSI node service formats the blank device with mkfs, mounts it at a staging path on the Node when the driver stages, and bind mounts it into the Pod, so the container finds a directory at the mountPath given under volumeMounts, where files, permissions, subPath and fsGroup have something to act on. Under Block neither step happens, and the device itself is published into the container at the devicePath given under volumeDevices, with no filesystem on it. The field cannot change once the claim exists and must match on the PersistentVolume and the claim.',
+  'aria-label': 'volumeMode decides what a Pod is handed. Two claims ask for the same size from the same StorageClass and differ only in volumeMode. Under Filesystem, the default, the CSI node service formats the blank device with mkfs, mounts it at a staging path on the Node when the driver stages, and bind mounts it into the Pod. So the container finds a directory at the mountPath given under volumeMounts, where files, permissions, subPath and fsGroup have something to act on. Under Block there is no mkfs and no filesystem mount, and the device itself is published into the container at the devicePath given under volumeDevices, with no filesystem on it. The field cannot change once the claim exists and must match on the PersistentVolume and the claim.',
   parts: [
     P.defs(),
     P.node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1: CSI node service' }),
@@ -153,7 +153,7 @@ export const STEPS_SPEC = [
   {
     id: 'publish-dir',
     duration: 3200,
-    narration: 'Then it publishes the volume into Pod web-0 with a bind mount, and the container finds an ordinary directory at the mountPath from its volumeMounts, /data. Files, permissions, subPath and the fsGroup ownership change all have something to act on here, because there is a filesystem.',
+    narration: 'Then the node service publishes the volume into Pod web-0 with a bind mount, and the container finds an ordinary directory at the mountPath from its volumeMounts, /data. Files, permissions, subPath and the fsGroup ownership change all have something to act on here, because there is a filesystem.',
     chipsCued: chips('web-0 disk', 'directory /data', 'nothing yet', 'on web-0'),
     wires: { fsLane: 'ext4 on disk' },
     opacity: SKIP_OFF,
@@ -185,7 +185,7 @@ export const STEPS_SPEC = [
   {
     id: 'trade',
     duration: 3200,
-    narration: 'That is the trade. Pod db-0 gets the bare device and manages its own layout, while fsGroup and subPath have nothing to act on and there are no files inside it to set permissions on. The volumeMode field is fixed once the claim exists and must match the volume, so it is chosen up front.',
+    narration: 'Pod db-0 skips Format and Mount, gets the bare device and manages its own layout, with no filesystem for fsGroup, subPath or file permissions to act on. The volumeMode field is fixed once the claim exists and must match the volume, so it is chosen up front.',
     chipsCued: chips('web-0 disk', 'directory /data', 'device /dev/xvda', 'on web-0'),
     wires: { fsLane: 'ext4 on disk', blkLane: 'raw device' },
     opacity: SKIP_ON,

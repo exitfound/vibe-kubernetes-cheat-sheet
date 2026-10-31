@@ -104,7 +104,7 @@ export const STEPS_SPEC = [
   {
     id: 'route',
     duration: 2900,
-    narration: 'Pod A sends to 10.244.2.7 out its eth0. The frame rides the veth into the Node-1 network stack, which consults its routing table. The destination is not in the local Pod subnet, so the route hands the frame to the CNI dataplane that carries off-Node traffic instead of to a local Pod.',
+    narration: 'Pod A sends to 10.244.2.7 out its eth0. The frame rides the veth into the Node-1 network stack, which consults its routing table. The destination is not in the local Pod subnet, so the route hands the frame to the CNI dataplane that carries off-Node traffic.',
     chips: { innerChip: '.1.5 -> .2.7', outerChip: 'none', encapChip: 'none', modeChip: 'overlay' },
     wires: { va: VETH, vb: VETH },
     // No chip is cued: nothing the strip reports has moved yet. The frame is still bare, which is
@@ -122,7 +122,7 @@ export const STEPS_SPEC = [
   {
     id: 'encap',
     duration: 3650,
-    narration: 'In overlay mode the CNI dataplane wraps the original frame inside a VXLAN header carried over UDP to the Node-2 address. The outer IP header carries Node IPs the physical network already knows how to route, the UDP dport is 8472 for flannel, and the inner Pod IPs ride untouched. The wrapped packet crosses the underlay to Node-2.',
+    narration: 'In overlay mode the CNI dataplane wraps the original frame inside a VXLAN header carried over UDP to the Node-2 address. The outer IP header carries Node IPs the physical network already knows how to route. For flannel the UDP dport defaults to 8472, and the inner Pod IPs ride untouched. The wrapped packet crosses the underlay to Node-2.',
     chips: { innerChip: '.1.5 -> .2.7', outerChip: 'Node-1 -> Node-2', encapChip: 'VXLAN/UDP 8472', modeChip: 'overlay' },
     wires: { va: VETH, vb: VETH, encap: 'VXLAN over UDP · dport 8472' },
     // The overlay device acts, infra stays lit and never pulses. The two chips the wrap writes are

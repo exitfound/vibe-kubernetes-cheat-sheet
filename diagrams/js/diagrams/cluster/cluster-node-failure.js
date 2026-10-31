@@ -63,7 +63,7 @@ const WRITE_CONNECTOR     = [[EV_X, TOP_BOTTOM], [EV_X, EV_JOG_Y], [NODE_A_CX - 
 const RESCHED_CONNECTOR   = [[RS_X, TOP_BOTTOM], [RS_X, NODE_CY], [NODE_B_X, NODE_CY]];
 
 export const SCENE = {
-  'aria-label': 'Node failure and eviction: lease heartbeat loss, Ready flips to Unknown, NoExecute taint, taint-eviction delete, reschedule',
+  'aria-label': 'Node failure and eviction: Lease heartbeat lost, Ready flips to Unknown, then a NoExecute taint, a taint-eviction delete, a reschedule',
   parts: [
     P.defs(),
     // A relation, not arrows: the status flip is computed from the expired Lease, nothing travels.
@@ -98,12 +98,12 @@ export const SCENE = {
     P.pod({
       key: 'podA', id: 'podA', innerKey: 'podABox',
       x: POD_A_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: ' ', containers: 0,
-      inner: { ...POD_INNER, label: 'app-pod', sublabel: 'nginx:1.27' },
+      inner: { ...POD_INNER, label: 'app-pod', sublabel: 'nginx:1.30' },
     }),
     P.pod({
       key: 'podB', id: 'podB', innerKey: 'podBBox', opacity: 0,
       x: POD_B_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: ' ', containers: 0,
-      inner: { ...POD_INNER, label: 'app-pod', sublabel: 'nginx:1.27' },
+      inner: { ...POD_INNER, label: 'app-pod', sublabel: 'nginx:1.30' },
     }),
     // Names both controllers: they are separate components and act one step apart.
     P.box({ key: 'ctrl', x: CTRL_X, y: TOP_Y, w: CTRL_W, h: TOP_H, label: 'controller-manager', sublabel: 'node-lifecycle + taint-eviction' }),
@@ -157,7 +157,7 @@ export const STEPS_SPEC = [
   {
     id: 'kubelet-stops',
     duration: 2000,
-    narration: 'The Kubelet on Node-1 stops renewing (kernel panic, network partition, or Kubelet crash). The Lease grows stale, but Pods on the Node keep running for now.',
+    narration: 'The Kubelet on Node-1 stops renewing (kernel panic, network partition, or Kubelet crash). The Lease grows stale, but the Pods on the Node still show Running for now.',
     // 30s of staleness is under the 50s grace, so Ready is still True.
     chips: { ...FRESH, readyChip: 'True (Stale Lease)', leaseChip: '30s · Stale' },
     opacity: shades(),
@@ -195,7 +195,7 @@ export const STEPS_SPEC = [
   {
     id: 'evict',
     duration: 5000,
-    narration: 'Toleration expires. The taint-eviction-controller marks the Pod with a DisruptionTarget condition, then deletes it with a plain DELETE that bypasses PodDisruptionBudgets (unlike kubectl drain, which uses the PDB-aware Eviction API). The Pod gets a deletionTimestamp and sits in Terminating: the unreachable Node-1 still holds the orphaned container, and the entry clears only when the Kubelet answers, the Node object is deleted, or someone forces it.',
+    narration: 'The toleration expires. The taint-eviction-controller marks the Pod with a DisruptionTarget condition, then deletes the Pod with a plain DELETE that bypasses PodDisruptionBudgets (unlike kubectl drain, which uses the PDB-aware Eviction API). The Pod gets a deletionTimestamp and sits in Terminating: the unreachable Node-1 may still run the container, and the entry clears only when the Kubelet answers, the Node object is deleted, or someone forces it.',
     chips: { ...FRESH, ...EXPIRED, ...TAINTED, leaseChip: 'over 350s · Expired', evictChip: '0s · Terminating' },
     wires: { ctrl: 'PATCH DisruptionTarget · DELETE .../pods/{name}' },
     // Terminating is a phase, not an absence, so the Pod stays drawn at that shade.
@@ -213,7 +213,7 @@ export const STEPS_SPEC = [
   {
     id: 'reschedule',
     duration: 2600,
-    narration: 'The owning controller (Deployment via its ReplicaSet) sees the missing replica and creates a replacement Pod. Scheduler picks the healthy Node-2 and Kubelet there starts it. End-to-end recovery takes about 50s plus 300s by default, the grace period plus the toleration.',
+    narration: 'The owning ReplicaSet (of a Deployment) sees the missing replica and creates a replacement Pod. Scheduler picks the healthy Node-2 and Kubelet there starts it. End-to-end recovery takes about 50s plus 300s by default, the grace period plus the toleration.',
     chips: { ...FRESH, ...EXPIRED, ...TAINTED, leaseChip: 'over 350s · Expired', evictChip: 'none · Node-2 has no taint' },
     wires: { ctrl: 'ReplicaSet creates replacement · Scheduler binds Node-2' },
     opacity: shades({ nodeA: DOWN, podA: DYING, podB: 1, resched: 1 }),

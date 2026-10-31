@@ -47,6 +47,7 @@ Name the rows you hit before the first edit, and re-check each afterwards.
 |---|---|
 | a lane, an endpoint, any coordinate | the span of every step, because `routeDur` is length based (`A-11`, `M-20`). Re-run the duration check and `pace.mjs` |
 | a narration or any drawn string | the panel rectangle per viewport (`L-08`). Re-measure with `OVERLAY_IDS`, then read the result (`T-31`) |
+| a narration, the aria-label or the `desc` | its Russian line, keyed by the exact English: `js/lang/steps/<id>.js` (`S-58`), `js/lang/ru.js` (`S-57`). The old line is an orphan until replaced. Write the new one through the `card-facts-ru` skill: parity with the English, the length budget, a second reader |
 | a chip value | whether the change is cued (`P-05`, `P-09a`), and whether name plus value fit (`P-07`) |
 | a block's size or position | the content centre (`L-13`), what sits under the panel (`L-15`), the frame family (`L-23`, `L-24`) |
 | an opacity or a lit state | the reduced path (`S-16`), and the lane shade, the min of its ends (`A-13`) |

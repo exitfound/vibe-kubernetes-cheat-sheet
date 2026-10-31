@@ -17,7 +17,7 @@ DEVIATES STO.L-05: the Pods are 168 wide (104 tall), since two 232 columns from 
          alone sits off 600. The escape box stands on the spine under the disk it acts on.
          A-05: the left attach lane carries no ball and stays a full-colour arrow like the right
          one, since a relation would make it the lesser half. Only opacity says which is live.
-CONTENT  Sources: Node Shutdowns, Taint-Based Evictions (v1.36), ADC reconciler and PodGC (v1.36.5).
+CONTENT  Sources: Node Shutdowns, Taint-Based Evictions, Pod Lifecycle (v1.36), ADC reconciler (v1.36.5).
          DOC-VS-CODE: the page times force detach from a deletion that "has not succeeded", the
          code from a volume no Pod object wants, so the 6 min clock starts once the Pod is force
          deleted. DOC-VS-CODE: the page allows the taint with NoSchedule, which deletes only

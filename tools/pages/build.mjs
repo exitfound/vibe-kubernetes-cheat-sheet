@@ -12,7 +12,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const from = (p) => import(pathToFileURL(join(ROOT, p)).href);
 const CHECK = process.argv.includes('--check');
 
-const { DIAGRAMS, CATEGORIES, CATEGORY_LABEL, SUBCATEGORIES } = await from('diagrams/js/data.js');
+const { DIAGRAMS, CATEGORIES, CATEGORY_LABEL, SUBCATEGORIES, descCap } = await from('diagrams/js/data.js');
 const { renderPoster } = await from('diagrams/js/lib/poster.js');
 const { SECTIONS } = await from('cli/js/data.js');
 const { hl, sortCmds } = await from('cli/js/lib/commands.js');
@@ -55,9 +55,12 @@ const OG = {
 // Words a cut description must not end on: "...behind the API, the..." reads as machine output.
 const DANGLING = /\s+(?:the|a|an|of|to|and|or|in|on|at|for|with|by|from|into|its|their|is|are|as|that|which|so)$/i;
 
-// A meta description: the first whole sentences (ending . ! or ? before a capital) within 160 chars.
-// Under 100 it is cut at the last clause break near 160 instead, and with none to end on, whole
-// sentences of 60 or more win over a cut in the middle of a clause.
+// The D-04 cap of a card desc, kept whole in its meta description and llms.txt line.
+const DESC_MAX = descCap(DIAGRAMS.map(s => s.desc));
+
+// A meta description: the first whole sentences (ending . ! or ? before a capital) within `max`, 160
+// unless a card desc passes DESC_MAX to stay whole. Under 100 it is cut at the last clause break near
+// `max` instead, and with none to end on, whole sentences of 60 or more win over a mid-clause cut.
 function summary(text, max = 160) {
   const parts = [];
   let from = 0;
@@ -156,7 +159,7 @@ ${body}
 
   <footer class="footer">
     <p class="disclaimer">Not affiliated with the CNCF or the Kubernetes project.</p>${REPO ? `
-    <p class="disclaimer">Every page is checked against the official documentation. Source and corrections on <a href="${REPO}" rel="noopener">GitHub</a>.</p>` : ''}
+    <p class="disclaimer">Each diagram and command section links the documentation it was checked against. Source and corrections on <a href="${REPO}" rel="noopener">GitHub</a>.</p>` : ''}
     <p>&copy; <span id="year"></span> <a href="/">kube.how</a></p>
   </footer>
 
@@ -248,7 +251,7 @@ async function diagramPage(s, i) {
   const related = diagramOrder.filter(o => o.category === s.category && o.subcategory === s.subcategory && o.id !== s.id);
   const sources = s.sources || [];
   const title = fitTitle(`${s.title}: Kubernetes animated diagram`, `${s.title} | Kubernetes diagram`, `${s.title} | Kubernetes`, s.title);
-  const description = summary(s.desc);
+  const description = summary(s.desc, DESC_MAX); // a card desc is a situation and its question, never cut
   // The scene's aria-label up to its first colon or full stop names what the drawing shows; the
   // title alone when that only repeats it, and never past one short line.
   const label = ((mod.SCENE && mod.SCENE['aria-label']) || '').split(/[:.]/)[0].trim();
@@ -270,10 +273,10 @@ async function diagramPage(s, i) {
         <p class="page-lede">${esc(s.desc)}</p>
         <p class="page-cta">
           <a class="page-play" href="${play}"><span aria-hidden="true">&#9654;</span> Play the animation</a>
-          <span class="page-play-note">${steps.length} steps, animated, best on a wide screen</span>
+          <span class="page-play-note">${steps.length} steps, animated, plays on a computer or a tablet</span>
         </p>
       </header>
-      <figure class="page-poster"><img src="${image}" alt="${esc(alt)}" width="1280" height="720"></figure>
+      <figure class="page-poster"><img src="${image}" alt="${esc(alt)}" width="1280" height="720" fetchpriority="high"></figure>
       <section class="page-steps" aria-labelledby="steps-h">
         <h2 id="steps-h">${esc(s.title)}, step by step</h2>
         <ol>
@@ -288,7 +291,7 @@ ${sources.length ? `      <section class="page-sources" aria-labelledby="sources
         <ul>${sources.map(src => `<li><a href="${esc(src.href)}" target="_blank" rel="noopener">${esc(src.label)}</a></li>`).join('')}</ul>
       </section>
 ` : ''}      <section class="page-related page-commands" aria-labelledby="commands-h">
-        <h2 id="commands-h">Commands for this</h2>
+        <h2 id="commands-h">Related commands</h2>
         <ul>${sectionsFor(s).map(sec => `<li><a href="${sectionPath(sec.id)}">${esc(cliHeading(sec))}</a></li>`).join('')}</ul>
       </section>
       <nav class="page-pager" aria-label="Previous and next diagram">
@@ -443,6 +446,7 @@ function cliPage(sec, i) {
   const total = sec.groups.reduce((n, g) => n + g.cmds.length, 0);
   const heading = cliHeading(sec);
   const groupNames = sec.groups.map(g => g.title).join(', ');
+  const keys = /shortcuts/i.test(sec.title);
   const prev = SECTIONS[i - 1], next = SECTIONS[i + 1];
   const related = SECTIONS.filter(o => o.sub === sec.sub && o.id !== sec.id);
   const title = fitTitle(`${heading} cheat sheet`, heading);
@@ -467,7 +471,7 @@ function cliPage(sec, i) {
           <span class="section-count">${total} ${total === 1 ? 'command' : 'commands'}</span>
         </span>
       </div>
-      <p class="page-lede">${total} commands in ${sec.groups.length} groups: ${esc(groupNames)}. Click or tap any command to copy it.${tool ? ` Part of the full <a href="${sectionPath(tool.id)}">${tool.sub} cheat sheet</a>.` : ''}${sec.docs ? ` Official documentation: <a href="${esc(sec.docs)}" target="_blank" rel="noopener">${esc(new URL(sec.docs).host)}</a>.` : ''}</p>
+      <p class="page-lede">${total} ${keys ? 'shortcuts' : 'commands'} in ${sec.groups.length} groups: ${esc(groupNames)}. Click or tap any ${keys ? 'shortcut' : 'command'} to copy it.${tool ? ` Part of the full <a href="${sectionPath(tool.id)}">${tool.sub} cheat sheet</a>.` : ''}${sec.docs ? ` Official documentation: <a href="${esc(sec.docs)}" target="_blank" rel="noopener">${esc(new URL(sec.docs).host)}</a>.` : ''}</p>
       <p class="page-cta"><a class="page-open" href="/cli/#${sec.id}">Open in the interactive cheat sheet</a> <span class="page-play-note">search, stars and every other section</span></p>
       <div class="cards-grid">${cards}
       </div>
@@ -594,11 +598,11 @@ function llmsTxt() {
   const line = (title, url, text) => `- [${title}](${url}): ${text.replace(/\s+/g, ' ')}`;
   return `# kube.how
 
-> A free Kubernetes reference: ${diagramOrder.length} animated architecture diagrams, each explained step by step with its sources on kubernetes.io, and a searchable cheat sheet of ${total} kubectl, Helm, Kustomize and K9s commands.
+> A free Kubernetes reference: ${diagramOrder.length} animated architecture diagrams, each explained step by step with its sources linked, and a searchable cheat sheet of ${total} kubectl, Helm, Kustomize and K9s commands.
 
 ## Diagrams
 
-${diagramOrder.map(s => line(s.title, `${SITE}${cardPath(s.id)}`, summary(s.desc))).join('\n')}
+${diagramOrder.map(s => line(s.title, `${SITE}${cardPath(s.id)}`, summary(s.desc, DESC_MAX))).join('\n')}
 
 ## Command cheat sheets
 
@@ -626,7 +630,9 @@ async function dateMap(rev) {
   const date = (key, hash, file) => {
     out[key] = old[key]?.rev === hash ? old[key] : { rev: hash, date: old[key] ? today : seed(file) };
   };
-  for (const s of DIAGRAMS) date(s.id, rev[s.id], `diagrams/js/diagrams/${s.category}/${s.id}.js`);
+  // The page shows the desc that REV leaves out, so a reworded desc still moves its <lastmod>.
+  const page = (s) => createHash('sha1').update(rev[s.id] + s.desc).digest('hex').slice(0, 8);
+  for (const s of DIAGRAMS) date(s.id, page(s), `diagrams/js/diagrams/${s.category}/${s.id}.js`);
   for (const sec of SECTIONS) date(`cli:${sec.id}`, createHash('sha1').update(JSON.stringify(sec)).digest('hex').slice(0, 8), 'cli/js/data.js');
   return out;
 }
@@ -668,25 +674,35 @@ function codeOnly(src) {
   return out;
 }
 
-// NEW again after any change to a card's entry, poster, scene or steps, hashed from the evaluated
-// module with function bodies through codeOnly, so comments do not count. Kit and lib/ changes would
-// mark every card and are left out: the kit pulses a ball bakes into F.pulse hash as their name.
+// NEW again after any change to a card's entry but its desc, poster, scene or steps, function bodies
+// through codeOnly so comments do not count. Kit and lib/ changes would mark every card and are left
+// out: the kit pulses a ball bakes into F.pulse hash as their name.
 async function cardRevisions() {
   const rev = {};
   for (const s of DIAGRAMS) {
     const m = await from(`diagrams/js/diagrams/${s.category}/${s.id}.js`);
     const kit = await from(`diagrams/js/diagrams/${s.category}/${s.category}-kit.js`);
-    const body = JSON.stringify({ entry: s, poster: POSTERS[s.id] ?? null, scene: m.SCENE, steps: m.STEPS_SPEC },
+    const { desc, ...entry } = s; // a reworded desc is not new content: the steps carry it
+    const body = JSON.stringify({ entry, poster: POSTERS[s.id] ?? null, scene: m.SCENE, steps: m.STEPS_SPEC },
       (k, v) => (v === kit.pulsePod ? 'kit:pulsePod' : v === kit.pulsePodDim ? 'kit:pulsePodDim'
         : typeof v === 'function' ? codeOnly(v.toString()) : v));
     rev[s.id] = createHash('sha1').update(body).digest('hex').slice(0, 8);
   }
   return rev;
 }
+// A one-time bridge from the kube-how:diagram-seen:v1 map, whose revisions hashed the desc: a card
+// whose content is unchanged since then maps its old key to the new one, every other card reads NEW.
+// carry.json was written once from the last v1 release, an entry lapses when its card changes again.
+const CARRY = JSON.parse(await readFile(join(ROOT, 'tools/pages/carry.json'), 'utf8'));
 const revisionsFile = (rev) => `// generated by tools/pages/build.mjs: edit the generator, not this file
 // Per card content fingerprint. /diagrams/ keys "new since your last visit" by id@revision.
 export const REV = {
 ${Object.entries(rev).map(([id, r]) => `  '${id}': '${r}',`).join('\n')}
+};
+
+// The old key of an unchanged card, read once from the v1 map (cli/js/lib/fresh.js readSeen).
+export const CARRY = {
+${Object.entries(CARRY).filter(([id, c]) => rev[id] === c.to).map(([id, c]) => `  '${id}@${c.from}': '${id}@${c.to}',`).join('\n')}
 };
 `;
 

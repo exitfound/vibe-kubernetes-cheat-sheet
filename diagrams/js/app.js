@@ -3,12 +3,13 @@
 import { DIAGRAMS, CATEGORIES, CATEGORY_LABEL, CATEGORY_ICONS, CATEGORY_TAGLINE, SUBCATEGORIES } from './data.js';
 import { renderPoster } from './lib/poster.js';
 import { reducedMotion, onReducedMotionChange } from './lib/motion.js';
-import { MOBILE_STUB, activeController, activeDialogDiagram, setupDialog, setupDialogKeys, openDiagram, closeDialog, syncDialogStar, refreshDialogNav } from './dialog.js';
+import { MOBILE_STUB, activeController, activeDialogDiagram, setupDialog, setupDialogKeys, openDiagram, prefetchDiagram, closeDialog, syncDialogStar, refreshDialogNav } from './dialog.js';
 import { setupSidebar } from '../../cli/js/lib/sidebar.js';
 import { setupKeysHelp, isSlash } from '../../cli/js/lib/keys.js';
-import { trackFresh } from '../../cli/js/lib/fresh.js';
-import { REV } from './revisions.js';
-import { setupHeader, alignLogo, copyText, escapeHtml } from '../../cli/js/lib/chrome.js';
+import { trackFresh, DIAGRAM_SEEN_LEGACY } from '../../cli/js/lib/fresh.js';
+import { REV, CARRY } from './revisions.js';
+import { setupHeader, alignLogo, fitSearchPlaceholder, watchNavFade, copyText, escapeHtml } from '../../cli/js/lib/chrome.js';
+import { getLang, LANG_EVENT, counted as countIn, newPill } from '../../cli/js/lib/lang.js';
 
 setupSidebar();
 
@@ -50,7 +51,40 @@ function persistStarred() {
   try { localStorage.setItem(STARRED_KEY, JSON.stringify([...starred])); } catch (_) {}
 }
 
-setupHeader();
+const fitPlaceholder = fitSearchPlaceholder(document.getElementById('searchInput'));
+setupHeader().then(fitPlaceholder);
+
+// The grid chrome follows the header switch as on /cli/: the static parts of index.html carry their
+// Russian as data-ru*, the rendered ones read it here. Nav labels, category and card text stay English.
+let lang = getLang();
+// The card descriptions too, keyed by the English desc and loaded only while Russian is on, so a
+// reworded desc shows in English until lang/ru.js follows (unit/diagrams-i18n.test.mjs fails).
+let RU = null;
+// A failed fetch leaves the descriptions in English instead of the page empty.
+const loadRu = async () => {
+  try { RU ??= (await import('./lang/ru.js')).RU; } catch (err) { console.error('lang/ru.js:', err); }
+};
+if (lang === 'ru') await loadRu();
+const tr = (en) => (lang === 'ru' && RU?.[en]) || en;
+const UI_RU = {
+  'Grid view': 'Вид сетки',
+  'Detailed cards': 'Подробные карточки',
+  'Compact cards': 'Компактные карточки',
+  'NEW': 'НОВОЕ',
+  'New or updated since your last visit': 'Новое или обновлённое с вашего прошлого визита',
+  'Toggle star': 'Добавить в избранное или убрать',
+  'Copy link to this section': 'Скопировать ссылку на секцию',
+  'No starred diagrams yet': 'Избранных диаграмм пока нет',
+  'Click the star on a card to save it here.': 'Нажмите на звёздочку на карточке, чтобы сохранить её здесь.',
+  'No diagrams match': 'Подходящих диаграмм нет',
+  'Try a different category or search term.': 'Попробуйте другую категорию или другой запрос.',
+  'Copy link': 'Скопировать ссылку',
+  'Link copied': 'Ссылка скопирована',
+};
+const ui = (en) => (lang === 'ru' && UI_RU[en]) || en;
+const ruAttr = () => lang === 'ru' ? ' lang="ru"' : '';
+// A count with its noun in the language on screen (`counted` in cli/js/lib/lang.js).
+const counted = (n, forms) => countIn(n, forms, lang);
 
 const ICON = {
   link:    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
@@ -175,6 +209,7 @@ function init() {
   applySearch(parsed.q, { render: false });
   setupSearch();
   setupSectionLinks();
+  setupCardPrefetch();
   renderCatNav();
   renderSubNav();
   renderGrid();
@@ -200,10 +235,10 @@ function setupMobileStub() {
     const url = location.href;
     const finish = () => {
       clearTimeout(timer);
-      btn.textContent = 'Link copied';
+      btn.textContent = ui('Link copied');
       btn.classList.add('copied');
       timer = setTimeout(() => {
-        btn.textContent = 'Copy link';
+        btn.textContent = ui('Copy link');
         btn.classList.remove('copied');
       }, COPY_RESET_DELAY);
     };
@@ -255,9 +290,9 @@ function renderCatNav() {
   });
   parts.push(`<button class="cat-btn cat-starred ${activeCat === STARRED ? 'active' : ''}" data-cat="${STARRED}">Starred</button>`);
   const compact = isCompact();
-  parts.push(`<span class="view-toggle" role="group" aria-label="Grid view">
-    <button class="view-btn${compact ? '' : ' active'}" type="button" data-view="full" title="Detailed cards" aria-label="Detailed cards" aria-pressed="${!compact}">${ICON.viewFull}</button>
-    <button class="view-btn${compact ? ' active' : ''}" type="button" data-view="compact" title="Compact cards" aria-label="Compact cards" aria-pressed="${compact}">${ICON.viewCompact}</button>
+  parts.push(`<span class="view-toggle" role="group" aria-label="${ui('Grid view')}">
+    <button class="view-btn${compact ? '' : ' active'}" type="button" data-view="full" title="${ui('Detailed cards')}" aria-label="${ui('Detailed cards')}" aria-pressed="${!compact}">${ICON.viewFull}</button>
+    <button class="view-btn${compact ? ' active' : ''}" type="button" data-view="compact" title="${ui('Compact cards')}" aria-label="${ui('Compact cards')}" aria-pressed="${compact}">${ICON.viewCompact}</button>
   </span>`);
   inner.innerHTML = parts.join('');
   inner.querySelectorAll('.view-btn').forEach(btn => {
@@ -331,7 +366,8 @@ function filteredDiagrams() {
     } else if (activeCat !== 'all' && s.category !== activeCat) return false;
     if (activeSub && s.subcategory !== activeSub) return false;
     if (searchQuery) {
-      const hay = `${s.title} ${s.desc} ${s.category} ${s.subcategory || ''}`.toLowerCase();
+      // While Russian is on both languages match, in English only the English, as on /cli/.
+      const hay = `${s.title} ${s.desc} ${lang === 'ru' ? RU?.[s.desc] || '' : ''} ${s.category} ${s.subcategory || ''}`.toLowerCase();
       if (!hay.includes(searchQuery)) return false;
     }
     return true;
@@ -340,13 +376,12 @@ function filteredDiagrams() {
 
 function renderCard(s) {
   return `
-    <article class="card" data-id="${escapeHtml(s.id)}" data-cat="${escapeHtml(s.category)}"${isCompact() ? ` title="${escapeHtml(s.desc)}"` : ''}>
-      <div class="card-poster">${renderPoster(s)}${fresh.isNew(freshKey(s.id)) ? '<span class="new-pill card-new" title="New or updated since your last visit">NEW</span>' : ''}</div>
+    <article class="card" data-id="${escapeHtml(s.id)}" data-cat="${escapeHtml(s.category)}"${isCompact() ? ` title="${escapeHtml(tr(s.desc))}"` : ''}>
+      <div class="card-poster">${renderPoster(s)}${fresh.isNew(freshKey(s.id)) ? `<span class="new-pill card-new"${ruAttr()} title="${ui('New or updated since your last visit')}">${ui('NEW')}</span>` : ''}</div>
       <div class="card-body">
         <div class="card-title"><a class="card-link" href="/diagrams/card/${escapeHtml(s.id)}/">${escapeHtml(s.title)}</a></div>
-        <div class="card-desc">${escapeHtml(s.desc)}</div>
+        <div class="card-desc"${tr(s.desc) === s.desc ? '' : ' lang="ru"'}>${escapeHtml(tr(s.desc))}</div>
         <div class="card-meta">
-          <span class="card-cat">${escapeHtml(CATEGORY_LABEL[s.category] || s.category)}</span>
           <span class="card-version">k8s ${escapeHtml(s.k8sVersion)}</span>
           ${renderStarBtn(s.id)}
         </div>
@@ -355,14 +390,13 @@ function renderCard(s) {
   `;
 }
 
-// "New or changed since your last visit" (cli/js/lib/fresh.js). Keyed by id@revision, so any edit to
-// a card reads NEW again. Opening a card clears it.
+// "New or changed since your last visit" (cli/js/lib/fresh.js). Keyed by id@revision, so an edit to a
+// card reads NEW again, a desc rewording does not. v2 dropped desc from the revision, so the older maps
+// carry over through `CARRY` (`DIAGRAM_SEEN_LEGACY`). Opening clears it.
 const freshKey = (id) => `${id}@${REV[id] || ''}`;
-const fresh = trackFresh('kube-how:diagram-seen:v1', DIAGRAMS.map(s => freshKey(s.id)));
+const fresh = trackFresh('kube-how:diagram-seen:v2', DIAGRAMS.map(s => freshKey(s.id)), DIAGRAM_SEEN_LEGACY, CARRY);
 
-function newChip(n) {
-  return n ? `<span class="section-new" title="New since your last visit">${n} new</span>` : '';
-}
+function newChip(n) { return newPill(n, 'section-new', lang); }
 
 function clearNew(id) {
   if (!fresh.isNew(freshKey(id))) return;
@@ -377,7 +411,7 @@ function clearNew(id) {
 
 function renderStarBtn(id) {
   const on = starred.has(id);
-  return `<button class="star-btn${on ? ' starred' : ''}" type="button" title="Toggle star" aria-label="Toggle star" aria-pressed="${on}">${ICON.star}</button>`;
+  return `<button class="star-btn${on ? ' starred' : ''}" type="button" title="${ui('Toggle star')}" aria-label="${ui('Toggle star')}" aria-pressed="${on}"${ruAttr()}>${ICON.star}</button>`;
 }
 
 function toggleStar(id) {
@@ -402,7 +436,6 @@ function renderSection(unit) {
   const { catKey, subKey, label, tagline, diagrams } = unit;
   const icon = CATEGORY_ICONS[catKey] || '';
   const total = diagrams.length;
-  const word = total === 1 ? 'diagram' : 'diagrams';
   const subAttr = subKey ? ` data-subcat="${escapeHtml(subKey)}"` : '';
   // The `at=` key this section is reached by. The `_other` bucket is no filter of its own, so its
   // link opens the whole category.
@@ -414,10 +447,10 @@ function renderSection(unit) {
         <h2 class="section-title">${escapeHtml(label)}</h2>
         <span class="section-sub">${escapeHtml(tagline)}</span>
         <span class="section-actions">
-          <button class="section-action section-link" type="button" data-at="${escapeHtml(linkKey)}" title="Copy link to this section" aria-label="Copy link to the ${escapeHtml(label)} section">${ICON.link}</button>
+          <button class="section-action section-link" type="button" data-at="${escapeHtml(linkKey)}" title="${ui('Copy link to this section')}" aria-label="${lang === 'ru' ? `Скопировать ссылку на секцию ${escapeHtml(label)}` : `Copy link to the ${escapeHtml(label)} section`}">${ICON.link}</button>
         </span>
         ${newChip(diagrams.filter(s => fresh.isNew(freshKey(s.id))).length)}
-        <span class="section-count">${total} ${word}</span>
+        <span class="section-count"${ruAttr()}>${counted(total, ['diagram', 'diagrams', 'диаграмма', 'диаграммы', 'диаграмм'])}</span>
       </div>
       <div class="cards-grid">${diagrams.map(renderCard).join('')}</div>
     </section>`;
@@ -489,24 +522,35 @@ function setupSectionLinks() {
   });
 }
 
+// Hover, focus or a press on a card starts its module fetch, which usually lands before the click.
+// Delegated once on #grid, which renderGrid() rewrites.
+function setupCardPrefetch() {
+  const grid = document.getElementById('grid');
+  const warm = (e) => {
+    const card = e.target.closest?.('.card');
+    if (card) prefetchDiagram(card.dataset.id);
+  };
+  for (const type of ['pointerover', 'focusin', 'pointerdown']) grid.addEventListener(type, warm, { passive: true });
+}
+
 function renderGrid() {
   const grid = document.getElementById('grid');
   const list = filteredDiagrams();
   if (list.length === 0 && activeCat === STARRED && !searchQuery) {
     grid.innerHTML = `
-      <div class="empty">
+      <div class="empty" role="status"${ruAttr()}>
         <div class="empty-icon">${ICON.star}</div>
-        <div class="empty-title">No starred diagrams yet.</div>
-        <div class="empty-desc">Click the star on a card to save it here.</div>
+        <div class="empty-title">${ui('No starred diagrams yet')}</div>
+        <div class="empty-desc">${ui('Click the star on a card to save it here.')}</div>
       </div>
     `;
     return;
   }
   if (list.length === 0) {
     grid.innerHTML = `
-      <div class="empty">
-        <div class="empty-title">No diagrams match.</div>
-        <div class="empty-desc">Try a different category or search term.</div>
+      <div class="empty" role="status"${ruAttr()}>
+        <div class="empty-title">${ui('No diagrams match')}</div>
+        <div class="empty-desc">${ui('Try a different category or search term.')}</div>
       </div>
     `;
     return;
@@ -525,10 +569,22 @@ function renderGrid() {
       // Ctrl/Cmd+click opens the page in a new tab.
       if (e.target.closest('.card-link') && (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey)) return;
       e.preventDefault();
+      // A drag that selected text in the title or the desc ends in a click too: keep the selection.
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed && card.contains(sel.anchorNode) && sel.toString().trim()) return;
       openDiagram(card.dataset.id);
     });
+    // Chrome never starts a text selection on a link, so a plain press lifts the href until the
+    // click is through: the title can be selected like the desc. A modified or other-button press keeps it.
+    const link = card.querySelector('.card-link');
+    link.addEventListener('mousedown', (e) => {
+      if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      const href = link.getAttribute('href');
+      link.removeAttribute('href');
+      document.addEventListener('mouseup', () => setTimeout(() => link.setAttribute('href', href)), { once: true });
+    });
     // The link is the card's one focus stop: Enter clicks it, and Space opens the card too.
-    card.querySelector('.card-link').addEventListener('keydown', (e) => {
+    link.addEventListener('keydown', (e) => {
       if (e.key === ' ') {
         e.preventDefault();
         openDiagram(card.dataset.id);
@@ -624,6 +680,15 @@ function setupScrollTop() {
   btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 }
 
+// A switch rebuilds the nav and the grid in place, so the filter, the search and the stars stay put.
+window.addEventListener(LANG_EVENT, async (e) => {
+  if (e.detail === 'ru') await loadRu();
+  if (getLang() !== e.detail) return;
+  lang = e.detail;
+  renderCatNav();
+  renderGrid();
+});
+
 const keysHelp = setupKeysHelp([
   { title: 'Catalog', rows: [
     { keys: [['/']], desc: 'Focus search' },
@@ -635,7 +700,9 @@ const keysHelp = setupKeysHelp([
     { keys: [['Space']], desc: 'Play or pause' },
     { keys: [['←'], ['→']], desc: 'Previous or next step' },
     { keys: [['Shift', '←'], ['Shift', '→']], desc: 'Previous or next card' },
-    { keys: [['R']], desc: 'Restart' },
+    { keys: [['R']], desc: 'Replay the step' },
+    { keys: [['Shift', 'R']], desc: 'Restart' },
+    { keys: [['-'], ['+']], desc: 'Slower or faster' },
     { keys: [['L']], desc: 'Loop on or off' },
     { keys: [['F']], desc: 'Fullscreen' },
     { keys: [['Esc']], desc: 'Close' },
@@ -643,8 +710,9 @@ const keysHelp = setupKeysHelp([
 ]);
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => { init(); alignLogo('[data-cat="all"]'); });
+  document.addEventListener('DOMContentLoaded', () => { init(); alignLogo('[data-cat="all"]'); watchNavFade(document.querySelectorAll('.cat-nav-inner')); });
 } else {
   init();
   alignLogo('[data-cat="all"]');
+  watchNavFade(document.querySelectorAll('.cat-nav-inner'));
 }

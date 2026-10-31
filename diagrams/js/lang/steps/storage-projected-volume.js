@@ -1,0 +1,21 @@
+// Russian for storage-projected-volume: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "Projected volume: Pod api-0 mounts one directory, /var/run/secrets/app, filled from three sources. Kubelet writes ca.crt from ConfigMap vault-ca, namespace from the Pod object through downwardAPI, and token from a serviceAccountToken source: a TokenRequest for the audience vault with a one hour lifetime, bound to the Pod. The app reads three plain files. Once the token is past 80 percent of its lifetime, or 24 hours old if that comes first, Kubelet requests a fresh token on its next sync, here about minute 48, and swaps it into the same file, and the app picks it up when it re-reads. A legacy Secret-based token never expires and never rotates.":
+    "Projected-том: Pod api-0 монтирует один каталог, /var/run/secrets/app, заполненный из трёх источников. Kubelet записывает ca.crt из ConfigMap vault-ca, namespace из объекта Pod через downwardAPI и token из источника serviceAccountToken, то есть по TokenRequest для audience vault со сроком жизни один час и с привязкой к Pod. Приложение читает три обычных файла. Когда токен прожил больше 80 процентов срока или 24 часа, смотря что наступит раньше, Kubelet при следующей синхронизации запрашивает свежий токен, здесь примерно на 48-й минуте, и записывает его в тот же файл, а приложение подхватывает новый токен при повторном чтении. Токен старого образца из Secret никогда не истекает и не обновляется.",
+
+  "Pod api-0 mounts one projected volume at /var/run/secrets/app, filled from three sources. Kubelet gets ConfigMap vault-ca from the API server and writes the ConfigMap key as ca.crt, then, through downwardAPI, writes namespace from the Pod object.":
+    "Pod api-0 монтирует в /var/run/secrets/app один projected-том, который заполняется из трёх источников. Kubelet получает ConfigMap vault-ca от API Server и записывает ключ этого ConfigMap как ca.crt, а затем через downwardAPI записывает namespace из объекта Pod.",
+
+  "The third source, serviceAccountToken, lives in no object. Kubelet sends a TokenRequest for the audience vault and a one hour lifetime, gets back a token bound to Pod api-0, and writes it as token. A recipient outside that audience should reject it.":
+    "Третий источник, serviceAccountToken, не хранится ни в одном объекте. Kubelet отправляет TokenRequest для audience vault со сроком в один час, получает привязанный к Pod api-0 токен и записывает его как token. Получателю вне этого audience следует отклонить токен.",
+
+  "The app sees one directory, not three sources. It opens ca.crt, namespace and token as plain files and never calls the Kubernetes API to fetch any of them. The token is what it authenticates with.":
+    "Приложение видит один каталог, а не три источника. Оно открывает ca.crt, namespace и token как обычные файлы и ни за одним из них не ходит в Kubernetes API. Аутентификацию оно проходит как раз с этим токеном.",
+
+  "Kubelet does not wait for the expiry. Once the token is past 80 percent of its lifetime or 24 hours old, Kubelet requests a fresh token on its next sync, here about minute 48, and swaps it into the same file atomically. The other two files stay. The app gets token 2 only when it re-reads.":
+    "Kubelet не ждёт, пока срок истечёт. Когда токен прожил больше 80 процентов срока или 24 часа, Kubelet при следующей синхронизации запрашивает свежий токен, здесь примерно на 48-й минуте, и атомарно записывает его в тот же файл. Два других файла остаются как есть. А token 2 приложение получит, только когда перечитает файл.",
+
+  "If instead the Pod used a legacy Secret-based token, it would never expire or rotate, and a leaked copy would stay valid until that Secret or its ServiceAccount is deleted. The projected token ends at its expiry, and the API server rejects it once Pod api-0 or its ServiceAccount is deleted.":
+    "Если бы вместо этого Pod использовал токен старого образца из Secret, токен никогда бы не истекал и не обновлялся, и утёкшая копия действовала бы, пока не удалят этот Secret или его ServiceAccount. А projected-токен истекает в свой срок, и API Server отклоняет его, как только удалён Pod api-0 или его ServiceAccount.",
+};

@@ -80,7 +80,7 @@ const podBlock = ({ key, shellKey, innerKey, x, label, sublabel, opacity }) => P
 });
 
 export const SCENE = {
-  'aria-label': 'Detach on Node failure: when a Node goes NotReady and its Kubelet is silent, Kubernetes will not detach the volume, because the old Pod cannot be confirmed dead and detaching while it might still write can corrupt the data. After the 300 second unreachable toleration the Pod is marked for deletion and a replacement waits on another Node, but the deletion cannot complete, so the disk stays held until the old Pod object is gone, force deleted by hand or by PodGC once the Node object is deleted. Roughly six minutes after that, with the Node still not Ready, the controller force-detaches the disk and the new Pod starts, a deliberate safety property rather than a bug. The non-graceful node shutdown out-of-service taint is the operator escape hatch: it declares the Node shut down, its Pods are force deleted and the volume is detached at once',
+  'aria-label': 'Detach on Node failure: when a Node goes NotReady and its Kubelet is silent, Kubernetes will not detach the volume, because the old Pod cannot be confirmed dead and detaching while it might still write can corrupt the data. After the 300 second unreachable toleration the Pod is marked for deletion and a replacement waits on another Node. However, the deletion cannot complete, so the disk stays held until the old Pod object is gone, force deleted by hand or by PodGC once the Node object is deleted. Roughly six minutes after that, with the Node still not Ready, the controller force-detaches the disk and the new Pod starts. This is a deliberate safety property, not a bug. The non-graceful node shutdown out-of-service taint is the operator escape hatch. The taint declares the Node shut down, its Pods are force deleted and the volume is detached at once',
   parts: [
     P.defs(),
     P.node({ key: 'nodeA', x: A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -140,7 +140,7 @@ export const STEPS_SPEC = [
   {
     id: 'notready',
     duration: 2600,
-    narration: 'Node-1 stops answering. Its Kubelet goes silent and the Node is marked NotReady, but there is no word from Node-1 about whether the old Pod actually stopped. It might be dead. It might be a network blip with the Pod still writing.',
+    narration: 'Node-1 stops answering. Its Kubelet goes silent and the Node is marked NotReady, but there is no word from Node-1 about whether the old Pod stopped. It might be dead. It might be a network blip with the Pod still writing.',
     chipsCued: chips('NotReady', 'attached to Node-1', 'not created'),
     podSublabels: pods('status unknown', 'Pending'),
     // Node-2 stays empty: a ReplicaSet replaces a Pod only once it carries a deletionTimestamp.
@@ -153,7 +153,7 @@ export const STEPS_SPEC = [
   {
     id: 'refuse',
     duration: 3800,
-    narration: 'So Kubernetes will not detach the disk. Notice what it is not waiting on: no other Pod holds the volume and nothing is contending for it. It is waiting on doubt. Pull PV web off Node-1 while the old Pod might still be writing and its data can be corrupted. Holding on is the safe answer to a question that cannot be answered.',
+    narration: 'So Kubernetes will not detach the disk, although no other Pod holds the volume or contends for it. Pull PV web off Node-1 while the old Pod might still be writing and the data can be corrupted, so keeping the disk attached is safer as long as nobody can say whether that Pod stopped.',
     chipsCued: chips('NotReady', 'held on Node-1', 'not created'),
     podSublabels: pods('may still write', 'Pending'),
     wires: { disk: 'do not detach yet' },
@@ -166,7 +166,7 @@ export const STEPS_SPEC = [
   {
     id: 'evict',
     duration: 4600,
-    narration: 'The first clock starts. Node-1 takes the unreachable taint, and the old Pod tolerates it for 300 seconds by default before it is marked for deletion. A live Kubelet would finish that deletion and free the volume. Here nothing can, so the disk stays held, but the mark lets the ReplicaSet of the Deployment create a replacement on Node-2, stuck in ContainerCreating waiting for that disk.',
+    narration: 'The first clock starts. Node-1 takes the unreachable taint, and the old Pod tolerates it for 300 seconds by default before it is marked for deletion. A live Kubelet would finish that deletion and free the volume. Here nothing can, so the disk stays held. But the mark lets the ReplicaSet of the Deployment create a replacement on Node-2, which is stuck in ContainerCreating waiting for that disk.',
     chipsCued: chips('NotReady', 'held on Node-1', 'ContainerCreating'),
     podSublabels: pods('marked for deletion', 'ContainerCreating'),
     wires: { disk: 'still held' },
@@ -186,7 +186,7 @@ export const STEPS_SPEC = [
   {
     id: 'stuck',
     duration: 3100,
-    narration: 'And there it stays. The old Pod object still exists and its container statuses still read running, so the controller keeps PV web wanted on Node-1 and never asks for a detach. No timeout runs. The Pod sits in Terminating with no time limit, and the replacement waits with it.',
+    narration: 'And there it stays. The old Pod object still exists and its container statuses still read running, so the controller keeps PV web wanted on Node-1 and never asks for a detach. With no timeout, the Pod sits in Terminating until something removes it, and the replacement waits with it.',
     chipsCued: chips('NotReady', 'held, no timer', 'ContainerCreating'),
     podSublabels: pods('stuck Terminating', 'ContainerCreating'),
     wires: { disk: 'no detach asked' },
@@ -198,7 +198,7 @@ export const STEPS_SPEC = [
   {
     id: 'forcedetach',
     duration: 6500,
-    narration: 'The second clock starts only once the object is gone. Here kubectl force deletes it by hand, as PodGC would once the Node object is deleted. Roughly six minutes later, if Node-1 is still not Ready and the controller manager has not disabled it, the controller force-detaches the disk. Only now is it free.',
+    narration: 'The second clock starts only once the Pod object is gone. Here kubectl force deletes it by hand, as PodGC would once the Node object is deleted. Roughly six minutes later, if Node-1 is still not Ready and force detach is not disabled in the controller manager, the controller force-detaches the disk. Only now is it free.',
     chipsCued: chips('NotReady', 'force-detached', 'ContainerCreating'),
     podSublabels: pods('force deleted', 'ContainerCreating'),
     wires: { disk: 'force-detach' },

@@ -59,9 +59,9 @@ const L_PICK   = [[API_RIGHT, API_CY], [RANGE_X, API_CY]];
 const L_CLAIM  = [[LANE_ASK, SVC_Y], [LANE_ASK, API_BOTTOM]];
 const L_SET    = [[LANE_SET, API_BOTTOM], [LANE_SET, SVC_Y]];
 const L_CREATE = [[API_X, API_CY], [CREATE_SPINE, API_CY], [CREATE_SPINE, ETCD_Y]];
-// The add-on joins the ladder at the DYNAMIC row: at the ladder centre the arrowhead would read as
-// pointing at kube-dns.
-const L_EXTEND = [[DIAGRAM_R, CIDR_CY], [EXT_RAIL_X, CIDR_CY], [EXT_RAIL_X, rowCY(DYN_ROW)], [DIAGRAM_R, rowCY(DYN_ROW)]];
+// The add-on lands on the `ranges in play` chip, the one part it changes: a ladder row would read
+// as widening the 10.96 band, which a second range is not.
+const L_EXTEND = [[DIAGRAM_R, CIDR_CY], [EXT_RAIL_X, CIDR_CY], [EXT_RAIL_X, CHIP_Y[0] + CHIP_H / 2], [DIAGRAM_R, CHIP_Y[0] + CHIP_H / 2]];
 
 // `dashed` says an address is being carved out of a range rather than a packet on a network. `dim`
 // is a stroke weight only, the role stays cyan.
@@ -73,7 +73,7 @@ const REVEAL = { keyframes: [{ opacity: 0 }, { opacity: 1 }], options: { duratio
 // The list order IS the append order, which is the z-order: the ladder and the blocks, then the
 // wires above them so the dim lines read, then the chips, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'Service CIDR and ClusterIP allocation: one ServiceCIDR object declares the Service range 10.96.0.0/16, which the allocator inside the API server reads as a low static band holding the well-known addresses 10.96.0.1 and 10.96.0.10 and a high dynamic band it draws from first, and an address is allocated by writing an IPAddress object of that name into ETCD before the clusterIP field is set, with a second ServiceCIDR able to add a range with nothing restarted',
+  'aria-label': 'Service CIDR and ClusterIP allocation, where one ServiceCIDR object declares the Service range 10.96.0.0/16, which the allocator inside the API server reads as a low static band holding the well-known addresses 10.96.0.1 and 10.96.0.10 and a high dynamic band it draws from first, and an address is allocated by writing an IPAddress object of that name into ETCD before the clusterIP field is set, with a second ServiceCIDR able to add a range with nothing restarted',
   parts: [
     P.defs(),
     // The range itself, read top to bottom in address order. The two well-known addresses are rows
@@ -130,7 +130,7 @@ export const STEPS_SPEC = [
   {
     id: 'range',
     duration: 3000,
-    narration: 'One ServiceCIDR object declares the whole Service range, here 10.96.0.0/16, and the allocator reads it as two bands. Automatic allocation takes the high dynamic band first and the low static band only once that runs out. The low band is for addresses picked by hand, so the two in it are unlikely to be taken rather than reserved.',
+    narration: 'One ServiceCIDR object declares the whole Service range, here 10.96.0.0/16, and the allocator reads it as two bands. Automatic allocation takes the high dynamic band first and the low static band only once that runs out. The low band is for addresses picked by hand, so the two in it are not reserved, only unlikely to be taken.',
     chips: { rangeChip: ONE_RANGE, ipaddrChip: ' ' },
     sublabels: { svcWeb: PENDING },
     opacity: LATER_HIDDEN,
@@ -148,7 +148,7 @@ export const STEPS_SPEC = [
   {
     id: 'claim',
     duration: 2600,
-    narration: 'A new Service web is created with its clusterIP field left empty, so the API server hands the request to the ClusterIP allocator. It looks in the high dynamic band, which is tried first for every automatic address, and takes one that is free, here 10.96.137.42.',
+    narration: 'A new Service web is created with an empty clusterIP field, so the API server hands the request to the ClusterIP allocator. The allocator looks in the high dynamic band, which is tried first for every automatic address, and takes a free one, here 10.96.137.42.',
     chips: { rangeChip: ONE_RANGE, ipaddrChip: ' ' },
     sublabels: { svcWeb: PENDING },
     opacity: LATER_HIDDEN,
@@ -166,7 +166,7 @@ export const STEPS_SPEC = [
   {
     id: 'write',
     duration: 2800,
-    narration: 'The allocation is the write. The allocator creates an IPAddress object named 10.96.137.42 that points back at the Service, and only once that object exists is the clusterIP field set. Two Services cannot end up on one address, because two objects cannot share one name.',
+    narration: 'Allocating means writing an object. The allocator creates an IPAddress object named 10.96.137.42 that points back at the Service, and only once that object exists is the clusterIP field set. Two Services cannot end up on one address, because two objects cannot share one name.',
     chips: { rangeChip: ONE_RANGE, ipaddrChip: IPADDR },
     sublabels: { svcWeb: WEB_IP },
     opacity: { cidr2: 0, aExtend: 0, ipaddrChip: 1 },
@@ -188,14 +188,15 @@ export const STEPS_SPEC = [
   {
     id: 'extend',
     duration: 2800,
-    narration: 'When the range fills up, the old fix was to widen the API server service-cluster-ip-range flag and restart it, a disruptive operation. Now you add a second ServiceCIDR object, here 10.97.0.0/16, the allocator has a second range to draw from, and the Service IP space grows with nothing restarted.',
+    narration: 'When the range fills up, the old fix was to widen the service-cluster-ip-range flag and restart the API server, which was disruptive. Now you add a second ServiceCIDR object, here 10.97.0.0/16, which gives the allocator a second range to draw from, and the Service IP space grows with nothing restarted.',
     chips: { rangeChip: TWO_RANGES, ipaddrChip: IPADDR },
     sublabels: { svcWeb: WEB_IP },
     opacity: { cidr2: 1, aExtend: 1, ipaddrChip: 1 },
-    chain: [DYN_ROW],
+    // No ladder row stays lit: beside the lit add-on it would read as the band that grows.
+    chain: -1,
     lit: ['cidr2'],
     // The add-on and its wire arrive with the step on the static path and fade in on the animated
-    // one, and the range chip takes its second value AND its cue where the feed joins the ladder.
+    // one, and the range chip takes its second value AND its cue where the feed lands on it.
     rewind: { opacity: { cidr2: 0, aExtend: 0 }, chips: { rangeChip: ONE_RANGE } },
     flow: [
       F.anim({ target: 'cidr2', ...REVEAL }),

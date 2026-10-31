@@ -1,0 +1,21 @@
+// Russian for cluster-cpu-throttling: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "CPU throttling and the CFS quota: a CPU request becomes a cgroup cpu.weight that only binds under contention, a CPU limit becomes a cpu.max quota of 50ms inside every 100ms period, the kernel stops scheduling the cgroup once that budget is spent, and the stall is recorded only in kernel counters such as cpu.stat, never as a field on any Kubernetes object":
+    "Троттлинг CPU и квота CFS: CPU request становится cgroup cpu.weight, который действует только при конкуренции, CPU limit становится квотой cpu.max в 50ms на каждый период 100ms, ядро перестаёт планировать cgroup, когда бюджет исчерпан, а простой записывается только в счётчики ядра вроде cpu.stat и никогда не попадает ни в одно поле объекта Kubernetes",
+
+  "The Kubelet sends the CPU request down the CRI and it lands as a cgroup v2 cpu.weight. A weight is not a reservation. It only decides how the runnable cgroups on this Node divide the CPUs when they all want to run at once, so on a quiet Node this container may run past its 250m, and what caps it is the limit rather than the request.":
+    "Kubelet передаёт CPU request через CRI, и в cgroup v2 этот request превращается в cpu.weight. Вес ничего не резервирует. Он решает только, как готовые к работе cgroup на этой Node делят CPU, когда все они хотят работать одновременно. Поэтому на тихой Node контейнер может выйти за свои 250m, и упирается он в limit, а не в request.",
+
+  "The CPU limit becomes a quota. On cgroup v2 that is one line, cpu.max, carrying the quota and the period together, so limits.cpu 500m against the default 100ms period is 50000 100000. That is 50ms of run time this cgroup may spend inside every 100ms period, and the period repeats for as long as the container lives.":
+    "CPU limit становится квотой. В cgroup v2 это одна строка cpu.max с квотой и периодом вместе, поэтому limits.cpu 500m при периоде по умолчанию, 100ms, даёт 50000 100000. Это 50ms времени работы, которые эта cgroup может потратить в каждом периоде 100ms, и период повторяется, пока живёт контейнер.",
+
+  "The container runs, and every microsecond of CPU time it burns is charged against the 50ms budget. One busy thread on one CPU empties it 50ms into the period. The code is not at fault, because this is the ceiling the limit bought.":
+    "Контейнер работает, и каждая потраченная им микросекунда CPU списывается с бюджета 50ms. Один занятый поток на одном CPU опустошает бюджет через 50ms после начала периода. Код не виноват, ведь limit купил ровно этот потолок.",
+
+  "With the budget gone the kernel takes the cgroup off the run queues until the period timer refills it, so for 50ms of every 100ms the container is runnable and not running. Threads share one budget, so four busy threads on four CPUs would empty it 12.5ms in and stall for the remaining 87.5ms.":
+    "Когда бюджет кончился, ядро снимает cgroup с очередей выполнения, пока таймер периода его не пополнит. В итоге 50ms из каждых 100ms контейнер готов работать, но не работает. Потоки делят один бюджет, поэтому четыре занятых потока на четырёх CPU опустошили бы его за 12.5ms и простаивали бы оставшиеся 87.5ms.",
+
+  "Nothing died. The Pod stays Running with restartCount 0, and kubectl describe shows no event and no condition: no Kubernetes object carries throttling. The kernel counts the stall in cpu.stat and, with kernel PSI on, in cpu.pressure, and cAdvisor in the Kubelet exports both. The container_cpu_cfs_throttled_seconds_total metric only climbs: 100 periods in, it reads 5 seconds. The quota kills nothing, but latency can fail a liveness probe, which restarts the container.":
+    "Ничего не умерло. Pod остаётся Running с restartCount 0, а команда kubectl describe не показывает ни события, ни условия, потому что троттлинг не отражён ни в одном объекте Kubernetes. Ядро считает простой в cpu.stat и, если включён PSI ядра, в cpu.pressure, а cAdvisor внутри Kubelet экспортирует оба счётчика. У cAdvisor метрика container_cpu_cfs_throttled_seconds_total только растёт, и через 100 периодов она показывает 5 секунд. Квота ничего не убивает, но задержка может провалить liveness probe, и контейнер перезапустится.",
+};

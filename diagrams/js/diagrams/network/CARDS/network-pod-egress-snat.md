@@ -15,8 +15,8 @@ DEVIATES L-23: the Node frame top stands 55 over the exempt leg, pinned by the p
          rule box that makes it.
 CONTENT  Sources at 1.36: IP Masquerade Agent, network model, iptables(8), Linux nf_nat_core.c.
          `No route on the internet leads back to a Pod IP`. POSTROUTING is the last hook out.
-         `anything inside the cluster` is ruled out: ip-masq-agent exempts RFC 1918 and
-         link-local by default, kube-proxy masquerades only Service traffic it marked.
-         The chip reads `no nat rule walked` (T-19). The reversal runs as the reply enters the Node.
-         MASQUERADE takes the egress interface address. 1.1.1.1 is the house destination.
+         `anything inside the cluster` is ruled out: ip-masq-agent exempts RFC 1918 and link-local
+         by default, kube-proxy masquerades only Service traffic it marked. The chip reads `no nat
+         rule walked` (T-19). The reversal runs as the reply enters the Node. MASQUERADE takes the
+         egress address. 1.1.1.1 is the house dst. `the only address it ever saw` is ruled out: RFC 1918.
 ```

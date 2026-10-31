@@ -58,7 +58,7 @@ const HOP2_V6 = [[SVC_R, RAIL_V6], [POD_X, RAIL_V6]];
 // The list order IS the append order, which is the z-order: config + service + client + pod, then
 // the wires ABOVE them, then the chips, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Dual-stack IPv4 and IPv6: two family rails run through one client, one Service and one Pod, where the Pod holds one address per family on a single eth0 and the Service one ClusterIP per family in ipFamilies order, so a client reaches the same Pod over whichever family it dials',
+  'aria-label': 'Dual-stack IPv4 and IPv6 as two family rails running through one client, one Service and one Pod, where the Pod holds one address per family on a single eth0 and the Service one ClusterIP per family in ipFamilies order, so whichever family a client dials, it reaches the same Pod',
   parts: [
     P.defs(),
     P.box({ key: 'config', x: CONFIG_X, y: CONFIG_Y, w: CONFIG_W, h: CONFIG_H, label: 'dual-stack enabled', sublabel: 'IPv4 and IPv6 pod and service CIDRs' }),
@@ -121,7 +121,7 @@ export const STEPS_SPEC = [
   {
     id: 'enable',
     duration: 3300,
-    narration: 'Dual-stack is enabled cluster-wide. The API server and controller-manager take an IPv4 and an IPv6 service CIDR, the controller-manager and kube-proxy take both pod CIDRs, the Kubelet takes a Node IP of each family unless a cloud provider picks them, and the CNI has to support both. The Service and Pod still have one address each.',
+    narration: 'Dual-stack is enabled cluster-wide. The API server and controller-manager take an IPv4 and an IPv6 service CIDR, the controller-manager and kube-proxy take both pod CIDRs, and the Kubelet takes a Node IP of each family unless a cloud provider picks them. The CNI has to support both. The Service and Pod still have one address each.',
     chips: { ...SINGLE },
     sublabels: { svc: POLICY_SINGLE, clientBox: 'to Service web' },
     podSublabels: { client: ONE_FAMILY, pod: ONE_FAMILY },
@@ -131,7 +131,7 @@ export const STEPS_SPEC = [
   {
     id: 'pod-two-addresses',
     duration: 2500,
-    narration: 'When the Pod is created the CNI allocates one address from each family, an IPv4 out of the v4 pod CIDR and an IPv6 out of the v6 pod CIDR. Both live on the same eth0, so the Pod speaks either protocol without a second interface.',
+    narration: 'When a Pod is created the CNI allocates one address from each family, an IPv4 out of the v4 pod CIDR and an IPv6 out of the v6 pod CIDR. Both live on one eth0, so client and web both speak either protocol without a second interface.',
     chips: { ...POD_DUAL },
     sublabels: { svc: POLICY_SINGLE, clientBox: 'to Service web' },
     // Both Pods, because the allocation the drop carries is the CNI rule and not this Pod's luck.

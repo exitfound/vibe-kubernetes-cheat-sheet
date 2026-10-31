@@ -64,12 +64,16 @@ const W_CLOUD_TO_PROV = [[UP_X, CLOUD_TOP], [UP_X, PROV_BOTTOM]];
 const W_PROV_TO_PV  = [[PROV_LEFT, PROV_MY + PROV_LANE], [ELBOW_X, PROV_MY + PROV_LANE], [ELBOW_X, 396], [PV_CX, 396], [PV_CX, PV_TOP]];
 const W_BOUND       = [[SPINE_X, PVC_BOTTOM], [SPINE_X, PV_TOP]];
 
+// The claim sublabel turns to volumeName in `bind`. Sublabels survive a reset, so every step states it.
+const PVC_WANTS = 'wants 5Gi, class gp3';
+const PVC_BOUND = 'volumeName: pvc-a7f2';
+
 // List order is z-order: blocks, wires and labels, the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Dynamic provisioning: a claim finds no existing volume to bind to, so the binding controller copies the provisioner its StorageClass names onto the claim, that provisioner asks the storage backend to create a real disk and writes a PersistentVolume object already carrying a claimRef to the claim, and the binding controller binds that brand new volume to the claim it was made for',
+  'aria-label': 'Dynamic provisioning: a claim finds no existing volume to bind to, so the binding controller copies the provisioner its StorageClass names onto the claim. That provisioner asks the storage backend to create a real disk and writes a PersistentVolume object already carrying a claimRef to the claim. Then the binding controller binds that brand new volume to the claim it was made for',
   parts: [
     P.defs(),
-    P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'wants 5Gi, class gp3' }),
+    P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: PVC_WANTS }),
     P.box({ key: 'sc', x: SC_X, y: SC_Y, w: SC_W, h: SC_H, label: 'StorageClass gp3', sublabel: 'provisioner: ebs.csi.aws.com' }),
     P.box({ key: 'prov', x: PROV_X, y: PROV_Y, w: PROV_W, h: PROV_H, label: 'External-provisioner', sublabel: 'CSI controller sidecar' }),
     P.box({ key: 'cloud', x: CLOUD_X, y: CLOUD_Y, w: CLOUD_W, h: CLOUD_H, label: 'Storage backend', sublabel: 'reached via the CSI driver' }),
@@ -114,6 +118,7 @@ export const STEPS_SPEC = [
     id: 'idle',
     duration: 1500,
     chipsCued: chips('Pending', 'gp3', 'none', 'none'),
+    sublabels: { pvc: PVC_WANTS },
     opacity: STACK_OFF,
   },
   {
@@ -121,6 +126,7 @@ export const STEPS_SPEC = [
     duration: 3700,
     narration: 'With static provisioning an administrator has to create the volume by hand before anyone can claim it. Here nobody did, so the binding controller finds no candidate to bind to. Under the default Immediate binding mode it turns to the class the claim names, and copies the provisioner that class names onto the claim as an annotation.',
     chipsCued: chips('Pending', 'gp3', 'none', 'none'),
+    sublabels: { pvc: PVC_WANTS },
     opacity: { ...STACK_OFF, scRef: 0, wScToPvc: 1 },
     // The claim is not lit statically, or its arrival cue below would be hidden.
     lit: ['sc'],
@@ -135,6 +141,7 @@ export const STEPS_SPEC = [
     duration: 3500,
     narration: 'The StorageClass names a provisioner and the parameters to build with. The external-provisioner sidecar watches for unbound claims whose volume.kubernetes.io/storage-provisioner annotation carries its own name, picks this one up, and reads both the size the claim asks for and the parameters its class carries.',
     chipsCued: chips('Pending', 'gp3', 'none', 'none'),
+    sublabels: { pvc: PVC_WANTS },
     opacity: STACK_OFF,
     lit: ['pvc', 'sc'],
     flow: [
@@ -148,6 +155,7 @@ export const STEPS_SPEC = [
     duration: 3700,
     narration: 'The provisioner calls CreateVolume on the driver, which asks the storage backend for a real disk of the requested size. The backend carves one out and hands back the identifier it can be addressed by later. This is the only step here that touches real hardware: getting the disk onto a Node comes later, once a Pod uses the claim.',
     chipsCued: chips('Pending', 'gp3', DISK_ID, 'none'),
+    sublabels: { pvc: PVC_WANTS },
     wires: { call: 'CreateVolume' },
     opacity: STACK_OFF,
     // The backend is not lit statically, or its own arrival cue below would be hidden.
@@ -168,6 +176,7 @@ export const STEPS_SPEC = [
     duration: 3000,
     narration: 'A disk on its own is invisible to Kubernetes. The provisioner writes a PersistentVolume object carrying the identifier it just got back, and that object is the cluster representation of the disk. Only now does the volume exist as something a claim can be paired with.',
     chipsCued: chips('Pending', 'gp3', DISK_ID, 'pvc-a7f2 created'),
+    sublabels: { pvc: PVC_WANTS },
     wires: { pv: PV_BACKED },
     // F.reveal writes its own `from`: the volume rests pending while the write arrow points at it (M-24).
     opacity: { pv: 1, wProvToPv: 1, boundLink: 0, ...REF },
@@ -184,19 +193,20 @@ export const STEPS_SPEC = [
   {
     id: 'bind',
     duration: 3800,
-    narration: 'The new volume was built for this one claim, so the provisioner already stamped it with a claimRef pointing back at the claim. The binding controller still runs its usual match, and that pre-bound volume wins outright. It marks the volume Bound first, then writes volumeName on the claim and turns the claim Bound. The volume was made to order.',
+    narration: 'The new volume was built for this one claim, so the provisioner already stamped it with a claimRef pointing back at the claim. The binding controller still runs its usual match, and that pre-bound volume wins outright. The controller marks the volume Bound first, then writes volumeName on the claim and turns the claim Bound.',
     chipsCued: chips('Bound', 'gp3', DISK_ID, 'Bound'),
+    sublabels: { pvc: PVC_BOUND },
     wires: { bound: 'claimRef: data-claim', pv: PV_BACKED },
     // The write arrow is retired: it shares the identity column centre with the spine.
     opacity: { pv: 1, wProvToPv: 0, boundLink: 1, ...REF },
     lit: ['pvc', 'pv'],
     // The link is the static end-state, so only the animated path winds it back to fade it in.
-    // The claim chip waits too: bind() writes the volume Bound before the claim.
-    rewind: { opacity: { boundLink: 0 }, chips: { pvcChip: 'Pending' } },
+    // The claim chip and its volumeName wait too: bind() writes the volume Bound before the claim.
+    rewind: { opacity: { boundLink: 0 }, chips: { pvcChip: 'Pending' }, sublabels: { pvc: PVC_WANTS } },
     // Delay 0 on purpose: the claimRef label is static, so the link must be on screen from frame one.
     flow: [
       F.fade({ target: 'boundLink', from: 0, to: 1, dur: FADE.in, fill: 'forwards', easing: 'ease-out' }),
-      F.set({ delay: CLAIM_BOUND_MS, chipsCued: { pvcChip: 'Bound' } }),
+      F.set({ delay: CLAIM_BOUND_MS, chipsCued: { pvcChip: 'Bound' }, sublabels: { pvc: PVC_BOUND } }),
     ],
   },
 ];

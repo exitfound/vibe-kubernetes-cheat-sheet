@@ -61,7 +61,7 @@ const OFF = OPACITY.pending;
 
 // Z-order: disks, spines, lanes, then wire labels and chips, the packet layer, then Pods and actors.
 export const SCENE = {
-  'aria-label': 'StatefulSet ordered rollout: three ordinal columns, each a Pod over its own claim, created strictly in order because OrderedReady blocks ordinal N plus 1 until ordinal N is Running and Ready, and removed in reverse order on scale-down with the claims left behind',
+  'aria-label': 'StatefulSet ordered rollout in three ordinal columns, each a Pod over its own claim. The Pods are created strictly in order because OrderedReady blocks ordinal N plus 1 until ordinal N is Running and Ready, and they are removed in reverse order on scale-down, with the claims left behind',
   parts: [
     P.defs(),
     P.arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }),
@@ -138,7 +138,7 @@ export const STEPS_SPEC = [
   {
     id: 'ordinal-0',
     duration: 4200,
-    narration: 'The controller starts at ordinal 0 and requests PVC data-web-0 before the Pod. That name joins the template name to the Pod name, so the same ordinal gets that disk back whenever its Pod is replaced. Pod web-0 follows, carrying an identity that sticks to it wherever it is rescheduled, and once it is Running and Ready the ordinal is done.',
+    narration: 'The controller starts at ordinal 0 and requests PVC data-web-0 before the Pod. The claim name joins the template name to the Pod name, so the same ordinal gets that disk back whenever its Pod is replaced. Pod web-0 follows, carrying an identity that sticks to it wherever it is rescheduled. Once web-0 is Running and Ready, ordinal 0 is done.',
     chips: { web0Chip: 'Ready', web1Chip: 'not created', web2Chip: 'not created' },
     wires: { req: 'create PVC data-web-0, then Pod web-0', gate01: 'waits on web-0', gate12: 'waits on web-1' },
     sublabels: { controller: SPEC_3 },
@@ -154,7 +154,7 @@ export const STEPS_SPEC = [
   {
     id: 'gate',
     duration: 4100,
-    narration: 'Ordinal 1 is not created while ordinal 0 is not Running and Ready. The controller reads that status off its watch on the API, and the answer is what opens the gate. This is spec.podManagementPolicy at its default of OrderedReady, where a replica that never turns Running and Ready holds up every ordinal behind it. Parallel lifts the gate, but the field is immutable.',
+    narration: 'Ordinal 1 is not created until ordinal 0 is Running and Ready. The controller reads that status off its watch on the API, and the answer is what opens the gate. This is spec.podManagementPolicy at its default of OrderedReady, where a replica that never turns Running and Ready holds up every ordinal after it. Parallel lifts the gate, but the field is immutable.',
     chips: { web0Chip: 'Ready', web1Chip: 'next in line', web2Chip: 'not created' },
     wires: { gate01: 'open', gate12: 'waits on web-1' },
     sublabels: { controller: SPEC_3 },
@@ -188,7 +188,7 @@ export const STEPS_SPEC = [
   {
     id: 'ordinal-2',
     duration: 4200,
-    narration: 'Ordinal 2 clears the last gate and Pod web-2 is created with claim data-web-2. All three replicas are Running and Ready, each holding an ordinal, a name and a disk of its own, so they are not interchangeable the way Deployment replicas are. The ordering is the bootstrap order as well, because ordinal 0 was Ready before ordinal 1 existed.',
+    narration: 'Ordinal 2 clears the last gate and Pod web-2 is created with claim data-web-2. All three replicas have reached Running and Ready, each holding an ordinal, a name and a disk of its own, so they are not interchangeable the way Deployment replicas are. The ordering is the bootstrap order as well, because ordinal 0 was Ready before ordinal 1 existed.',
     chips: { web0Chip: 'Ready', web1Chip: 'Ready', web2Chip: 'Ready' },
     wires: { req: 'create PVC data-web-2, then Pod web-2', gate01: 'open', gate12: 'open' },
     sublabels: { controller: SPEC_3 },
@@ -201,7 +201,7 @@ export const STEPS_SPEC = [
   {
     id: 'scale-down',
     duration: 4400,
-    narration: 'Dropping the spec to 2 replicas reverses the order. The controller removes the highest ordinal first, so web-2 goes and web-0 stays. The claim is not deleted with the Pod, because persistentVolumeClaimRetentionPolicy.whenScaled defaults to Retain, so data-web-2 stays and scaling back up hands ordinal 2 the same disk. A scale-down reaches ordinal 0 only when the set is taken all the way down.',
+    narration: 'Dropping the spec to 2 replicas reverses the order. The controller removes the highest ordinal first, so web-2 goes and web-0 stays. The claim is not deleted with the Pod, because persistentVolumeClaimRetentionPolicy.whenScaled defaults to Retain. So data-web-2 stays, and scaling back up hands ordinal 2 the same disk. A scale-down reaches ordinal 0 only when the set is taken all the way down.',
     chips: { web0Chip: 'Ready', web1Chip: 'Ready', web2Chip: 'removed' },
     wires: { req: 'delete Pod web-2', gate01: 'open', gate12: '' },
     sublabels: { controller: 'replicas 2, OrderedReady' },

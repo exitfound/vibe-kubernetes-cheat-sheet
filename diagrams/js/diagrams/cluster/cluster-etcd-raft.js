@@ -48,7 +48,7 @@ const SCHIP_X = API_X, SCHIP_W = API_W;
 
 // Append order is z-order: replicas, chips, API, lanes, ties, wire labels, then the packet layer.
 export const SCENE = {
-  'aria-label': 'ETCD Raft Consensus: the API sends a write to the Leader of three ETCD replicas, which appends it, replicates it to both Followers, commits once a majority has stored it, sends the new commit index to the Followers, and stops writing when quorum is lost',
+  'aria-label': 'ETCD Raft consensus, where the API sends a write to the Leader, one of three ETCD replicas, and the Leader appends it, replicates it to both Followers, commits once a majority has stored it, sends the new commit index to the Followers, and stops writing when quorum is lost',
   parts: [
     P.defs(),
     // Scale 1.0, no shrink wrapper, so block text matches the other cards.
@@ -115,7 +115,7 @@ export const STEPS_SPEC = [
   {
     id: 'proposal',
     duration: 2850,
-    narration: 'The API issues a write for a new Pod, and it should be the only component reaching ETCD at all. Every write goes through the Leader, the single point that orders all changes. A write that lands on a Follower is forwarded to the Leader, and a linearizable read waits for the Leader to confirm it still holds a quorum, so no read sees a split view.',
+    narration: 'The API issues a write for a new Pod, and it should be the only component that talks to ETCD. Every write goes through the Leader, the single point that orders all changes. A write that lands on a Follower is forwarded to the Leader. A linearizable read waits for the Leader to confirm it still holds a quorum, so no read sees a split view.',
     chips: { ...ROLES, l1: '8 / 8', l2: '8 / 8', l3: '8 / 8', termChip: TERM, acksChip: 'idle', quorumChip: QUORUM },
     wires: { proposal: 'write Pod · via Leader' },
     opacity: LIVE,
@@ -133,7 +133,7 @@ export const STEPS_SPEC = [
   {
     id: 'replicate',
     duration: 3900,
-    narration: 'The Leader sends an AppendEntries RPC carrying entry 9 to both Followers at once. Each Follower rejects a stale term and checks that its entry 8 has the term the Leader sent for it before accepting, which is what keeps the replicas from ever diverging. After writing entry 9 to its own log, each Follower returns an ack to the Leader.',
+    narration: 'The Leader sends an AppendEntries RPC carrying entry 9 to both Followers at once. Each Follower rejects a stale term, and before accepting the entry it checks that its entry 8 has the term the Leader sent for it. So an accepted log matches the Leader through entry 9. After writing entry 9 to its own log, each Follower returns an ack to the Leader.',
     chips: { ...ROLES, l1: '9 / 8', l2: '9 / 8', l3: '9 / 8', termChip: TERM, acksChip: '2 of 2', quorumChip: QUORUM },
     wires: { replicate: 'AppendEntries · entry 9', ack: 'ack · entry 9' },
     opacity: LIVE,
@@ -167,7 +167,7 @@ export const STEPS_SPEC = [
   {
     id: 'apply',
     duration: 2550,
-    narration: 'The Leader also sends the new commitIndex to the Followers in an empty AppendEntries, signalling that entry 9 is safe to apply. Each Follower applies entry 9 to its state machine, the key-value view that clients actually read from. All three replicas now hold the Pod at index 9, and a linearizable read returns it from any member.',
+    narration: 'The Leader also sends the new commitIndex to the Followers in an empty AppendEntries, signalling that entry 9 is safe to apply. Each Follower applies entry 9 to its state machine, the key-value view that clients read from. All three replicas now hold the Pod at index 9, and a linearizable read returns it from any member.',
     chips: { ...ROLES, l1: '9 / 9', l2: '9 / 9', l3: '9 / 9', termChip: TERM, acksChip: '2 of 2', quorumChip: QUORUM_MET },
     wires: { replicate: 'AppendEntries · commit 9' },
     opacity: LIVE,
@@ -185,7 +185,7 @@ export const STEPS_SPEC = [
   {
     id: 'quorum-lost',
     duration: 2650,
-    narration: 'Both Followers go silent, so the Leader holds one vote of three and quorum is lost. Entry 10 appends but cannot commit, within two election timeouts the Leader steps down, and the write fails with etcdserver: request timed out. Linearizable reads stop, while serializable reads answer locally and may be stale until a majority returns.',
+    narration: 'Both Followers go silent, so the Leader holds one vote of three and quorum is lost. Entry 10 appends but cannot commit. Within two election timeouts the Leader steps down, and the write fails with etcdserver: request timed out. Linearizable reads stop, while serializable reads answer locally and may be stale until a majority returns.',
     // r1 ends stood down (S-13), the rewind puts the Leader back.
     chips: { ...ROLES, r1: 'Follower', l1: '10 / 9', l2: '9 / 9', l3: '9 / 9', termChip: TERM, acksChip: '0 of 2', quorumChip: QUORUM_LOST },
     opacity: SILENCED,

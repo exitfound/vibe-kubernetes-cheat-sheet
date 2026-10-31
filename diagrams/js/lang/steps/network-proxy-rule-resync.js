@@ -1,0 +1,24 @@
+// Russian for network-proxy-rule-resync: its aria sentence, then its narration in step order, keyed by the English
+// in the card module. Loaded by dialog.js only while Russian is on (S-58).
+export const RU = {
+  "The kube-proxy sync loop drawn as a clock. When a Pod is deleted an EndpointSlice update arrives, and one hundred endpoint changes stack up on the axis, on the change side. Lower down, on the write side, minSyncPeriod 0s shows one hundred separate kernel updates, and the default 1s floor about five updates of twenty endpoints each. A bracket over the first burst marks the window a single change waits, and a syncPeriod resync stands alone with no change above it":
+    "Цикл синхронизации kube-proxy нарисован в виде часов. Когда удаляют Pod, приходит обновление EndpointSlice, и сто изменений эндпоинтов копятся на оси, на стороне изменений. Ниже, на стороне записи, при minSyncPeriod 0s видно сто отдельных обновлений ядра, а при минимуме по умолчанию 1s примерно пять обновлений по двадцать эндпоинтов. Скобка над первой пачкой отмечает окно, в течение которого ждёт одно изменение, а resync по syncPeriod стоит отдельно, и над ним нет ни одного изменения",
+
+  "When a Pod dies, it reaches this loop only as a change to the EndpointSlice that listed the endpoint of that Pod. The change by itself rewrites nothing. It marks the rules stale and asks for a resync, and it is the resync that touches the kernel. How soon that resync runs is set by the floor between resyncs, not by the change itself.":
+    "Когда Pod умирает, до этого цикла он доходит только как изменение EndpointSlice, где числился эндпоинт этого Pod. Само изменение ничего не переписывает. Оно помечает правила устаревшими и просит resync, а ядра касается уже resync. Как скоро он запустится, определяет минимальный интервал между resync, а не само изменение.",
+
+  "When the Deployment behind this Service is deleted, all 100 Pods of that Deployment go. The slice loses 100 ready endpoints, so 100 separate changes reach kube-proxy inside a very short window, and every one of them on its own is a reason to rewrite the rules in the kernel.":
+    "Когда удаляют Deployment за этим Service, уходят все 100 Pod этого Deployment. EndpointSlice теряет 100 готовых эндпоинтов, так что за очень короткое время до kube-proxy доходят 100 отдельных изменений, и каждое из них само по себе уже повод переписать правила в ядре.",
+
+  "With minSyncPeriod set to 0s kube-proxy resyncs immediately on every Service or EndpointSlice change. Those 100 deletions turn into 100 separate updates, and the endpoints are removed from the rules one at a time. That makes a great deal of redundant work whenever many things change in a short period.":
+    "Если minSyncPeriod равен 0s, kube-proxy делает resync сразу же на каждое изменение Service или EndpointSlice. Эти 100 удалений превращаются в 100 отдельных обновлений, и эндпоинты убираются из правил по одному. Выходит много лишней работы всякий раз, когда за короткое время меняется многое.",
+
+  "The floor is minSyncPeriod, and it is a floor rather than a delay. At the default 1s no resync starts sooner than a second after the previous one ends, so the changes waiting for it are aggregated. The same 100 deletions might fit into about 5 updates of 20 endpoints each. That is cheaper in CPU, and the full set of changes lands faster.":
+    "Этот минимум и есть minSyncPeriod, причём именно минимум, а не задержка. При значении по умолчанию 1s ни один resync не начнётся раньше, чем через секунду после конца предыдущего, так что ждущие изменения собираются вместе. Те же 100 удалений могут уложиться примерно в 5 обновлений по 20 эндпоинтов. Так выходит дешевле по CPU, и весь набор изменений применяется быстрее.",
+
+  "The floor is paid for in stale rules. A change that arrives just after a resync waits for the next one, up to a full minSyncPeriod, and until then the rules still carry an endpoint the API server already shows not ready. A larger floor aggregates more work and widens that window.":
+    "За минимум платят устаревшими правилами. Изменение, пришедшее сразу после resync, ждёт следующего, до целого minSyncPeriod, и до тех пор в правилах всё ещё остаётся эндпоинт, уже неготовый по данным API Server. Чем больше минимум, тем больше работы собирается вместе и тем шире это окно.",
+
+  "The other clock is syncPeriod, and it is not tied to any individual change. It paces the re-synchronizing and cleanup work no single change triggers: every syncPeriod kube-proxy checks whether an external component has interfered with its rules, and resyncs them if one has.":
+    "Вторые часы это syncPeriod, и к отдельным изменениям они не привязаны. Они задают темп повторной синхронизации и очистки, которые не запускает ни одно отдельное изменение. То есть kube-proxy каждый syncPeriod проверяет, не вмешался ли в его правила внешний компонент, и если да, делает resync.",
+};

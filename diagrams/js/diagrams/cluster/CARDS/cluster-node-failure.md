@@ -15,10 +15,10 @@ DEVIATES CLU.L-01: the frame is 134/106/16, the one exception to the top padding
          bind flight read as one beat.
          S-09: step 0 is `healthy`, not `idle`. It is static and silent like every poster, and its
          id names what it draws: Node-1 Ready on a fresh Lease, the state the six steps take apart.
-CONTENT  Sources (v1.36): Node Status, Node Taints, Taint-Based Evictions, Force Delete StatefulSet
-         Pods, node-lifecycle, taint-eviction, lease, podgc code at v1.36.0. Flip PUT, taint PATCH,
-         Lease PUT, grace 50s (the page has 40s). DELETE after a DisruptionTarget PATCH, bypasses
-         PDBs, never "evicts". Status PATCHes on change or every 5 min, either resets the probe.
-         ReplicaSet, not Deployment, recreates. Terminating clears three ways (T-19). `3. NotReady`
-         is kubectl's Unknown. Paths read `node-1`, the controller is `node-lifecycle-controller`.
+CONTENT  Sources (v1.36): the four cited pages, node-lifecycle, taint-eviction, lease, podgc code
+         at v1.36.0. Flip PUT, taint PATCH, Lease PUT, grace 50s (the page has 40s). DELETE after a
+         DisruptionTarget PATCH, bypasses PDBs, never "evicts". Status PATCHes on change or every 5
+         min, either resets the probe. ReplicaSet, not Deployment, recreates. Terminating clears
+         three ways (T-19). "Still holds the container" is ruled out: a panicked Node runs none.
+         `3. NotReady` is kubectl's Unknown. Paths `node-1`, controller `node-lifecycle-controller`.
 ```

@@ -13,10 +13,10 @@ DEVIATES L-03: the ReplicaSet starts at 340, 20 units behind the panel corner at
          for the object, and a fifth chip breaks the 2 x 2 grid that ends on the 624 rail.
 CONTENT  Sources (v1.36): Resource Quotas, Limit Ranges, Admission Controllers, Pod Lifecycle, the
          ReplicaSet API reference, `AllOrderedPlugins` and the quota plugin at release-1.36.
-         The ReplicaSet chip reads `N created`, never `N ready`, and the cells read `Pending`, never
-         `Running`: no Node is drawn. The admission increment claims no exclusivity, the quota
-         controller also recalculates. `exceeded quota` and 403 quote the API. Equality passes, so
-         web-2 lands on the ceiling. Step 1 says `cannot count`, not `is rejected`.
+         The RS chip reads `N created`, not `N ready`, cells `Pending`, not `Running`: no Node drawn.
+         The admission increment claims no exclusivity, the quota controller also recalculates.
+         `exceeded quota` and 403 quote the API. Equality passes, so web-2 lands on the ceiling. Step
+         1 says `cannot count`, not `is rejected`. LimitRanger `applies` defaultRequest, never `sets`.
 OPEN     On the quota step both chips light at entry while `rewind` still shows the old values: a
          deferred cue would light nothing on the reduced, prev and reset paths.
 ```

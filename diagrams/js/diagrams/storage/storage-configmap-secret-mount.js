@@ -174,7 +174,7 @@ export const STEPS_SPEC = [
   {
     id: 'swap',
     duration: 7800,
-    narration: 'In the same sync, Kubelet points a new ..data_tmp symlink at v2 and renames it over ..data. On Linux the rename is atomic, so opening app.conf gets all of v1 or all of v2, never a mix, and only then is the v1 directory deleted. Nothing restarts the app: the next time it opens app.conf, it reads v2. A subPath mount of app.conf would keep v1 until its container restarts.',
+    narration: 'In the same sync, Kubelet points a new ..data_tmp symlink at v2 and renames it over ..data. On Linux the rename is atomic, so opening app.conf gets all of v1 or all of v2, never a mix. Only then is the v1 directory deleted. Nothing restarts the app: the next time it opens app.conf, it reads v2. A subPath mount of app.conf would keep v1 until its container restarts.',
     chips: C_REREAD,
     sublabels: TO_V2,
     // The static end state is after the rename, the delete and the re-read, and rewind puts the

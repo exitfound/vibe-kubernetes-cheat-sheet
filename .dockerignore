@@ -13,6 +13,7 @@
 **/node_modules
 _site
 **/README.md
+**/README.ru.md
 LICENSE
 **/CLAUDE.md
 **/CARDS.md

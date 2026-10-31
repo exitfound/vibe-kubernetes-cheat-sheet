@@ -61,7 +61,7 @@ const PACING = new Map([
   ['network-client-ip-preservation', { speed: 6, clamp: 0 }],
   // Every ball rides 15% over its base pace, on request: tagged legs on LEG_DUR for a readable
   // address, untagged short hops on BRISK_HOP_MS under the floor.
-  ['network-nodelocal-dnscache', { speed: 20, clamp: 14 }],
+  ['network-nodelocal-dnscache', { speed: 22, clamp: 16 }],
   // Short lookup legs ride BRISK_HOP_MS under the 700ms floor, where they read as crawling.
   ['network-headless-service', { speed: 8, clamp: 8 }],
   // The query, the answer and the reply are all tagged and ride LEG_DUR so each tag reads the whole way.

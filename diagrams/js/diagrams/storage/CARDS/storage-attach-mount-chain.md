@@ -16,5 +16,5 @@ CONTENT  Sources (1.36): CSI spec v1.13.0, volumes.md, external-attacher v4.12.0
          `if still blank`. NodeStage is `the first of two Node calls`: NodeGetCapabilities
          precedes it. Kubelet creates and deletes the staging dir. `usually` a bind mount. fsGroup
          only `may` change, the driver can own it. Detach waits for unmount only `On a healthy
-         Node`: force detach and out-of-service skip it.
+         Node`: force detach and out-of-service skip it. Reclaim acts only once the claim goes.
 ```

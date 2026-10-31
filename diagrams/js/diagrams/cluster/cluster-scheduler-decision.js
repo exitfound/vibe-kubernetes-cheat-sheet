@@ -63,7 +63,7 @@ const PLACED_INNER = { dx: 10, dy: 28, w: 196, h: 52 };
 
 // List order is z-order: chips, lanes and Nodes first, the packet layer under the chain, top row last.
 export const SCENE = {
-  'aria-label': 'Scheduler decision cycle: a Pod taken off the queue, four candidate Nodes filtered and then scored, the winning choice written back through the API into ETCD, and the Kubelet on Node-4 picking the Pod up and running it',
+  'aria-label': 'Scheduler decision cycle in which a Pod is taken off the queue, four candidate Nodes are filtered and then scored, the winning choice is written through the API into ETCD, and the Kubelet on Node-4 picks the Pod up and runs it',
   parts: [
     P.defs(),
     P.chip({ key: 'queueChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'queued pod', value: 'none' }),
@@ -84,10 +84,10 @@ export const SCENE = {
     P.wire({ key: 'watch', x: WIRE_WATCH_X, y: WIRE_RESP_Y, anchor: 'start' }),
     P.box({ key: 'n1', x: NODE_X(0), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1', sublabel: 'taint dedicated=db:NoSchedule' }),
     P.box({ key: 'n2', x: NODE_X(1), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2', sublabel: 'mem unreserved 200Mi (req 800Mi)' }),
-    P.box({ key: 'n3', x: NODE_X(2), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-3', sublabel: 'cpu 40% / mem 60%' }),
+    P.box({ key: 'n3', x: NODE_X(2), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-3', sublabel: 'requested cpu 40% / mem 60%' }),
     // tune() only captures the two refs the last step hides behind the Pod.
     P.box({
-      key: 'n4', x: NODE_X(3), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-4', sublabel: 'cpu 25% / mem 35%',
+      key: 'n4', x: NODE_X(3), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-4', sublabel: 'requested cpu 25% / mem 35%',
       tune: (el, refs) => {
         refs.n4Label = el.querySelector('.diagram-box-label');
         refs.n4Sub = el.querySelector('.diagram-box-sublabel');
@@ -105,7 +105,7 @@ export const SCENE = {
     P.pod({
       key: 'placedPod', id: 'placedPod', innerKey: 'placedPodBox', opacity: 0,
       x: PLACED_X, y: PLACED_Y, w: PLACED_W, h: PLACED_H, label: 'Pod', sublabel: '', containers: 0,
-      inner: { ...PLACED_INNER, label: 'my-app-7d4-x2k9p', sublabel: 'nginx:1.27' },
+      inner: { ...PLACED_INNER, label: 'my-app-7d4-x2k9p', sublabel: 'nginx:1.30' },
     }),
     P.packets(),
     // Chain after the packet layer so it renders on top of it.
@@ -147,7 +147,7 @@ export const STEPS_SPEC = [
   {
     id: 'queue',
     duration: 2800,
-    narration: 'A new Pod my-app-7d4-x2k9p reaches the Scheduler on its watch with spec.nodeName empty. Until that field is set, no Kubelet will start it. The Scheduler pops it off the active queue and runs one scheduling cycle.',
+    narration: 'A new Pod my-app-7d4-x2k9p reaches the Scheduler on its watch with spec.nodeName empty. Until that field is set, no Kubelet will start this Pod. The Scheduler pops it off the active queue and runs one scheduling cycle for it.',
     chips: { queueChip: POD, candChip: '4 of 4', winnerChip: 'none', v1: 'none', v2: 'none', v3: 'none', v4: 'none' },
     wires: { resp: 'watch ADDED · spec.nodeName=""' },
     opacity: { n1: 1, n2: 1, n3: 1, n4: 1 },
@@ -163,7 +163,7 @@ export const STEPS_SPEC = [
   {
     id: 'filter',
     duration: 2300,
-    narration: 'Filter plugins test each Node against the Pod requirements, and in a large cluster they stop once enough Nodes fit. Node-1 carries a NoSchedule taint without a matching toleration, Node-2 lacks the requested memory. Both are dropped before scoring.',
+    narration: 'Filter plugins test each Node against the Pod requirements, and in a large cluster they stop once enough Nodes fit. Node-1 carries a NoSchedule taint the Pod does not tolerate, and Node-2 lacks the requested memory. Both are dropped before scoring.',
     chips: { queueChip: POD, candChip: SURVIVORS, winnerChip: 'none', ...FILTERED, v3: 'none', v4: 'none' },
     opacity: { n1: DROPPED, n2: DROPPED, n3: 1, n4: 1 },
     // Filtering is the Scheduler's own work, so the Scheduler lights.
@@ -178,7 +178,7 @@ export const STEPS_SPEC = [
     id: 'score',
     // No motion: reading time sets this.
     duration: 2200,
-    narration: 'Surviving Nodes are ranked by score plugins like NodeResourcesFit, NodeAffinity and PodTopologySpread. Each returns 0 to 100 per Node and the weighted sum of all of them ranks the Nodes: Node-3 78, Node-4 92. See the Pod Priority and Preemption card.',
+    narration: 'Score plugins like NodeResourcesFit, NodeAffinity and PodTopologySpread rate the surviving Nodes. Each scores a Node 0 to 100, and their weighted sum ranks the Nodes. Node-3 sums to 78, Node-4 to 92. See the Pod Priority and Preemption card.',
     chips: { queueChip: POD, candChip: SURVIVORS, winnerChip: 'none', ...SCORED },
     opacity: { n1: DROPPED, n2: DROPPED },
     // Computed inside the Scheduler: nothing travels, nothing pulses.
@@ -188,7 +188,7 @@ export const STEPS_SPEC = [
   {
     id: 'bind',
     duration: 3000,
-    narration: 'Highest score wins, ties broken at random. The Scheduler assumes the Pod on Node-4, counting its requests for the next Pod. It POSTs a Binding to the binding subresource, not a Pod patch, and the API writes it into ETCD, which acks the Raft commit.',
+    narration: 'Highest score wins, a tie is broken at random. The Scheduler assumes the Pod on Node-4 and counts its requests for the next Pod. Then it POSTs a Binding to the binding subresource, not a Pod patch. The API sets the Pod spec.nodeName in ETCD, and ETCD acks the Raft commit.',
     chips: { queueChip: POD, candChip: SURVIVORS, winnerChip: WINNER, ...SCORED },
     wires: { req: 'POST .../pods/my-app-7d4-x2k9p/binding', persist: 'spec.nodeName=Node-4 · rv=903' },
     opacity: { n1: DROPPED, n2: DROPPED },
@@ -205,7 +205,7 @@ export const STEPS_SPEC = [
   {
     id: 'placed',
     duration: 2800,
-    narration: 'The Kubelet on Node-4 watches /api/v1/pods?fieldSelector=spec.nodeName=Node-4, so the write arrives there as an ADDED event. It pulls the image and starts the containers, and the Pod goes from Pending to Running.',
+    narration: 'The Kubelet on Node-4 watches /api/v1/pods?fieldSelector=spec.nodeName=Node-4, so this write reaches it as an ADDED event. Then the Kubelet pulls the image and starts the containers, and the Pod goes from Pending to Running.',
     chips: { queueChip: POD, candChip: SURVIVORS, winnerChip: WINNER, ...SCORED },
     wires: { watch: 'watch ADDED · spec.nodeName=Node-4' },
     // Node-4 own text hides so the inner box reads cleanly inside the slot.

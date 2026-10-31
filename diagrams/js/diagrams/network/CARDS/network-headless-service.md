@@ -10,7 +10,7 @@ DEVIATES M-12: the eight lookup legs ride `BRISK_HOP_MS` 595, registered in `PAC
          700 floor makes the 152 unit legs crawl.
 CONTENT  Sources, 1.36: Headless Services, DNS for Services and Pods, StatefulSet network ID,
          kube-proxy and endpointslice code, kubeadm Corefile, CoreDNS v1.14.2 kubernetes plugin.
-         `no kube-proxy rules and no load balancing from the platform`: `loadbalance` only shuffles.
+         "Nothing balances" is ruled out: the platform does not balance, `loadbalance` shuffles.
          `with a selector`: else no slice. `default ClusterFirst`. A Pod name is served while ready.
          `30 seconds under kubeadm`: the plugin default TTL is 5. Docs vs code: the StatefulSet page
          says CoreDNS caches 30s, kubeadm sets `disable success` on cluster.local, so clients cache.

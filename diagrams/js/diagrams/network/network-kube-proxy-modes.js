@@ -94,7 +94,7 @@ function ipvsEngine({ x, y, w, h }) {
 
 // Z-order: client + pods, then the two lanes, then the tags, then chips, then packets on top.
 export const SCENE = {
-  'aria-label': 'kube-proxy backend selection as two routes: the iptables route walks a chain KUBE-SERVICES to KUBE-SVC to KUBE-SEP box by box that grows O(n) with Services, while the IPVS route resolves a backend in one O(1) in-kernel hash lookup',
+  'aria-label': 'kube-proxy backend selection as two routes, where the iptables route walks box by box a chain KUBE-SERVICES to KUBE-SVC to KUBE-SEP that grows O(n) with Services, while the IPVS route resolves a backend in one O(1) in-kernel hash lookup',
   parts: [
     P.defs(),
     P.pod({
@@ -168,7 +168,7 @@ export const STEPS_SPEC = [
   {
     id: 'iptables',
     duration: 4600,
-    narration: 'In iptables mode the packet walks a chain box by box. It enters KUBE-SERVICES, jumps to the per-Service KUBE-SVC chain that picks an endpoint by statistic random, then a KUBE-SEP chain DNATs it to that Pod, here 10.244.2.7. The kernel walks these rules in sequence, so the chain grows O(n) with the number of Services.',
+    narration: 'In iptables mode the packet walks a chain box by box. It first enters KUBE-SERVICES and jumps to the per-Service KUBE-SVC chain that picks an endpoint by statistic random, and then a KUBE-SEP chain DNATs the packet to that Pod, here 10.244.2.7. KUBE-SERVICES has a rule per Service and the kernel checks them in order, so the walk grows O(n) with the number of Services.',
     // S-13: the static block states the END. The pick does not exist until KUBE-SVC makes it, so
     // `rewind` puts the chip back to the neutral reading `idle` states and `h2` turns it over.
     chips: { ...BASE_COST, pickChip: 'statistic random' },
@@ -192,7 +192,7 @@ export const STEPS_SPEC = [
   {
     id: 'ipvs',
     duration: 3700,
-    narration: 'In IPVS mode the same kind of connection skips the walk. The Service is a virtual server and its endpoints are real servers in an in-kernel hash table, so a backend is found in one constant-time lookup no matter how many Services exist, here 10.244.3.9, picked by a scheduling algorithm such as round-robin, the default, or least-connection.',
+    narration: 'In IPVS mode the same kind of connection skips the walk. The Service is a virtual server and its endpoints are real servers in an in-kernel hash table, so one constant-time lookup finds a backend however many Services exist. Here it is 10.244.3.9, picked by a scheduling algorithm such as round-robin (the default) or least-connection.',
     // The same shape as `iptables`, deliberately: each mode step enters on NO_PICK and produces its own
     // answer (P-04).
     chips: { ...BASE_COST, pickChip: 'scheduler rr / lc' },
@@ -214,7 +214,7 @@ export const STEPS_SPEC = [
     id: 'scale',
     // The deepest panel, 204 on this step at 1100x800, ends 84 above the Client Pod (L-08).
     duration: 4300,
-    narration: 'Either mode turns the ClusterIP into a ready backend, and what scale exposes is the lookup. With thousands of Services the iptables chain is thousands of rules long and every new one slows the walk, while the IPVS hash stays one step. Large clusters long preferred IPVS for that, but it has been deprecated since v1.35 and may be removed in a future release, with nftables as its replacement.',
+    narration: 'Either mode turns the ClusterIP into a ready backend, and at scale they differ in the lookup. With thousands of Services the iptables chain is thousands of rules long and every new rule slows the walk, while the IPVS hash stays one step. Large clusters long preferred IPVS for that, but it has been deprecated since v1.35 and may be removed in a future release, with nftables as its replacement.',
     chips: { iptChip: 'thousands of rules', pickChip: 'unchanged by scale', ipvsChip: 'still one lookup' },
     wires: { ipt: 'grows with every Service', ipvs: 'constant time' },
     // S-13: the static block states the END, so the pile stands here and `rewind` puts it back down.

@@ -55,7 +55,7 @@ const BIND_WIRE_X = DOWN_X + 12, BIND_WIRE_Y = NODE_Y + 20;
 
 // List order is z-order: lanes and labels, chips, the frame and its contents, packets, top row last.
 export const SCENE = {
-  'aria-label': 'Node registration: a Kubelet self-registering its machine as a Node object, the status it publishes, the not-ready taint that gates Pods while Ready is False, the first Pod placed once Ready turns True, and the Lease heartbeat',
+  'aria-label': 'Node registration, where a Kubelet self-registers its machine as a Node object and publishes its status, the not-ready taint keeps ordinary Pods off while Ready is False, the first Pod is placed once Ready turns True, and a Lease carries the heartbeat',
   parts: [
     P.defs(),
     // A relationship, not a route: nothing travels between the API and the Lease.
@@ -98,7 +98,7 @@ export const SCENE = {
     P.pod({
       key: 'firstPod', id: 'firstPod', innerKey: 'firstPodBox', opacity: 0,
       x: SLOT_X(2), y: SLOT_Y, w: SLOT_W, h: SLOT_H, label: 'Pod', sublabel: '', containers: 0,
-      inner: { ...POD_INNER, label: 'web-0', sublabel: 'nginx:1.27' },
+      inner: { ...POD_INNER, label: 'web-0', sublabel: 'nginx:1.30' },
     }),
     P.box({ key: 'api', x: API_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'API', sublabel: 'nodes + nodes/status' }),
     P.cylinder({ key: 'lease', x: LEASE_X, y: TOP_Y, w: LEASE_W, h: BOX_H, label: 'Lease' }),
@@ -148,7 +148,7 @@ export const STEPS_SPEC = [
   {
     id: 'register',
     duration: 4000,
-    narration: 'The Kubelet creates the Node object through the API, named after the machine, and the POST already carries its status: addresses, capacity, nodeInfo and Ready False. The TaintNodesByCondition admission plugin, on by default, adds the not-ready taint as the object is created. The name identifies the Node: two Nodes cannot carry the same name at the same time.',
+    narration: 'The Kubelet creates the Node object through the API, named after the machine, and the POST already carries its status: addresses, capacity, nodeInfo and Ready False. The TaintNodesByCondition admission plugin, on by default, adds the not-ready taint as the object is created. The name identifies the Node, so two Nodes cannot carry the same name at the same time.',
     chips: BLOCKED,
     wires: { call: 'POST /api/v1/nodes · Node-1' },
     sublabels: { runtime: STARTING },
@@ -166,7 +166,7 @@ export const STEPS_SPEC = [
   {
     id: 'status',
     duration: 3700,
-    narration: 'From then on the Kubelet PATCHes that status whenever it changes, and every 5 minutes by default when nothing does. Its own labels sit on the object, not the status, and the NodeRestriction admission plugin holds the kubernetes.io ones to a fixed list, so a Kubelet can label itself with a hostname or a zone but never with a node-role.',
+    narration: 'From then on the Kubelet PATCHes that status whenever it changes, and every 5 minutes by default when nothing does. Its own labels sit on the object, not the status, and the NodeRestriction admission plugin holds the kubernetes.io ones to a fixed list. So a Kubelet can label itself with a hostname or a zone but never with a node-role.',
     chips: BLOCKED,
     wires: { call: 'PATCH .../nodes/node-1/status · every 5m or on change' },
     sublabels: { runtime: STARTING },
@@ -178,7 +178,7 @@ export const STEPS_SPEC = [
   {
     id: 'not-ready',
     duration: 3900,
-    narration: 'The object exists and takes no ordinary Pod yet. Each status report still says Ready False while the machine is not healthy, and healthy means everything a Pod needs on it is up, the runtime included. Ready False keeps node.kubernetes.io/not-ready on the Node, and scheduling reads taints and not conditions, so only a Pod that tolerates it lands here.',
+    narration: 'The object exists and takes no ordinary Pod yet. Each status report still says Ready False while the machine is not healthy, and healthy means everything a Pod needs on it is up, the runtime included. Ready False keeps node.kubernetes.io/not-ready on the Node, and scheduling reads taints, not conditions. So only a Pod that tolerates it lands here.',
     chips: BLOCKED,
     wires: { call: 'PATCH .../nodes/node-1/status · Ready False' },
     sublabels: { runtime: STARTING },
