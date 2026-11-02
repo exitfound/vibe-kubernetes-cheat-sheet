@@ -7,7 +7,7 @@ case "$out" in /*) ;; *) out="$PWD/$out" ;; esac
 cd "$(dirname "$0")/../.."
 mkdir -p "$out"
 cp index.html 404.html favicon.svg favicon.ico robots.txt sitemap.xml llms.txt CNAME "$out/"
-cp -r images cli diagrams scheme "$out/"
+cp -r images cli diagrams "$out/"
 rm -rf "$out/diagrams/test"
 # Two shapes of design record: the per-category CARDS.md and the per-card CARDS/ folder beside it.
 # README.md and README.ru.md are the GitHub guides of a sub-app, not pages. Exclusion is by NAME, so a

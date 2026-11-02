@@ -36,7 +36,7 @@ jobs:
             || ! git fetch --quiet --depth=1 origin "$BEFORE"; then
             echo "ship=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          if git diff --quiet "$BEFORE" "$GITHUB_SHA" -- index.html 404.html cli diagrams images scheme \
+          if git diff --quiet "$BEFORE" "$GITHUB_SHA" -- index.html 404.html cli diagrams images \
             favicon.svg favicon.ico robots.txt CNAME Dockerfile compose.yaml configs .dockerignore \
             tools/pages .github/workflows/release.yml; then
             echo "ship=false" >> "$GITHUB_OUTPUT"
@@ -87,7 +87,6 @@ jobs:
             cli/ \
             diagrams/ \
             images/ \
-            scheme/ \
             favicon.svg \
             favicon.ico \
             robots.txt \

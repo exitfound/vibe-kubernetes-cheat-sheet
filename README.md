@@ -87,7 +87,6 @@ index.html               hub landing page, self-contained
 cli/                     Commands app and the chrome every page shares
 diagrams/                Diagrams app, its catalogue and its test suite
 images/                  social previews and the home-screen icon
-scheme/                  redirect from the old /scheme/ address to /diagrams/
 tools/pages/build.mjs    writes the static pages, sitemap.xml and llms.txt
 tools/deploy/            stages and version-stamps the site for GitHub Pages
 tools/smoke/site.mjs     drives every key, button and view in a browser

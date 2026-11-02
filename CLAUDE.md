@@ -93,12 +93,8 @@ a miss: `curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/<path>` mu
 `404.html` is the custom not-found page (a large 404, one line of text and links to the two apps,
 under the shared header and sidebar).
 It links `/cli/css/chrome.css` and `/cli/css/styles.css` and imports the shared chrome modules from
-`/cli/js/lib/`, like every other page. Its inline script forwards any `/scheme/...` path (the old
-address of `/diagrams/`) to the same place there.
-
-`scheme/index.html` stands in for a 301 GitHub Pages cannot send: an instant meta refresh plus a
-canonical to `/diagrams/` (keeping the hash), so the old `/scheme/` URL passes to the new one in
-search engines. It is a shipped top-level folder, named in `stage.sh` and `release.yml`.
+`/cli/js/lib/`, like every other page. Its inline script forwards any path under the old scheme address (the former name of
+`/diagrams/`, its folder now deleted) to the same place there.
 
 ## Shared chrome (all three pages)
 
